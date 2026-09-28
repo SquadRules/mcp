@@ -233,8 +233,7 @@ async function npmVersion(version) {
 async function publishNpm(manifest) {
   await ensurePublished({
     lookup: () => npmVersion(manifest.version),
-    // npm OIDC authorizes only `npm publish`, and publish sets its own dist-tag, so the
-    // version goes straight to its final channel (latest on main, else the prerelease).
+    // npm OIDC authorizes only `npm publish`, which sets the version's dist-tag directly.
     publish: async () => run('npm', ['publish', `${dir}/package.tgz`, '--access', 'public', '--provenance', '--ignore-scripts',
       '--tag', manifest.channel], { env: { ...noCredentials(), GITHUB_SHA: manifest.sourceSha, GITHUB_REF: `refs/heads/${manifest.branch}` } }),
     verify: existing => requireSame(existing.dist?.integrity, manifest.npmIntegrity, 'npm package'),
@@ -311,8 +310,9 @@ async function publish() {
       try { tag = await api.request(`/git/ref/tags/v${manifest.version}`); } catch (error) { if (error.status !== 404) throw error; }
       if (tag) requireSame(tag.object.sha, manifest.sourceSha, 'Git tag');
       else await api.request('/git/refs', { method: 'POST', body: { ref: `refs/tags/v${manifest.version}`, sha: manifest.sourceSha } });
-      // Bind the still-mutable draft to the now-existing tag; a draft predating its git ref keeps an untagged-<id> placeholder that publishing never rebinds.
-      if (release.tag_name !== `v${manifest.version}`) await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { tag_name: `v${manifest.version}` } });
+      // A draft made before its ref exists is keyed to an untagged-<id> placeholder that never self-heals on publish; re-PATCH the now-resolved name to bind it.
+      await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { tag_name: `v${manifest.version}` } });
+      requireSame((await api.request(`/releases/${release.id}`)).tag_name, `v${manifest.version}`, 'GitHub release tag');
       await recordChannel(api, manifest);
     },
     npm: publishNpm,
