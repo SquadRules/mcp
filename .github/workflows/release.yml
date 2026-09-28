@@ -35,7 +35,7 @@ jobs:
   resolve:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # delete unrecoverable untagged-* orphan drafts left by interrupted runs
       actions: read
     outputs:
       skip: ${{ steps.resolve.outputs.skip }}

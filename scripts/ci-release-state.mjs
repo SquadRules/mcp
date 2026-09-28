@@ -46,19 +46,32 @@ export function channelTags(manifest) {
 export function requireSame(actual, expected, artifact) {
   if (actual !== expected) throw new Error(`${artifact} immutable identity mismatch`);
 }
-export async function ensurePublished({ lookup, publish, verify, wait }) {
+// Immutable writes can be accepted by the remote yet expose queryable metadata only after
+// an eventual-consistency delay (npm registry propagation is the common case). Poll longer
+// than the generic command retry so a completed publication is verified rather than mistaken
+// for a failure that would strand the release as an unrecoverable draft. A real identity
+// mismatch is still fatal and thrown on the first occurrence.
+export async function ensurePublished({ lookup, publish, verify, attempts = 12, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   let accepted = false;
-  return retry(async () => {
-    let existing = await lookup();
-    if (!existing && !accepted) {
-      await publish();
-      accepted = true;
-      existing = await lookup();
+  let last;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      let existing = await lookup();
+      if (!existing && !accepted) {
+        await publish();
+        accepted = true;
+        existing = await lookup();
+      }
+      if (!existing) throw new Error('Published metadata is not yet available');
+      await verify(existing);
+      return existing;
+    } catch (error) {
+      if (/identity mismatch|Invalid|unvalidated/.test(error.message)) throw error;
+      last = error;
+      if (attempt < attempts) await wait(Math.min(attempt * 5000, 30000));
     }
-    if (!existing) throw new Error('Published metadata is not yet available');
-    await verify(existing);
-    return existing;
-  }, wait);
+  }
+  throw last;
 }
 export async function recordChannel(api, manifest) {
   const ref = `notes/semantic-release-v${manifest.version}`;

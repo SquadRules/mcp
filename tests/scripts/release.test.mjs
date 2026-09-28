@@ -191,6 +191,32 @@ test('missing post-publish metadata is transient, not proof of a mismatched arti
   assert.equal(writes, 1);
 });
 
+test('post-publish metadata propagation outlasts the old three-attempt window', async () => {
+  let reads = 0;
+  let writes = 0;
+  const waits = [];
+  // npm registry can withhold metadata well past three lookups; publication must keep polling.
+  await ensurePublished({
+    lookup: async () => ++reads < 8 ? null : { digest: 'expected' },
+    publish: async () => { writes++; },
+    verify: value => requireSame(value.digest, 'expected', 'npm'),
+    wait: async ms => { waits.push(ms); },
+  });
+  assert.equal(writes, 1);
+  assert.ok(reads >= 8); assert.equal(waits.length, 6);
+});
+
+test('propagation polling still fails fast on a real identity mismatch', async () => {
+  let reads = 0; let writes = 0;
+  await assert.rejects(ensurePublished({
+    lookup: async () => { reads++; return writes ? { digest: 'wrong' } : null; },
+    publish: async () => { writes++; },
+    verify: value => requireSame(value.digest, 'expected', 'npm'),
+    wait: async () => {},
+  }), /identity mismatch/);
+  assert.equal(reads, 2); // published then re-read once; the mismatch is not retried away
+});
+
 const audit = (count = 0) => JSON.stringify({ vulnerabilities: {}, metadata: { vulnerabilities: {
   moderate: count, high: 0, critical: 0,
 } } });

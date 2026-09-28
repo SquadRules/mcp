@@ -41,15 +41,24 @@ async function gates(api, sha, branch) {
 
 async function resolve() {
   const api = new GitHub();
-  const drafts = (await api.pages('/releases')).filter(r => r.draft && /^v\d+\./.test(r.tag_name))
-    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-  const recovery = drafts[0];
   const event = process.env.GITHUB_EVENT_PATH ? json(process.env.GITHUB_EVENT_PATH) : {};
   if (process.env.GITHUB_EVENT_NAME === 'workflow_run' &&
       (event.workflow_run?.head_branch !== 'main' || event.workflow_run?.event !== 'push' ||
        event.workflow_run?.head_repository?.full_name !== api.repo)) {
     output({ skip: true }); return report({ state: 'ignored', reason: 'not a trusted main validation event' });
   }
+  const releases = await api.pages('/releases');
+  // An interrupted run can leave a release whose git tag was created but whose GitHub
+  // publication never reached `complete`; GitHub then detaches it to an unrecoverable
+  // "untagged-*" draft (our identity checks require tag_name vX). Delete those orphans so
+  // they cannot pile up on the Releases page or force a fresh version reservation each run.
+  // Genuine in-flight drafts keep tag_name vX and are preserved for recovery below.
+  for (const orphan of releases.filter(r => r.draft && /^untagged-/.test(r.tag_name ?? ''))) {
+    await api.request(`/releases/${orphan.id}`, { method: 'DELETE' });
+  }
+  const drafts = releases.filter(r => r.draft && /^v\d+\./.test(r.tag_name))
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+  const recovery = drafts[0];
   let branch = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? process.env.GITHUB_REF_NAME : 'main';
   if (!branch || process.env.GITHUB_REF_TYPE === 'tag') throw new Error('Release requires a branch');
   let sha;
