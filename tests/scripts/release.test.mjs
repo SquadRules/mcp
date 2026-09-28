@@ -9,7 +9,6 @@ import { parserOpts, releaseRules, prereleaseChannel } from '../../release.confi
 import { ARTIFACTS, assertManifest, digest, channelTags, requireSame, retry, releaseRecord, recordBody, ensurePublished, publishStages, recordChannel } from '../../scripts/ci-release-state.mjs';
 import { verifyFiles, runToFile } from '../../scripts/ci-release.mjs';
 import { auditResult, nativeProgressing } from '../../scripts/ci-audit.mjs';
-import { promoteNpmTag } from '../../scripts/ci-npm.mjs';
 
 const manifest = (overrides = {}) => ({ schema: 1, sourceSha: 'a'.repeat(40), branch: 'main', version: '5.1.2',
   channel: 'latest', validated: true, imageDigest: `sha256:${'b'.repeat(64)}`, npmIntegrity: 'sha512-YWJjZA==',
@@ -223,22 +222,6 @@ const audit = (count = 0) => JSON.stringify({ vulnerabilities: {}, metadata: { v
 test('audit clean no-op and structured moderate assessment', () => {
   assert.equal(auditResult(audit(), 0).count, 0);
   assert.equal(auditResult(audit(1), 1).count, 1);
-});
-test('npm promotion exchanges OIDC and uses only a package-scoped temporary credential', async () => {
-  const calls = [];
-  const request = async (url, options) => {
-    calls.push({ url: String(url), options });
-    return Response.json(calls.length === 1 ? { value: 'fixture-id' } : calls.length === 2 ? { token: 'fixture-exchange' } : {});
-  };
-  await promoteNpmTag('@owner/package', '1.2.3', 'latest', request, {
-    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://example.actions.githubusercontent.com/token', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fixture-request',
-  });
-  assert.equal(calls.length, 3);
-  assert.match(calls[0].url, /audience=npm%3Aregistry.npmjs.org/);
-  assert.match(calls[1].url, /oidc\/token\/exchange\/package\/%40owner%2Fpackage/);
-  assert.equal(calls[2].options.method, 'PUT');
-  assert.equal(calls[2].options.headers.Authorization, 'Bearer fixture-exchange');
-  await assert.rejects(promoteNpmTag('@owner/package', '1.2.3', 'latest', request, {}), /requires GitHub OIDC/);
 });
 
 test('registry and auth errors are not security findings', () => {

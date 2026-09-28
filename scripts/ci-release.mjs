@@ -4,7 +4,6 @@ import { pathToFileURL } from 'node:url';
 import { GitHub, gateRuns, output, report } from './ci-automation.mjs';
 import { ARTIFACTS, assertManifest, fileDigest, digest, releaseRecord, recordBody, channelTags, requireSame, retry, versionPattern, ensurePublished, publishStages, recordChannel } from './ci-release-state.mjs';
 import { registries, remoteManifest, registryRequest, download } from './ci-registry.mjs';
-import { promoteNpmTag } from './ci-npm.mjs';
 
 const dir = '.local/release';
 const packageName = '@jakub-plichcinski/kairos-mcp';
@@ -234,8 +233,11 @@ async function npmVersion(version) {
 async function publishNpm(manifest) {
   await ensurePublished({
     lookup: () => npmVersion(manifest.version),
+    // npm's OIDC trusted-publisher flow authorizes `npm publish` only, and publish sets
+    // its own dist-tag, so the version goes straight to its final channel (latest for
+    // main, the prerelease channel otherwise). A separate dist-tag PUT would 403.
     publish: async () => run('npm', ['publish', `${dir}/package.tgz`, '--access', 'public', '--provenance', '--ignore-scripts',
-      '--tag', `pending-${manifest.version}`], { env: { ...noCredentials(), GITHUB_SHA: manifest.sourceSha, GITHUB_REF: `refs/heads/${manifest.branch}` } }),
+      '--tag', manifest.channel], { env: { ...noCredentials(), GITHUB_SHA: manifest.sourceSha, GITHUB_REF: `refs/heads/${manifest.branch}` } }),
     verify: existing => requireSame(existing.dist?.integrity, manifest.npmIntegrity, 'npm package'),
   });
 }
@@ -285,7 +287,8 @@ async function promote(manifest, targets) {
     }
   }
   await retry(async () => {
-    await promoteNpmTag(packageName, manifest.version, manifest.channel);
+    // The channel tag is set atomically by `npm publish --tag <channel>`; npm OIDC does
+    // not authorize a separate dist-tag PUT, so this only verifies it propagated.
     const response = await fetch(`https://registry.npmjs.org/-/package/${encodeURIComponent(packageName)}/dist-tags`);
     if (!response.ok) throw new Error(`npm dist-tags: HTTP ${response.status}`);
     requireSame((await response.json())[manifest.channel], manifest.version, 'npm dist-tag');
