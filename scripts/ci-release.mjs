@@ -219,7 +219,7 @@ async function recover(api, release, record) {
 
 async function mark(api, release, record, stage) {
   record.stages[stage] = new Date().toISOString();
-  await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { body: recordBody(record) } });
+  await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { tag_name: `v${record.manifest.version}`, body: recordBody(record) } });
   report({ sourceSha: record.manifest.sourceSha, version: record.manifest.version, stages: record.stages });
 }
 
@@ -310,9 +310,7 @@ async function publish() {
       try { tag = await api.request(`/git/ref/tags/v${manifest.version}`); } catch (error) { if (error.status !== 404) throw error; }
       if (tag) requireSame(tag.object.sha, manifest.sourceSha, 'Git tag');
       else await api.request('/git/refs', { method: 'POST', body: { ref: `refs/tags/v${manifest.version}`, sha: manifest.sourceSha } });
-      // A draft made before its ref exists is keyed to an untagged-<id> placeholder that never self-heals on publish; re-PATCH the now-resolved name to bind it.
-      await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { tag_name: `v${manifest.version}` } });
-      requireSame((await api.request(`/releases/${release.id}`)).tag_name, `v${manifest.version}`, 'GitHub release tag');
+      // A draft made before its ref exists is keyed to an untagged-<id> placeholder, and any later release PATCH that omits tag_name re-detaches it; mark()/complete() therefore re-submit tag_name on every write.
       await recordChannel(api, manifest);
     },
     npm: publishNpm,
@@ -320,10 +318,12 @@ async function publish() {
     chart: manifest => publishChart(manifest, targets[1]),
     promoted: manifest => promote(manifest, targets),
     complete: async manifest => {
+      const tag = `v${manifest.version}`;
       const published = await api.request(`/releases/${release.id}`, { method: 'PATCH', body: {
-        draft: false, make_latest: manifest.version.includes('-') ? 'false' : 'true', body: recordBody(record),
+        tag_name: tag, draft: false, make_latest: manifest.version.includes('-') ? 'false' : 'true', body: recordBody(record),
       } });
       if (published.draft || !published.published_at) throw new Error('GitHub Release promotion was not confirmed');
+      requireSame((await api.request(`/releases/tags/${tag}`)).id, release.id, 'GitHub release tag binding');
       report({ state: 'published', sourceSha: manifest.sourceSha, version: manifest.version, imageDigest: manifest.imageDigest });
     },
   });
