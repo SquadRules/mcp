@@ -233,14 +233,12 @@ async function npmVersion(version) {
 async function publishNpm(manifest) {
   await ensurePublished({
     lookup: () => npmVersion(manifest.version),
-    // npm's OIDC trusted-publisher flow authorizes `npm publish` only, and publish sets
-    // its own dist-tag, so the version goes straight to its final channel (latest for
-    // main, the prerelease channel otherwise). A separate dist-tag PUT would 403.
+    // npm OIDC authorizes only `npm publish`, and publish sets its own dist-tag, so the
+    // version goes straight to its final channel (latest on main, else the prerelease).
     publish: async () => run('npm', ['publish', `${dir}/package.tgz`, '--access', 'public', '--provenance', '--ignore-scripts',
       '--tag', manifest.channel], { env: { ...noCredentials(), GITHUB_SHA: manifest.sourceSha, GITHUB_REF: `refs/heads/${manifest.branch}` } }),
     verify: existing => requireSame(existing.dist?.integrity, manifest.npmIntegrity, 'npm package'),
-    // npm's post-publish provenance pass keeps the version unqueryable for minutes, so
-    attempts: 30, // this slowest registry gets the widest still-capped poll (mismatches fast-fail)
+    attempts: 30, // npm's post-publish provenance pass keeps the version unqueryable for minutes; this slowest registry gets the widest still-capped poll (mismatches fast-fail)
   });
 }
 
@@ -313,6 +311,8 @@ async function publish() {
       try { tag = await api.request(`/git/ref/tags/v${manifest.version}`); } catch (error) { if (error.status !== 404) throw error; }
       if (tag) requireSame(tag.object.sha, manifest.sourceSha, 'Git tag');
       else await api.request('/git/refs', { method: 'POST', body: { ref: `refs/tags/v${manifest.version}`, sha: manifest.sourceSha } });
+      // Bind the still-mutable draft to the now-existing tag; a draft predating its git ref keeps an untagged-<id> placeholder that publishing never rebinds.
+      if (release.tag_name !== `v${manifest.version}`) await api.request(`/releases/${release.id}`, { method: 'PATCH', body: { tag_name: `v${manifest.version}` } });
       await recordChannel(api, manifest);
     },
     npm: publishNpm,
