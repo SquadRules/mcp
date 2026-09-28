@@ -216,6 +216,22 @@ test('propagation polling still fails fast on a real identity mismatch', async (
   assert.equal(reads, 2); // published then re-read once; the mismatch is not retried away
 });
 
+test('the attempts budget bounds how long a still-propagating write is awaited', async () => {
+  // Guards publishNpm's widened window: patience scales with `attempts`, and a write that
+  // never becomes queryable gives up after exactly that budget (publish happens once).
+  let reads = 0; let writes = 0; const waits = [];
+  await assert.rejects(ensurePublished({
+    lookup: async () => { reads++; return null; },
+    publish: async () => { writes++; },
+    verify: () => {},
+    attempts: 4,
+    wait: async ms => { waits.push(ms); },
+  }), /not yet available/);
+  assert.equal(writes, 1);
+  assert.equal(reads, 5);        // one extra read right after publish, then one per attempt
+  assert.equal(waits.length, 3); // no wait after the final attempt
+});
+
 const audit = (count = 0) => JSON.stringify({ vulnerabilities: {}, metadata: { vulnerabilities: {
   moderate: count, high: 0, critical: 0,
 } } });

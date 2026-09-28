@@ -239,6 +239,8 @@ async function publishNpm(manifest) {
     publish: async () => run('npm', ['publish', `${dir}/package.tgz`, '--access', 'public', '--provenance', '--ignore-scripts',
       '--tag', manifest.channel], { env: { ...noCredentials(), GITHUB_SHA: manifest.sourceSha, GITHUB_REF: `refs/heads/${manifest.branch}` } }),
     verify: existing => requireSame(existing.dist?.integrity, manifest.npmIntegrity, 'npm package'),
+    // npm's post-publish provenance pass keeps the version unqueryable for minutes, so
+    attempts: 30, // this slowest registry gets the widest still-capped poll (mismatches fast-fail)
   });
 }
 
