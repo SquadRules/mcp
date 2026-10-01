@@ -1,6 +1,9 @@
 /** Single version authority. ci-release consumes semantic-release's dry-run result,
  * then validates and persists immutable artifacts before publishing or tagging. */
-const prereleaseBranch = process.env.KAIROS_PRERELEASE_BRANCH || '';
+// Read the new SQUADRULES_PRERELEASE_BRANCH first, falling back to the legacy
+// KAIROS_PRERELEASE_BRANCH so the release flow works during the rebrand transition
+// regardless of which name the calling workflow still sets.
+const prereleaseBranch = process.env.SQUADRULES_PRERELEASE_BRANCH || process.env.KAIROS_PRERELEASE_BRANCH || '';
 export function prereleaseChannel(branch) {
   const slug = branch.replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'pre';
   return slug === 'latest' || /^v?\d+$/.test(slug) ? `pre-${slug}` : slug;

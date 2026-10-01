@@ -9,8 +9,8 @@ import { z } from 'zod';
 const layerUriSchema = z
   .string()
   .regex(
-    /^kairos:\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
-    'must match kairos://layer/{uuid}[?execution_id={uuid}]'
+    /^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
+    'must match kairos://layer/{uuid}[?execution_id={uuid}] (squadrules:// also accepted)'
   );
 
 export const solutionSchema = z.object({
@@ -101,7 +101,9 @@ export const nextOutputSchema = z.object({
    * spans multiple projects. Export the resolved absolute path as `KAIROS_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.
    */
-  kairos_local_artifact_dir: z.array(z.string()).optional()
+  kairos_local_artifact_dir: z.array(z.string()).optional(),
+  /** Compatibility alias for kairos_local_artifact_dir (same value). */
+  squadrules_local_artifact_dir: z.array(z.string()).optional()
 });
 
 export { layerUriSchema };

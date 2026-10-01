@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# KAIROS MCP chart defaults.
+# SquadRules MCP chart defaults.
 # Keep this file complete: templates rely on explicit nested keys existing.
 # ------------------------------------------------------------------------------
 
@@ -39,12 +39,16 @@ ha:
 
 app:
   enabled: true
+  # IMPORTANT: app.name defaults to "kairos-mcp" for backward compatibility.
+  # This value is used in Deployment spec.selector.matchLabels which is IMMUTABLE
+  # on existing Kubernetes Deployments. Changing it would break helm upgrade for
+  # all existing installations. New installations may override this value.
   name: "kairos-mcp"
   replicaCount: 2
   port: 3000
   metricsPort: 9090
   image:
-    repository: "quay.io/jakubplichcinski/kairos-mcp"
+    repository: "quay.io/squadrules/mcp"
     tag: "4.8.6"
     pullPolicy: "IfNotPresent"
   existingSecret: ""
@@ -54,6 +58,8 @@ app:
   keycloakInternalUrl: ""
   auth:
     enabled: false
+    # Realm and clientId defaults match the bundled Keycloak realm (files/kairos-realm.json)
+    # and existing deployed configurations. Override for your own Keycloak setup.
     realm: "kairos"
     clientId: "kairos-mcp"
     callbackBaseUrl: ""
@@ -244,7 +250,7 @@ keycloakDcrCleanup:
   # Realms to scan for stale DCR clients.
   realms:
     - kairos
-  # KAIROS-seeded clients that are never pruned (clientId exact match).
+  # Seeded clients that are never pruned (clientId exact match).
   protectedClients:
     - kairos-mcp
     - kairos-cli

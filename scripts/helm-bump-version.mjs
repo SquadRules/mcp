@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// NOTE: This script moves to SquadRules/charts repository. Kept temporarily for transition.
 /**
  * Bumps helm/kairos-mcp/Chart.yaml `version` field.
  *

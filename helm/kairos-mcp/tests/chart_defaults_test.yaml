@@ -118,7 +118,7 @@ tests:
 ---
 suite: app Service
 templates:
-  - kairos-mcp-service.yaml
+  - mcp-service.yaml
 tests:
   - it: renders Service when app is enabled
     set:

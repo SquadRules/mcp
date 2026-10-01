@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "kairos-mcp Helm values",
-  "description": "Merged values for kairos-mcp and conditional subcharts (validated on lint/template/install when present).",
+  "title": "mcp Helm values",
+  "description": "Merged values for the SquadRules mcp chart and conditional subcharts (validated on lint/template/install when present).",
   "properties": {
     "global": { "type": "object", "additionalProperties": true },
     "credentials": { "type": "object", "additionalProperties": true },

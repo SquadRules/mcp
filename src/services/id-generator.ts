@@ -77,7 +77,10 @@ export class IDGenerator {
 
     /**
      * Convert URI to Qdrant ID
-     * Supports both new kairos://UUID and older URI formats
+     * Supports both new {scheme}://UUID and older URI formats.
+     * Accepts kairos:// (canonical) and squadrules:// (alias) on input; the
+     * deterministic v5 hash is always computed from the canonical kairos:// form
+     * so stored Qdrant IDs stay stable regardless of the scheme the caller used.
      *
      * @param uri - Full URI string
      * @returns UUID string for Qdrant operations
@@ -85,10 +88,12 @@ export class IDGenerator {
     static qdrantIdFromUri(uri: string): string {
         structuredLogger.debug(`qdrantIdFromUri called with URI: ${uri}`);
 
-        const layerPrefix = 'kairos://layer/';
-        if (uri.startsWith(layerPrefix)) {
-            const rest = uri.slice(layerPrefix.length).split('?')[0] ?? '';
-            const id = rest.split('/')[0] ?? '';
+        // Canonicalize the alias scheme so v5 hashes match stored kairos:// IDs.
+        const canonicalUri = uri.replace(/^squadrules:\/\//i, 'kairos://');
+
+        const layerMatch = uri.match(/^(?:kairos|squadrules):\/\/layer\/([^/?#]+)/i);
+        if (layerMatch?.[1]) {
+            const id = layerMatch[1];
             if (/^[0-9a-fA-F-]{32,36}$/.test(id)) {
                 return id;
             }
@@ -98,20 +103,20 @@ export class IDGenerator {
             return uri.substring(olderLayerRowPrefix.length).split('?')[0]!.split('/')[0]!;
         }
 
-        // kairos://{domain}/{type}/{task}/step/{step} (deterministic hashed id)
-        if (uri.startsWith('kairos://') && uri.includes('/step/')) {
-            return IDGenerator.buildQdrantId(uri);
+        // {scheme}://{domain}/{type}/{task}/step/{step} (deterministic hashed id)
+        if (/^(?:kairos|squadrules):\/\//i.test(uri) && uri.includes('/step/')) {
+            return IDGenerator.buildQdrantId(canonicalUri);
         }
 
-        // kairos://{uuid}
-        const simplePrefix = 'kairos://';
-        if (uri.startsWith(simplePrefix)) {
-            const candidate = uri.substring(simplePrefix.length);
-            // If it's a bare UUID, return it; otherwise, fall back to v5 hash of full URI
+        // {scheme}://{uuid}
+        const simpleMatch = uri.match(/^(?:kairos|squadrules):\/\/([\s\S]*)$/i);
+        if (simpleMatch) {
+            const candidate = simpleMatch[1] ?? '';
+            // If it's a bare UUID, return it; otherwise, fall back to v5 hash of the canonical URI
             if (/^[0-9a-fA-F-]{32,36}$/.test(candidate)) {
                 return candidate;
             }
-            return IDGenerator.buildQdrantId(uri);
+            return IDGenerator.buildQdrantId(canonicalUri);
         }
 
         throw new Error(`Unsupported URI format: ${uri}`);

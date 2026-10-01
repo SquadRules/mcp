@@ -69,9 +69,12 @@ describe('Authorization Server Metadata (buildAuthorizationServerMetadata)', () 
         },
     };
 
-    it('must preserve registration_endpoint from upstream Keycloak metadata', () => {
+    it('must construct registration_endpoint from AUTH_CALLBACK_BASE_URL (local DCR proxy)', () => {
         const result = buildAuthorizationServerMetadata({ ...UPSTREAM_KEYCLOAK });
-        expect(result['registration_endpoint']).toBe(UPSTREAM_KEYCLOAK.registration_endpoint);
+        // registration_endpoint is now served locally by the app, not proxied from Keycloak
+        expect(result['registration_endpoint']).toBe(
+            'http://localhost:3300/.well-known/clients-registrations/openid-connect'
+        );
     });
 
     it('must rewrite internal Keycloak URLs back to the public issuer', () => {
@@ -93,7 +96,7 @@ describe('Authorization Server Metadata (buildAuthorizationServerMetadata)', () 
             'http://keycloak.local:8180/realms/kairos-dev/protocol/openid-connect/token'
         );
         expect(result['registration_endpoint']).toBe(
-            'http://keycloak.local:8180/realms/kairos-dev/clients-registrations/openid-connect'
+            'http://localhost:3300/.well-known/clients-registrations/openid-connect'
         );
         expect((result['mtls_endpoint_aliases'] as Record<string, unknown>)['registration_endpoint']).toBe(
             'http://keycloak.local:8180/realms/kairos-dev/clients-registrations/openid-connect'

@@ -13,25 +13,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g \
   && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd -g 1001 nodejs && useradd -u 1001 -g nodejs -m -s /usr/sbin/nologin kairos
+RUN groupadd -g 1001 nodejs && useradd -u 1001 -g nodejs -m -s /usr/sbin/nologin squadrules
 
 WORKDIR /app
 
 ARG PACKAGE_VERSION=4.4.0
 RUN test -n "$PACKAGE_VERSION"
 
-RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@jakub-plichcinski/kairos-mcp\":\"${PACKAGE_VERSION}\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\"}}" > package.json && \
+RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@squadrules/mcp\":\"${PACKAGE_VERSION}\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\"}}" > package.json && \
     npm install --omit=dev && \
     npm cache clean --force
 
 COPY --from=qdrant /qdrant/qdrant /usr/local/bin/qdrant
-COPY scripts/stdio/entrypoint.sh /usr/local/bin/kairos-stdio-entrypoint
+COPY scripts/stdio/entrypoint.sh /usr/local/bin/squadrules-stdio-entrypoint
 
-RUN chmod +x /usr/local/bin/qdrant /usr/local/bin/kairos-stdio-entrypoint && \
+RUN chmod +x /usr/local/bin/qdrant /usr/local/bin/squadrules-stdio-entrypoint && \
     mkdir -p /var/lib/qdrant/storage && \
-    chown -R kairos:nodejs /var/lib/qdrant /app
+    chown -R squadrules:nodejs /var/lib/qdrant /app
 
-USER kairos
+USER squadrules
 
 ENV NODE_ENV=production
 ENV TRANSPORT_TYPE=stdio
@@ -44,4 +44,4 @@ ENV QDRANT__SERVICE__HTTP_PORT=6333
 ENV QDRANT__SERVICE__GRPC_PORT=6334
 ENV QDRANT__STORAGE__STORAGE_PATH=/var/lib/qdrant/storage
 
-ENTRYPOINT ["tini","--","/usr/local/bin/kairos-stdio-entrypoint"]
+ENTRYPOINT ["tini","--","/usr/local/bin/squadrules-stdio-entrypoint"]

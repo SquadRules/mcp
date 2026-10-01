@@ -1,6 +1,6 @@
 # Threat model
 
-This document defines the KAIROS MCP threat model aligned to NIST SP 800-218A.
+This document defines the SquadRules MCP threat model aligned to NIST SP 800-218A.
 It captures system boundaries, protected assets, likely threat actors, and
 current mitigations implemented in Phases 0 through 2.5.
 
@@ -12,7 +12,7 @@ flows into embedding and storage paths.
 
 ```mermaid
 flowchart LR
-  userClient[UserClient] --> apiGateway[KAIROS_API_MCP]
+  userClient[UserClient] --> apiGateway[SQUADRULES_API_MCP]
   apiGateway --> authLayer[KeycloakAuth]
   apiGateway --> embeddingLayer[EmbeddingService]
   apiGateway --> vectorStore[QdrantStore]

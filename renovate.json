@@ -14,7 +14,6 @@
   "semanticCommitScope": "deps",
   "labels": ["dependencies"],
   "rebaseWhen": "behind-base-branch",
-  "helmv3": { "managerFilePatterns": ["/helm/kairos-mcp/Chart\\.yaml$/"] },
   "helm-values": { "managerFilePatterns": ["/helm/kairos-mcp/values\\.yaml$/"] },
   "customManagers": [
     {
@@ -36,7 +35,7 @@
     { "matchDatasources": ["docker"], "pinDigests": true },
     {
       "description": "Application image versions belong exclusively to the release pipeline, across every manager",
-      "matchPackageNames": ["jakubplichcinski/kairos-mcp", "docker.io/jakubplichcinski/kairos-mcp", "quay.io/jakubplichcinski/kairos-mcp"],
+      "matchPackageNames": ["squadrules/mcp", "docker.io/squadrules/mcp", "quay.io/squadrules/mcp"],
       "enabled": false
     }
   ]

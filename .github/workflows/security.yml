@@ -197,14 +197,14 @@ jobs:
           img="${{ steps.base.outputs.image_ref }}"
           run_cmd=$(grep -E '^RUN apk update && apk upgrade --no-cache$' Dockerfile | sed 's/^RUN //' | head -1)
           if [ -z "$run_cmd" ]; then echo "::error::Expected \"RUN apk update && apk upgrade --no-cache\" line in Dockerfile"; exit 1; fi
-          printf 'FROM %s\nRUN %s\n' "$img" "$run_cmd" | docker build -t kairos-os:ci -
+          printf 'FROM %s\nRUN %s\n' "$img" "$run_cmd" | docker build -t squadrules-os:ci -
 
       - name: Trivy scan (attempt)
         id: trivy-scan
         uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
         with:
-          image-ref: kairos-os:ci
+          image-ref: squadrules-os:ci
           format: table
           exit-code: "1"
           severity: CRITICAL,HIGH
@@ -234,7 +234,7 @@ jobs:
           
           # Rebuild with new base image
           run_cmd=$(grep -E '^RUN apk update && apk upgrade --no-cache$' Dockerfile | sed 's/^RUN //' | head -1)
-          printf 'FROM %s\nRUN %s\n' "$img_name@$new_digest" "$run_cmd" | docker build -t kairos-os:ci -
+          printf 'FROM %s\nRUN %s\n' "$img_name@$new_digest" "$run_cmd" | docker build -t squadrules-os:ci -
           
           echo "new_digest=$new_digest" >> "$GITHUB_OUTPUT"
 
@@ -242,7 +242,7 @@ jobs:
         if: steps.trivy-scan.outcome == 'failure'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: kairos-os:ci
+          image-ref: squadrules-os:ci
           format: table
           exit-code: "1"
           severity: CRITICAL,HIGH

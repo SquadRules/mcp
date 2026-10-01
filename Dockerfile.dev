@@ -1,5 +1,5 @@
 # Local dev: build from source (no npm publish required).
-# Use: docker build -f Dockerfile.dev -t kairos-mcp:dev .
+# Use: docker build -f Dockerfile.dev -t squadrules-mcp:dev .
 # Release images use Dockerfile and install from npm.
 # Base image stays on Node LTS; Node Current is covered in CI via setup-node, not a separate dev image.
 # Multi-arch support for x64 and ARM64
@@ -37,18 +37,18 @@ RUN apk update && apk upgrade --no-cache
 RUN npm install -g npm@11.18.0
 
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S kairos -u 1001
+    adduser -S squadrules -u 1001
 
 WORKDIR /app
 
-COPY --from=builder --chown=kairos:nodejs /app/dist ./dist
-COPY --from=builder --chown=kairos:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=kairos:nodejs /app/package.json ./
+COPY --from=builder --chown=squadrules:nodejs /app/dist ./dist
+COPY --from=builder --chown=squadrules:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=squadrules:nodejs /app/package.json ./
 
 RUN mkdir -p logs storage/qdrant && \
-    chown -R kairos:nodejs logs storage
+    chown -R squadrules:nodejs logs storage
 
-USER kairos
+USER squadrules
 
 ARG SERVER_PORT=3500
 ENV SERVER_PORT=${SERVER_PORT}

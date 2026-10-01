@@ -3,10 +3,10 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { GitHub, gateRuns, output, report } from './ci-automation.mjs';
 import { ARTIFACTS, assertManifest, fileDigest, digest, releaseRecord, recordBody, channelTags, requireSame, retry, versionPattern, ensurePublished, publishStages, recordChannel } from './ci-release-state.mjs';
-import { registries, remoteManifest, registryRequest, download } from './ci-registry.mjs';
+import { registries, remoteManifest, download } from './ci-registry.mjs';
 
 const dir = '.local/release';
-const packageName = '@jakub-plichcinski/kairos-mcp';
+const packageName = '@squadrules/mcp';
 function json(path) { return JSON.parse(readFileSync(path, 'utf8')); }
 function save(path, value) { writeFileSync(path, JSON.stringify(value, null, 2) + '\n'); }
 function run(command, args, { capture = false, ...options } = {}) {
@@ -99,16 +99,11 @@ function preparePackage() {
   run('npm', ['version', plan.version, '--no-git-tag-version', '--allow-same-version', '--ignore-scripts'], { env });
   run('npm', ['run', 'version:sync'], { env });
   run('npm', ['run', 'prepare:publish'], { env });
-  copyFileSync(`dist/jakub-plichcinski-kairos-mcp-${plan.version}.tgz`, `${dir}/package.tgz`);
+  copyFileSync(`dist/squadrules-mcp-${plan.version}.tgz`, `${dir}/package.tgz`);
   runToFile('npm', ['sbom', '--sbom-format', 'cyclonedx'], `${dir}/npm-sbom.json`, { env });
-  run('node', ['scripts/helm-set-release-version.mjs', plan.version], { env });
-  run('helm', ['repo', 'add', 'qdrant', 'https://qdrant.github.io/qdrant-helm']);
-  run('helm', ['repo', 'add', 'valkey', 'https://valkey.io/valkey-helm/']);
-  run('helm', ['dependency', 'build', 'helm/kairos-mcp']);
-  run('helm', ['lint', 'helm/kairos-mcp', '--strict']);
-  run('helm', ['package', 'helm/kairos-mcp', '--destination', dir]);
-  copyFileSync(`${dir}/kairos-mcp-${plan.version}.tgz`, `${dir}/chart.tgz`);
-  save(`${dir}/chart-config.json`, { name: 'kairos-mcp', version: plan.version, appVersion: plan.version, apiVersion: 'v2', type: 'application' });
+  // Helm chart packaging/publishing moved to the SquadRules/charts repository. This
+  // pipeline produces only the npm tarball and the runtime images; there is no Helm
+  // dependency here anymore.
 }
 
 function prepareImages() {
@@ -141,7 +136,7 @@ async function seal() {
       '--format', 'cyclonedx', '--scanners', 'vuln'], `${dir}/image-${arch}-sbom.json`);
   }
   save(`${dir}/validation.json`, { sourceSha: plan.sourceSha, version: plan.version, packedConsumer: true,
-    helm: true, platforms: ['linux/amd64', 'linux/arm64'], imageSmoke: true, trivy: 'CRITICAL,HIGH', runId: process.env.GITHUB_RUN_ID });
+    platforms: ['linux/amd64', 'linux/arm64'], imageSmoke: true, trivy: 'CRITICAL,HIGH', runId: process.env.GITHUB_RUN_ID });
   const files = {};
   for (const file of ARTIFACTS) files[file] = await fileDigest(`${dir}/${file}`);
   const manifest = assertManifest({ schema: 1, ...plan, files, validated: true,
@@ -250,6 +245,9 @@ async function publishImages(manifest, targets) {
       verify: existing => requireSame(existing.digest, manifest.imageDigest, target.image),
     });
     await retry(async () => {
+      // Cosign keyless identity is the publishing workflow ref; after the rebrand it
+      // resolves at runtime to the SquadRules/mcp release workflow, so no repository
+      // path is hard-coded here.
       run('cosign', ['sign', '--yes', `${target.image}@${manifest.imageDigest}`]);
       run('cosign', ['verify', '--certificate-identity', `https://github.com/${process.env.GITHUB_WORKFLOW_REF}`,
         '--certificate-oidc-issuer', 'https://token.actions.githubusercontent.com', `${target.image}@${manifest.imageDigest}`]);
@@ -257,21 +255,8 @@ async function publishImages(manifest, targets) {
   }
 }
 
-async function publishChart(manifest, target) {
-  const chart = { ...target, path: `${process.env.QUAY_NAMESPACE}/kairos-mcp-chart`, image: `quay.io/${process.env.QUAY_NAMESPACE}/kairos-mcp-chart` };
-  await ensurePublished({
-    lookup: () => remoteManifest(chart, manifest.version),
-    publish: async () => run('oras', ['push', `${chart.image}:${manifest.version}`, '--config', `${dir}/chart-config.json:application/vnd.cncf.helm.config.v1+json`,
-      `${dir}/chart.tgz:application/vnd.cncf.helm.chart.content.v1.tar+gzip`]),
-    verify: async existing => {
-      const layer = existing.manifest.layers?.find(l => l.mediaType === 'application/vnd.cncf.helm.chart.content.v1.tar+gzip');
-      requireSame(layer?.digest, `sha256:${manifest.files['chart.tgz']}`, 'Helm chart');
-      requireSame(existing.manifest.config?.digest, `sha256:${manifest.files['chart-config.json']}`, 'Helm config');
-      const response = await registryRequest(chart, `blobs/${layer.digest}`);
-      requireSame(digest(Buffer.from(await response.arrayBuffer())), manifest.files['chart.tgz'], 'Published Helm payload');
-    },
-  });
-}
+// Chart publication moved to the SquadRules/charts repository; the release pipeline no
+// longer packages or pushes a Helm chart, so there is no `chart` stage here.
 
 async function promote(manifest, targets) {
   requireSame((await npmVersion(manifest.version))?.dist?.integrity, manifest.npmIntegrity, 'npm promotion');
@@ -315,7 +300,6 @@ async function publish() {
     },
     npm: publishNpm,
     images: manifest => publishImages(manifest, targets),
-    chart: manifest => publishChart(manifest, targets[1]),
     promoted: manifest => promote(manifest, targets),
     complete: async manifest => {
       const tag = `v${manifest.version}`;

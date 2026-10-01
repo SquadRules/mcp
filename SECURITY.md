@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-KAIROS MCP actively supports the latest release. Security fixes are applied
+SquadRules MCP actively supports the latest release. Security fixes are applied
 to the versions listed below.
 
 
@@ -27,7 +27,7 @@ public announcement.
 
 ## Security best practices
 
-When running KAIROS MCP in production:
+When running SquadRules MCP in production:
 
 - Store all secrets in environment variables. Never commit `.env*` files.
 - Use HTTPS for all external endpoints.
@@ -43,7 +43,7 @@ localhost.
 - Ensure the `data/` directory is not publicly accessible.
 - When using **AUTH_ENABLED** with a browser session cookie, keep
   **`SESSION_MAX_AGE_SEC`** in line with your IdP’s maximum SSO session for that
-  environment (see the Authentication and Security topic in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki))
+  environment (see the Authentication and Security topic in the [project Wiki](https://github.com/SquadRules/mcp/wiki))
   so cookie lifetime does not exceed what the IdP will honour for refresh and
   re-authentication.
 

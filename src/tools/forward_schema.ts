@@ -335,7 +335,9 @@ export const forwardOutputSchema = z.object({
   current_layer_label: z.string().optional(),
   adapter_layer_index: z.number().int().positive().optional(),
   adapter_layer_count: z.number().int().positive().optional(),
-  kairos_local_artifact_dir: z.array(z.string()).optional()
+  kairos_local_artifact_dir: z.array(z.string()).optional(),
+  /** Compatibility alias for kairos_local_artifact_dir (same value). */
+  squadrules_local_artifact_dir: z.array(z.string()).optional()
 }).strict();
 
 export type ForwardInput = z.infer<typeof forwardInputSchema>;

@@ -1,21 +1,23 @@
-# KAIROS CLI
+# SquadRules CLI
 
-The `kairos` CLI talks to a running KAIROS server over HTTP.
+The `squadrules` CLI talks to a running SquadRules server over HTTP.
 
 ## Install
 
 Node.js 24 or later is required (Node 24 is the supported LTS baseline; 25 and 26 are exercised as advisory CI lanes).
 
 ```bash
-npm install -g @jakub-plichcinski/kairos-mcp
-kairos --help
+npm install -g @squadrules/mcp
+squadrules --help
 ```
 
-The package also installs the **`kairos-mcp`** command (same binary as **`kairos`**).
+The package also installs the **`squadrules-mcp`** command (same binary as
+**`squadrules`**), and retains the former **`kairos`** and **`kairos-mcp`**
+command names as compatibility aliases that behave identically.
 
 ## Run the MCP server (`serve`)
 
-Start the KAIROS server process (same bootstrap as `node dist/bootstrap.js` / `node dist/index.js` after a build). You still need Qdrant and embedding-related variables in `.env` the same way as [Docker Compose — simple stack](install/docker-compose-simple.md).
+Start the SquadRules server process (same bootstrap as `node dist/bootstrap.js` / `node dist/index.js` after a build). You still need Qdrant and embedding-related variables in `.env` the same way as [Docker Compose — simple stack](install/docker-compose-simple.md).
 
 Transport resolution:
 
@@ -25,24 +27,24 @@ Transport resolution:
 
 Main HTTP listener port when **`TRANSPORT_TYPE=http`** (UI, REST, `/mcp`) is resolved as:
 
-1. **`--server-port <n>`** — also sets **`SERVER_PORT`** for the spawned server and writes **`defaultUrl`** to the shared CLI config as `http://localhost:<n>` (so `kairos login` and other commands target the same port).
+1. **`--server-port <n>`** — also sets **`SERVER_PORT`** for the spawned server and writes **`defaultUrl`** to the shared CLI config as `http://localhost:<n>` (so `squadrules login` and other commands target the same port).
 2. **`SERVER_PORT`** in the environment (set in `.env*`)
 3. Otherwise the child inherits whatever your env files define.
 
 ```bash
-kairos serve
-kairos serve --env-file .env
-kairos serve --metrics-port 9091
-kairos serve --transport http --server-port 4300
-TRANSPORT_TYPE=http kairos serve
-TRANSPORT_TYPE=http kairos serve --transport stdio
-kairos serve --transport http
+squadrules serve
+squadrules serve --env-file .env
+squadrules serve --metrics-port 9091
+squadrules serve --transport http --server-port 4300
+TRANSPORT_TYPE=http squadrules serve
+TRANSPORT_TYPE=http squadrules serve --transport stdio
+squadrules serve --transport http
 ```
 
 Equivalent:
 
 ```bash
-kairos-mcp serve --transport stdio
+squadrules-mcp serve --transport stdio
 ```
 
 - **`--env-file`** — if the path exists, it is loaded with `dotenv` before the server reads configuration. If the file is missing, the command continues (environment-only startup).
@@ -57,7 +59,7 @@ The root **`--url`** option applies to **client** commands (it sets `KAIROS_API_
 npm run test:package-local
 ```
 
-Same as `npm run build:tgz && npm run test:tgz` (installs `dist/jakub-plichcinski-kairos-mcp-<version>.tgz` into a temp directory and checks `kairos` / `kairos-mcp`).
+Same as `npm run build:tgz && npm run test:tgz` (installs `dist/squadrules-mcp-<version>.tgz` into a temp directory and checks `squadrules` / `squadrules-mcp`).
 
 Set **`QDRANT_URL`**, **`QDRANT_COLLECTION`**, and an embedding backend (e.g. **`OPENAI_API_KEY`**) as for any server run.
 
@@ -73,10 +75,17 @@ The CLI resolves the API base URL in this order:
 Examples:
 
 ```bash
-kairos --url http://localhost:3000 search "release checklist"
+squadrules --url http://localhost:3000 search "release checklist"
 export KAIROS_API_URL=http://localhost:3000
-kairos search "release checklist"
+squadrules search "release checklist"
 ```
+
+> **Environment-variable naming.** Server configuration variables accept a
+> `SQUADRULES_*` name (preferred) with the `KAIROS_*` name as a compatibility
+> fallback — see [Migration from KAIROS](migration-from-kairos.md). A few
+> CLI-only connection variables (`KAIROS_API_URL`, `KAIROS_TIMEOUT_MS`,
+> `KAIROS_RETRIES`, `KAIROS_LOGIN_CALLBACK_PORT`) currently use the `KAIROS_*`
+> prefix only; keep using those exact names for the CLI.
 
 ## Authentication
 
@@ -89,9 +98,9 @@ are retried up to **2 times** on transient network errors (connection refused,
 reset, timeout). Both can be overridden:
 
 ```bash
-kairos --timeout 120 train ./adapters --force --recursive
-kairos --timeout 120 --retries 5 train ./adapters --force --recursive
-kairos --retries 0 spaces   # disable retry, fail fast
+squadrules --timeout 120 train ./adapters --force --recursive
+squadrules --timeout 120 --retries 5 train ./adapters --force --recursive
+squadrules --retries 0 spaces   # disable retry, fail fast
 ```
 
 Environment variables (useful in CI / scripts):
@@ -107,13 +116,16 @@ Precedence: CLI flag > env var > default.
 
 The CLI and MCP hosts share the same local config path:
 
-- Unix: `$XDG_CONFIG_HOME/kairos/config.json`
-- fallback Unix: `~/.config/kairos/config.json`
-- Windows: `%APPDATA%\kairos\config.json`
+- Unix: `$XDG_CONFIG_HOME/squadrules/config.json`
+- fallback Unix: `~/.config/squadrules/config.json`
+- Windows: `%APPDATA%\squadrules\config.json`
+
+A former `kairos` config directory is still read as a fallback and copied into
+the `squadrules` directory on first use; the older directory is never deleted.
 
 **Token read:** The CLI reads the token from the keyring when available,
 otherwise from the paths above. Bearer tokens are **not** read from process
-environment variables; use `kairos login` and the shared config file.
+environment variables; use `squadrules login` and the shared config file.
 
 When keyring storage is active, `config.json` keeps non-secret sentinels:
 
@@ -131,9 +143,10 @@ When keyring storage is active, `config.json` keeps non-secret sentinels:
 
 The `__KEYCHAIN__` marker means the secret is stored in the OS keychain and
 must be resolved from there at runtime. The marker itself is never used as an
-HTTP bearer token.
+HTTP bearer token. The keyring service name is `squadrules-cli`; credentials
+stored under the former `kairos-cli` service are copied forward on first read.
 
-**If absent:** Run `kairos login` (browser PKCE or `kairos login --token <token>`).
+**If absent:** Run `squadrules login` (browser PKCE or `squadrules login --token <token>`).
 The CLI writes tokens (and API URL) to the keyring or, on fallback, to that
 config file so MCP hosts can use it too.
 
@@ -143,7 +156,7 @@ with a separate keyring entry). On **401**, the CLI refreshes the access token
 before opening the browser again. If the JWT access token is within about **60
 seconds** of expiry, the CLI refreshes proactively to reduce spurious 401s.
 
-**`kairos login --token`:** Stores **only** the access token you pass; any
+**`squadrules login --token`:** Stores **only** the access token you pass; any
 previously stored refresh token is **cleared**, so later 401 handling will use
 browser login (unless you run full PKCE login again).
 
@@ -161,13 +174,14 @@ keychain items exist on that machine.
 #### Browser PKCE login
 
 ```bash
-kairos login
+squadrules login
 ```
 
 The CLI:
 
 - discovers auth endpoints from `/.well-known/oauth-protected-resource`
-- uses the public client ID `kairos-cli`
+- uses the public client ID `kairos-cli` (the Keycloak default; override with
+  `KEYCLOAK_CLI_CLIENT_ID`)
 - binds a local callback port
 - exchanges the code for an access token
 - stores the token for the current API URL
@@ -175,20 +189,20 @@ The CLI:
 If you do not want the browser to open automatically:
 
 ```bash
-kairos login --no-browser
+squadrules login --no-browser
 ```
 
 To pin the callback port:
 
 ```bash
 export KAIROS_LOGIN_CALLBACK_PORT=38123
-kairos login
+squadrules login
 ```
 
 #### Store an existing token
 
 ```bash
-kairos login --token <bearer-token>
+squadrules login --token <bearer-token>
 ```
 
 This validates the token with `GET /api/me` before storing it. It does **not**
@@ -197,10 +211,10 @@ obtain or store a refresh token.
 ### Logout and token inspection
 
 ```bash
-kairos logout
-kairos token
-kairos token --validate
-kairos token --login
+squadrules logout
+squadrules token
+squadrules token --validate
+squadrules token --login
 ```
 
 - `logout` clears the stored access and refresh credentials for the current API URL
@@ -215,7 +229,7 @@ kairos token --login
 Match stored adapters for a user phrasing (plain-text query).
 
 ```bash
-kairos activate ai coding standards
+squadrules activate ai coding standards
 ```
 
 This calls `POST /api/activate` and prints the JSON response (choices and
@@ -230,9 +244,13 @@ returned one) and a `--solution` JSON object whose `type` matches the current
 `contract`.
 
 ```bash
-kairos forward kairos://adapter/<uuid>
-kairos forward 'kairos://layer/<uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
+squadrules forward kairos://adapter/<uuid>
+squadrules forward 'kairos://layer/<uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
 ```
+
+The server emits `kairos://` URIs as the canonical stored form; echo them back
+verbatim. `squadrules://` is also accepted on input as an alias for the same
+adapter and layer URIs.
 
 ### `train`
 
@@ -240,10 +258,10 @@ Register one adapter from a markdown file, or many from a directory of `.md`
 files.
 
 ```bash
-kairos train adapter.md --model "gpt-4.1"
-kairos train adapter.md --model "gpt-4.1" --force
-kairos train ./bundle --force
-kairos train ./bundle --force --recursive
+squadrules train adapter.md --model "gpt-4.1"
+squadrules train adapter.md --model "gpt-4.1" --force
+squadrules train ./bundle --force
+squadrules train ./bundle --force --recursive
 ```
 
 Options:
@@ -263,10 +281,10 @@ Directory-batch behavior:
 Update one or more adapter or layer URIs.
 
 ```bash
-kairos tune kairos://adapter/<uuid> --file updated.md
-kairos tune kairos://adapter/<uuid> --updates '{"tags":["updated"]}'
-kairos tune kairos://layer/<a> kairos://layer/<b> --files a.md b.md
-kairos tune kairos://layer/<uuid> --updates '{"text":"new content"}'
+squadrules tune kairos://adapter/<uuid> --file updated.md
+squadrules tune kairos://adapter/<uuid> --updates '{"tags":["updated"]}'
+squadrules tune kairos://layer/<a> kairos://layer/<b> --files a.md b.md
+squadrules tune kairos://layer/<uuid> --updates '{"text":"new content"}'
 ```
 
 Use one of:
@@ -279,7 +297,7 @@ Use `tune` for in-place adapter/layer edits. For structural adapter changes
 (for example, changing title identity or layer count), re-train with force:
 
 ```bash
-kairos train adapter.md --model "gpt-4.1" --force
+squadrules train adapter.md --model "gpt-4.1" --force
 ```
 
 ### `delete`
@@ -287,8 +305,8 @@ kairos train adapter.md --model "gpt-4.1" --force
 Delete one or more adapters or layers by URI.
 
 ```bash
-kairos delete kairos://adapter/<uuid>
-kairos delete kairos://layer/<a> kairos://layer/<b>
+squadrules delete kairos://adapter/<uuid>
+squadrules delete kairos://layer/<a> kairos://layer/<b>
 ```
 
 ### `reward`
@@ -297,8 +315,8 @@ Attach a reward outcome to the **final layer** URI for a completed run (see tool
 docs for `execution_id` when applicable).
 
 ```bash
-kairos reward kairos://layer/<uuid> success "Completed successfully"
-kairos reward 'kairos://layer/<uuid>?execution_id=<id>' failure "Validation failed"
+squadrules reward kairos://layer/<uuid> success "Completed successfully"
+squadrules reward 'kairos://layer/<uuid>?execution_id=<id>' failure "Validation failed"
 ```
 
 Options:
@@ -313,8 +331,8 @@ Options:
 Export an adapter or layer as markdown or training JSONL.
 
 ```bash
-kairos export kairos://adapter/<uuid>
-kairos export kairos://layer/<uuid> --format reward_jsonl --output json
+squadrules export kairos://adapter/<uuid>
+squadrules export kairos://layer/<uuid> --format reward_jsonl --output json
 ```
 
 Options:
@@ -328,16 +346,16 @@ Options:
 ### Activate → forward (loop) → reward
 
 ```bash
-kairos activate "release checklist"
-kairos forward kairos://adapter/<uuid>
-kairos forward 'kairos://layer/<step-uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
-kairos reward 'kairos://layer/<last-layer-uuid>?execution_id=<id>' success "Run completed"
+squadrules activate "release checklist"
+squadrules forward kairos://adapter/<uuid>
+squadrules forward 'kairos://layer/<step-uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
+squadrules reward 'kairos://layer/<last-layer-uuid>?execution_id=<id>' success "Run completed"
 ```
 
 ### Batch train a bundle
 
 ```bash
-kairos train ./adapters --force --recursive
+squadrules train ./adapters --force --recursive
 ```
 
 ## Run from this repo against the local dev server
@@ -353,13 +371,13 @@ npm run cli:dev -- activate "test"
 
 ## Troubleshooting
 
-### `kairos: command not found`
+### `squadrules: command not found`
 
 Check Node.js version and reinstall:
 
 ```bash
 node --version
-npm install -g @jakub-plichcinski/kairos-mcp
+npm install -g @squadrules/mcp
 ```
 
 ### Connection refused / timeout
@@ -377,13 +395,13 @@ Also confirm you are using the intended `--url` or `KAIROS_API_URL`.
 Run:
 
 ```bash
-kairos login
+squadrules login
 ```
 
 or store an existing token:
 
 ```bash
-kairos login --token <bearer-token>
+squadrules login --token <bearer-token>
 ```
 
 ### A stored token is not being used
@@ -396,5 +414,6 @@ one host/port pair (for example `http://localhost:3300`) is different from a tok
 - [Install index](install/README.md)
 - [Environment variables and secrets](install/prerequisites.md)
 - [Cursor and MCP](install/README.md#cursor-and-mcp)
-- [Architecture (project Wiki)](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+- [Migration from KAIROS](migration-from-kairos.md)
+- [Architecture (project Wiki)](https://github.com/SquadRules/mcp/wiki)
 - [Adapter examples](examples/README.md)

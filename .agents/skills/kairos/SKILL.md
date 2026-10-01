@@ -1,3 +1,5 @@
+<!-- DEPRECATED: Use .agents/skills/squadrules/ instead. Retained for backward compatibility with existing installations. -->
+<!-- If .agents/skills/squadrules/ is present, this skill defers to it. Do not load both. -->
 ---
 name: kairos
 description: >-

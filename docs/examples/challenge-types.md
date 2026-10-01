@@ -1,4 +1,4 @@
-# KAIROS challenge types — trainable examples
+# SquadRules challenge types — trainable examples
 
 The documents in this folder are **real markdown adapters ready for `train`**. Each has one H1 (adapter title), one or more H2 steps, and a trailing ` ```json ` block per step with `{"contract": { ... }}`. Copy the contents of any example into a file and pass it to `train` (with `llm_model_id` and optional `force_update`).
 
@@ -36,5 +36,5 @@ call **`reward`** to finish the run.
 
 For execution semantics (how to perform each challenge type, not infer or
 fabricate), see the **`activate`**, **`forward`**, and **`reward`** tool
-descriptions (and the companion workflow topics in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+descriptions (and the companion workflow topics in the [project Wiki](https://github.com/SquadRules/mcp/wiki)
 where noted).

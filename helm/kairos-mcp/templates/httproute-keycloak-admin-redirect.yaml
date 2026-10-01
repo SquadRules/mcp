@@ -2,9 +2,9 @@
 {{- $routes := default dict $gw.routes }}
 {{- $kcRoute := default dict $routes.keycloak }}
 {{- $kc := .Values.keycloakInstance }}
-{{- $adminHost := include "kairos.adminHostname" . | trim }}
+{{- $adminHost := include "mcp.adminHostname" . | trim }}
 {{- $relativePath := default "/sso" $kc.httpRelativePath }}
-{{- $mode := include "kairos.ingressMode" . | trim }}
+{{- $mode := include "mcp.ingressMode" . | trim }}
 {{- if and $adminHost (eq $mode "gateway") $gw.enabled $gw.hostname $kcRoute.enabled }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -16,7 +16,7 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: {{ include "kairos.resolvedGatewayName" . }}
+      name: {{ include "mcp.resolvedGatewayName" . }}
       {{- if $gw.existingGatewayNamespace }}
       namespace: {{ $gw.existingGatewayNamespace }}
       {{- else }}

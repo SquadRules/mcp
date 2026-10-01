@@ -7,7 +7,8 @@ import type { SkillExportItem } from './skill-export/types.js';
 
 export function normalizeAdapterUri(raw: string): string {
   const t = raw.trim();
-  if (t.startsWith('kairos://')) return t;
+  // Accept kairos:// (canonical) and squadrules:// (alias); always emit kairos://.
+  if (/^(?:kairos|squadrules):\/\//i.test(t)) return t.replace(/^squadrules:\/\//i, 'kairos://');
   return `kairos://adapter/${t}`;
 }
 

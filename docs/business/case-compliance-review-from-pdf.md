@@ -1,6 +1,6 @@
 # Illustrative case 2: Turn a new compliance document into a review procedure
 
-<img src="../../logo/kairos-mcp.svg" width="64" alt="KAIROS MCP logo" />
+<img src="../../logo/kairos-mcp.svg" width="64" alt="SquadRules logo" />
 
 ## Problem
 

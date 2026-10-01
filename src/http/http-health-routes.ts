@@ -79,7 +79,7 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
 
         res.status(statusCode).json({
             status: healthStatus,
-            service: 'KAIROS',
+            service: 'squadrules-mcp',
             version: buildVersion,
             transport: 'http',
             uptime: uptime,
@@ -93,7 +93,7 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
     // API root (when AUTH_ENABLED, only reached when authenticated)
     app.get('/api', (req, res) => {
         const body: Record<string, unknown> = {
-            service: 'KAIROS API',
+            service: 'SquadRules API',
             version: getBuildVersion(),
             endpoints: {
                 activate: 'POST /api/activate',

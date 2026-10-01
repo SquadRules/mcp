@@ -1,5 +1,5 @@
 {{- $kc := .Values.keycloakInstance }}
-{{- $adminHost := include "kairos.adminHostname" . | trim }}
+{{- $adminHost := include "mcp.adminHostname" . | trim }}
 {{- $relativePath := default "/sso" $kc.httpRelativePath }}
 {{- if and $adminHost (.Capabilities.APIVersions.Has "security.istio.io/v1") }}
 apiVersion: security.istio.io/v1

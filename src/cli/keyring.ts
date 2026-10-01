@@ -1,20 +1,87 @@
 /**
  * CLI keyring: OS-native credential storage for bearer tokens.
  * Uses @napi-rs/keyring (keytar-compatible API). When keyring is unavailable or
- * fails at runtime, the CLI falls back to the config file at XDG_CONFIG_HOME/kairos
- * (or ~/.config/kairos on Unix, %APPDATA%\\kairos on Windows) for all users.
+ * fails at runtime, the CLI falls back to the config file at XDG_CONFIG_HOME/squadrules
+ * (or ~/.config/squadrules on Unix, %APPDATA%\\squadrules on Windows) for all users.
+ *
+ * Migration: credentials stored under the prior service name (`kairos-cli`) are
+ * transparently copied to the new service name (`squadrules-cli`) on first read.
+ * Prior entries are never deleted during reads — only on explicit logout/delete.
  */
 
 import { createRequire } from 'module';
 
 const requireMod = createRequire(import.meta.url);
-const SERVICE = 'kairos-cli';
 
-/** Distinct keyring account for refresh tokens (normalized API URL + suffix). */
+/** Primary keyring service name (post-rebrand). */
+export const KEYRING_SERVICE = 'squadrules-cli';
+/** Prior keyring service name (pre-rebrand). Retained for fallback reads and cleanup on delete. */
+export const KEYRING_SERVICE_PRIOR = 'kairos-cli';
+
+/** Distinct keyring account suffix for refresh tokens (normalized API URL + suffix). */
 const REFRESH_ACCOUNT_SUFFIX = '::refresh';
 
 function refreshAccount(account: string): string {
     return `${account}${REFRESH_ACCOUNT_SUFFIX}`;
+}
+
+/**
+ * Read from the new service; if absent, fall back to the prior service and copy forward.
+ * Returns the credential value or null. Never throws.
+ *
+ * The copy is best-effort: if writing to the new service fails (e.g. keyring
+ * locked), the value from the prior service is still returned so the user is not disrupted.
+ */
+async function readWithPriorFallback(
+    mod: KeytarModule,
+    account: string,
+): Promise<string | null> {
+    // 1. Try new service
+    const primary = await runKeyringOp(mod.getPassword(KEYRING_SERVICE, account));
+    if (primary !== KEYRING_TIMED_OUT && primary !== null) return primary;
+    if (primary === KEYRING_TIMED_OUT) return null;
+
+    // 2. Fallback to the prior service
+    const prior = await runKeyringOp(mod.getPassword(KEYRING_SERVICE_PRIOR, account));
+    if (prior === KEYRING_TIMED_OUT || prior === null) return null;
+
+    // 3. Copy to new service (best-effort; never delete the prior entry here)
+    try {
+        await runKeyringOp(mod.setPassword(KEYRING_SERVICE, account, prior));
+        // Verify the write succeeded by reading back
+        const verify = await runKeyringOp(mod.getPassword(KEYRING_SERVICE, account));
+        if (verify === KEYRING_TIMED_OUT || verify !== prior) {
+            // Verification failed — still return the prior value, don't break the user
+        }
+    } catch {
+        // Copy failed — still return the prior value
+    }
+
+    return prior;
+}
+
+/**
+ * Delete from both the new and prior services. Used on logout/cleanup.
+ * Returns true if the new-service deletion succeeded (or was absent).
+ */
+async function deleteFromBothServices(
+    mod: KeytarModule,
+    account: string,
+): Promise<boolean> {
+    let primaryOk = false;
+    try {
+        const r = await runKeyringOp(mod.deletePassword(KEYRING_SERVICE, account));
+        primaryOk = r !== KEYRING_TIMED_OUT;
+    } catch {
+        primaryOk = false;
+    }
+    // Best-effort prior-service cleanup
+    try {
+        await runKeyringOp(mod.deletePassword(KEYRING_SERVICE_PRIOR, account));
+    } catch {
+        // Prior-service deletion failure is non-fatal
+    }
+    return primaryOk;
 }
 
 type KeytarModule = {
@@ -120,28 +187,30 @@ export function __setKeyringForTest(mod: KeytarModule | null, loadError: Error |
 }
 
 /**
- * Get the stored bearer token for the given account (normalized API URL). Returns null if not found or keyring unavailable.
+ * Get the stored bearer token for the given account (normalized API URL).
+ * Tries new service first, then the prior service with transparent copy-forward.
+ * Returns null if not found or keyring unavailable.
  */
 export async function getToken(account: string): Promise<string | null> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return null;
     try {
-        const result = await runKeyringOp(mod.getPassword(SERVICE, account));
-        if (result === KEYRING_TIMED_OUT) return null;
-        return result ?? null;
+        return await readWithPriorFallback(mod, account);
     } catch {
         return null;
     }
 }
 
 /**
- * Store the bearer token for the given account. Returns true if stored in keyring, false if keyring unavailable or setPassword threw (config-file will fall back to file).
+ * Store the bearer token for the given account in the new service.
+ * Returns true if stored in keyring, false if keyring unavailable or setPassword threw
+ * (config-file will fall back to file).
  */
 export async function setToken(account: string, token: string): Promise<boolean> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return false;
     try {
-        const result = await runKeyringOp(mod.setPassword(SERVICE, account, token));
+        const result = await runKeyringOp(mod.setPassword(KEYRING_SERVICE, account, token));
         return result !== KEYRING_TIMED_OUT;
     } catch {
         return false;
@@ -149,48 +218,54 @@ export async function setToken(account: string, token: string): Promise<boolean>
 }
 
 /**
- * Delete the stored bearer token for the given account. Returns true if deleted (or not present), false if keyring unavailable or deletePassword threw.
+ * Delete the stored bearer token for the given account from BOTH the new and prior services.
+ * Returns true if deleted from new service (or not present), false if keyring unavailable.
  */
 export async function deleteToken(account: string): Promise<boolean> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return false;
     try {
-        const result = await runKeyringOp(mod.deletePassword(SERVICE, account));
-        return result !== KEYRING_TIMED_OUT;
+        return await deleteFromBothServices(mod, account);
     } catch {
         return false;
     }
 }
 
+/**
+ * Get the stored refresh token. Tries new service first, then the prior service with transparent copy-forward.
+ */
 export async function getRefreshToken(account: string): Promise<string | null> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return null;
     try {
-        const result = await runKeyringOp(mod.getPassword(SERVICE, refreshAccount(account)));
-        if (result === KEYRING_TIMED_OUT) return null;
-        return result ?? null;
+        return await readWithPriorFallback(mod, refreshAccount(account));
     } catch {
         return null;
     }
 }
 
+/**
+ * Store the refresh token in the new service.
+ */
 export async function setRefreshToken(account: string, token: string): Promise<boolean> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return false;
     try {
-        const result = await runKeyringOp(mod.setPassword(SERVICE, refreshAccount(account), token));
+        const result = await runKeyringOp(mod.setPassword(KEYRING_SERVICE, refreshAccount(account), token));
         return result !== KEYRING_TIMED_OUT;
     } catch {
         return false;
     }
 }
 
+/**
+ * Delete the refresh token from BOTH the new and prior services.
+ */
 export async function deleteRefreshToken(account: string): Promise<boolean> {
     const mod = loadKeyring();
     if (!mod || keyringDegraded) return false;
     try {
-        const result = await runKeyringOp(mod.deletePassword(SERVICE, refreshAccount(account)));
-        return result !== KEYRING_TIMED_OUT;
+        return await deleteFromBothServices(mod, refreshAccount(account));
     } catch {
         return false;
     }

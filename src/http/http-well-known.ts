@@ -40,7 +40,7 @@ export function buildProtectedResourceMetadata(): Record<string, unknown> {
     authorization_servers: issuer ? [issuer] : [],
     scopes_supported: OIDC_SCOPES_SUPPORTED,
     bearer_methods_supported: ['header'],
-    resource_name: 'KAIROS MCP'
+    resource_name: 'SquadRules MCP'
   };
   if (issuer) {
     metadata['authorization_endpoint'] = `${issuer}/protocol/openid-connect/auth`;
@@ -48,7 +48,10 @@ export function buildProtectedResourceMetadata(): Record<string, unknown> {
   }
   metadata['authorization_request_parameters'] = { prompt: 'login' };
   if (KEYCLOAK_CLI_CLIENT_ID) {
+    // Dual emission: retain the older field for existing clients, add new alias
+    // for SquadRules-aware clients. Both carry the same value.
     metadata['kairos_cli_client_id'] = KEYCLOAK_CLI_CLIENT_ID;
+    metadata['squadrules_cli_client_id'] = KEYCLOAK_CLI_CLIENT_ID;
   }
   return metadata;
 }

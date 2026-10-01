@@ -1,6 +1,6 @@
-# KAIROS adapter bundles
+# SquadRules adapter bundles
 
-A bundle is a directory of adapter markdown files stored outside the KAIROS
+A bundle is a directory of adapter markdown files stored outside the SquadRules
 server, usually in Git. Bundles are useful when you want reviewable source
 files for adapters, export snapshots from a space, or bulk-import a set of
 documents.
@@ -28,7 +28,7 @@ The CLI can train from a whole directory.
 ### Top-level only
 
 ```bash
-kairos train --force /path/to/bundle-root
+squadrules train --force /path/to/bundle-root
 ```
 
 This imports only `.md` files directly inside the bundle root.
@@ -36,7 +36,7 @@ This imports only `.md` files directly inside the bundle root.
 ### Recursive import
 
 ```bash
-kairos train --force --recursive /path/to/bundle-root
+squadrules train --force --recursive /path/to/bundle-root
 ```
 
 This imports `.md` files from subdirectories too.
@@ -50,12 +50,12 @@ directory.
 
 ## Export from a running server
 
-Use `kairos export` or the MCP `export` tool to save current server
+Use `squadrules export` or the MCP `export` tool to save current server
 content before curating a bundle in Git.
 
 ```bash
-kairos export kairos://adapter/<uuid>
-kairos export kairos://layer/<uuid> --format reward_jsonl --output json
+squadrules export kairos://adapter/<uuid>
+squadrules export kairos://layer/<uuid> --format reward_jsonl --output json
 ```
 
 `export` works one adapter or layer URI at a time. If you want a
@@ -64,9 +64,9 @@ resulting markdown files in a directory that follows the layout above.
 
 ## Practical guidance
 
-- Use `kairos train --recursive` when your bundle is already a nested
+- Use `squadrules train --recursive` when your bundle is already a nested
   directory tree and you want recursive import.
-- Use `kairos export` or the MCP `export` tool when you need current
+- Use `squadrules export` or the MCP `export` tool when you need current
   server content before curating a bundle in Git.
 
 ## Caveats

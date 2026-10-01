@@ -1,4 +1,4 @@
-# KAIROS MCP documentation
+# SquadRules MCP documentation
 
 This directory holds **curated knowledge that is not derivable from the code**,
 plus a few **functional inputs** consumed by the build and tests. Everything
@@ -9,7 +9,8 @@ the single source of truth for those topics.
 
 - Product overview and quick start: root [README](../README.md)
 - Code-derivable reference (architecture, auth, workflows, search, logging,
-  deployment, testing): **[project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)**
+  deployment, testing): **[project Wiki](https://github.com/SquadRules/mcp/wiki)**
+- Migrating from the former KAIROS name: [Migration from KAIROS](migration-from-kairos.md)
 
 > Rule of one: a fact has exactly one home. Pages here link to the Wiki for
 > code-derivable topics instead of restating them. See the
@@ -27,9 +28,9 @@ build and tests; keep them build-accurate.
 - [Optional `fullstack` Compose note](install/docker-compose-full-stack.md) —
   not a Keycloak install guide
 - [Helm deployment](install/helm.md)
-- [CLI reference](CLI.md) — `kairos`, auth, batch
+- [CLI reference](CLI.md) — `squadrules`, auth, batch
   training
-- [KAIROS bundles](kairos-bundles.md) — bundle layout plus export/import paths
+- [SquadRules bundles](squadrules-bundles.md) — bundle layout plus export/import paths
 
 ## Curated operator knowledge (not in the code)
 
@@ -39,7 +40,7 @@ build and tests; keep them build-accurate.
 ## Examples and adapter authoring (test fixtures)
 
 Files under `examples/` are read by
-`tests/integration/kairos-train-docs-examples.test.ts`; treat them as fixtures.
+`tests/integration/write/kairos-train-docs-examples.test.ts`; treat them as fixtures.
 
 - [Adapter examples](examples/README.md) — trainable example adapters
 - [Challenge types](examples/challenge-types.md) — challenge/solution shapes
@@ -67,8 +68,8 @@ Files under `examples/` are read by
 ## Skills and contributor guidance
 
 - [Agent skills README](../.agents/skills/README.md) — the two shipped skills
-  (`kairos`, `kairos-dev`) and their reference index.
-- [Skill authoring guide](../.agents/skills/kairos-dev/references/skill-authoring.md)
+  (`squadrules`, `squadrules-dev`) and their reference index.
+- [Skill authoring guide](../.agents/skills/squadrules-dev/references/skill-authoring.md)
   — how a skill can bundle an adapter, declare requirements, and run
   **activate** → **train** if missing → **forward** / **reward**.
 - [Contributing](../CONTRIBUTING.md)

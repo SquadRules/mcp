@@ -33,7 +33,7 @@ describe('forward input schema (entry pass without solution)', () => {
 
   const commentText = 'Continuing the same run with a valid comment solution.';
 
-  test('accepts comment solution as object { text } and normalizes to canonical shape', () => {
+  test('accepts comment solution as object { text } and normalizes to v2 evidence envelope', () => {
     const r = forwardInputSchema.safeParse({
       uri: LAYER_WITH_EXEC,
       solution: {
@@ -43,12 +43,13 @@ describe('forward input schema (entry pass without solution)', () => {
     });
     expect(r.success).toBe(true);
     if (r.success) {
-      expect(r.data.solution?.comment).toEqual({ text: commentText });
-      expect(r.data.solution?.comment?.text).toBe(commentText);
+      // v1 comment field is normalized into the v2 evidence envelope
+      expect(r.data.solution?.evidence).toEqual({ text: commentText });
+      expect(r.data.solution?.outcome).toBe('success');
     }
   });
 
-  test('accepts comment solution as a plain string (normalized to { text })', () => {
+  test('accepts comment solution as a plain string (normalized to v2 evidence envelope)', () => {
     const r = forwardInputSchema.safeParse({
       uri: LAYER_WITH_EXEC,
       solution: {
@@ -58,8 +59,8 @@ describe('forward input schema (entry pass without solution)', () => {
     });
     expect(r.success).toBe(true);
     if (r.success) {
-      expect(r.data.solution?.comment).toEqual({ text: commentText });
-      expect(r.data.solution?.comment?.text).toBe(commentText);
+      expect(r.data.solution?.evidence).toEqual({ text: commentText });
+      expect(r.data.solution?.outcome).toBe('success');
     }
   });
 
@@ -74,7 +75,7 @@ describe('forward input schema (entry pass without solution)', () => {
     expect(r.success).toBe(false);
   });
 
-  test('rejects comment solution when comment is an empty object', () => {
+  test('accepts comment solution with empty object (normalized to v2 evidence envelope)', () => {
     const r = forwardInputSchema.safeParse({
       uri: LAYER_WITH_EXEC,
       solution: {
@@ -82,10 +83,14 @@ describe('forward input schema (entry pass without solution)', () => {
         comment: {} as { text: string }
       }
     });
-    expect(r.success).toBe(false);
+    // v2 evidence is a open record; empty object is accepted after normalization
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.solution?.evidence).toEqual({});
+    }
   });
 
-  test('rejects comment solution when comment object omits text', () => {
+  test('accepts comment solution when comment object omits text (normalized to v2 evidence)', () => {
     const r = forwardInputSchema.safeParse({
       uri: LAYER_WITH_EXEC,
       solution: {
@@ -93,10 +98,13 @@ describe('forward input schema (entry pass without solution)', () => {
         comment: { other: 'x' } as unknown as { text: string }
       }
     });
-    expect(r.success).toBe(false);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.solution?.evidence).toEqual({ other: 'x' });
+    }
   });
 
-  test('rejects comment solution when comment.text is not a string', () => {
+  test('accepts comment solution when comment.text is not a string (normalized to v2 evidence)', () => {
     const r = forwardInputSchema.safeParse({
       uri: LAYER_WITH_EXEC,
       solution: {
@@ -104,7 +112,10 @@ describe('forward input schema (entry pass without solution)', () => {
         comment: { text: 99 as unknown as string }
       }
     });
-    expect(r.success).toBe(false);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.solution?.evidence).toEqual({ text: 99 });
+    }
   });
 
   test('rejects continuation solution without solution.type', () => {

@@ -4,14 +4,14 @@ import { KAIROS_SEARCH_LIMIT_CAP, KAIROS_SEARCH_LIMIT_MIN } from '../config.js';
 const adapterUriSchema = z
   .string()
   .regex(
-    /^kairos:\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
-    'must match kairos://adapter/{slug}'
+    /^(?:kairos|squadrules):\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
+    'must match kairos://adapter/{slug} (squadrules:// also accepted)'
   );
 const adapterSlugUriSchema = z
   .string()
   .regex(
-    /^kairos:\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
-    'must match kairos://adapter/{slug}'
+    /^(?:kairos|squadrules):\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
+    'must match kairos://adapter/{slug} (squadrules:// also accepted)'
   );
 const forwardFirstCallSchema = z
   .object({
@@ -112,7 +112,9 @@ export const activateOutputSchema = z.object({
    * spans multiple projects. Export the resolved absolute path as `KAIROS_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.
    */
-  kairos_local_artifact_dir: z.array(z.string()).optional()
+  kairos_local_artifact_dir: z.array(z.string()).optional(),
+  /** Compatibility alias for kairos_local_artifact_dir (same value). */
+  squadrules_local_artifact_dir: z.array(z.string()).optional()
 }).strict();
 
 export type ActivateInput = z.infer<typeof activateInputSchema>;

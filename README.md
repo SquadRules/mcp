@@ -1,22 +1,27 @@
-# KAIROS MCP
+# SquadRules MCP
 
 <!-- kairos-lint-allow-protocol-synonyms -->
 
-<img src="logo/kairos-mcp.svg" width="128" alt="KAIROS MCP logo" />
+<img src="logo/kairos-mcp.svg" width="128" alt="SquadRules MCP logo" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
 
-KAIROS MCP is a TypeScript service for storing and executing reusable protocol
-chains for AI agents. It exposes:
+SquadRules is an agent-facing persistent protocol system that bridges generic
+model competence and your actual local procedure. Even an agent that already
+knows Git must consult your local rules before acting on "Create PR." MCP is
+one interface into SquadRules, not the whole identity.
+
+SquadRules MCP is a TypeScript service for storing and executing reusable
+protocol chains for AI agents. It exposes:
 
 - an MCP endpoint at `POST /mcp`
 - REST endpoints under `/api/*`
 - a browser UI under `/ui`
-- a CLI named `kairos`
+- a CLI named `squadrules`
 
 Without persistent workflows, agents repeat work, lose context, and cannot
-follow multi-step procedures reliably. KAIROS fixes this with three core
+follow multi-step procedures reliably. SquadRules fixes this with three core
 ideas (the diagrams below list every **MCP tool**):
 
 - **Persistent memory** — store and retrieve protocol chains across sessions
@@ -57,6 +62,11 @@ flowchart LR
 The server generates challenge data (`nonce`, `proof_hash`, URIs); agents echo
 those values back exactly.
 
+> **Migrating from KAIROS?** This project was formerly named KAIROS. See
+> [Migration from KAIROS](docs/migration-from-kairos.md) for the old-to-new
+> name mapping and compatibility notes. Older `kairos` CLI binaries, `KAIROS_*`
+> environment variables, and `kairos://` URIs keep working.
+
 ## Protocol execution
 
 Authoritative behavior for agents is defined in the MCP tool resources under
@@ -89,7 +99,7 @@ and `must_obey` fields in real runs.
 match `contract.type`.
 
 For a longer narrative, see the **Workflow Engine** pages in the
-[KAIROS wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki).
+[SquadRules wiki](https://github.com/SquadRules/mcp/wiki).
 
 ## What runs in this repository
 
@@ -107,11 +117,11 @@ The current codebase includes:
 
 Use one transport mode per process:
 
-**`kairos serve` / `kairos-mcp serve`** (run the MCP server from the npm package):
+**`squadrules serve` / `squadrules-mcp serve`** (run the MCP server from the npm package):
 
 - **`--transport stdio|http`** overrides **`TRANSPORT_TYPE`** for that process only.
 - If neither is set, **`serve` defaults to stdio** (good for local MCP hosts).
-- Other **`kairos`** commands (login, train, …) do not use `--transport`; they only see
+- Other **`squadrules`** commands (login, train, …) do not use `--transport`; they only see
   **`TRANSPORT_TYPE`** if you set it in the environment (normally leave it unset for CLI-only use).
 
 - **`TRANSPORT_TYPE=http`**: serves `/mcp`, `/api/*`, `/ui`, and `/health`; this is
@@ -122,14 +132,14 @@ Use one transport mode per process:
 
 ## Quick start
 
-KAIROS runs as a local MCP server that your agent host launches over **stdio**
+SquadRules runs as a local MCP server that your agent host launches over **stdio**
 (the default transport). You do not need to clone this repo or run Docker
-Compose — install the package globally and point your host at `kairos serve`.
+Compose — install the package globally and point your host at `squadrules serve`.
 
 ### Prerequisites
 
 - **Node.js 24+**.
-- **A Qdrant instance on `http://localhost:6333`** — KAIROS cannot start
+- **A Qdrant instance on `http://localhost:6333`** — SquadRules cannot start
   without it, and no auth is required for local use. If you don't already run
   one, this is the quickest option (optional convenience):
 
@@ -142,23 +152,25 @@ Compose — install the package globally and point your host at `kairos serve`.
 ### Install
 
 ```bash
-npm install -g @jakub-plichcinski/kairos-mcp
-kairos --help
+npm install -g @squadrules/mcp
+squadrules --help
 ```
 
-The global install provides both the **`kairos`** CLI (bulk operations, auth,
-server management) and the MCP server binary used by your agent host.
+The global install provides both the **`squadrules`** CLI (bulk operations, auth,
+server management) and the MCP server binary used by your agent host. The
+package also installs **`squadrules-mcp`** and retains the former **`kairos`**
+and **`kairos-mcp`** command names as compatibility aliases.
 
 ### Configure your MCP host
 
-Add KAIROS to your host's `mcp.json` (Cursor, Claude Desktop, Claude Code, …).
+Add SquadRules to your host's `mcp.json` (Cursor, Claude Desktop, Claude Code, …).
 `serve` uses **stdio** by default, so **no `--transport` flag is needed**:
 
 ```json
 {
   "mcpServers": {
-    "KAIROS": {
-      "command": "kairos",
+    "SquadRules": {
+      "command": "squadrules",
       "args": ["serve"],
       "env": {
         "QDRANT_URL": "http://localhost:6333",
@@ -178,12 +190,12 @@ supply **one** of:
   and `OPENAI_API_KEY=ollama`
 - **TEI** — `TEI_BASE_URL` (+ optional `TEI_MODEL`)
 
-Every parameter is **ENV-overridable**. To run KAIROS as an HTTP listener
+Every parameter is **ENV-overridable**. To run SquadRules as an HTTP listener
 instead of stdio, add `"--transport", "http"` to `args` (see
 [Transport modes](#transport-modes)).
 
 Some hosts show a longer **agent-visible** server id (for example one ending in
-`-KAIROS`); see [AGENTS.md](AGENTS.md) for the runtime authority note.
+`-SQUADRULES`); see [AGENTS.md](AGENTS.md) for the runtime authority note.
 
 When executing over MCP, follow **[Protocol execution](#protocol-execution)**
 above and each tool result's `next_action`. The connected server's tool
@@ -195,26 +207,26 @@ descriptions are the runtime authority if they differ from this file.
 
 ## CLI
 
-The `kairos` CLI is installed as part of the global package (see
+The `squadrules` CLI is installed as part of the global package (see
 [Install](#install) above). It provides bulk adapter operations, authentication,
 export/import, and server management — the same binary your MCP host uses for
-`kairos serve`.
+`squadrules serve`.
 
 ```bash
-kairos --help
+squadrules --help
 ```
 
 See [docs/CLI.md](docs/CLI.md).
 
-## Add KAIROS to your agent instructions
+## Add SquadRules to your agent instructions
 
-This repo ships the **kairos** skill for running protocols. Use `--list`
+This repo ships the **squadrules** skill for running protocols. Use `--list`
 to see what the skills registry reports for this repo.
 
-If you want agents to use KAIROS consistently, add a short repo rule or
+If you want agents to use SquadRules consistently, add a short repo rule or
 instruction such as:
 
-> KAIROS MCP is a Model Context Protocol server for persistent memory and
+> SquadRules MCP is a Model Context Protocol server for persistent memory and
 > deterministic adapter execution. Execute protocols in this order:
 > **`activate`** → **`forward`** (loop per layer until `next_action` points to
 > **`reward`**) → **`reward`**. Echo all server-generated hashes, nonces, and
@@ -227,35 +239,40 @@ This repository ships its agent skills under
 
 | Skill | Audience | Purpose |
 |-------|----------|---------|
-| `kairos` | Users | Run KAIROS protocols; install and update guidance; bug reports |
-| `kairos-dev` | Developers | Docker Compose dev environment and maintainer workflows (internal; not installed by `npx skills add`) |
+| `squadrules` | Users | Run SquadRules protocols; install and update guidance; bug reports |
+| `squadrules-dev` | Developers | Docker Compose dev environment and maintainer workflows (internal; not installed by `npx skills add`) |
+
+The former `kairos` and `kairos-dev` skill directories are retained for
+compatibility with existing installations; hosts prefer `squadrules` when both
+are present.
 
 Install the user skill:
 
 ```bash
-npx skills add jakub-plichcinski/kairos-mcp --skill kairos
+npx skills add SquadRules/mcp --skill squadrules
 ```
 
 List available skills:
 
 ```bash
-npx skills add jakub-plichcinski/kairos-mcp --list
+npx skills add SquadRules/mcp --list
 ```
 
 Popular global installs:
 
 | Agents | Command |
 |--------|---------|
-| Cursor | `npx skills add jakub-plichcinski/kairos-mcp --skill kairos -y -g -a cursor` |
-| Claude Code | `npx skills add jakub-plichcinski/kairos-mcp --skill kairos -y -g -a claude-code` |
-| Cursor + Claude Code | `npx skills add jakub-plichcinski/kairos-mcp --skill kairos -y -g -a cursor -a claude-code` |
+| Cursor | `npx skills add SquadRules/mcp --skill squadrules -y -g -a cursor` |
+| Claude Code | `npx skills add SquadRules/mcp --skill squadrules -y -g -a claude-code` |
+| Cursor + Claude Code | `npx skills add SquadRules/mcp --skill squadrules -y -g -a cursor -a claude-code` |
 
 More detail: [.agents/skills/README.md](.agents/skills/README.md)
 
 ## Helm (advanced)
 
-A Helm chart for Kubernetes deployment lives under [`helm/`](helm/). To
-validate the chart locally (matches the GitHub Actions CI pipeline):
+A Helm chart for Kubernetes deployment lives under [`helm/`](helm/) and is
+published to `oci://ghcr.io/squadrules/charts/mcp`. To validate the in-repo
+chart locally (matches the GitHub Actions CI pipeline):
 
 ```bash
 npm run test:helm
@@ -269,7 +286,8 @@ See [docs/install/helm.md](docs/install/helm.md) for deployment details.
 - [Install and environment](docs/install/README.md)
 - [Cursor and MCP](docs/install/README.md#cursor-and-mcp)
 - [CLI reference](docs/CLI.md)
-- [Architecture (KAIROS wiki)](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+- [Migration from KAIROS](docs/migration-from-kairos.md)
+- [Architecture (SquadRules wiki)](https://github.com/SquadRules/mcp/wiki)
 - [Adapter examples](docs/examples/README.md)
 - [Contributing](CONTRIBUTING.md)
 
@@ -277,13 +295,13 @@ See [docs/install/helm.md](docs/install/helm.md) for deployment details.
 
 ### The server does not start
 
-In stdio mode KAIROS logs to **stderr** (stdout is reserved for MCP frames).
-Check your host's MCP log panel for the `KAIROS` server. The most common cause
+In stdio mode SquadRules logs to **stderr** (stdout is reserved for MCP frames).
+Check your host's MCP log panel for the `SquadRules` server. The most common cause
 is Qdrant not being reachable.
 
-### KAIROS cannot reach Qdrant
+### SquadRules cannot reach Qdrant
 
-KAIROS requires a Qdrant instance and only becomes healthy once Qdrant is
+SquadRules requires a Qdrant instance and only becomes healthy once Qdrant is
 ready. Confirm one is listening on your `QDRANT_URL` (default
 `http://localhost:6333`):
 
@@ -291,7 +309,7 @@ ready. Confirm one is listening on your `QDRANT_URL` (default
 curl http://localhost:6333/readyz
 ```
 
-If you run KAIROS in HTTP mode (`--transport http`), you can also check its own
+If you run SquadRules in HTTP mode (`--transport http`), you can also check its own
 health endpoint (`curl http://localhost:3000/health`).
 
 ### Embeddings fail on startup
@@ -308,12 +326,12 @@ The CLI stores tokens per API URL. Confirm that:
 
 - you are using the expected `--url` / `KAIROS_API_URL`
 - the token is still valid
-- Keycloak and the KAIROS server agree on issuer and audience
+- Keycloak and the SquadRules server agree on issuer and audience
 
 Use:
 
 ```bash
-kairos token --validate
+squadrules token --validate
 ```
 
 > **Developers:** for Docker Compose, fullstack, and auth troubleshooting, see
@@ -322,12 +340,12 @@ kairos token --validate
 ## Support
 
 - [Documentation](docs/README.md)
-- [Issues](https://github.com/jakub-plichcinski/kairos-mcp/issues)
-- [Discussions](https://github.com/jakub-plichcinski/kairos-mcp/discussions)
+- [Issues](https://github.com/SquadRules/mcp/issues)
+- [Discussions](https://github.com/SquadRules/mcp/discussions)
 
 ## Trademark
 
-KAIROS MCP™ and the KAIROS MCP logo are trademarks of the project owner.
+SquadRules MCP™ and the SquadRules MCP logo are trademarks of the project owner.
 They are not covered by the MIT license. Forks must remove the name and logo.
 
 See [TRADEMARK.md](TRADEMARK.md).

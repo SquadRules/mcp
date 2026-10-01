@@ -86,15 +86,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
-          KAIROS_PRERELEASE_BRANCH: ${{ needs.resolve.outputs.branch != 'main' && needs.resolve.outputs.branch || '' }}
+          SQUADRULES_PRERELEASE_BRANCH: ${{ needs.resolve.outputs.branch != 'main' && needs.resolve.outputs.branch || '' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
           VALIDATE_ARTIFACTS: ${{ inputs.validate-artifacts && 'true' || 'false' }}
         run: npm run ci:release -- plan
-      - uses: azure/setup-helm@v5
-        if: steps.plan.outputs.skip == 'false'
-        with:
-          version: v4.0.5
-      - name: Prepare and consumer-test versioned npm and Helm packages
+      - name: Prepare and consumer-test the versioned npm package
         if: steps.plan.outputs.skip == 'false'
         run: npm run ci:release -- package
       - uses: docker/setup-qemu-action@v4
@@ -142,8 +138,6 @@ jobs:
           path: |
             .local/release/package.tgz
             .local/release/image.oci.tar
-            .local/release/chart.tgz
-            .local/release/chart-config.json
             .local/release/*sbom.json
             .local/release/validation.json
             .local/release/manifest.json
@@ -204,3 +198,29 @@ jobs:
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         run: node scripts/ci-release.mjs publish
+      - name: Notify charts repository
+        # Best-effort cross-repo signal sent AFTER npm + OCI image publication succeeded, so
+        # SquadRules/charts (which now owns the Helm chart) can bump the image tag/digest.
+        if: success() && github.ref == 'refs/heads/main'
+        continue-on-error: true  # Dispatch failure must not fail or undo the published npm/image artifacts
+        env:
+          # Requires a narrowly-scoped GitHub App token or PAT with dispatch access to
+          # SquadRules/charts. GITHUB_TOKEN cannot dispatch to other repositories, and this
+          # is intentionally NOT a publishing credential.
+          CHARTS_DISPATCH_TOKEN: ${{ secrets.CHARTS_DISPATCH_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [ -z "${CHARTS_DISPATCH_TOKEN:-}" ]; then
+            echo "CHARTS_DISPATCH_TOKEN not configured; skipping SquadRules/charts notification."
+            exit 0
+          fi
+          # Version and image digest come from the sealed release manifest recovered by the
+          # publish step (scripts/ci-release.mjs reports imageDigest there, not as a job output).
+          manifest=.local/release/manifest.json
+          version=$(jq -r '.version // empty' "$manifest" 2>/dev/null || true)
+          digest=$(jq -r '.imageDigest // empty' "$manifest" 2>/dev/null || true)
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${CHARTS_DISPATCH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/SquadRules/charts/dispatches \
+            -d "{\"event_type\":\"image-published\",\"client_payload\":{\"version\":\"${version}\",\"digest\":\"${digest}\"}}"

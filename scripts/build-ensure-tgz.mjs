@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const pkg = require(join(root, "package.json"));
 const version = pkg.version;
-const tgzName = `jakub-plichcinski-kairos-mcp-${version}.tgz`;
+const tgzName = `squadrules-mcp-${version}.tgz`;
 const tgzPath = join(root, "dist", tgzName);
 
 if (existsSync(tgzPath)) {

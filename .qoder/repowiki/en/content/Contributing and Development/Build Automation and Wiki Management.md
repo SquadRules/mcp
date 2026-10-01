@@ -17,16 +17,17 @@
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
 - [scripts/ci-parallel-checks.mjs](file://scripts/ci-parallel-checks.mjs)
 - [scripts/ci-github-step-summary.mjs](file://scripts/ci-github-step-summary.mjs)
-- [.github/workflows](file://.github/workflows)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
+- [.agents/skills/kairos-dev/references/release-semver.md](file://.agents/skills/kairos-dev/references/release-semver.md)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Enhanced GitHub Actions workflow for wiki synchronization to include scripts/build-wiki.mjs in path filters
-- Improved automatic rebuild triggers when wiki build logic is modified
-- Updated development workflow reliability by eliminating manual intervention requirements
-- Enhanced documentation to reflect improved CI/CD pipeline automation
-- Updated for version 4.8.0-rc.2 release preparation including routine maintenance updates
+- Updated release automation documentation to reflect removal of AUTOMATION_ENABLED gating for releases
+- Enhanced release workflow documentation to clarify branch-based production vs non-production behavior
+- Added comprehensive coverage of the new release automation capabilities and environment variable handling
+- Updated troubleshooting guide with release-specific guidance
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -36,20 +37,21 @@
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Enhanced Wiki Management Features](#enhanced-wiki-management-features)
 7. [GitHub Actions Workflow Enhancements](#github-actions-workflow-enhancements)
-8. [Dependency Analysis](#dependency-analysis)
-9. [Performance Considerations](#performance-considerations)
-10. [Troubleshooting Guide](#troubleshooting-guide)
-11. [Conclusion](#conclusion)
+8. [Release Automation System](#release-automation-system)
+9. [Dependency Analysis](#dependency-analysis)
+10. [Performance Considerations](#performance-considerations)
+11. [Troubleshooting Guide](#troubleshooting-guide)
+12. [Conclusion](#conclusion)
 
 ## Introduction
-This document explains the build automation and wiki management capabilities of the project. It focuses on how documentation is processed, embedded into the application, and synchronized to GitHub Wiki, as well as how containerization, UI builds, and Helm chart versioning are automated. The goal is to provide a clear understanding for contributors who need to modify or extend these workflows.
+This document explains the build automation and wiki management capabilities of the project. It focuses on how documentation is processed, embedded into the application, synchronized to GitHub Wiki, and how the release automation system operates with enhanced security and reliability features. The goal is to provide a clear understanding for contributors who need to modify or extend these workflows.
 
-**Updated** Enhanced with improved GitHub Actions workflow automation that automatically triggers wiki rebuilds when build logic changes, eliminating manual intervention requirements. Updated for version 4.8.0-rc.2 release preparation with routine maintenance improvements.
+**Updated** Enhanced with improved release automation that removes AUTOMATION_ENABLED gating for releases while maintaining security controls through branch-based production vs non-production behavior determination.
 
 ## Project Structure
-Build and wiki-related assets are primarily located under:
-- scripts: Node.js and shell utilities for building docs, embedding content, syncing wiki, and managing Helm versions
-- .github/workflows: CI orchestration that invokes the scripts above with enhanced path filtering
+Build and automation-related assets are primarily located under:
+- scripts: Node.js and shell utilities for building docs, embedding content, syncing wiki, managing Helm versions, and orchestrating releases
+- .github/workflows: CI orchestration including release automation with enhanced security controls
 - Root configuration files: package.json, vite.config.ts, tsconfig.json, Dockerfile, compose.yaml define build tooling and containerization
 
 ```mermaid
@@ -72,11 +74,13 @@ HELMBUMP["scripts/helm-bump-version.mjs"]
 HELMSYNC["scripts/helm-sync-app-version.mjs"]
 CIPARALLEL["scripts/ci-parallel-checks.mjs"]
 CISUMMARY["scripts/ci-github-step-summary.mjs"]
+CIRELEASE["scripts/ci-release.mjs<br/>(Enhanced Release Automation)"]
 EMBEDDOCS["Embedded Resources<br/>Generator"]
 end
 subgraph "CI/CD Pipeline"
 GHA["GitHub Actions<br/>(Enhanced Path Filters)"]
 AUTOBUILD["Automatic Rebuild Trigger"]
+RELEASEWORKFLOW[".github/workflows/release.yml<br/>(Branch-Based Controls)"]
 end
 PKG --> BUILDWIKI
 PKG --> BUILDEMBEDSLUG
@@ -84,6 +88,7 @@ PKG --> BUILDEMBED
 PKG --> BUILDVITEENV
 PKG --> HELMBUMP
 PKG --> HELMSYNC
+PKG --> CIRELEASE
 VITE --> BUILDVITEENV
 DOCKER --> BUILDEMBED
 COMPOSE --> BUILDEMBED
@@ -96,6 +101,7 @@ CISUMMARY --> CIPARALLEL
 EMBEDDOCS --> BUILDWIKI
 GHA --> AUTOBUILD
 AUTOBUILD --> BUILDWIKI
+RELEASEWORKFLOW --> CIRELEASE
 ```
 
 **Diagram sources**
@@ -114,7 +120,8 @@ AUTOBUILD --> BUILDWIKI
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
 - [scripts/ci-parallel-checks.mjs](file://scripts/ci-parallel-checks.mjs)
 - [scripts/ci-github-step-summary.mjs](file://scripts/ci-github-step-summary.mjs)
-- [.github/workflows](file://.github/workflows)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
 
 **Section sources**
 - [package.json](file://package.json)
@@ -132,6 +139,8 @@ AUTOBUILD --> BUILDWIKI
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
 - [scripts/ci-parallel-checks.mjs](file://scripts/ci-parallel-checks.mjs)
 - [scripts/ci-github-step-summary.mjs](file://scripts/ci-github-step-summary.mjs)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
 
 ## Core Components
 - Documentation embedding pipeline: Converts markdown-based docs into structured metadata and embeddable resources consumed by the application at runtime.
@@ -141,8 +150,9 @@ AUTOBUILD --> BUILDWIKI
 - CI orchestration: Runs checks in parallel and generates step summaries for better visibility.
 - **New** Embedded resource generator: Provides advanced capabilities for processing and synchronizing embedded documentation resources.
 - **Enhanced** GitHub Actions workflow: Includes scripts/build-wiki.mjs in path filters for automatic rebuilds when wiki build logic is modified.
+- **Enhanced** Release automation: Provides secure, branch-controlled release process with enhanced security controls and automated artifact validation.
 
-**Updated** Enhanced core components with improved GitHub Actions workflow automation and automatic rebuild capabilities.
+**Updated** Enhanced core components with improved GitHub Actions workflow automation, automatic rebuild capabilities, and enhanced release automation with branch-based security controls.
 
 **Section sources**
 - [scripts/build-embed-docs.ts](file://scripts/build-embed-docs.ts)
@@ -155,15 +165,17 @@ AUTOBUILD --> BUILDWIKI
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
 - [scripts/ci-parallel-checks.mjs](file://scripts/ci-parallel-checks.mjs)
 - [scripts/ci-github-step-summary.mjs](file://scripts/ci-github-step-summary.mjs)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
 
 ## Architecture Overview
-The build system integrates multiple stages with enhanced GitHub Actions workflow automation:
+The build system integrates multiple stages with enhanced GitHub Actions workflow automation and secure release processes:
 - Source docs (markdown) are transformed into metadata and embedded artifacts.
 - **Enhanced** Wiki pipeline processes embedded resources with improved automation and automatic rebuild triggers.
 - UI build injects environment-specific constants.
 - Container images include prebuilt assets.
 - Helm charts are versioned consistently with app releases.
 - **Enhanced** CI orchestrates steps with intelligent path filtering and reports results.
+- **New** Secure release automation with branch-based production controls and automated artifact validation.
 
 ```mermaid
 sequenceDiagram
@@ -179,6 +191,7 @@ participant Docker as "Dockerfile"
 participant Compose as "compose.yaml"
 participant HelmBump as "helm-bump-version.mjs"
 participant HelmSync as "helm-sync-app-version.mjs"
+participant Release as "ci-release.mjs<br/>(Enhanced)"
 participant Wiki as "GitHub Wiki"
 participant EmbedRes as "Embedded Resources"
 Dev->>GHA : Push code changes
@@ -193,9 +206,10 @@ GHA->>Docker : Build container image
 GHA->>Compose : Orchestrate local services
 GHA->>HelmBump : Bump chart version
 GHA->>HelmSync : Sync app version in chart
+GHA->>Release : Execute secure release process
 WikiEnh->>EmbedRes : Process embedded resources
 WikiEnh->>Wiki : Synchronize with enhanced capabilities
-Wiki-->>Dev : Updated wiki pages with embedded resources
+Release-->>Dev : Secure release with branch controls
 ```
 
 **Diagram sources**
@@ -208,7 +222,8 @@ Wiki-->>Dev : Updated wiki pages with embedded resources
 - [compose.yaml](file://compose.yaml)
 - [scripts/helm-bump-version.mjs](file://scripts/helm-bump-version.mjs)
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
-- [.github/workflows](file://.github/workflows)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
 
 ## Detailed Component Analysis
 
@@ -432,6 +447,71 @@ style Publish fill:#fff3e0
 - [.github/workflows](file://.github/workflows)
 - [scripts/build-wiki.mjs](file://scripts/build-wiki.mjs)
 
+## Release Automation System
+
+### Enhanced Security Model
+The release automation system has been significantly enhanced with improved security controls and simplified environment variable handling.
+
+**Updated** Key changes include:
+- **Removed AUTOMATION_ENABLED gating**: Releases are no longer controlled by the AUTOMATION_ENABLED environment variable
+- **Simplified environment control**: Only DRY_RUN environment variable controls release behavior
+- **Branch-based production controls**: Production vs non-production behavior is determined by branch context (main = stable, other branches = prerelease)
+
+### Release Workflow Architecture
+The enhanced release system provides secure, automated publishing with comprehensive validation:
+
+```mermaid
+sequenceDiagram
+participant Dev as "Developer"
+participant GHA as "GitHub Actions"
+participant Release as "ci-release.mjs"
+participant Validate as "Validation Gates"
+participant Publish as "Artifact Publishing"
+participant Verify as "Verification"
+Dev->>GHA : Trigger release workflow
+GHA->>Release : Execute resolve phase
+Release->>Validate : Check exact-source validations
+Validate-->>Release : Validation status
+Release->>Release : Plan semantic version
+Release->>Release : Package artifacts
+Release->>Release : Build images
+Release->>Release : Seal with checksums
+alt Dry run enabled
+Release-->>Dev : Preview without publishing
+else Production release
+Release->>Publish : Publish npm packages
+Release->>Publish : Publish container images
+Release->>Publish : Publish Helm charts
+Release->>Verify : Verify published artifacts
+Verify-->>Dev : Release complete
+end
+```
+
+**Diagram sources**
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
+
+### Environment Variable Handling
+The release system now uses a simplified approach to environment control:
+
+- **DRY_RUN=true**: Enables preview mode without actual publishing
+- **VALIDATE_ARTIFACTS=true**: Validates all artifacts during dry runs
+- **Branch context**: Determines production vs prerelease behavior
+- **AUTOMATION_ENABLED**: No longer affects release automation (only controls dependency automation)
+
+### Security Controls
+Enhanced security measures include:
+- Exact-source validation requirements
+- Immutable artifact recovery mechanisms
+- Comprehensive checksum verification
+- Multi-stage publication with verification gates
+- Branch-based access controls
+
+**Section sources**
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
+- [.agents/skills/kairos-dev/references/release-semver.md](file://.agents/skills/kairos-dev/references/release-semver.md)
+
 ## Dependency Analysis
 Build scripts depend on:
 - Node.js runtime and npm packages defined in package.json
@@ -441,6 +521,7 @@ Build scripts depend on:
 - Docker and Compose for containerization
 - **Enhanced** Additional dependencies for improved wiki management and embedded resource processing
 - **New** GitHub Actions workflow dependencies for path filtering and automatic triggers
+- **Enhanced** Release automation dependencies for secure publishing and validation
 
 ```mermaid
 graph LR
@@ -456,8 +537,12 @@ ENHANCED --> WEBLIBS["Web Libraries"]
 ENHANCED --> FILESYS["File System APIs"]
 WORKFLOW["GitHub Actions Workflow"] --> PATHFILTER["Path Filtering"]
 WORKFLOW --> AUTOTRIGGER["Auto Triggers"]
+RELEASE["Release Automation"] --> SECURITY["Security Controls"]
+RELEASE --> VALIDATION["Artifact Validation"]
 PATHFILTER --> SCRIPTS
 AUTOTRIGGER --> WORKFLOW
+SECURITY --> RELEASE
+VALIDATION --> RELEASE
 ```
 
 **Diagram sources**
@@ -468,6 +553,7 @@ AUTOTRIGGER --> WORKFLOW
 - [compose.yaml](file://compose.yaml)
 - [scripts/build-wiki.mjs](file://scripts/build-wiki.mjs)
 - [scripts/sync-wiki.sh](file://scripts/sync-wiki.sh)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
 - [.github/workflows](file://.github/workflows)
 
 **Section sources**
@@ -476,6 +562,7 @@ AUTOTRIGGER --> WORKFLOW
 - [vite.config.ts](file://vite.config.ts)
 - [Dockerfile](file://Dockerfile)
 - [compose.yaml](file://compose.yaml)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
 
 ## Performance Considerations
 - Parallelize independent tasks to reduce total build time.
@@ -485,6 +572,7 @@ AUTOTRIGGER --> WORKFLOW
 - **Enhanced** Leverage improved caching mechanisms in the enhanced wiki synchronization process.
 - **Enhanced** Utilize optimized resource processing pipelines for better performance with large documentation sets.
 - **New** Benefit from automatic rebuild triggers that only activate when necessary, reducing unnecessary CI runs.
+- **Enhanced** Release automation includes efficient artifact validation and recovery mechanisms.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -496,8 +584,10 @@ Common issues and resolutions:
 - **Enhanced** Wiki synchronization timeouts: Monitor enhanced retry mechanisms and consider adjusting timeout configurations for large documentation sets.
 - **New** GitHub Actions path filter issues: Verify that scripts/build-wiki.mjs is properly included in path filters for automatic triggers.
 - **New** Manual intervention still required: Check GitHub Actions workflow configuration to ensure automatic rebuild triggers are functioning correctly.
+- **Enhanced** Release automation issues: Verify branch context and environment variables for proper release behavior.
+- **Enhanced** Release validation failures: Check exact-source validation requirements and ensure all prerequisite workflows have passed.
 
-**Updated** Added troubleshooting guidance for enhanced wiki management features and GitHub Actions workflow improvements.
+**Updated** Added troubleshooting guidance for enhanced wiki management features, GitHub Actions workflow improvements, and release automation system.
 
 **Section sources**
 - [scripts/setup-github-wiki-permissions.sh](file://scripts/setup-github-wiki-permissions.sh)
@@ -506,9 +596,10 @@ Common issues and resolutions:
 - [scripts/helm-sync-app-version.mjs](file://scripts/helm-sync-app-version.mjs)
 - [scripts/ci-parallel-checks.mjs](file://scripts/ci-parallel-checks.mjs)
 - [scripts/build-wiki.mjs](file://scripts/build-wiki.mjs)
+- [scripts/ci-release.mjs](file://scripts/ci-release.mjs)
 - [.github/workflows](file://.github/workflows)
 
 ## Conclusion
-The project's build automation integrates documentation processing, UI environment definition, containerization, Helm versioning, and CI orchestration with significantly enhanced wiki management capabilities. The improved build-wiki.mjs script provides advanced automated documentation generation and synchronization capabilities for embedded resources, while the enhanced GitHub Actions workflow ensures automatic rebuilds when wiki build logic is modified. This eliminates manual intervention requirements and improves development workflow reliability. By following the documented workflows and leveraging the provided scripts, contributors can reliably build, test, and publish both application artifacts and documentation with enhanced reliability, performance, and automation.
+The project's build automation integrates documentation processing, UI environment definition, containerization, Helm versioning, and CI orchestration with significantly enhanced wiki management capabilities and secure release automation. The improved build-wiki.mjs script provides advanced automated documentation generation and synchronization capabilities for embedded resources, while the enhanced GitHub Actions workflow ensures automatic rebuilds when wiki build logic is modified. The new release automation system provides secure, branch-controlled publishing with simplified environment variable handling and comprehensive artifact validation. This eliminates manual intervention requirements and improves development workflow reliability. By following the documented workflows and leveraging the provided scripts, contributors can reliably build, test, and publish both application artifacts and documentation with enhanced reliability, performance, and security.
 
-**Updated** Enhanced conclusion reflecting the improved wiki management capabilities, embedded resource handling, and GitHub Actions workflow automation that eliminates manual intervention requirements. Updated for version 4.8.0-rc.2 release preparation with routine maintenance improvements.
+**Updated** Enhanced conclusion reflecting the improved wiki management capabilities, embedded resource handling, GitHub Actions workflow automation, and new secure release automation system that eliminates manual intervention requirements while providing enhanced security controls.

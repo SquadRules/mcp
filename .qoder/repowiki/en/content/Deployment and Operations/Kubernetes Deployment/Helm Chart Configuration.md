@@ -18,7 +18,16 @@
 - [helm/kairos-mcp/templates/credentials-secret-generator-job.yaml](file://helm/kairos-mcp/templates/credentials-secret-generator-job.yaml)
 - [helm/kairos-mcp/templates/qdrant-hpa.yaml](file://helm/kairos-mcp/templates/qdrant-hpa.yaml)
 - [helm/kairos-mcp/templates/app-hpa.yaml](file://helm/kairos-mcp/templates/app-hpa.yaml)
+- [Dockerfile](file://Dockerfile)
+- [.github/workflows/release.yml](file://.github/workflows/release.yml)
+- [package.json](file://package.json)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated container image registry references from `debian777/kairos-mcp` to `jakubplichcinski/kairos-mcp` across all Helm chart configurations
+- Updated version synchronization between Helm charts and container images (version 4.8.6)
+- Enhanced documentation to reflect current image repository structure and deployment practices
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -34,6 +43,8 @@
 
 ## Introduction
 This document provides comprehensive Helm chart configuration guidance for Kairos MCP. It explains all available values, environment-specific configurations, secret management, and custom resource definitions (CRDs) used to deploy the application with PostgreSQL, Redis, Keycloak, and optional components like Qdrant. It also includes examples for common deployment scenarios, configuration overrides, and production best practices.
+
+**Updated** Container image registry has been migrated from `debian777/kairos-mcp` to `jakubplichcinski/kairos-mcp` across all Helm charts and deployment configurations, ensuring consistent image sourcing and improved maintainability.
 
 ## Project Structure
 The Helm charts are organized under helm/kairos-mcp with templates that render Kubernetes resources. Environment-specific values files are provided at helm/values.dev.yaml and helm/values.prod.yaml. The top-level helm/README.md documents usage patterns and conventions.
@@ -91,6 +102,8 @@ Key value categories:
 - Networking: gateway class, TLS secrets, route hosts.
 - Observability: service monitors, Prometheus rules.
 - Optional components: Qdrant storage, Ollama.
+
+**Updated** The application container image is now sourced from `quay.io/jakubplichcinski/kairos-mcp` with version 4.8.6, reflecting the registry migration and version synchronization improvements.
 
 **Section sources**
 - [helm/kairos-mcp/templates/kairos-mcp-deployment.yaml](file://helm/kairos-mcp/templates/kairos-mcp-deployment.yaml)
@@ -150,9 +163,12 @@ Best practices:
 - Set meaningful resource requests/limits based on load tests.
 - Enable readiness probes to avoid routing traffic before warm-up.
 
+**Updated** The default container image is now `quay.io/jakubplichcinski/kairos-mcp:4.8.6`, reflecting the registry migration and current version synchronization.
+
 **Section sources**
 - [helm/kairos-mcp/templates/kairos-mcp-deployment.yaml](file://helm/kairos-mcp/templates/kairos-mcp-deployment.yaml)
 - [helm/kairos-mcp/templates/app-hpa.yaml](file://helm/kairos-mcp/templates/app-hpa.yaml)
+- [helm/kairos-mcp/values.yaml:46-49](file://helm/kairos-mcp/values.yaml#L46-L49)
 
 ### Database Connections (PostgreSQL)
 - Connection parameters: host, port, database name, user, password, SSL mode.
@@ -296,12 +312,16 @@ Common issues and resolutions:
 - Keycloak login failures: validate issuer URL, client ID/secret, and realm configuration.
 - Route not found: ensure GatewayClass exists and HTTPRoutes reference correct backends.
 - Secret missing: run the credentials generator job and verify secret names.
+- Image pull errors: verify image registry credentials and repository accessibility.
 
 Diagnostic steps:
 - Inspect pod logs and describe events.
 - Test connectivity from within the cluster to DB/Redis/Keycloak.
 - Validate TLS certificates and DNS resolution.
 - Review Prometheus metrics and alerts.
+- Check container image availability and authentication.
+
+**Updated** Added troubleshooting guidance for container image registry issues following the migration from `debian777/kairos-mcp` to `jakubplichcinski/kairos-mcp`.
 
 **Section sources**
 - [helm/kairos-mcp/templates/kairos-mcp-deployment.yaml](file://helm/kairos-mcp/templates/kairos-mcp-deployment.yaml)
@@ -311,6 +331,8 @@ Diagnostic steps:
 
 ## Conclusion
 This guide consolidates Helm chart configuration for Kairos MCP, covering application settings, database and Redis connections, Keycloak integration, networking, secrets, and optional components. By following the environment-specific values and production best practices outlined here, you can reliably deploy and operate Kairos MCP across development and production clusters.
+
+**Updated** The container image registry migration to `jakubplichcinski/kairos-mcp` ensures better maintainability and aligns with current deployment practices. Version synchronization between Helm charts and container images guarantees consistency across releases.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -333,7 +355,46 @@ Configuration override examples:
 - Provide external DB: helm upgrade --set postgresql.host=db.example.com ...
 - Configure Keycloak: helm upgrade --set keycloak.issuer=https://kc.example.com ...
 
+**Updated** Default image registry is now `quay.io/jakubplichcinski/kairos-mcp` with version 4.8.6. To override the image repository, use: `helm upgrade --set image.repository=docker.io/your-repo/kairos-mcp --set image.tag=4.8.6 ...`
+
 **Section sources**
 - [helm/values.prod.yaml](file://helm/values.prod.yaml)
 - [helm/kairos-mcp/values.yaml](file://helm/kairos-mcp/values.yaml)
 - [docs/install/helm.md](file://docs/install/helm.md)
+
+### Container Image Registry Migration
+The container image registry has been updated from `debian777/kairos-mcp` to `jakubplichcinski/kairos-mcp` across all deployment configurations. This change improves maintainability and aligns with the project's organizational structure.
+
+Key changes:
+- Default image repository: `quay.io/jakubplichcinski/kairos-mcp`
+- Version synchronization: Helm chart versions match container image versions
+- CI/CD pipeline updates: Release workflow publishes to both Docker Hub and Quay registries
+- Documentation updates: All references updated to reflect new registry
+
+Migration impact:
+- Existing deployments will continue using previously pulled images
+- New deployments will automatically use the new registry
+- No configuration changes required for standard deployments
+- Custom image overrides should be updated to point to the new registry
+
+**Section sources**
+- [helm/kairos-mcp/values.yaml:46-49](file://helm/kairos-mcp/values.yaml#L46-L49)
+- [.github/workflows/release.yml:380-382](file://.github/workflows/release.yml#L380-L382)
+- [package.json:92-95](file://package.json#L92-L95)
+
+### Version Synchronization
+Version synchronization between Helm charts and container images is automated through the release pipeline. The system ensures that:
+- Helm chart `appVersion` matches container image tags
+- Semantic-release coordinates version bumps across all artifacts
+- Single-digest invariants maintain consistency across registries
+
+Release process:
+1. Semantic-release computes version from commit history
+2. Version sync scripts update Helm chart metadata
+3. Container images built with matching version tags
+4. Helm charts published with synchronized versions
+
+**Section sources**
+- [helm/kairos-mcp/Chart.yaml:5-6](file://helm/kairos-mcp/Chart.yaml#L5-L6)
+- [.github/workflows/release.yml:500-504](file://.github/workflows/release.yml#L500-L504)
+- [package.json:117-120](file://package.json#L117-L120)

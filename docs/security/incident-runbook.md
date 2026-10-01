@@ -1,7 +1,7 @@
 # Incident response runbook
 
 This runbook explains how you investigate and contain security incidents in
-KAIROS MCP. It focuses on request-level traceability, embedding abuse, and
+SquadRules MCP. It focuses on request-level traceability, embedding abuse, and
 cross-tenant isolation risks.
 
 ## Scope and required inputs

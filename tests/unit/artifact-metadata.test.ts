@@ -10,7 +10,8 @@ describe('extractArtifactMetadata', () => {
 print("ok")`;
     expect(extractArtifactMetadata(content, 'fallback.py')).toEqual({
       slug: 'sort-jira-py',
-      version: '2'
+      version: '2',
+      slug_source: 'header'
     });
   });
 
@@ -18,7 +19,8 @@ print("ok")`;
     const content = 'echo "ok"';
     expect(extractArtifactMetadata(content, 'verify_briefing.sh')).toEqual({
       slug: 'verify-briefing-sh',
-      version: '1'
+      version: '1',
+      slug_source: 'name'
     });
   });
 

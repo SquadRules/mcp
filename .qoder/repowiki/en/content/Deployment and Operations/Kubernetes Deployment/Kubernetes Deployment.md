@@ -17,7 +17,17 @@
 - [ollama-statefulset.yaml](file://helm/kairos-mcp/templates/ollama-statefulset.yaml)
 - [prometheusrule.yaml](file://helm/kairos-mcp/templates/prometheusrule.yaml)
 - [helm.md](file://docs/install/helm.md)
+- [values.dev.yaml](file://helm/values.dev.yaml)
+- [values.prod.yaml](file://helm/values.prod.yaml)
+- [Dockerfile](file://Dockerfile)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated container image references from `debian777/kairos-mcp` to `jakubpichcinski/kairos-mcp` across all Helm chart configurations
+- Updated repository information to reflect new container registry usage (quay.io)
+- Enhanced documentation with current image configuration examples
+- Verified all deployment templates and values files reference the correct container image
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -36,6 +46,8 @@
 Kubernetes deployment for Kairos MCP provides a comprehensive production-ready solution using Helm charts. The deployment architecture supports high availability, horizontal scaling, and integrates with essential infrastructure components including PostgreSQL for persistence, Redis for caching, Qdrant for vector search, and Keycloak for authentication.
 
 The Helm chart is designed to be flexible, supporting both development and production environments with configurable resource allocation, security contexts, and networking options. It includes built-in support for monitoring, logging, and operational best practices.
+
+**Updated** Container images are now published under `jakubplichcinski/kairos-mcp` and available on quay.io registry, ensuring improved maintainability and community ownership.
 
 ## Project Structure
 
@@ -82,6 +94,16 @@ end
 
 The core Kairos MCP application is deployed as a Kubernetes Deployment with support for horizontal pod autoscaling and vertical pod autoscaling. The deployment includes health checks, resource limits, and environment-specific configurations.
 
+#### Container Image Configuration
+
+The application container image is configured through Helm values with the following structure:
+
+- **Repository**: `quay.io/jakubplichcinski/kairos-mcp`
+- **Tag**: Versioned releases (e.g., `4.8.6`)
+- **Pull Policy**: Configurable (`IfNotPresent`, `Always`, `Never`)
+
+The container image is built from a multi-stage Dockerfile that optimizes for both development and production environments, with security hardening and minimal attack surface.
+
 ### Infrastructure Dependencies
 
 The chart provisions several critical infrastructure components:
@@ -101,6 +123,7 @@ Network exposure is handled through OpenShift Route or Kubernetes Ingress contro
 - [kairos-mcp-service.yaml](file://helm/kairos-mcp/templates/kairos-mcp-service.yaml)
 - [postgres-cluster-cr.yaml](file://helm/kairos-mcp/templates/postgres-cluster-cr.yaml)
 - [redis-failover-cr.yaml](file://helm/kairos-mcp/templates/redis-failover-cr.yaml)
+- [values.yaml](file://helm/kairos-mcp/values.yaml)
 
 ## Architecture Overview
 
@@ -183,7 +206,7 @@ CPUUtil --> |Yes| ScaleUp["Increase Replicas"]
 CPUUtil --> |No| MemoryUtil{"Memory > Target?"}
 MemoryUtil --> |Yes| ScaleUp
 MemoryUtil --> |No| CheckLoad["Check Request Load"]
-CheckLoad --> LoadHigh{"Load > Threshold?"}
+LoadHigh{"Load > Threshold?"}
 LoadHigh --> |Yes| ScaleUp
 LoadHigh --> |No| Maintain["Maintain Current Scale"]
 ScaleUp --> UpdateStatus["Update Replica Count"]
@@ -359,6 +382,8 @@ Comprehensive monitoring setup includes:
 #### Pod Startup Failures
 
 - **Image pull errors**: Verify image registry credentials and network connectivity
+  - Ensure proper authentication to `quay.io/jakubpichcinski/kairos-mcp` registry
+  - Check image tag existence and version compatibility
 - **Resource constraints**: Check node capacity and resource quotas
 - **Configuration errors**: Validate environment variables and config maps
 - **Dependency failures**: Ensure all required services are available
@@ -406,8 +431,11 @@ The Kairos MCP Kubernetes deployment provides a robust, scalable, and production
 - **Enterprise security** with Keycloak integration
 - **Production monitoring** with Prometheus and alerting
 - **Flexible networking** with gateway and route management
+- **Modern containerization** with optimized images on quay.io registry
 
 The deployment supports both development and production environments with appropriate configuration variations. Regular updates to the chart ensure compatibility with latest Kubernetes versions and security patches.
+
+**Updated** The container image migration to `jakubplichcinski/kairos-mcp` improves maintainability and ensures better community ownership of the deployment artifacts.
 
 ## Appendices
 
@@ -453,5 +481,31 @@ helm uninstall kairos-mcp -n kairos-mcp
 kubectl delete namespace kairos-mcp
 ```
 
+### Container Image Configuration
+
+Current container image configuration:
+
+```yaml
+app:
+  image:
+    repository: "quay.io/jakubplichcinski/kairos-mcp"
+    tag: "4.8.6"
+    pullPolicy: "IfNotPresent"
+```
+
+For development environments:
+
+```yaml
+app:
+  image:
+    repository: "quay.io/jakubplichcinski/kairos-mcp"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+```
+
 **Section sources**
 - [helm.md](file://docs/install/helm.md)
+- [values.yaml](file://helm/kairos-mcp/values.yaml)
+- [values.dev.yaml](file://helm/values.dev.yaml)
+- [values.prod.yaml](file://helm/values.prod.yaml)
+- [Dockerfile](file://Dockerfile)

@@ -1,16 +1,16 @@
 apiVersion: v2
-name: kairos-mcp
-description: KAIROS MCP application chart (Phase 2+). Phase 1 data plane lives under helm/infrastructure (Kustomize). Operators under helm/operators.
+name: mcp
+description: SquadRules MCP application chart. Deploys the MCP server with Qdrant, optional Redis/Valkey, Keycloak and Postgres operator CRs.
 type: application
 version: 0.15.0
 appVersion: "4.8.6"
-icon: https://raw.githubusercontent.com/jakub-plichcinski/kairos-mcp/main/logo/kairos-mcp.svg
+icon: https://raw.githubusercontent.com/SquadRules/charts/main/mcp/logo.svg
 keywords:
-  - kairos
+  - squadrules
   - mcp
 maintainers:
-  - name: KAIROS
-    url: https://github.com/jakub-plichcinski/kairos-mcp
+  - name: SquadRules
+    url: https://github.com/SquadRules/charts
 dependencies:
   - name: qdrant
     version: "1.17.0"

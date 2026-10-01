@@ -2,8 +2,9 @@
 
 <!-- kairos-lint-allow-protocol-synonyms -->
 
-Deploy KAIROS on Kubernetes using the `kairos-mcp` Helm chart. This guide
-covers prerequisites, operator installation, chart installation, and
+Deploy SquadRules on Kubernetes using the `kairos-mcp` Helm chart (in-repo at
+`helm/kairos-mcp`, published to `oci://ghcr.io/squadrules/charts/mcp`). This
+guide covers prerequisites, operator installation, chart installation, and
 post-install verification.
 
 ## Prerequisites
@@ -13,7 +14,7 @@ post-install verification.
 | **Kubernetes** 1.28+ | Any conformant cluster (k3d, EKS, GKE, AKS, on-prem) |
 | **Helm** v3.14+ | Package manager for Kubernetes |
 | **kubectl** | Configured context targeting the destination cluster |
-| **Node.js 25+** + **[KAIROS CLI](../CLI.md)** | Required for auth, bulk management, and verification |
+| **Node.js 25+** + **[SquadRules CLI](../CLI.md)** | Required for auth, bulk management, and verification |
 | **Gateway API CRDs** | Required when `gateway.enabled: true`; often bundled by the ingress operator |
 
 ### Operators
@@ -172,17 +173,18 @@ the Keycloak Admin UI or via the Realm API after deployment.
 
 ## Versioning policy
 
-Chart release identity derives from the repository's **single release version**, computed once by semantic-release. See the [release runbook](../../.agents/skills/kairos-dev/references/release-semver.md):
+Chart release identity derives from the repository's **single release version**, computed once by semantic-release. See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md):
 
 | Lane | What | Updated by |
 |------|------|------------|
-| **Chart release identity** | `Chart.yaml` `version` + `appVersion` + default `app.image.tag` in `values.yaml` | Release preparation: `scripts/helm-set-release-version.mjs` sets all three to the exact version before validation and publication to `oci://quay.io/<namespace>/kairos-mcp-chart` |
+| **Chart release identity** | `Chart.yaml` `version` + `appVersion` + default `app.image.tag` in `values.yaml` | Release preparation: `scripts/helm-set-release-version.mjs` sets all three to the exact version before validation and publication to `oci://ghcr.io/squadrules/charts/mcp` |
 | **In-repo baseline** | Committed `Chart.yaml` / `values.yaml` values | `npm run version:sync` (stable releases only); the committed values are the last synced baseline, not the next version |
 | **Dependencies** | `Chart.yaml` `dependencies[].version`, third-party image tags (Percona, Ollama, etc.) | Tests-gated Renovate `fix(deps):` PRs |
 
 Published chart versions are immutable. Recovery accepts an existing version only
 when its configuration and payload checksums match the original release manifest.
-Images and charts use separate Quay repositories to avoid tag collisions. Chart PRs
+Images (`quay.io/squadrules/mcp`) and charts (`ghcr.io/squadrules/charts/mcp`)
+use separate repositories to avoid tag collisions. Chart PRs
 pass Integration's `verify-helm` job (lint, unittest, chart-testing, kubeconform).
 Override `app.image.tag` in your values to pin a release independently of the chart default.
 
@@ -229,6 +231,7 @@ and advanced usage.
 ## Reference
 
 - Chart defaults: `helm/kairos-mcp/values.yaml`
+- Published chart: `oci://ghcr.io/squadrules/charts/mcp`
 - Operator scripts: `helm/prerequisites/`
 - Dev profiles: `helm/.dev/`
-- Architecture: [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+- Architecture: [project Wiki](https://github.com/SquadRules/mcp/wiki)

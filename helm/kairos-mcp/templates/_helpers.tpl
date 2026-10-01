@@ -3,7 +3,7 @@ Resolve Gateway API gatewayClassName.
 Priority: explicit .Values.gateway.gatewayClassName > cluster autodetection.
 Returns empty string when no class is available.
 */}}
-{{- define "kairos.resolvedGatewayClass" -}}
+{{- define "mcp.resolvedGatewayClass" -}}
 {{- $gw := default dict .Values.gateway -}}
 {{- if $gw.gatewayClassName -}}
   {{- $gw.gatewayClassName -}}
@@ -23,7 +23,7 @@ Returns empty string when no class is available.
 Resolve effective gateway name for parentRefs.
 Uses existingGatewayName when set, otherwise chart-managed gatewayName.
 */}}
-{{- define "kairos.resolvedGatewayName" -}}
+{{- define "mcp.resolvedGatewayName" -}}
 {{- $gw := default dict .Values.gateway -}}
 {{- default ($gw.gatewayName | default "kairos-gateway") $gw.existingGatewayName -}}
 {{- end -}}
@@ -35,18 +35,18 @@ Explicit .Values.gateway.mode wins; "auto" picks based on:
   2. ingressClassName -> ingress
   3. nothing available -> none
 */}}
-{{- define "kairos.ingressMode" -}}
+{{- define "mcp.ingressMode" -}}
 {{- $gw := default dict .Values.gateway -}}
 {{- $mode := default "auto" $gw.mode -}}
 {{- if eq $mode "auto" -}}
-  {{- $gwClass := include "kairos.resolvedGatewayClass" . | trim -}}
+  {{- $gwClass := include "mcp.resolvedGatewayClass" . | trim -}}
   {{- if $gwClass -}}gateway{{- else if $gw.ingressClassName -}}ingress{{- else -}}none{{- end -}}
 {{- else -}}
   {{- $mode -}}
 {{- end -}}
 {{- end -}}
 
-{{- define "kairos.adminHostname" -}}
+{{- define "mcp.adminHostname" -}}
 {{- $gw := default dict .Values.gateway -}}
 {{- $routes := default dict $gw.routes -}}
 {{- $kc := default dict $routes.keycloak -}}
@@ -57,11 +57,16 @@ Explicit .Values.gateway.mode wins; "auto" picks based on:
 {{- end -}}
 {{- end -}}
 
-{{- define "kairos.credentialsLegacySecretName" -}}
+{{/*
+Legacy credentials Secret name. MUST remain "kairos-mcp-credentials":
+existing installations created this Secret and the lookup-based resolution
+below depends on the exact name to preserve bindings on upgrade.
+*/}}
+{{- define "mcp.credentialsLegacySecretName" -}}
 {{- printf "kairos-mcp-credentials" -}}
 {{- end -}}
 
-{{- define "kairos.credentialsPreferredSecretName" -}}
+{{- define "mcp.credentialsPreferredSecretName" -}}
 {{- $name := default "" .Values.credentials.name | trim -}}
 {{- if $name -}}
 {{- $name -}}
@@ -70,13 +75,13 @@ Explicit .Values.gateway.mode wins; "auto" picks based on:
 {{- end -}}
 {{- end -}}
 
-{{- define "kairos.credentialsSecretName" -}}
+{{- define "mcp.credentialsSecretName" -}}
 {{- $existing := default "" .Values.credentials.existingSecret | trim -}}
 {{- if $existing -}}
 {{- $existing -}}
 {{- else -}}
-{{- $preferred := include "kairos.credentialsPreferredSecretName" . -}}
-{{- $legacy := include "kairos.credentialsLegacySecretName" . -}}
+{{- $preferred := include "mcp.credentialsPreferredSecretName" . -}}
+{{- $legacy := include "mcp.credentialsLegacySecretName" . -}}
 {{- $preferredObj := lookup "v1" "Secret" .Release.Namespace $preferred -}}
 {{- if $preferredObj -}}
 {{- $preferred -}}

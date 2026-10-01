@@ -50,7 +50,7 @@ export function startHttpServer(port: number, memoryStore: MemoryQdrantStore) {
 export async function startHttpTransport(memoryStore: MemoryQdrantStore) {
     const httpPort = SERVER_PORT;
 
-    structuredLogger.success('KAIROS MCP Server starting', 'HTTP transport');
+    structuredLogger.success('SquadRules MCP Server starting', 'HTTP transport');
     structuredLogger.info('HTTP transport: enabled');
     structuredLogger.info('Port: ' + httpPort);
 

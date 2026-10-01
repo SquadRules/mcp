@@ -91,7 +91,7 @@ describe('sanitizeBindingsForAudit', () => {
 });
 
 describe('buildAuditLine', () => {
-  test('serializes only coarse allowlisted audit events', () => {
+  test('serializes coarse allowlisted audit events with full context bindings', () => {
     const line = buildAuditLine('info', {
       category: 'audit.embedding',
       stage: 'provider',
@@ -102,9 +102,10 @@ describe('buildAuditLine', () => {
     });
     expect(line).toContain('"category":"audit.embedding"');
     expect(line).toContain('"event":"embedding_provider_error"');
-    expect(line).not.toContain('tenant-1');
-    expect(line).not.toContain('req-1');
-    expect(line).not.toContain('upstream failed');
+    // All non-category/event bindings are passed through for full audit context
+    expect(line).toContain('"tenant_id":"tenant-1"');
+    expect(line).toContain('"request_id":"req-1"');
+    expect(line).toContain('"error_message":"upstream failed"');
     expect(line?.endsWith('\n')).toBe(true);
   });
 });

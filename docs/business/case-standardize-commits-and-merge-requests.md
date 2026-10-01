@@ -1,6 +1,6 @@
 # Illustrative case 1: Standardize commits and merge requests across a team
 
-<img src="../../logo/kairos-mcp.svg" width="64" alt="KAIROS MCP logo" />
+<img src="../../logo/kairos-mcp.svg" width="64" alt="SquadRules logo" />
 
 ## Problem
 

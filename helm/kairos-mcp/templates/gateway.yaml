@@ -3,8 +3,8 @@
 {{- $certManager := default dict $tls.certManager }}
 {{- $hasTLS := or $certManager.enabled $tls.secretName }}
 {{- $allowHttpWithTLS := default false $gw.allowHttpWithTls }}
-{{- $mode := include "kairos.ingressMode" . | trim }}
-{{- $gwClass := include "kairos.resolvedGatewayClass" . | trim }}
+{{- $mode := include "mcp.ingressMode" . | trim }}
+{{- $gwClass := include "mcp.resolvedGatewayClass" . | trim }}
 {{- $infraAnnotations := default dict $gw.infrastructureAnnotations }}
 {{- if and $gw.enabled $gw.createGateway $gw.hostname (eq $mode "gateway") $gwClass }}
 ---

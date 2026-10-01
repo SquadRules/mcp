@@ -1,8 +1,8 @@
 # Illustrative business application cases
 
-<img src="../../logo/kairos-mcp.svg" width="96" alt="KAIROS MCP logo" />
+<img src="../../logo/kairos-mcp.svg" width="96" alt="SquadRules logo" />
 
-This section contains **illustrative examples** of how KAIROS can be applied in
+This section contains **illustrative examples** of how SquadRules can be applied in
 organizational workflows. These pages are scenario sketches for managers and
 decision-makers, not executable product guarantees or benchmark results.
 
@@ -22,7 +22,7 @@ flowchart LR
     B([Team policy])
     C([Older modules])
   end
-  subgraph kairos["KAIROS workflow"]
+  subgraph squadrules["SquadRules workflow"]
     D[Run procedure]
   end
   subgraph out["Outcomes"]
@@ -61,4 +61,4 @@ flowchart LR
 ## More information
 
 For technical details on how protocols actually run in this repository, see
-[Architecture and adapter workflows in the project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki).
+[Architecture and adapter workflows in the project Wiki](https://github.com/SquadRules/mcp/wiki).

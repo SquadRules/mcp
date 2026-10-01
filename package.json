@@ -1,19 +1,19 @@
 {
-  "name": "@jakub-plichcinski/kairos-mcp",
+  "name": "@squadrules/mcp",
   "version": "4.8.6",
-  "description": "MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
+  "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
   "author": "Jakub Plichcinski <kuba@xpl.pl>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jakub-plichcinski/kairos-mcp.git"
+    "url": "https://github.com/SquadRules/mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/jakub-plichcinski/kairos-mcp/issues"
+    "url": "https://github.com/SquadRules/mcp/issues"
   },
-  "homepage": "https://github.com/jakub-plichcinski/kairos-mcp#readme",
+  "homepage": "https://github.com/SquadRules/mcp#readme",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -28,6 +28,8 @@
     "ai-infrastructure"
   ],
   "bin": {
+    "squadrules": "dist/cli/index.js",
+    "squadrules-mcp": "dist/cli/index.js",
     "kairos": "dist/cli/index.js",
     "kairos-mcp": "dist/cli/index.js"
   },
@@ -49,7 +51,7 @@
     "dev:restart": "ENV=dev ./scripts/deploy-run-env.sh restart",
     "dev:node": "./scripts/dev-node-use.sh",
     "dev:start": "ENV=dev ./scripts/deploy-run-env.sh start",
-    "dev:start:installed": "DOTENV_CONFIG_PATH=.env node -r dotenv/config node_modules/@jakub-plichcinski/kairos-mcp/dist/index.js",
+    "dev:start:installed": "DOTENV_CONFIG_PATH=.env node -r dotenv/config node_modules/@squadrules/mcp/dist/index.js",
     "dev:status": "ENV=dev ./scripts/deploy-run-env.sh status",
     "dev:stop": "ENV=dev ./scripts/deploy-run-env.sh stop",
     "dev:test": "ENV=dev ./scripts/deploy-run-env.sh test",
@@ -89,9 +91,9 @@
     "prod:redis-cli": "ENV=prod ./scripts/deploy-run-env.sh redis-cli",
     "prod:logs": "ENV=prod ./scripts/deploy-run-env.sh logs",
     "build": "npm run prebuild && node -e \"if(!process.env.DOCKER_BUILD){const r=require('child_process').spawnSync('npm',['run','lint'],{stdio:'inherit'});if(r.status!==0)process.exit(r.status!=null?r.status:1)}\" && npm run ui:build && npx tsc && chmod +x dist/cli/index.js",
-    "docker:build": "docker build --target runtime --build-arg PACKAGE_VERSION=$(node -p \"require('./package.json').version\") -t jakubplichcinski/kairos-mcp:latest -t jakubplichcinski/kairos-mcp:$(node -p \"require('./package.json').version\") .",
-    "docker:build:dev": "docker build -f Dockerfile.dev -t jakubplichcinski/kairos-mcp:dev .",
-    "docker:push": "docker push jakubplichcinski/kairos-mcp:latest && docker push jakubplichcinski/kairos-mcp:$(node -p \"require('./package.json').version\")",
+    "docker:build": "docker build --target runtime --build-arg PACKAGE_VERSION=$(node -p \"require('./package.json').version\") -t quay.io/squadrules/mcp:latest -t quay.io/squadrules/mcp:$(node -p \"require('./package.json').version\") .",
+    "docker:build:dev": "docker build -f Dockerfile.dev -t quay.io/squadrules/mcp:dev .",
+    "docker:push": "docker push quay.io/squadrules/mcp:latest && docker push quay.io/squadrules/mcp:$(node -p \"require('./package.json').version\")",
     "docker:publish": "npm run docker:build && npm run docker:push",
     "ui:build": "vite build",
     "design:viewports": "node scripts/test-capture-viewports.mjs",
@@ -122,7 +124,7 @@
     "lint:markdown": "markdownlint-cli2 'docs/**/*.md' 'README.md' 'CONTRIBUTING.md' 'SECURITY.md' --config .markdownlint.jsonc --no-progress",
     "lint:markdown:fix": "markdownlint-cli2 'docs/**/*.md' 'README.md' 'CONTRIBUTING.md' 'SECURITY.md' --config .markdownlint.jsonc --no-progress --fix",
     "lint:mermaid": "./scripts/validate-mermaid.sh docs/**/*.md",
-    "compose:sync-app-tag": "node -e \"const fs=require('fs');const p='compose.yaml';const v=require('./package.json').version;let s=fs.readFileSync(p,'utf8');s=s.replace(/(^\\s*image:\\s*jakubplichcinski\\/kairos-mcp:)(\\S+)/m,(_,prefix)=>prefix+'v'+v);fs.writeFileSync(p,s);\"",
+    "compose:sync-app-tag": "node -e \"const fs=require('fs');const p='compose.yaml';const v=require('./package.json').version;let s=fs.readFileSync(p,'utf8');s=s.replace(/(^\\s*image:\\s*quay\\.io\\/squadrules\\/mcp:)(\\S+)/m,(_,prefix)=>prefix+'v'+v);fs.writeFileSync(p,s);\"",
     "version:sync": "npm run version:sync-skills && npm run compose:sync-app-tag && npm run helm:sync-app-version",
     "version:sync-skills": "node scripts/build-sync-skill-versions.mjs",
     "helm:sync-app-version": "node scripts/helm-sync-app-version.mjs",
@@ -134,7 +136,7 @@
     "test:tgz": "node scripts/ci-test-tgz-install.mjs",
     "test:package-local": "npm run build:tgz && npm run test:tgz",
     "prepare:publish": "npm run build:tgz && npm run test:tgz",
-    "publish": "npm run prepare:publish && npm publish ./dist/jakub-plichcinski-kairos-mcp-$(node -p \"require('./package.json').version\").tgz --access public"
+    "publish": "npm run prepare:publish && npm publish ./dist/squadrules-mcp-$(node -p \"require('./package.json').version\").tgz --access public"
   },
   "dependencies": {
     "@exodus/bytes": "^1.15.0",

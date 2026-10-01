@@ -15,6 +15,16 @@ function toCurrentMarkdown(markdownDoc: string): string {
   return markdownDoc.replaceAll('"challenge":', '"contract":');
 }
 
+/** True when the value already carries a supported URI scheme (kairos:// or squadrules://). */
+function hasKairosScheme(value: string): boolean {
+  return /^(?:kairos|squadrules):\/\//i.test(value);
+}
+
+/** Canonicalize the alias scheme so all emitted URIs use kairos:// (stored form). */
+function toCanonicalScheme(value: string): string {
+  return value.replace(/^squadrules:\/\//i, 'kairos://');
+}
+
 export interface AssembleSkillItemParams {
   memoryStore: MemoryQdrantStore;
   qdrantService: QdrantService | undefined;
@@ -40,13 +50,14 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
   const memorySlug =
     typeof headMemory?.slug === 'string' && headMemory.slug.trim().length > 0 ? headMemory.slug.trim() : null;
 
+  const canonicalRequestUri = toCanonicalScheme(params.requestUri);
   const rawMd = toCurrentMarkdown(String(dump['content'] ?? ''));
   const meta = deriveSkillMetadata({
     protocolMarkdown: rawMd,
     label,
     memorySlug,
     adapterName,
-    kairosUri: params.requestUri
+    kairosUri: canonicalRequestUri
   });
 
   const adapterVersion = typeof dump['adapter_version'] === 'string' ? dump['adapter_version'] : null;
@@ -54,12 +65,12 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
   const skillPath = 'SKILL.md';
   const hash = sha256Hex(skillBody);
 
-  const kairosUri =
-    typeof dump['uri'] === 'string' && dump['uri'].startsWith('kairos://')
-      ? dump['uri']
-      : params.requestUri.startsWith('kairos://')
-        ? params.requestUri
-        : `kairos://adapter/${params.adapterId}`;
+  const dumpUri = typeof dump['uri'] === 'string' ? dump['uri'] : '';
+  const kairosUri = hasKairosScheme(dumpUri)
+    ? toCanonicalScheme(dumpUri)
+    : hasKairosScheme(canonicalRequestUri)
+      ? canonicalRequestUri
+      : `kairos://adapter/${params.adapterId}`;
 
   return {
     slug: meta.slug,

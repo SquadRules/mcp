@@ -22,7 +22,7 @@ services:
     volumes:
       - valkey-data:/data
     networks:
-      - kairos-network
+      - squadrules-network
     healthcheck:
       test: [ "CMD-SHELL", "valkey-cli -a \"$$KEY_VALUE_STORE_PASSWORD\" ping" ]
       interval: 10s
@@ -43,11 +43,11 @@ services:
     environment:
       - RI_REDIS_HOST*=valkey
       - RI_REDIS_PORT*=6379
-      - RI_REDIS_ALIAS*=kairosKeyValue
+      - RI_REDIS_ALIAS*=squadrulesKeyValue
     volumes:
       - redisinsight-data:/data
     networks:
-      - kairos-network
+      - squadrules-network
     restart: unless-stopped
 
   qdrant:
@@ -68,7 +68,7 @@ services:
       - QDRANT__LOG_LEVEL=INFO
       - QDRANT__SERVICE__MAX_WORKING_MEMORY_MB=4096
     networks:
-      - kairos-network
+      - squadrules-network
     restart: unless-stopped
 
     #
@@ -97,7 +97,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - kairos-network
+      - squadrules-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
       interval: 5s
@@ -134,11 +134,11 @@ services:
       - "9000:9000"
     # No bind mount: realm JSONs live in scripts/keycloak/import; use scripts/deploy-configure-keycloak-realms.py to create realms via API.
     networks:
-      - kairos-network
+      - squadrules-network
     restart: unless-stopped
 
   app-prod:
-    image: jakubplichcinski/kairos-mcp:v4.8.6
+    image: quay.io/squadrules/mcp:v4.8.6
     #pull_policy: always
     labels:
       - "environment=prod"
@@ -162,7 +162,7 @@ services:
       qdrant:
         condition: service_started
     networks:
-      - kairos-network
+      - squadrules-network
     restart: unless-stopped
     # Health check covering both transports
     healthcheck:
@@ -174,7 +174,7 @@ services:
       start_period: 40s
 
 networks:
-  kairos-network:
+  squadrules-network:
     driver: bridge
 
 volumes:

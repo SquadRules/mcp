@@ -78,7 +78,7 @@ spec:
     - name: proxy-trusted-addresses
       value: {{ $proxyTrusted | quote }}
     {{- end }}
-    {{- $adminHost := include "kairos.adminHostname" . | trim }}
+    {{- $adminHost := include "mcp.adminHostname" . | trim }}
     {{- if $adminHost }}
     - name: hostname-admin
       value: {{ printf "https://%s%s" $adminHost $relativePath | quote }}

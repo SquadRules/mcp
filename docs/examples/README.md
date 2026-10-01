@@ -1,4 +1,4 @@
-# KAIROS adapter examples
+# SquadRules adapter examples
 
 This folder contains **markdown adapters ready for `train`** and a short reference for challenge types and solution shapes. These examples are the canonical source for **dev/qa workflow tests**: imports, activate + run, update layer, and update adapter.
 
@@ -32,9 +32,9 @@ When running **MCP-only** workflow tests (no shell, no filesystem except `report
 
 ## Related docs
 
-- [Architecture and adapter workflows (project Wiki)](https://github.com/jakub-plichcinski/kairos-mcp/wiki) — End-to-end flow (**activate** → **forward** → **reward**) and per-tool workflows.
+- [Architecture and adapter workflows (project Wiki)](https://github.com/SquadRules/mcp/wiki) — End-to-end flow (**activate** → **forward** → **reward**) and per-tool workflows.
 - [Workflow test README](../../tests/workflow-test/README.md) — Test harness and how to run.
-- Building KAIROS workflows is described in the tool descriptions for
+- Building SquadRules workflows is described in the tool descriptions for
   **`train`** and **`forward`**.
 - [Agent-facing design principles](../../CONTRIBUTING.md#agent-facing-design-principles) — For contributors designing or reviewing MCP tools and APIs.
 

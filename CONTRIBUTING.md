@@ -1,6 +1,6 @@
-# Contributing to KAIROS MCP
+# Contributing to SquadRules MCP
 
-KAIROS MCP is an MCP server for persistent memory and deterministic
+SquadRules MCP is an MCP server for persistent memory and deterministic
 adapter execution. This document is the definitive contract for
 contributors: setup, workflow, code conventions, and PR requirements.
 
@@ -154,10 +154,10 @@ Participants must maintain a respectful and inclusive environment.
 - Docker and Docker Compose (v2)
 - Git
 
-### KAIROS MCP protocol (agents and editors)
+### SquadRules MCP protocol (agents and editors)
 
-When **KAIROS** is connected as an MCP server (for example **Cursor** →
-Installed MCP Servers → **KAIROS**), run stored workflows in this order:
+When **SquadRules** is connected as an MCP server (for example **Cursor** →
+Installed MCP Servers → **SquadRules**), run stored workflows in this order:
 
 1. `**activate`** — use the user’s intent as `query` (or a short phrase).
    Optional `space` / `space_id` narrows search (same forms as **`train`** /
@@ -183,13 +183,13 @@ fields.
 - Echo server-issued **nonce** and **proof_hash** values **verbatim** in
 the next call; never compute or guess them.
 
-A `**/kairos`**invocation in agents that load the **kairos** skill means:
+A `**/squadrules`**invocation in agents that load the **squadrules** skill means:
 start with `**activate`**, then complete `**forward**` through `**reward**`
 before answering the user.
 
 **Git vs MCP:** branches, commits, and pull requests follow the sections
-below. The activate → forward → reward sequence above runs **against the KAIROS server** your editor
-targets (for example **KAIROS LIVE**), not against Git.
+below. The activate → forward → reward sequence above runs **against the SquadRules server** your editor
+targets (for example **SQUADRULES LIVE**), not against Git.
 
 ### Claude Code (`.claude/hooks`)
 
@@ -199,7 +199,7 @@ maintainers explicitly choose to track them.
 
 ## Development environment (Docker Compose full stack)
 
-Users launch KAIROS over stdio with `npx` (see the root
+Users launch SquadRules over stdio with `npx` (see the root
 [README](README.md)). Contributors instead run the full **Docker Compose**
 stack locally: Qdrant, the app, and optionally Redis, Postgres, and Keycloak.
 
@@ -216,12 +216,12 @@ npm run dev:test       # run the integration suite against the running server
 The `fullstack` Compose profile provides the optional cache / DB / OIDC
 services. **Keycloak / IdP configuration is your responsibility** — see the
 Deployment and Operations pages in the
-[project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki).
+[project Wiki](https://github.com/SquadRules/mcp/wiki).
 
-The [`kairos-dev`](.agents/skills/kairos-dev/SKILL.md) agent skill documents
+The [`squadrules-dev`](.agents/skills/squadrules-dev/SKILL.md) agent skill documents
 this environment plus every maintainer workflow (build/test, bug-fix ship,
 release, QA, wiki publishing). Its reference files live under
-[`.agents/skills/kairos-dev/references/`](.agents/skills/kairos-dev/references/).
+[`.agents/skills/squadrules-dev/references/`](.agents/skills/squadrules-dev/references/).
 
 ## Setup from clone to passing tests
 
@@ -229,8 +229,8 @@ release, QA, wiki publishing). Its reference files live under
 2. Clone your fork:
 
   ```bash
-   git clone https://github.com/YOUR_USERNAME/kairos-mcp.git
-   cd kairos-mcp
+   git clone https://github.com/YOUR_USERNAME/mcp.git
+   cd mcp
   ```
 
 1. Install dependencies:
@@ -243,7 +243,7 @@ release, QA, wiki publishing). Its reference files live under
    [`scripts/env/.env.template`](scripts/env/.env.template), then set variables
    for your dev stack (embeddings, Qdrant, Redis, session, and any IdP secrets you
    use). **IdP setup is not part of `docs/install/`** — see the
-   Deployment and Operations topic in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki).
+   Deployment and Operations topic in the [project Wiki](https://github.com/SquadRules/mcp/wiki).
 2. Start infrastructure (Compose `fullstack` profile and helpers as needed):
 
   ```bash
@@ -284,7 +284,7 @@ Deploy first, then run only what you need. Prefer a single test file during deve
 npm run dev:deploy
 
 # Run a single test file (recommended while iterating)
-npm run dev:test -- tests/integration/kairos-dump.test.ts
+npm run dev:test -- tests/integration/readonly/kairos-dump.test.ts
 
 # Run the full integration suite when done or before PR
 npm run dev:test
@@ -347,7 +347,7 @@ npm run knip          # dead code / unused exports
 **Docker**
 
 ```bash
-npm run docker:build  # build image (jakub-plichcinski/kairos-mcp)
+npm run docker:build  # build image (quay.io/squadrules/mcp)
 ```
 
 **Snapshot management**
@@ -368,7 +368,7 @@ tests/test-data/   Test fixtures
 tests/workflow-test/ Workflow test harness; prompt in tests/workflow-test/PROMPT.md
 reports/           Workflow test output (gitignored except .gitkeep)
 docs/examples/     Mintable adapter examples for dev workflow tests
-.agents/skills/    Shipped agent skills (kairos, kairos-dev)
+.agents/skills/    Shipped agent skills (squadrules, squadrules-dev)
 scripts/           Build and utility scripts
 ```
 
@@ -427,7 +427,7 @@ Releasable changes on `main` publish automatically after full Integration, Secur
 
 Do not create release tags locally or open version-bump PRs. Tests and protected merge checks are mandatory; no approval bot, administrator bypass or AI decision participates in the release path.
 
-Follow the [release and dependency automation runbook](.agents/skills/kairos-dev/references/release-semver.md) for rollout, dry-run previews, branch prereleases, credentials and immutable-artifact recovery. The [workflow design](.github/workflows/README.md) describes the validation jobs and privilege boundaries.
+Follow the [release and dependency automation runbook](.agents/skills/squadrules-dev/references/release-semver.md) for rollout, dry-run previews, branch prereleases, credentials and immutable-artifact recovery. The [workflow design](.github/workflows/README.md) describes the validation jobs and privilege boundaries.
 
 ## Code style
 
@@ -440,7 +440,7 @@ lint automatically; version-bump commits (only `package.json` and
 version/skills checks when relevant, `lint:skills` when `.agents/skills/` is staged,
 then drops any staged paths whose blob is missing from the object database
 immediately before and after `**npm run lint**`. For worktree index issues,
-see `**.agents/skills/kairos-dev/references/git-index-repair.md**`. Hook history:
+see `**.agents/skills/squadrules-dev/references/git-index-repair.md**`. Hook history:
 `git log -- .husky/pre-commit`.
 - **Imports:** Use `.js` extensions on relative imports (Node ESM).
 - **Naming:** `camelCase` for variables and functions; `PascalCase` for
@@ -454,7 +454,7 @@ objects. Never swallow errors silently. Include `error_code` and
 - **Logger:** Use `structuredLogger` (from
 `src/utils/structured-logger.ts`) for HTTP/MCP request flow. The same module
 also exports `logger` as an alias used by services. See the
-Testing and Observability topic in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki) for levels, fields, and examples.
+Testing and Observability topic in the [project Wiki](https://github.com/SquadRules/mcp/wiki) for levels, fields, and examples.
 - **Tests:** Write integration tests for new tools and API endpoints.
 Place them in `tests/integration/`.
 
@@ -465,25 +465,25 @@ When adding or changing code that touches Qdrant or Redis, verify:
 - **Allowed spaces:** Derive only from the verified token or session
 (Keycloak `sub` + `groups`). Never trust client-supplied space lists.
 - **Qdrant reads:** Search uses `getSearchSpaceIds()` (allowedSpaceIds +
-Kairos app space). Scroll and filter operations use
+SquadRules app space). Scroll and filter operations use
 `getSpaceContext().allowedSpaceIds`. Every retrieve-by-id must check
 that the point's `space_id` is in `allowedSpaceIds`; otherwise treat
 as not found (404).
 - **Qdrant writes:** Every upsert includes `space_id` from
 `getSpaceContext().defaultWriteSpaceId` or a validated parameter. The
-Kairos app space is read-only for users.
+SquadRules app space is read-only for users.
 - **Redis:** Keys are namespaced by space via `getKey()` (prefix +
 space id + key). Each request runs inside `runWithSpaceContext()`.
 - **Optional space param:** Validate HTTP query `space` / `space_id`
 and MCP tool args against `allowedSpaceIds`; invalid → 400/403.
 
 See the Authentication and Security topic in the
-[project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+[project Wiki](https://github.com/SquadRules/mcp/wiki)
 for Keycloak URL routing and the current auth model.
 
 ## Constraints
 
-KAIROS MCP must remain safe to run in production with clear environment
+SquadRules MCP must remain safe to run in production with clear environment
 separation (dev/live). Agent-facing changes must preserve older-release compatibility or provide explicit upgrade paths. Operational dependencies
 (Redis + Qdrant) must be predictable; avoid hidden state.
 
@@ -499,9 +499,9 @@ When goals conflict:
 
 ## Consumer migrations (MCP / HTTP)
 
-Tool and REST responses expose the local handoff path only as **`kairos_local_artifact_dir`** (lowercase snake of env **`KAIROS_LOCAL_ARTIFACT_DIR`**). Migrate any client or shell automation still using older env aliases or the superseded short JSON key for that path; the repository forbids reintroducing those symbols in source (see the identifier list in `eslint/plugins/kairos-forbidden-text.cjs`).
+Tool and REST responses expose the local handoff path only as **`kairos_local_artifact_dir`** (lowercase snake of env **`KAIROS_LOCAL_ARTIFACT_DIR`**, alias **`SQUADRULES_LOCAL_ARTIFACT_DIR`**). Migrate any client or shell automation still using older env aliases or the superseded short JSON key for that path; the repository forbids reintroducing those symbols in source (see the identifier list in `eslint/plugins/kairos-forbidden-text.cjs`).
 
-The field's value is an **ordered array** of client-resolvable URI hints (preferred first), e.g. `["project://.local/kairos/work","user://.config/kairos/work"]`. Schemes resolved on the client only: `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`. The server never emits a path on its own filesystem, so the same value is correct for stdio and remote (HTTP / Docker) transports. The client picks one hint by scope rule (`project://` when there is exactly one project context; otherwise `user://`), resolves locally, and exports `KAIROS_LOCAL_ARTIFACT_DIR` for shell challenges. The field is **output-only**; clients no longer pass it as input. Server defaults are configurable via the comma-separated env **`KAIROS_LOCAL_ARTIFACT_DIRS`** (each entry must be a `project://<rel>` or `user://<rel>` URI; absolute paths and `..` segments are rejected at boot).
+The field's value is an **ordered array** of client-resolvable URI hints (preferred first), e.g. `["project://.local/kairos/work","user://.config/kairos/work"]`. Schemes resolved on the client only: `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`. The server never emits a path on its own filesystem, so the same value is correct for stdio and remote (HTTP / Docker) transports. The client picks one hint by scope rule (`project://` when there is exactly one project context; otherwise `user://`), resolves locally, and exports `KAIROS_LOCAL_ARTIFACT_DIR` for shell challenges. The field is **output-only**; clients no longer pass it as input. Server defaults are configurable via the comma-separated env **`KAIROS_LOCAL_ARTIFACT_DIRS`** (alias **`SQUADRULES_LOCAL_ARTIFACT_DIRS`**; each entry must be a `project://<rel>` or `user://<rel>` URI; absolute paths and `..` segments are rejected at boot).
 
 ## Reporting issues
 

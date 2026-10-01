@@ -1,9 +1,9 @@
 # Appendix: Google sign-in for Keycloak (dev)
 
 **Not part of `docs/install/`.** For operators who already run Keycloak (or an
-equivalent IdP) **at their own discretion**. KAIROS talks to Keycloak for OIDC;
+equivalent IdP) **at their own discretion**. SquadRules talks to Keycloak for OIDC;
 below adds Google as a broker in the **`kairos`** realm. Layout and ports:
-[Infrastructure (project Wiki)](https://github.com/jakub-plichcinski/kairos-mcp/wiki).
+[Infrastructure (project Wiki)](https://github.com/SquadRules/mcp/wiki).
 
 ## Prerequisites
 
@@ -63,7 +63,7 @@ Expected result:
 
 1. Keycloak shows a **Google** login option.
 2. After successful Google authentication, Keycloak redirects back to the
-   KAIROS callback.
+   SquadRules callback.
 3. The server sets the session cookie and redirects to `/ui/`.
 
 ## Troubleshooting

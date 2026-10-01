@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// NOTE: This script moves to SquadRules/charts repository. Kept temporarily for transition.
 /**
  * Sets helm/kairos-mcp/Chart.yaml `version` + `appVersion` and
  * helm/kairos-mcp/values.yaml default `app.image.tag` to the exact release

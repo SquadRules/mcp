@@ -137,7 +137,7 @@ test('artifact recovery validates actual bytes, not names or version strings', a
 });
 
 test('publication has no public effects before validation and persistence; every stage is recoverable', async () => {
-  const stages = ['validate', 'recover', 'tag', 'npm', 'images', 'chart', 'promoted', 'complete'];
+  const stages = ['validate', 'recover', 'tag', 'npm', 'images', 'promoted', 'complete'];
   for (const failure of stages) {
     const record = { manifest: manifest(), stages: {} };
     const calls = [];

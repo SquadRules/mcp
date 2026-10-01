@@ -37,7 +37,7 @@ function readString(raw: unknown, keys: string[]): string | null {
 function uriExecutionId(raw: unknown): string | null {
   const uri = readString(raw, ['uri']);
   if (!uri) return null;
-  const match = uri.match(/^kairos:\/\/layer\/[0-9a-f-]{36}\?execution_id=([0-9a-f-]{36})$/i);
+  const match = uri.match(/^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}\?execution_id=([0-9a-f-]{36})$/i);
   return match?.[1] ?? null;
 }
 
@@ -102,8 +102,8 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
   );
   const rawUri = readString(raw, ['uri']);
   const adapterUuidOnWire =
-    typeof rawUri === 'string' && /^kairos:\/\/adapter\/[0-9a-f-]{36}$/i.test(rawUri);
-  const memUriMisuse = typeof rawUri === 'string' && /^kairos:\/\/mem\//i.test(rawUri);
+    typeof rawUri === 'string' && /^(?:kairos|squadrules):\/\/adapter\/[0-9a-f-]{36}$/i.test(rawUri);
+  const memUriMisuse = typeof rawUri === 'string' && /^(?:kairos|squadrules):\/\/mem\//i.test(rawUri);
 
   if (uriProblem && adapterUuidOnWire) {
     return withRetry('forward', raw, {

@@ -15,7 +15,7 @@ describe('buildListOfferingsForUIResult', () => {
     const r = buildListOfferingsForUIResult();
     expect(r.prompts).toHaveLength(0);
     expect(r.tools).toHaveLength(3);
-    expect(r.resources).toHaveLength(6);
+    expect(r.resources).toHaveLength(12);
 
     const spacesTool = r.tools.find((x) => (x as { name?: string }).name === 'spaces') as {
       name?: string;

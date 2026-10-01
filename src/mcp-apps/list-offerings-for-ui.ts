@@ -21,7 +21,13 @@ import {
   KAIROS_SPACES_UI_SKYBRIDGE_URI,
   KAIROS_SPACES_UI_URI,
   MCP_APP_HTML_MIME_TYPE,
-  SKYBRIDGE_HTML_MIME_TYPE
+  SKYBRIDGE_HTML_MIME_TYPE,
+  SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,
+  SQUADRULES_ACTIVATE_UI_URI,
+  SQUADRULES_FORWARD_UI_SKYBRIDGE_URI,
+  SQUADRULES_FORWARD_UI_URI,
+  SQUADRULES_SPACES_UI_SKYBRIDGE_URI,
+  SQUADRULES_SPACES_UI_URI
 } from './kairos-ui-constants.js';
 
 const SPACES_TOOL_NAME = 'spaces';
@@ -159,6 +165,76 @@ export function buildSpacesSkybridgeResourceOffering(): Record<string, unknown> 
   };
 }
 
+// ---------------------------------------------------------------------------
+// SquadRules-branded resource offerings (same HTML, new URIs)
+// ---------------------------------------------------------------------------
+
+/** SquadRules activate widget (mcp-app profile). */
+export function buildSquadRulesActivateUiResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_ACTIVATE_UI_URI,
+    name: 'SquadRules activate result',
+    description: 'Branded inline view for the activate tool (choices, roles, next_action).',
+    mimeType: MCP_APP_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
+/** SquadRules activate widget (Skybridge profile). */
+export function buildSquadRulesActivateSkybridgeResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,
+    name: 'SquadRules activate result (Skybridge profile)',
+    description: 'Same activate widget markup with text/html+skybridge.',
+    mimeType: SKYBRIDGE_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
+/** SquadRules forward widget (mcp-app profile). */
+export function buildSquadRulesForwardUiResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_FORWARD_UI_URI,
+    name: 'SquadRules forward result',
+    description: 'Branded inline view for the forward tool (adapter, space, current layer).',
+    mimeType: MCP_APP_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
+/** SquadRules forward widget (Skybridge profile). */
+export function buildSquadRulesForwardSkybridgeResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_FORWARD_UI_SKYBRIDGE_URI,
+    name: 'SquadRules forward result (Skybridge profile)',
+    description: 'Same forward widget markup with text/html+skybridge.',
+    mimeType: SKYBRIDGE_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
+/** SquadRules spaces widget (mcp-app profile). */
+export function buildSquadRulesSpacesUiResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_SPACES_UI_URI,
+    name: 'SquadRules spaces result',
+    description: 'Branded inline view for the spaces tool (logo + structured JSON).',
+    mimeType: MCP_APP_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
+/** SquadRules spaces widget (Skybridge profile). */
+export function buildSquadRulesSpacesSkybridgeResourceOffering(): Record<string, unknown> {
+  return {
+    uri: SQUADRULES_SPACES_UI_SKYBRIDGE_URI,
+    name: 'SquadRules spaces result (Skybridge profile)',
+    description: 'Same spaces widget markup with text/html+skybridge.',
+    mimeType: SKYBRIDGE_HTML_MIME_TYPE,
+    _meta: { ui: { prefersBorder: true } }
+  };
+}
+
 export function buildListOfferingsForUIResult(): {
   tools: Record<string, unknown>[];
   prompts: Prompt[];
@@ -173,7 +249,14 @@ export function buildListOfferingsForUIResult(): {
       buildForwardUiResourceOffering(),
       buildForwardSkybridgeResourceOffering(),
       buildActivateUiResourceOffering(),
-      buildActivateSkybridgeResourceOffering()
+      buildActivateSkybridgeResourceOffering(),
+      // SquadRules-branded aliases (same HTML, new URIs)
+      buildSquadRulesSpacesUiResourceOffering(),
+      buildSquadRulesSpacesSkybridgeResourceOffering(),
+      buildSquadRulesForwardUiResourceOffering(),
+      buildSquadRulesForwardSkybridgeResourceOffering(),
+      buildSquadRulesActivateUiResourceOffering(),
+      buildSquadRulesActivateSkybridgeResourceOffering()
     ]
   };
 }

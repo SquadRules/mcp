@@ -1,7 +1,7 @@
 # Docker Compose — full stack (advanced)
 
 The repository includes an optional `fullstack` Compose profile that adds
-supporting services alongside the KAIROS application and Qdrant. Use it when
+supporting services alongside the SquadRules application and Qdrant. Use it when
 you need a broader local environment or want to model a production-like
 topology without Kubernetes.
 
@@ -70,7 +70,7 @@ healthy. Add MCP only for hosts that require a streamable HTTP endpoint.
 
 | Service | Purpose |
 |---------|---------|
-| `app-prod` | KAIROS application |
+| `app-prod` | SquadRules application |
 | `qdrant` | Vector database |
 | `redis` | State / caching (optional) |
 | `keycloak` | Identity provider (optional) |
@@ -86,4 +86,4 @@ healthy. Add MCP only for hosts that require a streamable HTTP endpoint.
 | [Simple stack](docker-compose-simple.md) | Recommended local path (app + Qdrant only) |
 | [Helm chart](helm.md) | Kubernetes production deployment |
 | [CLI](../CLI.md) | Primary interface for operations |
-| [`compose.yaml`](https://github.com/jakub-plichcinski/kairos-mcp/blob/main/compose.yaml) | Source Compose file |
+| [`compose.yaml`](https://github.com/SquadRules/mcp/blob/main/compose.yaml) | Source Compose file |

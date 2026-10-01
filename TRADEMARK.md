@@ -1,9 +1,9 @@
-# KAIROS MCP Trademark Policy
+# SquadRules MCP Trademark Policy
 
 ## Trademark Notice
 
-"KAIROS MCP™", the KAIROS MCP logo (see [logo/kairos-mcp.svg](logo/kairos-mcp.svg)), and related brand assets are trademarks
-of Jakub Plichcinski and the KAIROS MCP project.
+"SquadRules MCP™", the SquadRules MCP logo (see [logo/kairos-mcp.svg](logo/kairos-mcp.svg)), and related brand assets are trademarks
+of Jakub Plichcinski and the SquadRules MCP project.
 
 The trademarks and branding are NOT covered by the MIT License.
 
@@ -15,7 +15,7 @@ The MIT License applies only to the software code.
 
 You may:
 
-• Refer to the project as KAIROS MCP when linking to or discussing it
+• Refer to the project as SquadRules MCP when linking to or discussing it
 • Write documentation or articles about the project
 • Link to the official repository
 • Use the logo when referring to the official project
@@ -26,10 +26,10 @@ You may:
 
 You may NOT:
 
-• Create products or services named "KAIROS MCP"
-• Use the KAIROS MCP logo for your own software distribution
+• Create products or services named "SquadRules MCP"
+• Use the SquadRules MCP logo for your own software distribution
 • Imply endorsement or affiliation with the project
-• Ship modified versions using the KAIROS MCP branding
+• Ship modified versions using the SquadRules MCP branding
 
 ---
 
@@ -40,15 +40,17 @@ Forks of this repository are permitted under the MIT License.
 However forks must:
 
 • rename the project
-• remove the KAIROS MCP name
-• remove the KAIROS MCP logo
+• remove the SquadRules MCP name
+• remove the SquadRules MCP logo
 • not imply affiliation with the original project
 
 ---
 
 ## CLI Naming Policy
 
-The shipped CLI binary name `kairos` is part of the KAIROS MCP trademark.
+The shipped CLI binary name `squadrules` is part of the SquadRules MCP
+trademark. The former `kairos` and `kairos-mcp` binary names are retained only
+as compatibility aliases for the prior product name.
 
 Forks and redistributions must rename the CLI binary.
 
@@ -56,7 +58,7 @@ Forks and redistributions must rename the CLI binary.
 
 ## Trademark Rights
 
-All rights to the KAIROS MCP name and logo remain with the project owner.
+All rights to the SquadRules MCP name and logo remain with the project owner.
 
 This policy ensures the software remains open source while protecting the brand.
 

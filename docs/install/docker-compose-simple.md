@@ -1,6 +1,6 @@
 # Docker Compose — simple stack
 
-The default Compose profile starts only the KAIROS application and Qdrant. This
+The default Compose profile starts only the SquadRules application and Qdrant. This
 is the recommended installation path for local use and first-time setup.
 It does not provision an identity provider or other auxiliary services.
 
@@ -23,7 +23,7 @@ flowchart TB
     ollama["Ollama"]
   end
   subgraph dc ["Compose — default profile"]
-    app["KAIROS app"]
+    app["SquadRules app"]
     qdrant["Qdrant"]
   end
   app --> qdrant
@@ -99,7 +99,7 @@ docker compose -p kairos-mcp up -d
 curl -sS "http://localhost:${SERVER_PORT:-3000}/health"
 ```
 
-Use `kairos --url ...` for checks and operations once the
+Use `squadrules --url ...` for checks and operations once the
 [CLI](../CLI.md) is installed.
 
 | Path | URL |
@@ -118,7 +118,7 @@ use the CLI for authentication and operational checks.
 ```json
 {
   "mcpServers": {
-    "KAIROS": {
+    "SquadRules": {
       "type": "streamable-http",
       "url": "http://localhost:3000/mcp",
       "alwaysAllow": [
@@ -143,7 +143,7 @@ use the CLI for authentication and operational checks.
 | Service | Purpose |
 |---------|---------|
 | `qdrant` | Vector database |
-| `app-prod` | KAIROS application (`jakubplichcinski/kairos-mcp` image) |
+| `app-prod` | SquadRules application (`quay.io/squadrules/mcp` image) |
 
 ---
 

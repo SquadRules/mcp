@@ -21,7 +21,12 @@ describe('resource URI schemas', () => {
   test('tune accepts layer execution_id URIs', () => {
     const result = tuneInputSchema.safeParse({
       uris: [LAYER_WITH_EXEC],
-      content: ['# Updated adapter']
+      content: ['# Updated adapter'],
+      review_evidence: {
+        verdict_file: '/tmp/verdict.txt',
+        exit_code: 0,
+        stdout: 'PASS'
+      }
     });
 
     expect(result.success).toBe(true);

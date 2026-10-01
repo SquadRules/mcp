@@ -49,29 +49,29 @@ ARG PACKAGE_VERSION
 RUN test -n "$PACKAGE_VERSION" || (echo "Build-arg PACKAGE_VERSION is required" && exit 1)
 
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S kairos -u 1001
+    adduser -S squadrules -u 1001
 
 WORKDIR /app
 
 FROM base AS deps-registry
 ARG PACKAGE_VERSION
-RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@jakub-plichcinski/kairos-mcp\":\"${PACKAGE_VERSION}\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\",\"typescript\":\"5.9.3\",\"brace-expansion\":\"^5.0.12\",\"undici\":\"8.10.2\"}}" > package.json && \
+RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@squadrules/mcp\":\"${PACKAGE_VERSION}\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\",\"typescript\":\"5.9.3\",\"brace-expansion\":\"^5.0.12\",\"undici\":\"8.10.2\"}}" > package.json && \
     npm install --omit=dev && \
     npm cache clean --force && \
-    chown -R kairos:nodejs /app
+    chown -R squadrules:nodejs /app
 
 FROM base AS deps-local
 COPY .ci/docker/package.tgz /tmp/pkg.tgz
-RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@jakub-plichcinski/kairos-mcp\":\"file:/tmp/pkg.tgz\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\",\"typescript\":\"5.9.3\",\"brace-expansion\":\"^5.0.12\",\"undici\":\"8.10.2\"}}" > package.json && \
+RUN printf '%s\n' "{\"private\":true,\"dependencies\":{\"@squadrules/mcp\":\"file:/tmp/pkg.tgz\"},\"overrides\":{\"minimatch\":\"^10.2.3\",\"tar\":\"^7.5.19\",\"typescript\":\"5.9.3\",\"brace-expansion\":\"^5.0.12\",\"undici\":\"8.10.2\"}}" > package.json && \
     npm install --omit=dev && \
     npm cache clean --force && \
-    chown -R kairos:nodejs /app
+    chown -R squadrules:nodejs /app
 
 # Keep runtime-ci and runtime final layers in sync (duplicate on purpose; Docker has no shared snippet).
 FROM deps-local AS runtime-ci
 RUN mkdir -p logs storage/qdrant /snapshots && \
-    chown -R kairos:nodejs /app logs storage /snapshots
-USER kairos
+    chown -R squadrules:nodejs /app logs storage /snapshots
+USER squadrules
 ARG SERVER_PORT=3000
 ENV SERVER_PORT=${SERVER_PORT}
 ARG METRICS_PORT=9090
@@ -82,12 +82,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 ENV NODE_ENV=production
 ENV QDRANT_URL=http://qdrant:6333
 ENV QDRANT_COLLECTION=kairos_memories
-CMD ["node", "node_modules/@jakub-plichcinski/kairos-mcp/dist/index.js"]
+CMD ["node", "node_modules/@squadrules/mcp/dist/index.js"]
 
 FROM deps-registry AS runtime
 RUN mkdir -p logs storage/qdrant /snapshots && \
-    chown -R kairos:nodejs /app logs storage /snapshots
-USER kairos
+    chown -R squadrules:nodejs /app logs storage /snapshots
+USER squadrules
 ARG SERVER_PORT=3000
 ENV SERVER_PORT=${SERVER_PORT}
 ARG METRICS_PORT=9090
@@ -98,4 +98,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 ENV NODE_ENV=production
 ENV QDRANT_URL=http://qdrant:6333
 ENV QDRANT_COLLECTION=kairos_memories
-CMD ["node", "node_modules/@jakub-plichcinski/kairos-mcp/dist/index.js"]
+CMD ["node", "node_modules/@squadrules/mcp/dist/index.js"]

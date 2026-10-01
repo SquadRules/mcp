@@ -17,4 +17,4 @@ export const DEFAULT_STEP: StepFormState = {
 
 export const CHALLENGE_TYPE_KEYS: StepFormState["type"][] = ["shell", "mcp", "user_input", "comment"];
 
-export const SOURCE_ADAPTER_URI_RE = /^kairos:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
+export const SOURCE_ADAPTER_URI_RE = /^(?:kairos|squadrules):\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;

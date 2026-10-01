@@ -15,10 +15,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const pkg = require(join(root, "package.json"));
 const version = pkg.version;
-const tgzName = `jakub-plichcinski-kairos-mcp-${version}.tgz`;
+const tgzName = `squadrules-mcp-${version}.tgz`;
 const tgzPath = join(root, "dist", tgzName);
 // Use OS temp dir so Node cannot resolve missing deps from repo-root node_modules.
-const testDir = mkdtempSync(join(tmpdir(), "kairos-tgz-install-test-"));
+const testDir = mkdtempSync(join(tmpdir(), "squadrules-tgz-install-test-"));
 
 function run(cmd, args, cwd = root, desc) {
   const r = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: false });

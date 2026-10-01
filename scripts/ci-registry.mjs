@@ -7,9 +7,9 @@ const accept = 'application/vnd.oci.image.index.v1+json, application/vnd.oci.ima
 export function registries(namespace = process.env.QUAY_NAMESPACE) {
   if (!/^[a-z0-9][a-z0-9_-]+$/.test(namespace ?? '')) throw new Error('Invalid Quay namespace');
   return [
-    { image: 'docker.io/jakubplichcinski/kairos-mcp', host: 'registry-1.docker.io', path: 'jakubplichcinski/kairos-mcp',
+    { image: 'docker.io/squadrules/mcp', host: 'registry-1.docker.io', path: 'squadrules/mcp',
       user: process.env.DOCKER_USERNAME, password: process.env.DOCKER_PASSWORD },
-    { image: `quay.io/${namespace}/kairos-mcp`, host: 'quay.io', path: `${namespace}/kairos-mcp`,
+    { image: `quay.io/${namespace}/mcp`, host: 'quay.io', path: `${namespace}/mcp`,
       user: process.env.QUAY_USERNAME, password: process.env.QUAY_PASSWORD },
   ];
 }

@@ -139,7 +139,7 @@ Suffix text`;
         'utf8'
       );
       const results = findAllLayerContractBlocks(md);
-      expect(results).toHaveLength(5);
+      expect(results).toHaveLength(8);
       for (const result of results) {
         expect(ALLOWED.has(String(result.contract.type))).toBe(true);
       }

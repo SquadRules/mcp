@@ -70,18 +70,13 @@ describe('mcp-tool-input-teaching', () => {
     expect(body.example).toBeDefined();
   });
 
-  test('forward adapter UUID input teaches slug-only adapter URI', () => {
+  test('forward adapter UUID input is now accepted (dual-scheme compat)', () => {
+    // UUID adapter URIs are valid after the rebrand dual-scheme support;
+    // no teaching payload is needed.
     const parsed = forwardInputSchema.safeParse({
       uri: 'kairos://adapter/00000000-0000-0000-0000-000000000001'
     });
-    expect(parsed.success).toBe(false);
-    if (parsed.success) return;
-    const body = buildMcpInputTeachingPayload('forward', parsed.error, {
-      uri: 'kairos://adapter/00000000-0000-0000-0000-000000000001'
-    });
-    expect(String(body.message)).toContain('slug-only');
-    expect(String(body.next_action)).toContain('choices[].forward_first_call.uri');
-    expect(String(body.message)).not.toContain('solution');
+    expect(parsed.success).toBe(true);
   });
 
   test('teaching payloads include structured example across tools', () => {

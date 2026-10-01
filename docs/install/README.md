@@ -1,7 +1,7 @@
-# Install KAIROS
+# Install SquadRules
 
 `docs/install/` covers the supported installation flow for a local or
-self-managed KAIROS deployment. Start by confirming the local requirements,
+self-managed SquadRules deployment. Start by confirming the local requirements,
 choose the embedding backend that determines your `.env` values, and then
 complete the simple stack. Use the CLI as the primary interface for
 authentication, verification, and day-to-day operations. Add MCP only when a
@@ -25,7 +25,7 @@ streamable HTTP endpoint.
 2. Choose an **[embedding backend](prerequisites.md#embedding-backend)** before
    you populate `.env`.
 3. Complete **[Docker Compose — simple stack](docker-compose-simple.md)**.
-4. Use **`kairos`** CLI against the running server.
+4. Use **`squadrules`** CLI against the running server.
 5. Configure **MCP** only for hosts that need it.
 
 ### Helm chart (recommended for Kubernetes)
@@ -50,7 +50,7 @@ This diagram summarizes the recommended order for the Compose path.
 flowchart LR
   subgraph p [1 Prerequisites]
     D[Docker + working directory]
-    C[kairos CLI]
+    C[squadrules CLI]
   end
   subgraph e [2 Embedding]
     B[OpenAI / Ollama / TEI]
@@ -60,7 +60,7 @@ flowchart LR
     V[".env + compose up + health"]
   end
   subgraph r [4 Use]
-    K[kairos CLI]
+    K[squadrules CLI]
     M[MCP if required]
   end
   D --> C
@@ -93,16 +93,16 @@ flowchart LR
 
 Install the CLI first. It is **mandatory** for all installation paths — it
 provides authentication, bulk adapter management, verification, and enables
-using KAIROS without adding MCP to your IDE.
+using SquadRules without adding MCP to your IDE.
 
 ```sh
-npm install -g @jakub-plichcinski/kairos-mcp
-kairos --help
+npm install -g @squadrules/mcp
+squadrules --help
 ```
 
 To start the HTTP/MCP server from the CLI when Qdrant and `.env` are already in
 place (same expectations as Compose), see **Run the server locally (`serve`)** in
-[CLI](../CLI.md) (`kairos serve`).
+[CLI](../CLI.md) (`squadrules serve`).
 
 For URL selection, authentication, and the full command surface, see
 [CLI](../CLI.md).
@@ -125,7 +125,7 @@ directory use port `3000`.
 ```json
 {
   "mcpServers": {
-    "KAIROS": {
+    "SquadRules": {
       "type": "streamable-http",
       "url": "http://localhost:3000/mcp",
       "alwaysAllow": [
@@ -148,12 +148,13 @@ curl -sS "http://localhost:3000/health"
 ```
 
 - Discovery: `/.well-known/oauth-protected-resource`
-- Auth: [CLI](../CLI.md#authentication), [auth overview (project Wiki)](https://github.com/jakub-plichcinski/kairos-mcp/wiki)
+- Auth: [CLI](../CLI.md#authentication), [auth overview (project Wiki)](https://github.com/SquadRules/mcp/wiki)
 - Plugin: `integrations/cursor/plugin` often uses `http://localhost:3300/mcp`
 - Widgets: `spaces` and `forward` use MCP Apps on hosts that support them
 - Discovery scopes default to
   `openid,profile,email,kairos-groups,offline_access`; set
-  `KAIROS_OIDC_SCOPES_SUPPORTED` to override this list for your IdP policy.
+  `SQUADRULES_OIDC_SCOPES_SUPPORTED` (or its `KAIROS_OIDC_SCOPES_SUPPORTED`
+  compatibility alias) to override this list for your IdP policy.
 
 If MCP does not connect, verify the health URL first, confirm the host and
 port, and make sure the server has Qdrant plus a working embedding backend.
@@ -175,8 +176,8 @@ Use stdio mode when your host spawns the MCP server process directly.
    ```
 
 3. Configure your host command (pick one):
-   - **Global install (recommended):** `command`: `kairos`, `args`: `["serve"]` (stdio is the default transport), plus `env` for Qdrant/embedding.
-   - **From a checkout:** `command`: `node`, `args`: `["/absolute/path/to/kairos-mcp/dist/bootstrap.js"]`, `env`: `TRANSPORT_TYPE=stdio` (or run `kairos serve --transport stdio` from the repo after `npm run build`).
+   - **Global install (recommended):** `command`: `squadrules`, `args`: `["serve"]` (stdio is the default transport), plus `env` for Qdrant/embedding.
+   - **From a checkout:** `command`: `node`, `args`: `["/absolute/path/to/mcp/dist/bootstrap.js"]`, `env`: `TRANSPORT_TYPE=stdio` (or run `squadrules serve --transport stdio` from the repo after `npm run build`).
 
 Host snippets:
 
@@ -185,9 +186,9 @@ Host snippets:
   ```json
   {
     "mcpServers": {
-      "KAIROS": {
+      "SquadRules": {
         "command": "node",
-        "args": ["/absolute/path/to/kairos-mcp/dist/bootstrap.js"],
+        "args": ["/absolute/path/to/mcp/dist/bootstrap.js"],
         "env": {
           "TRANSPORT_TYPE": "stdio"
         }
@@ -201,9 +202,9 @@ Host snippets:
   ```json
   {
     "mcpServers": {
-      "KAIROS_STDIO": {
+      "SQUADRULES_STDIO": {
         "command": "node",
-        "args": ["/absolute/path/to/kairos-mcp/dist/bootstrap.js"],
+        "args": ["/absolute/path/to/mcp/dist/bootstrap.js"],
         "env": {
           "TRANSPORT_TYPE": "stdio"
         }
@@ -217,9 +218,9 @@ Host snippets:
   ```json
   {
     "mcpServers": {
-      "KAIROS": {
+      "SquadRules": {
         "command": "node",
-        "args": ["/absolute/path/to/kairos-mcp/dist/bootstrap.js"],
+        "args": ["/absolute/path/to/mcp/dist/bootstrap.js"],
         "env": {
           "TRANSPORT_TYPE": "stdio"
         }

@@ -12,11 +12,11 @@ variables you place in `.env` or Helm values.
 
 | Requirement | Details |
 |-------------|---------|
-| **Node.js 25+** + **[KAIROS CLI](../CLI.md)** | Required. Primary interface for auth, bulk management, and verification. Enables KAIROS usage without MCP. |
+| **Node.js 25+** + **[SquadRules CLI](../CLI.md)** | Required. Primary interface for auth, bulk management, and verification. Enables SquadRules usage without MCP. |
 
 ```sh
-npm install -g @jakub-plichcinski/kairos-mcp
-kairos --help
+npm install -g @squadrules/mcp
+squadrules --help
 ```
 
 ### Docker Compose path
@@ -28,7 +28,7 @@ kairos --help
 | Source for **`compose.yaml`** | Use the file from the repository, a raw download, or another controlled copy |
 | **Qdrant** | Started by Compose; no separate installation is required for the simple stack |
 | **Identity provider** | Not part of the standard install path; manage it separately if your deployment needs one |
-| **Node.js 24+** + **[KAIROS CLI](../CLI.md)** | Required; the CLI is the primary interface for install, authentication, and verification. Node 24 is the supported LTS baseline; CI runs one advisory lane on Node Current (pin in `.github/workflows/`) |
+| **Node.js 24+** + **[SquadRules CLI](../CLI.md)** | Required; the CLI is the primary interface for install, authentication, and verification. Node 24 is the supported LTS baseline; CI runs one advisory lane on Node Current (pin in `.github/workflows/`) |
 | **Python 3** | Required only for repository helper scripts or advanced operator workflows |
 
 ### Helm chart path (Kubernetes)
@@ -53,7 +53,7 @@ vectors for Qdrant, and each backend uses a different set of variables.
 
 ### Why an embedding model?
 
-KAIROS stores adapter and workflow text in Qdrant as vectors. An embedding
+SquadRules stores adapter and workflow text in Qdrant as vectors. An embedding
 model produces those vectors from plain text so the server can search and train
 by meaning instead of exact keyword matching.
 

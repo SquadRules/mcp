@@ -44,7 +44,7 @@ function installStrictToolsListHandler(server: McpServer): void {
 export function createServer(memoryStore: MemoryQdrantStore): McpServer {
     const server = new McpServer(
         {
-            name: 'KAIROS',
+            name: 'SquadRules',
             version: getBuildVersion()
         },
         {

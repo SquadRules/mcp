@@ -13,14 +13,14 @@ The parity contract covers three transport families:
 - API transport: `/api/train`, `/api/train/raw`, `/api/export`,
   `/api/delete`, and `download_ref` retrieval.
 - MCP transport: `train`, `export`, and `delete` via MCP `callTool`.
-- CLI transport: `kairos export` and `kairos delete`.
+- CLI transport: `squadrules export` and `squadrules delete`.
 
 CLI cannot ingest non-markdown artifacts today, so CLI coverage is export-only.
 The CLI test pre-trains fixture data via API in `beforeAll`.
 
 ### CLI export flags (parity tests)
 
-- `skill_tree`: `kairos export --format skill_tree <adapterUri>` prints JSON to stdout; tests parse that string.
+- `skill_tree`: `squadrules export --format skill_tree <adapterUri>` prints JSON to stdout; tests parse that string.
 - `skill_zip`: use **`--zip-out <path>`** so the ZIP bytes are written to a file. Without a zip output path, behavior follows normal CLI help (stdout may not carry raw ZIP for all hosts); parity tests require an on-disk file for `SHA256SUMS` extraction.
 
 ### Canonical manifest

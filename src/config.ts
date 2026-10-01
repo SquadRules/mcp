@@ -13,13 +13,14 @@ import {
   parseLocalArtifactDirHints
 } from './utils/kairos-local-artifact-dirs.js';
 export { parseLocalArtifactDirHints } from './utils/kairos-local-artifact-dirs.js';
+import { getEnvAliased, getEnvIntAliased, getEnvBooleanAliased, resolveAliasedRaw, logDeprecations } from './config/env-alias.js';
 
 /** Throws if key is missing or empty (after trim). Use for vars that must be set. */
 function getEnvRequired(key: string, errorMessage?: string): string {
   const val = process.env[key];
   const trimmed = typeof val === 'string' ? val.trim() : '';
   if (!trimmed) {
-    const msg = errorMessage ?? `KAIROS requires ${key} to be set. Set it in .env or environment.`;
+    const msg = errorMessage ?? `SquadRules requires ${key} to be set. Set it in .env or environment.`;
     throw new Error(msg);
   }
   return trimmed;
@@ -53,16 +54,17 @@ const KEY_VALUE_STORE_PASSWORD = getEnvString('KEY_VALUE_STORE_PASSWORD', getEnv
 export const REDIS_URL = normalizeRedisUrl(KEY_VALUE_STORE_URL_RAW, KEY_VALUE_STORE_PASSWORD);
 /** Single source of truth: whether a shared key-value backend is available. */
 export const isRedisConfigured = REDIS_URL.length > 0;
-export const KAIROS_REDIS_PREFIX = getEnvString('KAIROS_KEY_VALUE_PREFIX', getEnvString('KAIROS_REDIS_PREFIX', 'kairos:'));
+export const KAIROS_REDIS_PREFIX = getEnvAliased('SQUADRULES_KEY_VALUE_PREFIX', 'KAIROS_KEY_VALUE_PREFIX', getEnvAliased('SQUADRULES_REDIS_PREFIX', 'KAIROS_REDIS_PREFIX', 'kairos:'));
 export const OIDC_STATE_KEY_PREFIX = 'oidc-state:';
 /**
  * Ordered URI hints emitted as the `kairos_local_artifact_dir` response field
  * (preferred first). The client resolves a hint on its own filesystem and
- * exports `KAIROS_LOCAL_ARTIFACT_DIR` for shell challenges. Override the
- * defaults via the comma-separated env `KAIROS_LOCAL_ARTIFACT_DIRS`.
+ * exports `KAIROS_LOCAL_ARTIFACT_DIR` (alias `SQUADRULES_LOCAL_ARTIFACT_DIR`)
+ * for shell challenges. Override the defaults via the comma-separated env
+ * `KAIROS_LOCAL_ARTIFACT_DIRS` (alias `SQUADRULES_LOCAL_ARTIFACT_DIRS`).
  */
 export const KAIROS_LOCAL_ARTIFACT_DIRS: readonly string[] = parseLocalArtifactDirHints(
-  getEnvString('KAIROS_LOCAL_ARTIFACT_DIRS', KAIROS_LOCAL_ARTIFACT_DIRS_DEFAULT)
+  getEnvAliased('SQUADRULES_LOCAL_ARTIFACT_DIRS', 'KAIROS_LOCAL_ARTIFACT_DIRS', KAIROS_LOCAL_ARTIFACT_DIRS_DEFAULT)
 );
 /** Memory cache key prefix; keys starting with this are global (no space namespace). One key per UUID. */
 export const MEMORY_CACHE_KEY_PREFIX = 'mem:';
@@ -98,15 +100,15 @@ export const AUDIT_LOG_FILE = getEnvString('AUDIT_LOG_FILE', '').trim();
 export const AUDIT_LOG_LEVEL = Math.max(0, Math.min(3, getEnvInt('AUDIT_LOG_LEVEL', 1)));
 export const QDRANT_API_KEY = getEnvString('QDRANT_API_KEY', '');
 export const QDRANT_COLLECTION_CURRENT = getEnvString('QDRANT_COLLECTION_CURRENT', '');
-export const KAIROS_SEARCH_OVERFETCH_FACTOR = getEnvString('KAIROS_SEARCH_OVERFETCH_FACTOR', '4');
-export const KAIROS_SEARCH_MAX_FETCH = getEnvInt('KAIROS_SEARCH_MAX_FETCH', 200);
+export const KAIROS_SEARCH_OVERFETCH_FACTOR = getEnvAliased('SQUADRULES_SEARCH_OVERFETCH_FACTOR', 'KAIROS_SEARCH_OVERFETCH_FACTOR', '4');
+export const KAIROS_SEARCH_MAX_FETCH = getEnvIntAliased('SQUADRULES_SEARCH_MAX_FETCH', 'KAIROS_SEARCH_MAX_FETCH', 200);
 /** Default number of match choices returned by search when the agent omits max_choices. */
-export const KAIROS_SEARCH_MAX_CHOICES = getEnvInt('KAIROS_SEARCH_MAX_CHOICES', 10);
+export const KAIROS_SEARCH_MAX_CHOICES = getEnvIntAliased('SQUADRULES_SEARCH_MAX_CHOICES', 'KAIROS_SEARCH_MAX_CHOICES', 10);
 /** Absolute cap for search max_choices (prevents abuse and excessive resolveHead latency). */
-export const KAIROS_SEARCH_LIMIT_CAP = getEnvInt('KAIROS_SEARCH_LIMIT_CAP', 50);
+export const KAIROS_SEARCH_LIMIT_CAP = getEnvIntAliased('SQUADRULES_SEARCH_LIMIT_CAP', 'KAIROS_SEARCH_LIMIT_CAP', 50);
 /** Minimum match choices when agent passes max_choices. */
-export const KAIROS_SEARCH_LIMIT_MIN = getEnvInt('KAIROS_SEARCH_LIMIT_MIN', 5);
-export const KAIROS_ENABLE_GROUP_COLLAPSE = getEnvBoolean('KAIROS_ENABLE_GROUP_COLLAPSE', true);
+export const KAIROS_SEARCH_LIMIT_MIN = getEnvIntAliased('SQUADRULES_SEARCH_LIMIT_MIN', 'KAIROS_SEARCH_LIMIT_MIN', 5);
+export const KAIROS_ENABLE_GROUP_COLLAPSE = getEnvBooleanAliased('SQUADRULES_ENABLE_GROUP_COLLAPSE', 'KAIROS_ENABLE_GROUP_COLLAPSE', true);
 export const HTTP_JSON_BODY_LIMIT = getEnvString('HTTP_JSON_BODY_LIMIT', '1mb');
 /** Max body size for POST /api/train/raw (`HTTP_TRAIN_RAW_BODY_LIMIT`, default 2mb). */
 export const HTTP_TRAIN_RAW_BODY_LIMIT = getEnvString('HTTP_TRAIN_RAW_BODY_LIMIT', '2mb');
@@ -121,7 +123,7 @@ export const MCP_RATE_LIMIT_MAX = getEnvInt('MCP_RATE_LIMIT_MAX', 1000);
  * When true, served MCP App widget HTML skips `ui/initialize` / `initialized` and ignores
  * tool-result notifications (static chrome only). Use to isolate host crashes tied to the bridge.
  */
-export const KAIROS_MCP_WIDGET_PRESENTATION_ONLY = getEnvBoolean('KAIROS_MCP_WIDGET_PRESENTATION_ONLY', false);
+export const KAIROS_MCP_WIDGET_PRESENTATION_ONLY = getEnvBooleanAliased('SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY', 'KAIROS_MCP_WIDGET_PRESENTATION_ONLY', false);
 // Auth (Keycloak OIDC). One Keycloak per env: each env file sets KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID.
 // AUTH_ENABLED defaults to true. If it is explicitly set to true, missing auth env is a startup error.
 // If it is left unset and auth env is incomplete, the server stays fail-closed at request time.
@@ -131,7 +133,7 @@ export const KEYCLOAK_URL = getEnvString('KEYCLOAK_URL', '');
 export const KEYCLOAK_INTERNAL_URL = getEnvString('KEYCLOAK_INTERNAL_URL', '');
 export const KEYCLOAK_REALM = getEnvString('KEYCLOAK_REALM', 'kairos-dev');
 export const KEYCLOAK_CLIENT_ID = getEnvString('KEYCLOAK_CLIENT_ID', 'kairos-mcp');
-/** CLI browser login: public client ID (e.g. kairos-cli). Overridable at runtime by KAIROS_CLIENT_ID. */
+/** CLI browser login: public client ID (e.g. kairos-cli). Overridable at runtime by KAIROS_CLIENT_ID (alias SQUADRULES_CLIENT_ID). */
 export const KEYCLOAK_CLI_CLIENT_ID = getEnvString('KEYCLOAK_CLI_CLIENT_ID', 'kairos-cli');
 /** Base URL for redirect_uri (e.g. http://localhost:3500). Must match Keycloak client redirect URIs. */
 export const AUTH_CALLBACK_BASE_URL = getEnvString('AUTH_CALLBACK_BASE_URL', '');
@@ -141,11 +143,11 @@ export const SESSION_MAX_AGE_SEC = getEnvInt('SESSION_MAX_AGE_SEC', 25_200);
 
 /**
  * Comma-separated scopes advertised from `/.well-known/oauth-protected-resource`.
- * Defaults to the baseline OIDC scopes required by KAIROS discovery; set explicitly
+ * Defaults to the baseline OIDC scopes required by SquadRules discovery; set explicitly
  * to add scopes such as `offline_access` without rebuilding the container image.
  */
 export const OIDC_SCOPES_SUPPORTED: readonly string[] = parseOidcScopesSupported(
-  process.env['KAIROS_OIDC_SCOPES_SUPPORTED']
+  resolveAliasedRaw('SQUADRULES_OIDC_SCOPES_SUPPORTED', 'KAIROS_OIDC_SCOPES_SUPPORTED')
 );
 
 /** When set to oidc_bearer, Bearer tokens are validated (issuer, audience, exp); when unset, Bearer presence only (backward compat). */
@@ -186,10 +188,7 @@ export const OIDC_BEARER_MERGE_USERINFO_GROUPS = getEnvBoolean('OIDC_BEARER_MERG
  * Suffix appended when building the example group path from a path-prefix
  * allowlist entry (see GROUP_SPACE_PATH_EXAMPLE). Default `pe-team`.
  */
-const KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX_RAW = getEnvString(
-  'KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX',
-  'pe-team'
-).trim();
+const KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX_RAW = getEnvAliased('SQUADRULES_GROUP_SPACE_EXAMPLE_SUFFIX', 'KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX', 'pe-team').trim();
 export const KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX =
   KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX_RAW.length > 0
     ? KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX_RAW
@@ -223,7 +222,7 @@ export function deriveGroupSpacePathExampleFromAllowlist(
  * - Otherwise default **`/shared/{suffix}`** (suffix from `KAIROS_GROUP_SPACE_EXAMPLE_SUFFIX`).
  */
 export const GROUP_SPACE_PATH_EXAMPLE: string = (() => {
-  const explicit = getEnvString('KAIROS_GROUP_SPACE_PATH_EXAMPLE', '').trim();
+  const explicit = getEnvAliased('SQUADRULES_GROUP_SPACE_PATH_EXAMPLE', 'KAIROS_GROUP_SPACE_PATH_EXAMPLE', '').trim();
   if (explicit) return explicit;
   const derived = deriveGroupSpacePathExampleFromAllowlist(
     OIDC_GROUPS_ALLOWLIST,
@@ -281,8 +280,9 @@ export const ATTEST_BOOST_MAX = getEnvFloat('ATTEST_BOOST_MAX', 0.08);
 
 // Transport: stdio | http. Default http for non-CLI entrypoints (Docker/CI/bootstrap).
 // `kairos serve` sets KAIROS_CLI_SERVE=1 before spawning bootstrap so missing TRANSPORT_TYPE defaults to stdio there only.
+const _cliServeValue = resolveAliasedRaw('SQUADRULES_CLI_SERVE', 'KAIROS_CLI_SERVE');
 const _transportDefault =
-  process.env['KAIROS_CLI_SERVE'] === '1' && !process.env['TRANSPORT_TYPE']?.trim() ? 'stdio' : 'http';
+  _cliServeValue === '1' && !process.env['TRANSPORT_TYPE']?.trim() ? 'stdio' : 'http';
 const TRANSPORT_TYPE_RAW = getEnvString('TRANSPORT_TYPE', _transportDefault);
 export const TRANSPORT_TYPE: 'stdio' | 'http' =
   TRANSPORT_TYPE_RAW === 'http' ? 'http' : 'stdio';
@@ -337,8 +337,11 @@ export const AUTH_ALLOWED_AUDIENCES =
     ? [..._authAudBase, 'account']
     : _authAudBase;
 /** Embedded mem / default search space when AUTH_ENABLED=false; must follow space model (e.g. space:kairos-app). */
-export const KAIROS_APP_SPACE_ID = getEnvString('KAIROS_APP_SPACE_ID', 'space:kairos-app');
+export const KAIROS_APP_SPACE_ID = getEnvAliased('SQUADRULES_APP_SPACE_ID', 'KAIROS_APP_SPACE_ID', 'space:kairos-app');
 /** Simple-mode writable personal space id when AUTH_ENABLED=false and UUIDv5 seed override is not provided. */
-export const KAIROS_SIMPLE_PERSONAL_SPACE_ID = getEnvString('KAIROS_SIMPLE_PERSONAL_SPACE_ID', 'space:personal');
-export const KAIROS_SIMPLE_PERSONAL_REALM = getEnvString('KAIROS_SIMPLE_PERSONAL_REALM', 'kairos-simple');
-export const KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED = getEnvString('KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED', '').trim();
+export const KAIROS_SIMPLE_PERSONAL_SPACE_ID = getEnvAliased('SQUADRULES_SIMPLE_PERSONAL_SPACE_ID', 'KAIROS_SIMPLE_PERSONAL_SPACE_ID', 'space:personal');
+export const KAIROS_SIMPLE_PERSONAL_REALM = getEnvAliased('SQUADRULES_SIMPLE_PERSONAL_REALM', 'KAIROS_SIMPLE_PERSONAL_REALM', 'kairos-simple');
+export const KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED = getEnvAliased('SQUADRULES_SIMPLE_PERSONAL_UUIDV5_SEED', 'KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED', '').trim();
+
+/** Emit a single consolidated deprecation notice for any KAIROS_* var used while its SQUADRULES_* alias was unset. */
+logDeprecations();

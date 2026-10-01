@@ -55,7 +55,7 @@ assert.equal(release.concurrency['cancel-in-progress'], false);
 const source = readFileSync('scripts/ci-release.mjs', 'utf8');
 assert.doesNotMatch(source, /git describe|already published versions|already exist/);
 assert.match(source, /await publishStages\(record/);
-for (const stage of ['validate', 'recover', 'tag', 'npm', 'images', 'chart', 'promoted', 'complete']) {
+for (const stage of ['validate', 'recover', 'tag', 'npm', 'images', 'promoted', 'complete']) {
   assert.match(source, new RegExp(`\\b${stage}:`), `Release must wire the tested ${stage} stage`);
 }
 const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));
