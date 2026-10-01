@@ -1,489 +1,212 @@
 # KAIROS → SquadRules Rebrand & Repository Split
 
-## Summary
-
-Rebrand the product from KAIROS to SquadRules and split into two repositories (`SquadRules/mcp` for application, `SquadRules/charts` for Helm), using a **compatibility-first** strategy: all wire-protocol identifiers, persistent data paths, and runtime defaults retain backward-compatible aliases so no existing deployment breaks on upgrade. The internal codebase keeps `kairos`-named TypeScript symbols unchanged (they are not user-facing); only distribution-layer identity, user-visible strings, and documentation are renamed.
-
----
-
-## Decision Framework: MUST-CHANGE / CAN-REMAIN / NEEDS-ALIAS
-
-### MUST-CHANGE (user-facing distribution identity)
-- npm package name → `@squadrules/mcp`
-- CLI bin entries → `squadrules` (primary), keep `kairos`/`kairos-mcp` as deprecated aliases
-- Container images → `quay.io/squadrules/mcp`, `docker.io/squadrules/mcp`
-- Helm chart name → `mcp` in `SquadRules/charts`
-- Chart OCI target → `oci://ghcr.io/squadrules/charts/mcp`
-- Repository URLs → `github.com/SquadRules/mcp`
-- MCP server name → `SquadRules`
-- `/.well-known` `resource_name` → `SquadRules MCP`
-- README/docs prose, logo, branding copy
-- ESLint plugin filenames (internal tooling, cosmetic but consistent)
-- Agent skill directory names (`.agents/skills/squadrules/`, `.agents/skills/squadrules-dev/`)
-- `.agents/mcp.json` server IDs
-
-### CAN-REMAIN (internal, not part of external contract)
-- TypeScript symbol names (`KairosError`, `KAIROS_TOOL_REGISTRY`, `parseKairosUri`, etc.)
-- Source file names (`src/tools/kairos-uri.ts`, `src/utils/kairos-user-dirs.ts`, etc.) — rename in a follow-up cleanup PR if desired, not blocking
-- Test file names and fixture identifiers
-- MCP tool names (`activate`, `forward`, `train`, `reward`, `tune`, `delete`, `export`, `spaces`) — not kairos-branded
-- HTTP API routes — not kairos-branded
-- Container OS user `kairos` (uid 1001) — invisible to consumers (rename optional)
-- Docker Compose network/project names — dev-only
-- `KAIROS_NAMESPACE` UUID constant in `src/services/id-generator.ts:13` — **MUST NOT CHANGE** (all stored Qdrant point IDs derive from it)
-
-### NEEDS-ALIAS (data-bearing or wire-visible — backward-compat required)
-- URI scheme `kairos://` — accept `squadrules://` on input, continue emitting `kairos://` indefinitely
-- Env var prefix `KAIROS_*` (~23 vars in `src/config.ts`) — add `SQUADRULES_*` aliases, new takes priority
-- Redis key prefix default `kairos:` — keep as default; operators can override via `SQUADRULES_KEY_VALUE_PREFIX`
-- Qdrant collection defaults `kairos`, `kairos_memories` — **DO NOT CHANGE** (data lives here)
-- Prometheus metrics `kairos_*` — keep; optionally dual-register `squadrules_*` behind env flag
-- Session cookie `kairos_session` — emit both old and new; read either
-- Keyring service `kairos-cli` — dual-read fallback, migrate on first access
-- Config dir `~/.config/kairos` — prefer `~/.config/squadrules` if exists, fall back to legacy
-- Keycloak realm/client IDs — add new clients alongside old; do NOT rename realms
-- Wire JSON field `kairos_local_artifact_dir` — emit both keys in responses
-- MCP UI resource URIs `ui://kairos/*` — register both; keep legacy in `_meta` for one release
-- `.well-known` field `kairos_cli_client_id` — emit both old and new key names
-- Protected space IDs `space:kairos-app`, `space:kairos-system` — **DO NOT CHANGE** (stored in Qdrant payloads)
-- Helm Deployment `spec.selector` `app.kubernetes.io/name: kairos-mcp` — **IMMUTABLE on existing Deployments**; preserve forever
-- Release body marker `<!-- kairos-release:... -->` — parse both old and new markers
-
----
-
-## Phase 0: Prerequisites (No Code Changes)
-
-**Owner**: Repository admin (human action required)
-
-1. Verify `SquadRules` GitHub org exists and has admin access
-2. Reserve `@squadrules` npm scope; publish placeholder `@squadrules/mcp@0.0.0`
-3. Register npm Trusted Publisher against `SquadRules/mcp` + workflow filename `release.yml` **before** any publish (avoids known ENEEDAUTH pitfall)
-4. Reserve `quay.io/squadrules` namespace; create `mcp` repository
-5. Reserve `docker.io/squadrules` org; create `mcp` repository
-6. Verify `ghcr.io/squadrules/charts` package can be created (GHCR uses org path automatically)
-7. Provision GitHub Secrets in both destination repos: `QUAY_NAMESPACE`, `QUAY_USERNAME`/`QUAY_PASSWORD`, `DOCKER_USERNAME`/`DOCKER_PASSWORD`, cosign keys
-8. Verify Codex GitHub App installation on `SquadRules` org
-9. Document cosign certificate identity change (`GITHUB_WORKFLOW_REF` will differ post-transfer)
-10. **Security**: Rotate any committed secrets in `.env.prod`/`.env.dev_stdio` before transfer makes them discoverable under new org
-
-**Blocking**: All subsequent phases depend on Phase 0 completion.
-
----
-
-## Phase 1: Compatibility Layer (ship as minor release from current repo)
-
-All changes are **additive** — no existing identifier is removed or renamed. This phase can ship independently.
-
-### 1A. Env-var alias infrastructure
-
-**File**: `src/config.ts`
-
-- Add helper function:
-  ```typescript
-  function getEnvAliased(newKey: string, legacyKey: string, defaultValue: string): string {
-    return process.env[newKey] || process.env[legacyKey] || defaultValue;
-  }
-  ```
-  (Plus `getEnvIntAliased`, `getEnvBooleanAliased`, `getEnvFloatAliased` variants)
-- Apply to all 23 `KAIROS_*` variables: `SQUADRULES_*` takes priority, `KAIROS_*` remains functional
-- Log deprecation warning (once at startup) when only legacy names are set
-- **DO NOT change defaults** for: `KAIROS_REDIS_PREFIX` (stays `kairos:`), `QDRANT_COLLECTION` (stays `kairos`), `KAIROS_APP_SPACE_ID` (stays `space:kairos-app`)
-
-### 1B. URI scheme dual-accept
-
-**File**: `src/tools/kairos-uri.ts`
-
-- Update regexes to accept both `kairos://` and `squadrules://` as input
-- All `build*Uri()` functions continue emitting `kairos://` (canonical stored form)
-- Add comment block explaining this is a permanent compatibility decision (stored data uses `kairos://`)
-- Update error message to mention both schemes
-
-### 1C. Session cookie dual-emit
-
-**File**: `src/http/http-auth-middleware.ts`
-
-- Set both `kairos_session` and `squadrules_session` cookies on write
-- Read from either on inbound (prefer new)
-- After one major release, drop legacy write
-
-### 1D. Keyring migration
-
-**File**: `src/cli/keyring.ts`
-
-- On `getToken` miss under `squadrules-cli`, retry under `kairos-cli`
-- If found under legacy, re-write under new service and delete old entry
-- Same pattern for `getRefreshToken`
-
-### 1E. Config dir migration
-
-**File**: `src/utils/kairos-user-dirs.ts`
-
-- Prefer `~/.config/squadrules` if it exists
-- Fall back to `~/.config/kairos`
-- On first write to new dir, copy config and leave `MIGRATED_FROM` marker
-
-### 1F. Wire field dual-emit
-
-**Files**: `src/tools/local-artifact-dir-contract.ts`, activate/forward/next schemas
-
-- Emit both `kairos_local_artifact_dir` and `squadrules_local_artifact_dir` in responses
-- Accept either on input
-
-### 1G. MCP UI resource dual-registration
-
-**File**: `src/mcp-apps/kairos-ui-constants.ts`
-
-- Register both `ui://kairos/*` and `ui://squadrules/*` resources
-- Keep `ui://kairos/*` in `tools/list` `_meta.ui.resourceUri` for this release
-
-### 1H. `.well-known` metadata
-
-**File**: `src/http/http-well-known.ts`
-
-- Emit both `kairos_cli_client_id` and `squadrules_cli_client_id` fields
-- Update `resource_name` to `'SquadRules MCP'` (cosmetic, safe)
-
-### 1I. Keycloak additional clients
-
-**Files**: `scripts/keycloak/import/*.json`, Helm values
-
-- Add `squadrules-mcp` and `squadrules-cli` as **additional** OIDC clients with identical redirect URIs
-- Add both to `AUTH_ALLOWED_AUDIENCES` default list
-- Do NOT rename existing realms or clients
-
-### 1J. Release-state marker compat
-
-**File**: `scripts/ci-release-state.mjs`
-
-- Parse both `<!-- kairos-release:... -->` and `<!-- squadrules-release:... -->` markers in existing GitHub releases
-
-**Phase 1 exit criteria**: All existing tests pass unchanged; new alias tests added; no breaking changes; existing deployments upgrade seamlessly.
-
----
-
-## Phase 2: Distribution Identity Rename (ship as 5.0.0 from SquadRules/mcp)
-
-### 2A. Package identity
-
-**File**: `package.json`
-
-- `name`: `@squadrules/mcp`
-- `bin`: `{ "squadrules": "dist/cli/index.js", "squadrules-mcp": "dist/cli/index.js", "kairos": "dist/cli/index.js", "kairos-mcp": "dist/cli/index.js" }` (legacy bins kept one major)
-- `repository.url`: `https://github.com/SquadRules/mcp.git`
-- `bugs.url`: `https://github.com/SquadRules/mcp/issues`
-- `homepage`: `https://github.com/SquadRules/mcp#readme`
-- Update all scripts referencing old package name
-
-### 2B. Legacy npm stub
-
-- Publish `@jakub-plichcinski/kairos-mcp@5.0.0` as a stub with `preinstall` warning + dependency on `@squadrules/mcp@^5`
-- Then `npm deprecate @jakub-plichcinski/kairos-mcp "Renamed to @squadrules/mcp"`
-
-### 2C. CLI program name
-
-**File**: `src/cli/program.ts:34`
-
-- `program.name('squadrules')` (Commander uses `argv[0]` for help text; legacy bins still work)
-
-### 2D. MCP server identity
-
-**Files**: `src/server.ts:47`, `src/http/http-health-routes.ts`, `src/http/http-server.ts`
-
-- Server name: `'SquadRules'`
-- Health endpoint service name: `'squadrules-mcp'`
-- Startup log: `'SquadRules MCP server'`
-
-### 2E. Dockerfiles
-
-**Files**: `Dockerfile`, `Dockerfile.dev`, `Dockerfile.stdio`
-
-- Update package install path to `@squadrules/mcp`
-- Update CMD/ENTRYPOINT paths
-- Container user rename `kairos` → `squadrules` (optional, cosmetic; uid stays 1001)
-- Update `QDRANT_COLLECTION` env defaults in Dockerfile — **KEEP AS `kairos_memories`** (data compat)
-
-### 2F. Container registry targets
-
-**File**: `scripts/ci-registry.mjs`
-
-```javascript
-return [
-  { image: 'docker.io/squadrules/mcp', host: 'registry-1.docker.io', path: 'squadrules/mcp', ... },
-  { image: `quay.io/${namespace}/mcp`, host: 'quay.io', path: `${namespace}/mcp`, ... },
-];
+## Scope and decisions
+
+Implement issue #835 as the single migration plan. It supersedes #833 and naming
+PR #737. Preserve protocol behavior and existing deployments while changing the
+product and distribution identity. Internal TypeScript symbols and filenames
+need not change for branding alone.
+
+SquadRules is an agent-facing persistent protocol system that bridges generic
+model competence and the user's actual local procedure. Even an agent that knows
+Git must consult local rules before acting on “Create PR.” Preserve this product
+understanding in documentation; MCP is an interface, not the entire identity.
+
+| Artifact | Target | Source/publishing owner |
+| --- | --- | --- |
+| Application repository | `SquadRules/mcp` | Existing repository, transferred and renamed |
+| npm package | `@squadrules/mcp` | Application repository |
+| CLI | `squadrules` | npm package |
+| Canonical container | `quay.io/squadrules/mcp` | Application repository |
+| Container mirror | `docker.io/squadrules/mcp` | Same built image, no independent rebuild |
+| Chart repository | `SquadRules/charts` | Extracted chart sources and workflows |
+| Chart name | `mcp` | Chart repository |
+| Chart distribution | `oci://ghcr.io/squadrules/charts/mcp` | Chart repository |
+
+Application source, Dockerfiles, image tests/releases and application-oriented
+Compose examples stay in `mcp`. Chart templates, validation, publication and
+Kubernetes-specific examples belong in `charts`. Inventory infrastructure,
+operators and prerequisite charts individually; record their destinations and
+consumers before moving or deleting them. Do not create another repository merely
+to resolve an unexamined directory.
+
+## Sequence and gates
+
+Use one coordinated rebrand release with compatibility included. Do not require
+an earlier compatibility-only release. Select actual release versions from the
+current release state; `5.0.0` is not a hardcoded prerequisite.
+
+1. Inventory and prepare code, compatibility tests, chart extraction and workflows.
+2. Verify namespaces and administrative access in parallel with preparation.
+3. Prepare destination chart repository and transfer/rename the application repository.
+4. Verify destination integrations and publishing credentials/trust.
+5. Publish and verify the npm package, then the application image and mirror.
+6. Publish and verify the chart consuming that released image.
+7. Complete upgrade/rollback evidence and migration documentation.
+
+Missing registry/admin access blocks only the affected transfer or publication.
+It does not block local implementation, extraction rehearsals or validation.
+Complete independent work and report precise remaining access requirements.
+Do not pre-create `SquadRules/mcp`: an existing destination can obstruct transfer.
+
+## Preparation and administrative requirements
+
+- Confirm ownership/access for GitHub, npm scope, Quay and Docker Hub namespaces.
+  GitHub organization ownership does not reserve names in other registries.
+- Establish an explicit first-publication procedure for the new npm package.
+  Do not publish an empty placeholder just to reserve the name. Bootstrap a tested
+  package using an authorized publishing method if required, then configure npm
+  trusted publishing for the exact destination repository/workflow/environment.
+- Check current npm/Node and runner requirements for trusted publishing. A
+  `npm publish --dry-run` checks packaging; it does not prove publish authorization.
+  Record evidence from a real authorized release before declaring publishing done.
+- Configure Quay/Docker credentials only in the application publishing context.
+  Keep namespace configuration separate from secrets and match the workflows'
+  actual `vars`/`secrets` references. Charts must not receive image push credentials.
+- Publish charts to GHCR with the workflow's `GITHUB_TOKEN` and `packages: write`,
+  verifying package linkage, visibility and organization policy. This is distinct
+  from npm OIDC publishing and keyless cosign signing.
+- Verify Codex App installation, branch protection/required checks, environments,
+  Actions permissions and publishing trust after transfer. Update signing identity
+  verification for the exact old/new workflow identities without a broad wildcard.
+- Inspect tracked environment files for actual secrets without printing values.
+  If credentials are found, report and rotate those credentials; do not presume
+  every checked-in environment file contains secrets.
+- Existing `squadrules` Cloud project and verified `squadrules.com` are assets to
+  reuse. This migration does not require recreating production infrastructure.
+
+## Compatibility inventory and implementation
+
+Validate each item against the current source and deployed configuration before
+editing. Record old/new names, defaults, precedence and tests in the migration guide.
+
+| Surface | Required behavior |
+| --- | --- |
+| Deterministic IDs and stored space IDs | Preserve UUID namespace and protected IDs exactly. |
+| Qdrant collections and Redis prefixes | Preserve existing defaults and configured values across each deployment mode. |
+| URI scheme | Accept `squadrules://` and `kairos://`; preserve legacy canonical emission for this migration. Test normalization and round trips. |
+| Environment variables | Add corresponding `SQUADRULES_*` aliases; retain old names and parsing semantics. Explicitly define empty-string handling and precedence instead of using an unconditional `new || old || default`. |
+| Session cookies | Prefer retaining the current cookie for this migration. If dual names are needed, specify matching security attributes, precedence, refresh and clearing both on logout. |
+| Keyring | Read new service then legacy fallback; copy only after a successful read/write. Retain old entries during the rollback window. Test access/refresh tokens and failed writes. |
+| User config directories | Respect platform/XDG paths. Define behavior when neither, one or both directories exist. Never overwrite newer configuration or select an empty new directory over valid legacy settings. Use recoverable copying and preserve the legacy directory. |
+| JSON fields and UI resource URIs | Retain existing fields/resources; add new aliases only after checking schemas and consumers tolerate them. Test old/new clients and cached resource references. |
+| Metrics | Keep existing names and dashboards; no automatic dual-registration or metric migration needed for branding. |
+| OIDC realms/clients | Preserve existing realm, clients, audiences and redirects. Add new clients only when required, with validated redirect/audience settings; do not expand trust merely for cosmetic consistency. |
+| Helm resources | Preserve existing names, selectors, Service targets, Secrets and PVC bindings during upgrade. Selector preservation alone is insufficient. |
+| Release markers | Read legacy and new markers; prevent duplicate releases on retry. |
+| Agent skills/MCP configuration | Update branding and paths while preserving documented legacy installation paths. Avoid loading duplicate routing skills unintentionally. |
+
+Keep internal names such as `KairosError` and source filenames unless a functional
+change requires editing them. Cosmetic ESLint plugin renames and base-image/cache
+optimizations are outside this migration's required scope.
+
+Do not schedule automatic removal of aliases “one major later.” Removal is a
+separate breaking-change decision requiring consumer evidence, a migration path
+and rollback coverage. Avoid unnecessary forever guarantees about implementation
+names; preserve identity/data where changing them would change stored meaning.
+
+## Application and npm changes
+
+- Update package name, lockfile metadata, repository/homepage/bugs links, CLI help,
+  MCP display identity, health/log branding, documentation, logos and examples.
+- Preserve protocol/data-bearing names according to the inventory above. Retain
+  old CLI entry points during migration; verify packaged executable permissions.
+- Test the packed artifact in a clean environment, including explicit
+  `npm exec --package=@squadrules/mcp -- squadrules` and the documented `npx` form.
+  Multiple differently named bin entries require testing command resolution.
+- Keep the existing npm package usable. Do not replace it with a dependency-only
+  stub and assume CLI forwarding works. Default to documented migration and
+  deprecation only after the replacement is verified. Any forwarding package
+  requires explicit executable wrappers and old CLI/`npx` tests.
+- Ensure core package build/tests/publication do not require Docker or Helm.
+  Container/deployment integration checks stay separate.
+
+## Chart extraction and transfer
+
+Rehearse extraction in a disposable clone, never in the only working checkout.
+Pin the extraction source commit and inventory chart dependencies, scripts,
+fixtures and files outside the chart directory. A suitable path-preserving filter
+for the chart itself is:
+
+```sh
+git filter-repo --path helm/kairos-mcp/ --path-rename helm/kairos-mcp/:charts/mcp/
 ```
 
-### 2G. Release script
+This command alone does not collect supporting files outside that path. Add the
+required paths or port those files explicitly, and verify history, layout and a
+clean-clone build. Do not combine a subdirectory-root filter with an incompatible
+original-path rename. Publish the verified chart repository before removing the
+old chart and its jobs/scripts from the application repository.
 
-**File**: `scripts/ci-release.mjs`
+Use `charts/mcp/` with standard chart files and independent chart CI. Update chart
+metadata and internal helper names only after comparing rendered resources.
+Transfer/rename the application with history/issues/PRs preserved, verify redirects
+and destination integration access, then enable release publication there.
 
-- `packageName = '@squadrules/mcp'`
-- Update tgz filename pattern
-- **Remove** chart packaging (`preparePackage` lines 104-111) and `publishChart` (line 260+) — chart moves to separate repo
-- Update cosign identity documentation
+## Release workflows and retries
 
-### 2H. Docker Compose
+- npm publication produces an exact version. Image production installs that exact
+  released version; no floating dependency or unpublished source substitution.
+- Build an image once and copy the resulting image/index to both registries.
+  Verify matching release digests and required signatures/provenance at each target.
+- Support an independently runnable image workflow taking an existing npm version.
+  Base-image rebuilds use a distinct immutable image revision; never overwrite a
+  released immutable tag. Document application version versus image revision.
+- Persist release state so failed mirror publication can retry without rebuilding,
+  republishing npm or creating a duplicate release. npm remains usable if image
+  publication fails. A chart update requiring a new image waits for that image.
+- Charts can release independently against an existing verified image. A failed
+  new npm release must not block unrelated chart-only work.
+- Prefer a chart update PR carrying application version, immutable image reference
+  and source release metadata. Validate and approve/version the chart through its
+  own workflow; do not blindly bump and publish on every dispatch.
+- If using `repository_dispatch`, define a narrowly scoped GitHub App/token for
+  the destination, payload validation, an idempotency key, ordering/concurrency
+  behavior and retry handling. The source repository's default `GITHUB_TOKEN`
+  must not be assumed to grant cross-repository dispatch access. Dispatch failure
+  must not fail or undo already published npm/image artifacts.
+- Run chart validation in the chart release workflow itself (or a reusable workflow)
+  against the exact packaged commit; jobs cannot `needs` jobs in another workflow.
+- Publish with the Helm OCI command after authenticating to GHCR:
 
-**File**: `compose.yaml`
-
-- Image reference: `quay.io/squadrules/mcp:v5.0.0`
-- Network name: `squadrules-network` (dev-only, safe)
-- RedisInsight alias: `squadrulesKeyValue`
-
-### 2I. CI workflows (SquadRules/mcp)
-
-**File**: `.github/workflows/integration.yml`
-
-- Remove `verify-helm` job entirely (chart lives elsewhere now)
-- Remove `helm/kairos-mcp/**` from path filters
-- Update artifact names to `squadrules-mcp-${VERSION}.tgz`
-- Update `integration-pass` needs list
-
-**File**: `.github/workflows/release.yml`
-
-- Remove Helm packaging/publishing stages
-- Update env var references
-- Add Buildx layer cache (`actions/cache` keyed on `Dockerfile` + `package-lock.json`)
-- Add `repository_dispatch` event emission after image publish (triggers chart repo)
-
-**File**: `.github/workflows/security.yml`
-
-- Update image tag references
-
-**File**: `renovate.json`
-
-- Update `matchPackageNames` for new image paths
-- Remove `helm/kairos-mcp/Chart.yaml` path references
-
-### 2J. ESLint plugins (cosmetic rename)
-
-- `eslint/plugins/kairos-forbidden-text.cjs` → `squadrules-forbidden-text.cjs`
-- `eslint/plugins/kairos-codeql-line-comments.cjs` → `squadrules-codeql-line-comments.cjs`
-- `eslint/plugins/kairos-mcp-widget.cjs` → `squadrules-mcp-widget.cjs`
-- Update `eslint/flat-config.cjs` imports
-
-### 2K. Agent skills and MCP config
-
-- Copy `.agents/skills/kairos/` → `.agents/skills/squadrules/` (keep legacy for one release)
-- Copy `.agents/skills/kairos-dev/` → `.agents/skills/squadrules-dev/` (keep legacy)
-- Update `.agents/mcp.json` server IDs to `SQUADRULES-DEVELOPMENT` / `SQUADRULES-HELM-INTEGRATION`
-- Update `AGENTS.md` to reference new skill paths
-
-### 2L. Documentation and prose
-
-- Update `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `AGENTS.md`
-- Update all `docs/**` prose references
-- Update `logo/kairos-mcp.svg` filename and embedded copy
-- Keep historical references in changelogs/release notes intact
-
-### 2M. Environment files
-
-- `.env.dev_simple`, `.env.dev_stdio`, `.env.prod`: use `SQUADRULES_*` var names (legacy still works via Phase 1 aliases)
-
----
-
-## Phase 3: Repository Split
-
-### 3A. Extract chart history
-
-```bash
-# From a clone of the repo (post-transfer):
-git filter-repo --subdirectory-filter helm/kairos-mcp --path-rename helm/kairos-mcp/:mcp/
-# Push result to SquadRules/charts
+```sh
+helm package charts/mcp --destination dist
+helm push "dist/mcp-${CHART_VERSION}.tgz" oci://ghcr.io/squadrules/charts
 ```
 
-### 3B. SquadRules/charts structure
+The chart basename/version determine the final artifact path/tag. Verify pulling
+and installing that exact artifact and public access if public distribution is intended.
 
-```
-SquadRules/charts/
-├── mcp/
-│   ├── Chart.yaml          # name: mcp
-│   ├── values.yaml
-│   ├── values.schema.json
-│   ├── templates/
-│   ├── files/
-│   └── tests/
-├── .github/workflows/
-│   ├── integration.yml     # lint + unittest + kubeconform + ct (parallel)
-│   └── release.yml         # package + OCI push (on repository_dispatch or tag)
-├── ct.yaml
-└── README.md
-```
+## Validation and completion evidence
 
-### 3C. Chart identity updates
+1. **Compatibility:** legacy-only/new-only/mixed env settings, empty/false/zero
+   parsing, URI round trips, keyring/config copy failure and coexistence, cookie
+   logout/refresh, old/new clients and wire schema compatibility.
+2. **Package:** clean clone build/test without Helm/Docker; packed installation,
+   CLI/`npx` smoke tests and actual new-package publication verification.
+3. **Images:** exact npm version installed, standalone startup/MCP smoke tests,
+   matching mirror artifacts, signatures/provenance, image-only rebuild and retry
+   after partial registry failure.
+4. **Charts:** lint/unit/render/schema validation and installation from the published
+   OCI artifact. Chart-only changes do not require npm/image releases.
+5. **Upgrade and rollback:** install the current released chart with representative
+   persisted data, credentials and configuration; upgrade using the same release
+   identity. Compare all rendered resource names/selectors, Services, Secrets and
+   PVCs. Verify stored data and authentication, then roll back and verify again.
+   Do not use uninstall/reinstall as a default workaround for immutable selectors.
+6. **Extraction/admin:** clean-clone chart tests, recorded source commit, preserved
+   application history/issues/PRs and verified destination publishing/integrations.
+7. **Documentation:** old-to-new install/reference map, compatibility and rollback
+   instructions, intentional legacy-name inventory and precise remaining blockers.
 
-**File**: `mcp/Chart.yaml`
-- `name: mcp`
-- `appVersion: "5.0.0"` (tracks npm release)
-- `version: 1.0.0` (independent chart semver)
-- Update icon URL, maintainer, keywords, repository links
+Do not claim seamless upgrade, zero risk or complete migration from unchanged
+unit tests or dry-run publishing alone. No speculative time/performance estimates
+are acceptance criteria. Preserving collection names avoids unnecessary migration;
+it does not imply that moving existing vectors would require re-embedding.
 
-**File**: `mcp/values.yaml`
-- `app.image.repository: "quay.io/squadrules/mcp"`
-- Auth defaults: keep `kairos-dev` realm and `kairos-mcp` clientId (existing deployments)
-- **Preserve** `app.name: "kairos-mcp"` as default (Helm selector immutability!)
-- Add documentation comment explaining why `app.name` retains the legacy value
+## References
 
-**File**: `mcp/templates/_helpers.tpl`
-- Rename template helpers from `kairos.*` to `mcp.*` (internal to chart, not selector-bound)
-- Preserve the `credentialsLegacySecretName` fallback pattern
-
-**Template files**: Rename `kairos-mcp-deployment.yaml` → `mcp-deployment.yaml`, etc.
-- **CRITICAL**: Keep `app.kubernetes.io/name: {{ .Values.app.name | default "kairos-mcp" }}` in `spec.selector.matchLabels` — this is **immutable** on existing Deployments
-
-### 3D. Chart CI pipeline (new)
-
-```yaml
-# .github/workflows/integration.yml
-jobs (all parallel):
-  lint:       helm lint --strict
-  unittest:   helm-unittest
-  template:   helm template | kubeconform
-  ct:         chart-testing lint
-
-# .github/workflows/release.yml (triggered by repository_dispatch from SquadRules/mcp)
-jobs:
-  package:    helm package (needs lint+unittest+template pass)
-  publish:    oras push oci://ghcr.io/squadrules/charts/mcp:${CHART_VERSION}
-```
-
-### 3E. Remove chart from SquadRules/mcp
-
-- Delete `helm/kairos-mcp/`, `ct.yaml`, `scripts/helm-*.mjs`, `scripts/test-helm.sh`
-- Remove `verify-helm` job from `integration.yml`
-- Remove `helm:sync-app-version` from version sync scripts
-- Decide fate of `helm/infrastructure`, `helm/operators`, `helm/prerequisites`, `helm/.dev` (recommend: keep in `mcp` as dev-cluster scaffolding, or move to a separate `dev-infra` location)
-
-### 3F. Repository transfer
-
-- Transfer `jakub-plichcinski/kairos-mcp` → `SquadRules/mcp` via GitHub org transfer (preserves issues, PRs, stars, watches, sets up HTTP redirects)
-- Re-register npm Trusted Publisher against new repo path
-- Verify with `npm publish --dry-run` from a `workflow_dispatch` run
-- Update all branch protection rules, required checks, GitHub App installations
-
-### 3G. Release flow post-split
-
-```
-SquadRules/mcp (on push to main):
-  1. semantic-release → npm publish @squadrules/mcp
-  2. Docker buildx (from exact published npm version) → push to Quay + Docker Hub
-  3. repository_dispatch → SquadRules/charts
-
-SquadRules/charts (on repository_dispatch):
-  1. Pin appVersion to just-published npm version
-  2. Bump chart version (independent semver)
-  3. helm lint + unittest + kubeconform + ct
-  4. helm package + oras push to oci://ghcr.io/squadrules/charts/mcp
-```
-
-Independent failure boundaries: npm failure does not block chart; chart failure does not block npm; image failure blocks chart (by design — chart needs a published image).
-
----
-
-## Phase 4: Post-Split Cleanup (one major version later)
-
-- Remove `KAIROS_*` env-var aliases (after deprecation period)
-- Remove `kairos_session` cookie write
-- Remove `kairos-cli` keyring fallback
-- Remove `~/.config/kairos` directory fallback
-- Remove `kairos_local_artifact_dir` response field
-- Remove `ui://kairos/*` resource registrations
-- Remove legacy `kairos`/`kairos-mcp` npm bin entries
-- Deprecate `@jakub-plichcinski/kairos-mcp` stub
-- Optionally migrate Prometheus metrics with dual-registration window
-- Optionally rename Keycloak realms (provide export/import migration script)
-- **NEVER** change: `KAIROS_NAMESPACE` UUID, Qdrant collection defaults, `kairos://` URI emission, Helm selector label, protected space IDs
-
----
-
-## Dependency Graph
-
-```
-Phase 0 (admin prereqs) ─────────────────────────────┐
-                                                      │
-Phase 1 (compat layer, current repo) ────────────────┤
-  1A-1J all independent, can be parallel             │
-                                                      ▼
-Phase 2 (distribution rename) ← requires Phase 0 + Phase 1 shipped
-  2A (package.json) ← blocks 2B, 2E, 2F, 2G
-  2C, 2D, 2H, 2I, 2J, 2K, 2L, 2M ← independent of each other
-                                                      │
-Phase 3 (repo split) ← requires Phase 2 complete     │
-  3A (filter-repo) → 3B, 3C, 3D (charts setup)      │
-  3E (remove chart from mcp)                         │
-  3F (GitHub transfer) ← requires Phase 0 registries │
-  3G (release flow) ← requires 3D + 3E + 3F         │
-                                                      ▼
-Phase 4 (cleanup) ← requires one full major release cycle in the field
-```
-
----
-
-## Risks and Mitigations
-
-| Risk | Severity | Mitigation |
-|---|---|---|
-| Qdrant collection rename strands all vector data | Critical | Never change defaults. `KAIROS_NAMESPACE` UUID is immutable. |
-| Helm `spec.selector` immutability breaks `helm upgrade` | Critical | Preserve `app.kubernetes.io/name: kairos-mcp` in selector forever. Document that operators wanting new selector must uninstall+reinstall (preserving PVCs). |
-| URI scheme rename invalidates stored adapters | Critical | Keep `kairos://` as canonical emitted scheme permanently. Accept `squadrules://` input only. |
-| npm Trusted Publisher misconfigured after transfer → ENEEDAUTH | High | Register against `SquadRules/mcp` + `release.yml` BEFORE first publish. Verify with dry-run. |
-| Keycloak realm/client rename invalidates live JWTs | High | Add new clients alongside old; never rename realms. Extend `AUTH_ALLOWED_AUDIENCES`. |
-| CLI users lose keyring tokens silently | High | Dual-read fallback with auto-migration (Phase 1D). |
-| Redis prefix change logs everyone out | High | Keep `kairos:` as default. New prefix only via explicit env var. |
-| Cosign signature verification breaks for pre-transfer images | Medium | Document identity change; pin `--certificate-identity-regexp` to match both during transition. |
-| Prometheus dashboards go blank on metric rename | Medium | Keep `kairos_*` names. Dual-register only behind opt-in flag. |
-| Chart version skew (image published, chart not yet) | Medium | Chart triggers automatically on image publish via `repository_dispatch`. Alert on skew > 15min. |
-| MCP hosts cache `tools/list` resourceUri and break widgets | Medium | Register both URI sets; keep legacy in `_meta` for one release. |
-| `.agents/skills/kairos` rename orphans existing agent installs | Medium | Ship both directories for one release cycle. |
-| Buildx cache miss after repo transfer (slow first releases) | Low | Pre-warm with `workflow_dispatch` dry-run immediately after transfer. |
-
----
-
-## Rejected Alternatives
-
-### 1. Global find-replace of all "kairos" strings
-**Rejected because**: 506+ files contain the string in fundamentally different contexts (wire protocol vs cosmetics vs stored data). A blind replace would break Qdrant point ID generation, invalidate all stored URIs, corrupt Helm selectors, and strand existing data.
-
-### 2. Full TypeScript symbol rename (`KairosError` → `SquadRulesError`, etc.)
-**Rejected because**: These are internal identifiers with zero user visibility. Renaming them adds ~200 files of diff noise, increases merge-conflict risk with in-flight PRs, and provides no functional benefit. Can be done later as optional cleanup.
-
-### 3. Two separate releases (4.9.0 compat, then 5.0.0 rename)
-**Rejected in favor of**: Shipping the compat layer as part of 5.0.0 itself. The user base is small enough that a single coordinated release with built-in backward compatibility is simpler than managing two release cycles. The compat layer still ships — just in the same version as the rename.
-
-### 4. Qdrant collection migration script
-**Rejected because**: Qdrant does not support collection rename. A migration would require re-embedding all vectors (expensive, lossy, time-consuming). The collection name is an internal implementation detail; keeping `kairos`/`kairos_memories` as defaults costs nothing.
-
-### 5. URI scheme full migration (rewrite stored `kairos://` to `squadrules://`)
-**Rejected because**: URIs are embedded in Qdrant point payloads, export bundles, adapter markdown, and client caches. Rewriting them requires a full data migration with no rollback path. The URI scheme is a protocol identifier, not a brand statement — accepting both on input while emitting the legacy form is the zero-risk approach.
-
-### 6. Chart published to Quay (same registry as images)
-**Rejected in favor of GHCR**: The issue specifies `oci://ghcr.io/squadrules/charts/mcp`. GHCR integrates natively with GitHub Actions OIDC (no stored credentials), has GitHub CDN for fast pulls, and keeps chart publication within the same platform as the source repo.
-
----
-
-## Performance Optimizations (from Plan B)
-
-These are incorporated into Phase 2I and 3D:
-
-| Optimization | Expected Gain |
-|---|---|
-| Buildx layer cache in release workflow | −5min per release build |
-| Remove `verify-helm` from integration workflow | −3min PR feedback |
-| Pre-patched Node base image (extract npm patching layer) | −30s per Docker build |
-| Parallel chart validation (4 independent jobs) | −2min chart CI |
-| `repository_dispatch` chart trigger (no polling) | Instant chart pipeline start |
-| Dual-registry parallel image push | −1min publish stage |
-
----
-
-## Implementation Ownership
-
-| Phase | Who | Estimated Effort |
-|---|---|---|
-| Phase 0 | Human admin (registry/org access required) | 1-2 hours |
-| Phase 1 | Coding agent (multiple parallel tasks) | 1 day |
-| Phase 2 | Coding agent (sequential with some parallelism) | 2-3 days |
-| Phase 3A-3E | Coding agent + human (git filter-repo, repo creation) | 1 day |
-| Phase 3F | Human admin (GitHub transfer) | 30 min |
-| Phase 3G | Coding agent (workflow wiring) | Half day |
-| Phase 4 | Future (deferred by one major version) | N/A |
+- [Implementation issue #835](https://github.com/jakub-plichcinski/kairos-mcp/issues/835)
+- [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+- [Helm OCI registries](https://helm.sh/docs/topics/registries/)
+- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
