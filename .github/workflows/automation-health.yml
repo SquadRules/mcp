@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '7 * * * *'
   workflow_run:
-    workflows: [Renovate, npm audit fix, Dependency merge controller, Release]
+    workflows: [Renovate, npm audit fix, Release]
     types: [completed]
   workflow_dispatch:
 

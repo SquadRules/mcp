@@ -14,14 +14,13 @@ The single release mechanism is [release.yml](https://github.com/jakub-plichcins
 
 - Hourly Renovate (`17 * * * *`) owns routine dependency updates, including majors. Native Dependabot owns security updates; its zero version-PR limit does not disable security updates.
 - Hourly npm audit (`43 * * * *`) assesses moderate-or-higher findings. A progressing native security PR takes precedence for two hours; blocked or stalled fixes allow one refreshed consolidated fallback. Registry failures are errors, not vulnerability findings.
-- The API-only controller runs after validations and every ten minutes. It verifies numeric identity, managed branch origin, dependency-only paths, current head/base and checks, then squash-merges at most one PR. Security fixes take priority; otherwise the oldest eligible PR wins. It never approves PRs or rewrites human branches.
-- Main must pass full Integration, Security, and automation-policy validation at the exact source SHA. Completion events and hourly reconciliation (`53 * * * *`) trigger Release automatically.
+- Main must pass full Integration, Security, and automation-policy validation at the exact source SHA. Completion events and hourly reconciliation (`53 * * * *`) trigger Release automatically. Native GitHub auto-merge handles Dependabot security PRs when all checks pass.
 - `fix:` and dependency updates are patches; `feat:` is minor; `!` or `BREAKING CHANGE` is major. Legacy `chore(deps)` and `deps(...)` commits count as patches. An unreleased feature or breaking change takes precedence over dependency patches. Housekeeping-only history is a true no-op.
 - No AI agent, administrator bypass, or required human approval is part of this path. Copilot auto-fix remains outside it.
 
 ## One-time rollout and credentials
 
-Keep `AUTOMATION_ENABLED` unset or `false` to pause the dependency producers and controller (Renovate, npm audit fix, dependency-merge controller, automation-health) until their prerequisites are verified. Release is **not** gated by this variable — it runs by default from its own triggers (see below).
+Keep `AUTOMATION_ENABLED` unset or `false` to pause the dependency producers (Renovate, npm audit fix, automation-health) until their prerequisites are verified. Release is **not** gated by this variable — it runs by default from its own triggers (see below).
 
 1. Merge the implementation through normal protected PR checks.
 2. Require `Integration workflow passed`, `Security workflow passed`, and `Automation policy passed`, bound to GitHub Actions (app ID `15368`). Keep strict up-to-date protection, administrator enforcement, and zero mandatory approvals. Set squash commit titles to the PR title.
@@ -39,7 +38,6 @@ Preview stable history without mutations:
 
 ```bash
 gh workflow run release.yml --ref main -f dry-run=true
-gh workflow run automerge-dependabot.yml --ref main -f dry-run=true
 gh workflow run renovate.yml --ref main -f dry-run=true
 ```
 
@@ -55,7 +53,7 @@ Validated artifacts first enter immutable Actions storage, then a draft GitHub R
 
 Cross-registry publication is not atomic. A failure retains the draft, original source, checksums, original recovery artifact ID and stage progress. The next event, hourly reconciliation, or manual `release.yml --ref main -f dry-run=false` resumes that record. It never rebuilds newer source under an old version. Missing/expired recovery bytes, mismatched artifacts, invalid credentials and legacy drafts without manifests fail visibly and need remediation. `resolve` deletes only unrecoverable `untagged-*` orphan drafts (a git tag was created but the GitHub publication never completed); a genuine pending draft keeps `tag_name vX` and must never be deleted or overwritten to force progress. The draft is created before its git ref exists, so GitHub keys it to an `untagged-<id>` placeholder. Any later release `PATCH` that omits `tag_name` — including every per-stage `mark()` body write and the final `complete` publish — re-detaches the release back to that placeholder (an echo of `tag_name vX` on the draft is not a binding). Therefore the `tag` stage creates the ref and **every** subsequent release `PATCH` re-submits `tag_name vX` so the association sticks, and `complete` verifies the real binding by resolving `GET /releases/tags/vX` to the release id before reporting published; a published release is immutable and its tag can no longer be corrected.
 
-Transient command operations (skopeo/cosign, aliases) retry up to three times. Publication-metadata verification polls longer with capped backoff because an immutable write can be accepted yet queryable only after an eventual-consistency delay; npm gets the widest window because its post-publish provenance/processing pass can keep the just-published version unqueryable for many minutes even though the write already succeeded. A real identity mismatch still fails on the first read. `automation-health.yml` monitors failures, stale runs and incomplete drafts; it maintains one incident per workflow and closes it after recovery. Setting `AUTOMATION_ENABLED=false` pauses the dependency producers and controller (Renovate, npm audit fix, dependency-merge controller, automation-health). It does **not** pause Release: Release runs by default from main-push, hourly reconciliation and manual dispatch, and a `false` value does not undo artifacts already published.
+Transient command operations (skopeo/cosign, aliases) retry up to three times. Publication-metadata verification polls longer with capped backoff because an immutable write can be accepted yet queryable only after an eventual-consistency delay; npm gets the widest window because its post-publish provenance/processing pass can keep the just-published version unqueryable for many minutes even though the write already succeeded. A real identity mismatch still fails on the first read. `automation-health.yml` monitors failures, stale runs and incomplete drafts; it maintains one incident per workflow and closes it after recovery. Setting `AUTOMATION_ENABLED=false` pauses the dependency producers (Renovate, npm audit fix, automation-health). It does **not** pause Release: Release runs by default from main-push, hourly reconciliation and manual dispatch, and a `false` value does not undo artifacts already published.
 
 ## Verification
 

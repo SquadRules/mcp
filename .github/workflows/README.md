@@ -10,13 +10,11 @@ flowchart LR
   DEP[Dependabot security updates] --> PR
   AUD[Hourly audit fallback] --> PR
   PR --> CI[Integration + Security + Automation policy]
-  CI --> CTRL[Trusted dependency merge controller]
-  CTRL --> MAIN[Protected squash merge to main]
+  CI --> MAIN[Protected squash merge to main]
   MAIN --> FULL[Full exact-SHA validation]
   FULL --> REL[Prepare and validate release artifacts]
   REL --> PUB[Persist, publish versions, verify, promote]
   HEALTH[Automation health] -.-> REN
-  HEALTH -.-> CTRL
   HEALTH -.-> PUB
 ```
 
@@ -32,7 +30,6 @@ flowchart LR
 | Renovate | [renovate.yml](renovate.yml) | Hourly routine dependency updates; no independent auto-merge. |
 | Dependabot | [../dependabot.yml](../dependabot.yml) | Native security updates; version-PR limit zero. |
 | npm audit fix | [npm-audit-fix.yml](npm-audit-fix.yml) | Hourly assessment and one refreshable fallback PR, respecting progressing native fixes. |
-| Dependency merge controller | [automerge-dependabot.yml](automerge-dependabot.yml) | API-only reconciliation, managed branch updates and at most one protected expected-head merge. |
 | Release | [release.yml](release.yml) | Single automatic npm OIDC, dual image registry, Helm, tag and GitHub Release path. |
 | Automation health | [automation-health.yml](automation-health.yml) | Detect stale producers and incomplete releases; deduplicate incidents. |
 | Sync Qoder repowiki | [sync-qoder-repowiki-to-github-wiki.yml](sync-qoder-repowiki-to-github-wiki.yml) | Publish generated wiki content. |
@@ -46,7 +43,7 @@ Repository protection, not YAML alone, makes checks mandatory. Before enabling a
 - `Security workflow passed`
 - `Automation policy passed`
 
-Keep zero mandatory human approvals and use PR titles for squash commits. Do not bypass protection, approve automatically, or use skip-CI instructions. The controller independently verifies protection and fresh validation on the current PR revision. It does not update unrelated human branches.
+Keep zero mandatory human approvals and use PR titles for squash commits. Do not bypass protection, approve automatically, or use skip-CI instructions.
 
 All three validation workflows support PRs, main pushes, merge groups and manual branch validation. Checkouts use the immutable event revision without persisted credentials. Validation jobs never push generated resources or receive publishing/repository-write credentials. Only the restricted embedding-test credential is used by tests; local test-service credentials may use isolated defaults.
 
