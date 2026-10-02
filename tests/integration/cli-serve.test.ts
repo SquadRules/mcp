@@ -13,7 +13,7 @@ _d('CLI serve', () => {
       timeout: 15000
     });
     expect(stderr).toBe('');
-    expect(stdout).toContain('Usage: kairos serve');
+    expect(stdout).toContain('Usage: squadrules serve');
     expect(stdout).toContain('--env-file');
     expect(stdout).toContain('--server-port');
     expect(stdout).toContain('--metrics-port');
@@ -40,6 +40,6 @@ _d('CLI serve', () => {
       { timeout: 15000 }
     );
     expect(stderr).toBe('');
-    expect(stdout).toContain('Usage: kairos serve');
+    expect(stdout).toContain('Usage: squadrules serve');
   });
 });
