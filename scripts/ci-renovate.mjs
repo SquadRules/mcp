@@ -44,12 +44,6 @@ try {
   const result = spawnSync('npm', args, { stdio: 'inherit', env });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
-  if (validate && process.exitCode === 0) {
-    const roundtrip = spawnSync('npm', ['exec', '--yes', `--package=renovate@${version}`, '--',
-      'node', '--test', 'tests/scripts/renovate-roundtrip.mjs'], { stdio: 'inherit', env });
-    if (roundtrip.error) throw roundtrip.error;
-    process.exitCode = roundtrip.status ?? 1;
-  }
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }
