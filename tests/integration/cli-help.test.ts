@@ -29,7 +29,7 @@ _d('CLI usage help', () => {
       expect(err.code).toBe(1);
       expect(stderr).toContain("error: unknown command 'trian'");
       expect(stderr).toContain('(Did you mean train?)');
-      expect(stderr).toContain('Usage: kairos [options] [command]');
+      expect(stderr).toContain('Usage: squadrules [options] [command]');
       expect(stderr).toContain('Commands:');
     }
   });
@@ -47,7 +47,7 @@ _d('CLI usage help', () => {
       expect(err.code).toBe(1);
       expect(stderr).toContain("error: unknown option '--modl'");
       expect(stderr).toContain('(Did you mean --model?)');
-      expect(stderr).toContain('Usage: kairos train [options] [path]');
+      expect(stderr).toContain('Usage: squadrules train [options] [path]');
       expect(stderr).toContain('markdown/artifact file');
     }
   });

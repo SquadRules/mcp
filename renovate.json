@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Hosted Mend execution is disabled. The repository Action loads and enables this JSON from its trusted main checkout; Dependabot owns security PRs.",
   "enabled": false,
-  "enabledManagers": ["npm", "github-actions", "dockerfile", "docker-compose", "helmv3", "helm-values", "custom.regex"],
+  "enabledManagers": ["npm", "github-actions", "dockerfile", "docker-compose"],
   "automerge": false,
   "platformAutomerge": false,
   "osvVulnerabilityAlerts": false,
@@ -14,18 +14,6 @@
   "semanticCommitScope": "deps",
   "labels": ["dependencies"],
   "rebaseWhen": "behind-base-branch",
-  "helm-values": { "managerFilePatterns": ["/helm/kairos-mcp/values\\.yaml$/"] },
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Inline Helm image references including hook and operator images",
-      "managerFilePatterns": ["/helm/kairos-mcp/values\\.yaml$/"],
-      "matchStrings": ["(?<depType>(?:image|[a-zA-Z][a-zA-Z0-9]*Image):\\s*\")(?<depName>[^\"\\s:]+):(?<currentValue>[^\"@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?\""],
-      "autoReplaceStringTemplate": "{{{depType}}}{{{depName}}}:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}\"",
-      "datasourceTemplate": "docker",
-      "versioningTemplate": "docker"
-    }
-  ],
   "packageRules": [
     { "matchPackageNames": ["@tiptap/**"], "groupName": "tiptap" },
     { "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"], "groupName": "react" },

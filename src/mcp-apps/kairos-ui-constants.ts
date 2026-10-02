@@ -93,7 +93,11 @@ export const SKYBRIDGE_HTML_MIME_TYPE = 'text/html+skybridge' as const;
 // SquadRules-branded tool _meta bindings (available for future switch-over)
 // ---------------------------------------------------------------------------
 
-/** `forward` tool: SquadRules-branded widget binding. */
+/**
+ * `forward` tool: SquadRules-branded widget binding.
+ *
+ * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ */
 export const SQUADRULES_FORWARD_TOOL_UI_META = {
   ui: {
     resourceUri: SQUADRULES_FORWARD_UI_URI,
@@ -102,7 +106,11 @@ export const SQUADRULES_FORWARD_TOOL_UI_META = {
   [KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]: SQUADRULES_FORWARD_UI_URI
 } as const;
 
-/** `activate` tool: SquadRules-branded widget binding. */
+/**
+ * `activate` tool: SquadRules-branded widget binding.
+ *
+ * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ */
 export const SQUADRULES_ACTIVATE_TOOL_UI_META = {
   ui: {
     resourceUri: SQUADRULES_ACTIVATE_UI_URI,
@@ -111,7 +119,11 @@ export const SQUADRULES_ACTIVATE_TOOL_UI_META = {
   [KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]: SQUADRULES_ACTIVATE_UI_URI
 } as const;
 
-/** `spaces` tool: SquadRules-branded widget binding. */
+/**
+ * `spaces` tool: SquadRules-branded widget binding.
+ *
+ * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ */
 export const SQUADRULES_SPACES_TOOL_UI_META = {
   ui: {
     resourceUri: SQUADRULES_SPACES_UI_URI,
