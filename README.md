@@ -270,15 +270,10 @@ More detail: [.agents/skills/README.md](.agents/skills/README.md)
 
 ## Helm (advanced)
 
-A Helm chart for Kubernetes deployment lives under [`helm/`](helm/) and is
-published to `oci://ghcr.io/squadrules/charts/mcp`. To validate the in-repo
-chart locally (matches the GitHub Actions CI pipeline):
-
-```bash
-npm run test:helm
-```
-
-See [docs/install/helm.md](docs/install/helm.md) for deployment details.
+The Helm chart for Kubernetes deployment now lives in the
+[`SquadRules/charts`](https://github.com/SquadRules/charts) repository and is
+published to `oci://ghcr.io/squadrules/charts/mcp`. See that repository for
+installation, values, and chart-testing details.
 
 ## Documentation map
 
