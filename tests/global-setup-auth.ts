@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * Jest globalSetup when AUTH_ENABLED=true.
  * Provisions Keycloak (if needed) and test token; app must already be running (e.g. npm run dev:deploy).

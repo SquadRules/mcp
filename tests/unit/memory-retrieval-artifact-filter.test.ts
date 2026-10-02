@@ -1,3 +1,4 @@
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { describe, expect, it } from '@jest/globals';
 import { getAdapterLayers } from '../../src/services/qdrant/memory-retrieval.js';
 

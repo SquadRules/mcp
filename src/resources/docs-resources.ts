@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { getResource, getResources } from './embedded-mcp-resources.js';
 import { logger } from '../utils/structured-logger.js';
 

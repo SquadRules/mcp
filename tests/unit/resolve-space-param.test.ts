@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { describe, expect, it } from '@jest/globals';
 import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
 import { resolveSpaceParamForContext } from '../../src/utils/resolve-space-param.js';
@@ -86,22 +87,22 @@ describe('resolveSpaceParamForContext', () => {
     if (!r.ok) expect(r.code).toBe('SPACE_NOT_FOUND');
   });
 
-  it('rejects Kairos app as writable target by default', () => {
+  it('rejects Squadrules app as writable target by default', () => {
     const c = ctx({
       allowedSpaceIds: ['user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'],
       defaultWriteSpaceId: 'user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'
     });
-    const r = resolveSpaceParamForContext(c, 'Kairos app');
+    const r = resolveSpaceParamForContext(c, 'Squadrules app');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe('SPACE_READ_ONLY');
   });
 
-  it('resolves Kairos app for activate/search when flag is set', () => {
+  it('resolves Squadrules app for activate/search when flag is set', () => {
     const c = ctx({
       allowedSpaceIds: ['user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'],
       defaultWriteSpaceId: 'user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'
     });
-    expect(resolveSpaceParamForContext(c, 'Kairos app', { allowReadOnlyAppSearchScope: true })).toEqual({
+    expect(resolveSpaceParamForContext(c, 'Squadrules app', { allowReadOnlyAppSearchScope: true })).toEqual({
       ok: true,
       spaceId: KAIROS_APP_SPACE_ID
     });

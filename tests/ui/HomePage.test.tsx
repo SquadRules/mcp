@@ -36,7 +36,7 @@ describe("HomePage", () => {
     renderHomePage();
     expect(screen.getByLabelText("home.statsLabel")).toBeInTheDocument();
     const browseLink = screen.getByRole("link", { name: "home.goToBrowse" });
-    expect(browseLink).toHaveAttribute("href", "/kairos");
-    expect(screen.getByRole("link", { name: "home.cardBrowseCta" })).toHaveAttribute("href", "/kairos");
+    expect(browseLink).toHaveAttribute("href", "/squadrules");
+    expect(screen.getByRole("link", { name: "home.cardBrowseCta" })).toHaveAttribute("href", "/squadrules");
   });
 });

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import { API_BASE, apiFetch } from '../http-api-test-helpers.js';
 import { isHttpTransport } from '../../utils/auth-headers.js';
 

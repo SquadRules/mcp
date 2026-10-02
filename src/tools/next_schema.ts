@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Step-engine input/output schemas used by the forward runtime.
  * V2: removed next_step, protocol_status, attest_required, final_challenge.

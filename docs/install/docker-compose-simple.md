@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references the docker-compose project/service name kairos-mcp retained for backward compatibility -->
 # Docker Compose — simple stack
 
 The default Compose profile starts only the SquadRules application and Qdrant. This

@@ -1,10 +1,11 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
 import { buildProofMarkdown } from '../../utils/proof-of-work.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
 /**
- * Kairos Search Perfect Matches Integration Tests
+ * Squadrules Search Perfect Matches Integration Tests
  *
  * Tests edge cases and schema validation for activate:
  * - No perfect match fallback behavior
@@ -14,7 +15,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
  * and kairos-search-case2.test.ts respectively.
  */
 
-describe('Kairos Search Perfect Matches', () => {
+describe('Squadrules Search Perfect Matches', () => {
   let mcpConnection;
 
   beforeAll(async () => {

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Finalize an adapter run with an outcome and optional evaluator metadata.
 
 **When:** After **`forward`** reports the last layer is done and `next_action` tells you to call **`reward`**.

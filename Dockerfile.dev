@@ -1,3 +1,4 @@
+# squadrules-compat-surface: references Qdrant collection names (kairos_ci/kairos_memories/kairos_simple_ci) provisioned in existing deployments
 # Local dev: build from source (no npm publish required).
 # Use: docker build -f Dockerfile.dev -t squadrules-mcp:dev .
 # Release images use Dockerfile and install from npm.

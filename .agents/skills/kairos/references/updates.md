@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 # Updates — refresh the CLI and installed skills
 
 Keep both the KAIROS server/CLI and the installed agent skills current.

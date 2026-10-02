@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Skill ZIP (`skill_zip`) zlib settings. Read on each call so env overrides apply without restart.
  */

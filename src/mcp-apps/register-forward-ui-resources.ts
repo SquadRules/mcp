@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   KAIROS_FORWARD_UI_SKYBRIDGE_URI,
@@ -22,8 +23,8 @@ export function registerForwardUiResources(server: McpServer): void {
     'kairos-forward-widget',
     KAIROS_FORWARD_UI_URI,
     {
-      title: 'KAIROS forward result',
-      description: 'Inline view for the forward tool (KAIROS • Protocol: …, Running step: …, progress).',
+      title: 'SQUADRULES forward result',
+      description: 'Inline view for the forward tool (SQUADRULES • Protocol: …, Running step: …, progress).',
       mimeType: MCP_APP_HTML_MIME_TYPE
     },
     () => readForwardWidget(KAIROS_FORWARD_UI_URI, MCP_APP_HTML_MIME_TYPE)
@@ -33,7 +34,7 @@ export function registerForwardUiResources(server: McpServer): void {
     'kairos-forward-widget-skybridge',
     KAIROS_FORWARD_UI_SKYBRIDGE_URI,
     {
-      title: 'KAIROS forward result (Skybridge profile)',
+      title: 'SQUADRULES forward result (Skybridge profile)',
       description: 'Same forward widget (header, step title, progress) with text/html+skybridge for hosts that require that profile.',
       mimeType: SKYBRIDGE_HTML_MIME_TYPE
     },

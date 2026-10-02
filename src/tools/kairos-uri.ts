@@ -1,8 +1,9 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 // URI SCHEME COMPATIBILITY: Both kairos:// and squadrules:// are accepted on input.
 // All build/emit functions produce kairos:// as the canonical stored form.
 // This is a permanent decision — stored Qdrant data uses kairos:// URIs.
 // See issue #835 for migration context.
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
 
 const UUID_PATTERN = '[0-9a-f-]{36}';
@@ -26,7 +27,7 @@ export const LAYER_URI_INPUT_REGEX = new RegExp(
   'i'
 );
 
-export type ParsedKairosUri =
+export type ParsedSquadrulesUri =
   | { kind: 'adapter'; id: string; idKind: 'uuid' | 'slug'; raw: string }
   | { kind: 'artifact'; id: string; idKind: 'uuid' | 'slug'; raw: string }
   | { kind: 'layer'; id: string; executionId?: string; raw: string };
@@ -41,7 +42,7 @@ export function buildLayerUri(layerId: string, executionId?: string): string {
     : `kairos://layer/${layerId}`;
 }
 
-export function parseKairosUri(value: string): ParsedKairosUri {
+export function parseSquadrulesUri(value: string): ParsedSquadrulesUri {
   const normalized = (value || '').trim();
 
   const adapterMatch = normalized.match(ADAPTER_URI_BODY_REGEX);
@@ -109,16 +110,16 @@ export function parseKairosUri(value: string): ParsedKairosUri {
   }
 
   throw new Error(
-    'Invalid KAIROS URI. Expected kairos://adapter/{uuid|slug} or squadrules://adapter/{uuid|slug}, kairos://artifact/{uuid|slug} or squadrules://artifact/{uuid|slug}, kairos://layer/{uuid}[?execution_id=…] or squadrules://layer/{uuid}[?execution_id=…], or the transitional older layer-row form'
+    'Invalid SQUADRULES URI. Expected kairos://adapter/{uuid|slug} or squadrules://adapter/{uuid|slug}, kairos://artifact/{uuid|slug} or squadrules://artifact/{uuid|slug}, kairos://layer/{uuid}[?execution_id=…] or squadrules://layer/{uuid}[?execution_id=…], or the transitional older layer-row form'
   );
 }
 
-export function parseKairosUriOrThrow(value: string): ParsedKairosUri {
+export function parseSquadrulesUriOrThrow(value: string): ParsedSquadrulesUri {
   try {
-    return parseKairosUri(value);
+    return parseSquadrulesUri(value);
   } catch (error) {
-    throw new KairosError(
-      error instanceof Error ? error.message : 'Invalid KAIROS URI.',
+    throw new SquadrulesError(
+      error instanceof Error ? error.message : 'Invalid SQUADRULES URI.',
       'INVALID_URI',
       400
     );
@@ -129,9 +130,9 @@ export function parseKairosUriOrThrow(value: string): ParsedKairosUri {
  * Wire contract guard for public tool inputs: validates adapter URI format.
  */
 export function assertWireAdapterUri(value: string): string {
-  const parsed = parseKairosUri(value);
+  const parsed = parseSquadrulesUri(value);
   if (parsed.kind !== 'adapter') {
-    throw new KairosError(
+    throw new SquadrulesError(
       'Invalid adapter URI. Expected kairos://adapter/{slug} or squadrules://adapter/{slug}.',
       'INVALID_URI',
       400

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import crypto from 'crypto';
 import {
   KAIROS_EXPORT_DOWNLOAD_SECRET,

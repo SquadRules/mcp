@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { describe, expect, it } from '@jest/globals';
 import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
 import { getSearchSpaceIds, runWithSpaceContext } from '../../src/utils/tenant-context.js';
@@ -18,7 +19,7 @@ describe('getSearchSpaceIds', () => {
     });
   });
 
-  it('appends Kairos app when scope is unset and app is not in allowed', () => {
+  it('appends Squadrules app when scope is unset and app is not in allowed', () => {
     const full: SpaceContext = {
       userId: 'u',
       groupIds: [],

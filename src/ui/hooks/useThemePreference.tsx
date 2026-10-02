@@ -8,7 +8,7 @@ export type UiTheme = (typeof UI_THEME_CHOICES)[number];
 export type ThemePreference = UiTheme | "system";
 export type EffectiveTheme = UiTheme;
 
-export const THEME_PREFERENCE_STORAGE_KEY = "kairos:ui:theme-preference";
+export const THEME_PREFERENCE_STORAGE_KEY = "squadrules:ui:theme-preference";
 export const THEME_MEDIA_QUERY = "(prefers-color-scheme: dark)";
 
 const FALLBACK_THEME_PREFERENCE: ThemePreference = "system";

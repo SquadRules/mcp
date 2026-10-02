@@ -1,6 +1,6 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /** Inline boot script for {@link ./forward-widget-html.ts} (MCP Apps HTML bundle). */
 import { minifyInlineWidgetScript } from './widget-inline-minify.js';
-
 export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
     (function () {
       var el = document.getElementById('out'), headerTitle = document.getElementById('header-title');
@@ -143,7 +143,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       }
 
       function headerHtmlIdle() {
-        return '<span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Protocol:</span>';
+        return '<span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Protocol:</span>';
       }
 
       function headerHtmlWithProtocol(name) {
@@ -154,7 +154,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       function resetChrome() {
         if (headerTitle) headerTitle.innerHTML = headerHtmlIdle();
         if (runFooter) runFooter.hidden = true;
-        document.title = 'Forward — KAIROS';
+        document.title = 'Forward — SQUADRULES';
       }
 
       function isErrorLike(obj) {
@@ -299,7 +299,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         if (headerTitle) {
           headerTitle.innerHTML = headerHtmlWithProtocol(adapterRaw || 'Forward run');
         }
-        document.title = (adapterRaw || 'Forward') + ' — KAIROS';
+        document.title = (adapterRaw || 'Forward') + ' — SQUADRULES';
         if (el) {
           el.classList.add('step-panel');
           el.classList.add('step-panel-error');
@@ -425,7 +425,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         if (headerTitle) {
           headerTitle.innerHTML = headerHtmlWithProtocol(adapterRaw || 'Forward run');
         }
-        document.title = (adapterRaw || 'Forward') + ' — KAIROS';
+        document.title = (adapterRaw || 'Forward') + ' — SQUADRULES';
 
         if (el) {
           el.classList.add('step-panel');
@@ -488,7 +488,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
           return;
         }
         sendRequest('ui/initialize', {
-          appInfo: { name: 'kairos-forward-view', version: '1.0.0' },
+          appInfo: { name: 'squadrules-forward-view', version: '1.0.0' },
           appCapabilities: {},
           protocolVersion: PROTO
         }).then(function (result) {

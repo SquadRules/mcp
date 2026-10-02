@@ -153,7 +153,7 @@ export function SkillBundlePage() {
                 <>
                   &nbsp;&nbsp;&nbsp;&nbsp;└── references/
                   <br />
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── KAIROS.md
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── SQUADRULES.md
                 </>
               ) : (
                 <>&nbsp;&nbsp;&nbsp;&nbsp;└── (no references/)</>

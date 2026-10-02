@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { API_BASE, apiFetch, REVIEW_EVIDENCE_PARAM } from './http-api-test-helpers.js';
 import { isHttpTransport } from '../utils/auth-headers.js';
 

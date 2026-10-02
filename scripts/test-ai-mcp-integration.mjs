@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
- * AI-MCP integration: run example adapters against a KAIROS dev server.
+ * AI-MCP integration: run example adapters against a SQUADRULES dev server.
  * - Store each example markdown document via POST /api/train/raw
  * - Activate the best match, then forward through each layer
  * - Finalize with reward when the run completes
@@ -32,14 +33,14 @@ import {
   classifySolutionType,
   classifyUriKind
 } from './test-ai-mcp-integration-proof-utils.mjs';
-import { resolveKairosAppBaseUrl } from './test-integration-app-base-url.mjs';
+import { resolveSquadrulesAppBaseUrl } from './test-integration-app-base-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const EXAMPLES_DIR = path.join(ROOT, 'docs', 'examples');
 const REPORTS_DIR = path.join(ROOT, 'reports');
 
-const BASE_URL = resolveKairosAppBaseUrl();
+const BASE_URL = resolveSquadrulesAppBaseUrl();
 function defaultRunId() {
   const d = new Date();
   const Y = d.getFullYear();

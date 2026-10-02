@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Error-path tests: missing required fields, invalid types, non-existent URIs.
  * Asserts consistent error shape and status codes between MCP and HTTP.

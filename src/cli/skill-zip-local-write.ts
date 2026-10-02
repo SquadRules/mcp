@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Path and size checks for `skill_zip` CLI downloads. Same trust model as other `export` formats:
  * the CLI already emits API-returned markdown (and users redirect to files); ZIP is persisted via

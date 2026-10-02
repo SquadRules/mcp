@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Env-driven limits for adapter Markdown / artifact size (train, tune, update).
  * Kept out of `config.ts` to satisfy max-lines.

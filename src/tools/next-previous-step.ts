@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 /**
  * MISSING_PROOF fix: when the requested step has no stored inference contract, apply the solution to the previous step.
  * Shared by the forward bridge and the older HTTP next route.

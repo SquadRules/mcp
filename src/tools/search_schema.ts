@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
 import { KAIROS_SEARCH_LIMIT_CAP, KAIROS_SEARCH_LIMIT_MIN } from '../config.js';
 import { ADAPTER_SLUG_URI_INPUT_REGEX } from './kairos-uri.js';
@@ -41,7 +42,7 @@ export const searchOutputSchema = z.object({
     space_name: z
       .string()
       .nullable()
-      .describe('Human-readable space for stored adapters (Personal, Group: …, Kairos app); null for refine/create'),
+      .describe('Human-readable space for stored adapters (Personal, Group: …, Squadrules app); null for refine/create'),
     slug: z
       .string()
       .nullable()

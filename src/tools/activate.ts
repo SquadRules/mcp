@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -7,7 +8,7 @@ import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpTool
 import { getTenantId, runWithOptionalSpaceAsync } from '../utils/tenant-context.js';
 import { executeSearch } from './search.js';
 import { activateInputSchema, activateOutputSchema, type ActivateInput, type ActivateOutput } from './activate_schema.js';
-import { buildAdapterUri, parseKairosUri } from './kairos-uri.js';
+import { buildAdapterUri, parseSquadrulesUri } from './kairos-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { mcpRateLimitErrorResult } from './mcp-runtime-error.js';
@@ -34,7 +35,7 @@ function canonicalizeAdapterUri(
   if (options?.slug) {
     return buildAdapterUri(options.slug);
   }
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter' && parsed.idKind === 'slug') {
     return buildAdapterUri(parsed.id);
   }

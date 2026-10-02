@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-accepts canonical kairos:// URIs alongside squadrules:// so existing stored URIs keep resolving
 import { z } from "zod";
 import type { StepFormState } from "@/hooks/useProtocol";
 

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * tune command
  */
@@ -11,8 +12,8 @@ import { createClientFromProgram } from '../client-factory.js';
 export function updateCommand(program: Command): void {
     program
         .command('tune')
-        .description('Update one or more KAIROS adapter layers')
-        .argument('<uris...>', 'KAIROS adapter or layer URIs')
+        .description('Update one or more SQUADRULES adapter layers')
+        .argument('<uris...>', 'SQUADRULES adapter or layer URIs')
         .option('--file <file>', 'Path to markdown file to apply to all specified URIs')
         .option('--files <files...>', 'Paths to markdown files, one per URI (must match number of URIs)')
         .option('--updates <json>', 'Updates object as JSON string (alternative to --file/--files)')

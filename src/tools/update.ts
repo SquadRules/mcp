@@ -1,8 +1,9 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { QdrantService } from '../services/qdrant/service.js';
 import type { UpdateInput, UpdateOutput } from './update_schema.js';
 import { extractMemoryBody, hasMemoryBodyMarkers } from '../utils/memory-body.js';
 import { validateAdapterMarkdownSize } from '../services/memory/validate-adapter-markdown-size.js';
-import { buildLayerUri, parseKairosUriOrThrow } from './kairos-uri.js';
+import { buildLayerUri, parseSquadrulesUriOrThrow } from './kairos-uri.js';
 
 /** Shared execute: update memories by URIs. Used by MCP tool and HTTP route. */
 export async function executeUpdate(
@@ -20,7 +21,7 @@ export async function executeUpdate(
   for (let index = 0; index < uris.length; index++) {
     const uri = uris[index]!;
     try {
-      const parsed = parseKairosUriOrThrow(uri);
+      const parsed = parseSquadrulesUriOrThrow(uri);
       if (parsed.kind !== 'layer') {
         throw new Error('update requires a layer URI (stored layer row), not an adapter or artifact URI');
       }

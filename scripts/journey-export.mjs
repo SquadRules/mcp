@@ -2,7 +2,7 @@
 /**
  * Journey export script.
  *
- * Reads the audit log JSONL file produced by KAIROS MCP server and exports
+ * Reads the audit log JSONL file produced by SQUADRULES MCP server and exports
  * journey JSON files grouped by correlation_id.
  *
  * Usage:

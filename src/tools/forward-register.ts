@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
@@ -7,7 +8,7 @@ import { KAIROS_FORWARD_TOOL_UI_META } from '../mcp-apps/kairos-ui-constants.js'
 import { forwardInputSchema, forwardMcpWireInputSchema, forwardOutputSchema } from './forward_schema.js';
 import { executeForward } from './forward.js';
 import { formatForwardToolError } from './forward-tool-error.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 
 export interface RegisterForwardOptions {
@@ -55,7 +56,7 @@ export function registerForwardTool(server: any, memoryStore: MemoryQdrantStore,
         mcpToolCalls.inc({ tool: toolName, status: 'error', tenant_id: tenantId });
         mcpToolErrors.inc({ tool: toolName, status: 'error', tenant_id: tenantId });
         timer({ tool: toolName, status: 'error', tenant_id: tenantId });
-        if (error instanceof KairosError) {
+        if (error instanceof SquadrulesError) {
           return { isError: true, content: [{ type: 'text' as const, text: JSON.stringify(formatForwardToolError(error)) }] };
         }
         throw error;

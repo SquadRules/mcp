@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { activateInputSchema, activateOutputSchema } from './activate_schema.js';
 import { deleteInputSchema, deleteOutputSchema } from './delete_schema.js';
 import { exportInputSchema, exportOutputSchema } from './export_schema.js';
@@ -14,7 +15,7 @@ import {
 } from '../mcp-apps/kairos-ui-constants.js';
 
 /**
- * Canonical KAIROS MCP tool registry — the single source of truth for the tool
+ * Canonical SQUADRULES MCP tool registry — the single source of truth for the tool
  * surface. MCP `tools/list` registration, the HTTP `/api/<tool>` routes, and the
  * CLI commands all derive from the same Zod schemas referenced here.
  *
@@ -66,7 +67,7 @@ export const KAIROS_TOOL_REGISTRY = [
   },
   {
     name: 'delete',
-    title: 'Delete KAIROS adapter resource',
+    title: 'Delete SQUADRULES adapter resource',
     description: resolveToolDoc('delete') || 'Delete an adapter or layer by URI.',
     strictInputSchema: deleteInputSchema,
     outputSchema: deleteOutputSchema
@@ -91,9 +92,9 @@ export const KAIROS_TOOL_REGISTRY = [
 ] as const;
 
 /** Union of the canonical MCP tool names. */
-export type KairosToolName = (typeof KAIROS_TOOL_REGISTRY)[number]['name'];
+export type SquadrulesToolName = (typeof KAIROS_TOOL_REGISTRY)[number]['name'];
 
 /** Canonical MCP tool names in registration order. */
-export const KAIROS_TOOL_NAMES: readonly KairosToolName[] = KAIROS_TOOL_REGISTRY.map(
+export const KAIROS_TOOL_NAMES: readonly SquadrulesToolName[] = KAIROS_TOOL_REGISTRY.map(
   (tool) => tool.name
 );

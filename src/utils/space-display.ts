@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references the persisted app-space id space:kairos-app stored in existing Qdrant points
 /**
  * Human-readable names for space IDs. Frontend (tools, responses) uses names; backend uses ids.
  */
@@ -5,11 +6,11 @@
 import { KAIROS_APP_SPACE_ID } from '../config.js';
 
 /** Display label for the app space (embedded mem docs). */
-export const KAIROS_APP_SPACE_DISPLAY_NAME = 'Kairos app';
+export const KAIROS_APP_SPACE_DISPLAY_NAME = 'Squadrules app';
 
 /**
  * Map a space_id to a human-readable name for tool outputs and agent-facing responses.
- * user:*:* → "Personal"; group:*:* → "Group: /full/path"; space:kairos-app → "Kairos app".
+ * user:*:* → "Personal"; group:*:* → "Group: /full/path"; space:kairos-app → "Squadrules app".
  */
 export function spaceKindFromSpaceId(spaceId: string): 'personal' | 'group' | 'app' | 'other' {
   if (!spaceId || typeof spaceId !== 'string') return 'other';

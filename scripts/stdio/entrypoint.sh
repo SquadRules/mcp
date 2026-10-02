@@ -27,7 +27,7 @@ if [ $tries -le 0 ]; then
   exit 1
 fi
 
-node /app/node_modules/@jakub-plichcinski/kairos-mcp/dist/bootstrap.js
+node /app/node_modules/@squadrules/mcp/dist/bootstrap.js
 exit_code=$?
 
 kill "$qdrant_pid" >/dev/null 2>&1 || true

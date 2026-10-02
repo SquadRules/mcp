@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Output building for search: createResults, resolveHead, generateUnifiedOutput.
  * Extracted to keep `search.ts` under the max-lines limit.

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 /**
  * Unit tests for buildChallengeShapeForDisplay: MCP output schema safety for stored proofs.
  */

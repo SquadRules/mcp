@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * OAuth refresh_token grant for CLI: discover token endpoint from
  * /.well-known/oauth-protected-resource, then POST refresh_token + client_id.
@@ -20,7 +21,7 @@ export interface OAuthEndpoints {
 }
 
 /**
- * Fetch auth and token endpoints from the KAIROS well-known metadata.
+ * Fetch auth and token endpoints from the SQUADRULES well-known metadata.
  * Shared by browser PKCE login and refresh_token grant.
  */
 export async function fetchOAuthProtectedResourceMetadata(

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Command } from 'commander';
 import { createRequire } from 'module';
 import { activateCommand } from './commands/search.js';

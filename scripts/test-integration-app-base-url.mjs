@@ -1,5 +1,6 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
- * Resolve local KAIROS HTTP base URL for repo scripts (no trailing slash).
+ * Resolve local SQUADRULES HTTP base URL for repo scripts (no trailing slash).
  * Loads `.env` from the repo root without overriding variables already set in the environment.
  */
 import { config } from "dotenv";
@@ -19,7 +20,7 @@ export function loadRepoEnv() {
 /**
  * Precedence: KAIROS_BASE_URL, KAIROS_API_URL, else http://localhost:$SERVER_PORT (default 3300, same as deploy-run-env.sh dev).
  */
-export function resolveKairosAppBaseUrl() {
+export function resolveSquadrulesAppBaseUrl() {
   loadRepoEnv();
   const fromBase = process.env.KAIROS_BASE_URL?.trim();
   if (fromBase) return fromBase.replace(/\/$/, "");

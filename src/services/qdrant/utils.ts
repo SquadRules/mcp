@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import { logger } from '../../utils/structured-logger.js';
 
 /**
@@ -21,7 +21,7 @@ export function convertTestIdToUUID(testId: string): string {
 
 export function validateAndConvertId(id: string): string {
   if (!id || typeof id !== 'string') {
-    throw new KairosError(
+    throw new SquadrulesError(
       `Invalid ID format: ${id}. ID must be a non-empty string.`,
       'INVALID_ID_FORMAT',
       400
@@ -29,7 +29,7 @@ export function validateAndConvertId(id: string): string {
   }
   const converted = convertTestIdToUUID(id);
   if (!isValidUUID(converted)) {
-    throw new KairosError(
+    throw new SquadrulesError(
       `ID "${id}" could not be converted to a valid UUID.`,
       'INVALID_UUID_FORMAT',
       400
@@ -40,37 +40,37 @@ export function validateAndConvertId(id: string): string {
 
 export function validatePayload(payload: any): void {
   if (!payload || typeof payload !== 'object') {
-    throw new KairosError('Payload must be a valid object', 'INVALID_PAYLOAD_STRUCTURE', 400);
+    throw new SquadrulesError('Payload must be a valid object', 'INVALID_PAYLOAD_STRUCTURE', 400);
   }
   const requiredFields = ['label', 'text', 'domain', 'task', 'type'];
   for (const field of requiredFields) {
     if (!(field in payload)) {
-      throw new KairosError(`Missing required field: ${field}`, 'MISSING_REQUIRED_FIELD', 400, { missingField: field });
+      throw new SquadrulesError(`Missing required field: ${field}`, 'MISSING_REQUIRED_FIELD', 400, { missingField: field });
     }
   }
   if (typeof payload.label !== 'string' || payload.label.trim() === '') {
-    throw new KairosError('label must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('label must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
   }
   if (typeof payload.text !== 'string' || payload.text.trim() === '') {
-    throw new KairosError('text must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('text must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
   }
   if (typeof payload.domain !== 'string' || payload.domain.trim() === '') {
-    throw new KairosError('domain must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('domain must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
   }
   if (typeof payload.task !== 'string' || payload.task.trim() === '') {
-    throw new KairosError('task must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('task must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
   }
   if (typeof payload.type !== 'string' || payload.type.trim() === '') {
-    throw new KairosError('type must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('type must be a non-empty string', 'INVALID_FIELD_TYPE', 400);
   }
   if (payload.tags && !Array.isArray(payload.tags)) {
-    throw new KairosError('tags must be an array if provided', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('tags must be an array if provided', 'INVALID_FIELD_TYPE', 400);
   }
   if (payload.protocol && typeof payload.protocol !== 'object') {
-    throw new KairosError('protocol must be an object if provided', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('protocol must be an object if provided', 'INVALID_FIELD_TYPE', 400);
   }
   if (payload.ai && typeof payload.ai !== 'object') {
-    throw new KairosError('ai must be an object if provided', 'INVALID_FIELD_TYPE', 400);
+    throw new SquadrulesError('ai must be an object if provided', 'INVALID_FIELD_TYPE', 400);
   }
 }
 

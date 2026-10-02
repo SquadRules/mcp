@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Persist CLI config / merge secrets (keyring + file). See config-file.ts for read API.
  */

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import React from "react";
 import { Outlet, NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -50,7 +51,7 @@ export function Layout() {
                 height="40"
               />
               <span className="flex flex-col leading-tight">
-                <span className="font-bold text-[var(--color-text-heading)] text-lg">Kairos</span>
+                <span className="font-bold text-[var(--color-text-heading)] text-lg">Squadrules</span>
                 <span className="font-bold text-[var(--color-text-muted)] text-xs uppercase tracking-wide">MCP</span>
               </span>
             </NavLink>

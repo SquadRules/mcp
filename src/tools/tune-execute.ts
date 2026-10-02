@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
@@ -7,13 +8,12 @@ import { buildHeaderMemoryAdapter } from '../services/memory/adapter-builder.js'
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { executeUpdate } from './update.js';
 import { type TuneInput, type TuneOutput } from './tune_schema.js';
-import { assertWireAdapterUri, parseKairosUri, buildLayerUri } from './kairos-uri.js';
+import { assertWireAdapterUri, parseSquadrulesUri, buildLayerUri } from './kairos-uri.js';
 import { buildTuneResultMessage } from './tune-messages.js';
 import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../utils/protected-space-write-guard.js';
 import { validateAdapterMarkdownSize } from '../services/memory/validate-adapter-markdown-size.js';
 import { verifyTuneLayerPersistence } from './tune-verify.js';
 import { assertReviewEvidencePassed } from './review-evidence-check.js';
-
 type AdapterLayerPoint = { uuid: string; payload: any };
 
 function sortByLayerIndex(layers: AdapterLayerPoint[]): AdapterLayerPoint[] {
@@ -75,7 +75,7 @@ async function resolveAdapterIdFromWireUri(
   uri: string
 ): Promise<{ adapterId: string; canonicalAdapterUri: string }> {
   const canonicalAdapterUri = assertWireAdapterUri(uri);
-  const parsed = parseKairosUri(canonicalAdapterUri);
+  const parsed = parseSquadrulesUri(canonicalAdapterUri);
   const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(parsed.id);
   if (!slugOutcome.layerUuid) throw new Error(`Adapter not found: ${canonicalAdapterUri}`);
   const firstLayer = await qdrantService.getMemoryByUUID(slugOutcome.layerUuid);
@@ -87,7 +87,7 @@ async function resolveAdapterIdFromWireUri(
 }
 
 async function normalizeTuneUri(qdrantService: QdrantService, uri: string, preferredSpaceId?: string): Promise<string> {
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'layer') {
     return buildLayerUri(parsed.id, parsed.executionId);
   }
@@ -104,7 +104,7 @@ async function collectLayerMemoryUuidsForTune(
   uri: string,
   preferredSpaceId?: string
 ): Promise<string[]> {
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'layer') {
     return [parsed.id];
   }
@@ -278,7 +278,7 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
   for (let i = 0; i < input.uris.length; i++) {
     const originalUri = input.uris[i]!;
     const contentAtIndex = Array.isArray(input.content) ? input.content[i] : undefined;
-    const parsedUri = parseKairosUri(originalUri);
+    const parsedUri = parseSquadrulesUri(originalUri);
     try {
       if (parsedUri.kind === 'adapter' && typeof contentAtIndex === 'string' && contentAtIndex.trim().length > 0) {
         const layerUri = await tuneAdapterMarkdownInPlace(qdrantService, originalUri, contentAtIndex);

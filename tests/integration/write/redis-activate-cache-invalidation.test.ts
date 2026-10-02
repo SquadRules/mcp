@@ -1,3 +1,4 @@
+// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 import { createClient, RedisClientType } from 'redis';
 import { keyValueStore } from '../../../src/services/key-value-store-factory.js';
 import { redisCacheService } from '../../../src/services/redis-cache.js';

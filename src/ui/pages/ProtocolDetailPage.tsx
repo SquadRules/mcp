@@ -110,7 +110,7 @@ export function ProtocolDetailPage() {
           <p className="text-sm text-[var(--color-text-muted)] m-0">
             {t("protocol.howToUseCopy")}{" "}
             <a
-              href="https://github.com/jakub-plichcinski/kairos-mcp#readme"
+              href="https://github.com/SquadRules/mcp#readme"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[var(--color-primary)] underline hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"

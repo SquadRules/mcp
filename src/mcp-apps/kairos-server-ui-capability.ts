@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { MCP_APP_HTML_MIME_TYPE, MCP_UI_EXTENSION_ID, SKYBRIDGE_HTML_MIME_TYPE } from './kairos-ui-constants.js';
 
 /**

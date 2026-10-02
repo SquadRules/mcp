@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * `listOfferingsForUI` is not in core MCP; some chat hosts call it to prefetch
  * widget-capable tools and UI resources. Shapes mirror tools/list and UIResource
@@ -79,7 +80,7 @@ export function buildActivateToolOffering(): Record<string, unknown> {
 export function buildActivateUiResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_ACTIVATE_UI_URI,
-    name: 'KAIROS activate result',
+    name: 'SQUADRULES activate result',
     description: 'Branded inline view for the activate tool (choices, roles, next_action).',
     mimeType: MCP_APP_HTML_MIME_TYPE,
     _meta: {
@@ -94,7 +95,7 @@ export function buildActivateUiResourceOffering(): Record<string, unknown> {
 export function buildActivateSkybridgeResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
-    name: 'KAIROS activate result (Skybridge profile)',
+    name: 'SQUADRULES activate result (Skybridge profile)',
     description: 'Same activate widget markup with text/html+skybridge.',
     mimeType: SKYBRIDGE_HTML_MIME_TYPE,
     _meta: {
@@ -109,7 +110,7 @@ export function buildActivateSkybridgeResourceOffering(): Record<string, unknown
 export function buildForwardUiResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_FORWARD_UI_URI,
-    name: 'KAIROS forward result',
+    name: 'SQUADRULES forward result',
     description: 'Branded inline view for the forward tool (adapter, space, current layer).',
     mimeType: MCP_APP_HTML_MIME_TYPE,
     _meta: {
@@ -124,7 +125,7 @@ export function buildForwardUiResourceOffering(): Record<string, unknown> {
 export function buildForwardSkybridgeResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_FORWARD_UI_SKYBRIDGE_URI,
-    name: 'KAIROS forward result (Skybridge profile)',
+    name: 'SQUADRULES forward result (Skybridge profile)',
     description: 'Same forward widget markup with text/html+skybridge.',
     mimeType: SKYBRIDGE_HTML_MIME_TYPE,
     _meta: {
@@ -139,7 +140,7 @@ export function buildForwardSkybridgeResourceOffering(): Record<string, unknown>
 export function buildSpacesUiResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_SPACES_UI_URI,
-    name: 'KAIROS spaces result',
+    name: 'SQUADRULES spaces result',
     description: 'Branded inline view for the spaces tool (logo + structured JSON).',
     mimeType: MCP_APP_HTML_MIME_TYPE,
     _meta: {
@@ -154,7 +155,7 @@ export function buildSpacesUiResourceOffering(): Record<string, unknown> {
 export function buildSpacesSkybridgeResourceOffering(): Record<string, unknown> {
   return {
     uri: KAIROS_SPACES_UI_SKYBRIDGE_URI,
-    name: 'KAIROS spaces result (Skybridge profile)',
+    name: 'SQUADRULES spaces result (Skybridge profile)',
     description: 'Same spaces widget markup with text/html+skybridge.',
     mimeType: SKYBRIDGE_HTML_MIME_TYPE,
     _meta: {

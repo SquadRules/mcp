@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 import { describe, expect, test } from "@jest/globals";
 import {
   applyOidcGroupsAllowlist,
