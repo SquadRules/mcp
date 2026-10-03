@@ -1,5 +1,5 @@
 /**
- * Resolve local KAIROS HTTP base URL for repo scripts (no trailing slash).
+ * Resolve local SQUADRULES HTTP base URL for repo scripts (no trailing slash).
  * Loads `.env` from the repo root without overriding variables already set in the environment.
  */
 import { config } from "dotenv";
@@ -17,13 +17,13 @@ export function loadRepoEnv() {
 }
 
 /**
- * Precedence: KAIROS_BASE_URL, KAIROS_API_URL, else http://localhost:$SERVER_PORT (default 3300, same as deploy-run-env.sh dev).
+ * Precedence: SQUADRULES_BASE_URL, SQUADRULES_API_URL, else http://localhost:$SERVER_PORT (default 3300, same as deploy-run-env.sh dev).
  */
-export function resolveKairosAppBaseUrl() {
+export function resolveSquadrulesAppBaseUrl() {
   loadRepoEnv();
-  const fromBase = process.env.KAIROS_BASE_URL?.trim();
+  const fromBase = process.env.SQUADRULES_BASE_URL?.trim();
   if (fromBase) return fromBase.replace(/\/$/, "");
-  const fromApi = process.env.KAIROS_API_URL?.trim();
+  const fromApi = process.env.SQUADRULES_API_URL?.trim();
   if (fromApi) return fromApi.replace(/\/$/, "");
   const port = process.env.SERVER_PORT?.trim() || "3300";
   return `http://localhost:${port}`;

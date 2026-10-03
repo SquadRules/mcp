@@ -2,18 +2,18 @@
  * Human-readable names for space IDs. Frontend (tools, responses) uses names; backend uses ids.
  */
 
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 
 /** Display label for the app space (embedded mem docs). */
-export const KAIROS_APP_SPACE_DISPLAY_NAME = 'Kairos app';
+export const SQUADRULES_APP_SPACE_DISPLAY_NAME = 'Squadrules app';
 
 /**
  * Map a space_id to a human-readable name for tool outputs and agent-facing responses.
- * user:*:* → "Personal"; group:*:* → "Group: /full/path"; space:kairos-app → "Kairos app".
+ * user:*:* → "Personal"; group:*:* → "Group: /full/path"; space:squadrules-app → "Squadrules app".
  */
 export function spaceKindFromSpaceId(spaceId: string): 'personal' | 'group' | 'app' | 'other' {
   if (!spaceId || typeof spaceId !== 'string') return 'other';
-  if (spaceId === KAIROS_APP_SPACE_ID) return 'app';
+  if (spaceId === SQUADRULES_APP_SPACE_ID) return 'app';
   const parts = spaceId.split(':');
   if (parts[0] === 'user') return 'personal';
   if (parts[0] === 'group') return 'group';
@@ -23,7 +23,7 @@ export function spaceKindFromSpaceId(spaceId: string): 'personal' | 'group' | 'a
 
 export function spaceIdToDisplayName(spaceId: string, namesById?: Record<string, string>): string {
   if (!spaceId || typeof spaceId !== 'string') return 'Unknown';
-  if (spaceId === KAIROS_APP_SPACE_ID) return KAIROS_APP_SPACE_DISPLAY_NAME;
+  if (spaceId === SQUADRULES_APP_SPACE_ID) return SQUADRULES_APP_SPACE_DISPLAY_NAME;
   const mapped = namesById?.[spaceId];
   if (mapped && mapped.trim().length > 0) {
     if (spaceId.startsWith('group:')) return `Group: ${mapped}`;

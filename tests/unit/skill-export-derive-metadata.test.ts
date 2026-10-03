@@ -16,7 +16,7 @@ Body here.`;
     const out = deriveSkillMetadata({
       protocolMarkdown: md,
       label: 'L',
-      kairosUri: 'kairos://adapter/uuid'
+      squadrulesUri: 'squadrules://adapter/uuid'
     });
     expect(out.name).toBe('my-skill');
     expect(out.slug).toBe('my-skill');
@@ -34,7 +34,7 @@ Second line still same paragraph.
     const out = deriveSkillMetadata({
       protocolMarkdown: md,
       label: 'Lab',
-      kairosUri: 'kairos://adapter/uuid'
+      squadrulesUri: 'squadrules://adapter/uuid'
     });
     expect(out.description).toContain('First para');
     expect(out.slug.length).toBeGreaterThan(0);

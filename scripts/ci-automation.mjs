@@ -86,7 +86,7 @@ export function dependencyTitle(title) {
 }
 
 function dependencyFile(path) {
-  return /^(package(?:-lock)?\.json|Dockerfile(?:\.[\w-]+)?|compose(?:\.[\w-]+)?\.ya?ml|\.github\/workflows\/[\w.-]+\.ya?ml|helm\/kairos-mcp\/(Chart\.(yaml|lock)|values\.yaml))$/.test(path);
+  return /^(package(?:-lock)?\.json|Dockerfile(?:\.[\w-]+)?|compose(?:\.[\w-]+)?\.ya?ml|\.github\/workflows\/[\w.-]+\.ya?ml|helm\/squadrules-mcp\/(Chart\.(yaml|lock)|values\.yaml))$/.test(path);
 }
 
 export function managedPull(pr, files, repo, actorId) {

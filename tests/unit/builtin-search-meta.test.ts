@@ -1,6 +1,6 @@
 import {
-  KAIROS_CREATION_PROTOCOL_SLUG,
-  KAIROS_REFINING_PROTOCOL_SLUG,
+  SQUADRULES_CREATION_PROTOCOL_SLUG,
+  SQUADRULES_REFINING_PROTOCOL_SLUG,
   memoryIsBuiltinSearchFooterProtocol
 } from '../../src/constants/builtin-search-meta.js';
 import type { Memory } from '../../src/types/memory.js';
@@ -20,7 +20,7 @@ describe('memoryIsBuiltinSearchFooterProtocol', () => {
   it('detects refine protocol by slug', () => {
     expect(
       memoryIsBuiltinSearchFooterProtocol(
-        mem({ memory_uuid: 'some-uuid', slug: KAIROS_REFINING_PROTOCOL_SLUG })
+        mem({ memory_uuid: 'some-uuid', slug: SQUADRULES_REFINING_PROTOCOL_SLUG })
       )
     ).toBe(true);
   });
@@ -28,7 +28,7 @@ describe('memoryIsBuiltinSearchFooterProtocol', () => {
   it('detects creation protocol by slug', () => {
     expect(
       memoryIsBuiltinSearchFooterProtocol(
-        mem({ memory_uuid: 'some-uuid', slug: KAIROS_CREATION_PROTOCOL_SLUG })
+        mem({ memory_uuid: 'some-uuid', slug: SQUADRULES_CREATION_PROTOCOL_SLUG })
       )
     ).toBe(true);
   });

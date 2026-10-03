@@ -3,10 +3,10 @@ import { createReadStream } from 'node:fs';
 
 export const ARTIFACTS = ['package.tgz', 'image.oci.tar', 'npm-sbom.json', 'image-amd64-sbom.json', 'image-arm64-sbom.json', 'validation.json'];
 export const versionPattern = /^\d+\.\d+\.\d+(?:-[a-z0-9-]+\.\d+)?$/;
-// Accept the older `kairos-release` marker (existing published drafts/releases) as well as
+// Accept the older `squadrules-release` marker (existing published drafts/releases) as well as
 // the new `squadrules-release` marker so in-flight releases survive the rebrand. New records
 // are always written with the `squadrules-release` form (see recordBody below).
-export const marker = /<!-- (?:kairos|squadrules)-release:([A-Za-z0-9+/=]+) -->\s*$/;
+export const marker = /<!-- squadrules-release:([A-Za-z0-9+/=]+) -->\s*$/;
 export function digest(data, algorithm = 'sha256', encoding = 'hex') {
   return createHash(algorithm).update(data).digest(encoding);
 }

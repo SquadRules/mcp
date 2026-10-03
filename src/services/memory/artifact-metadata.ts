@@ -37,7 +37,7 @@ function parseTopHeader(content: string): { slug?: string; version?: string } {
     index += 1;
   }
 
-  if (!lines[index]?.trim().startsWith('# kairos-artifact:')) {
+  if (!lines[index]?.trim().startsWith('# squadrules-artifact:')) {
     return {};
   }
 

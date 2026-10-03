@@ -166,7 +166,7 @@ New reward text after tune.
 `;
 
     const output = await executeTune(fakeQdrant as any, {
-      uris: [`kairos://adapter/${adapterSlug}`],
+      uris: [`squadrules://adapter/${adapterSlug}`],
       content: [nextMarkdown],
       review_evidence: { verdict_file: '/tmp/v.txt', exit_code: 0, stdout: 'PASS' }
     });
@@ -174,7 +174,7 @@ New reward text after tune.
     expect(output.total_updated).toBe(1);
     expect(output.total_failed).toBe(0);
     expect(output.results[0]).toMatchObject({
-      uri: 'kairos://layer/11111111-1111-4111-8111-111111111111',
+      uri: 'squadrules://layer/11111111-1111-4111-8111-111111111111',
       status: 'updated'
     });
     expect(fakeQdrant.updateCalls).toHaveLength(2);
@@ -207,7 +207,7 @@ New reward text after tune.
 `;
 
     const output = await executeTune(fakeQdrant as any, {
-      uris: [`kairos://adapter/${adapterSlug}`],
+      uris: [`squadrules://adapter/${adapterSlug}`],
       content: [wrongMarkdown],
       review_evidence: { verdict_file: '/tmp/v.txt', exit_code: 0, stdout: 'PASS' }
     });
@@ -227,13 +227,13 @@ New reward text after tune.
       ...layer,
       payload: {
         ...layer.payload,
-        space_id: 'space:kairos-app'
+        space_id: 'space:squadrules-app'
       }
     }));
     const fakeQdrant = new FakeQdrantService(appOnlyLayers);
 
     const output = await executeTune(fakeQdrant as any, {
-      uris: [`kairos://adapter/${adapterSlug}`],
+      uris: [`squadrules://adapter/${adapterSlug}`],
       updates: { tags: ['blocked'] }
     });
 
@@ -264,7 +264,7 @@ New reward text after tune.
       uuid: appLayerUuids[index]!,
       payload: {
         ...layer.payload,
-        space_id: 'space:kairos-app'
+        space_id: 'space:squadrules-app'
       }
     }));
     const fakeQdrant = new FakeQdrantService([...personalLayers, ...appLayers]);
@@ -279,7 +279,7 @@ New reward text after tune.
       },
       async () =>
         executeTune(fakeQdrant as any, {
-          uris: [`kairos://adapter/${adapterSlug}`],
+          uris: [`squadrules://adapter/${adapterSlug}`],
           updates: { tags: ['personal-update'] }
         })
     );
@@ -335,7 +335,7 @@ New reward text after tune.
 `;
 
     const output = await executeTune(brokenQdrant as any, {
-      uris: [`kairos://adapter/${adapterSlug}`],
+      uris: [`squadrules://adapter/${adapterSlug}`],
       content: [nextMarkdown],
       review_evidence: { verdict_file: '/tmp/v.txt', exit_code: 0, stdout: 'PASS' }
     });

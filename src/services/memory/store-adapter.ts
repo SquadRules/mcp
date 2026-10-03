@@ -9,7 +9,7 @@ import { normalizeMarkdownBlob, generateLabel, parseMarkdownStructure } from '..
 import type { ParsedFrontmatter } from '../../utils/frontmatter.js';
 import { parseFrontmatter } from '../../utils/frontmatter.js';
 import { resolveProtocolSlugCandidate } from '../../utils/protocol-slug.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import { storeHeaderBasedAdapter } from './store-adapter-header-handler.js';
 import { storeDefaultAdapter } from './store-adapter-default-handler.js';
 import { checkSimilarAdapterByTitle } from './store-adapter-helpers.js';
@@ -92,7 +92,7 @@ export class MemoryQdrantStoreAdapter {
             adapterTitle
           );
           if ('error' in slugCand) {
-            throw new KairosError(slugCand.message, 'INVALID_SLUG', 400, { message: slugCand.message });
+            throw new SquadrulesError(slugCand.message, 'INVALID_SLUG', 400, { message: slugCand.message });
           }
 
           const adapterTitleForSimilarity = (

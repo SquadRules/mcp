@@ -6,7 +6,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SNAPSHOT_FILE="${ROOT_DIR}/.local/qdrant-snapshot/kairos_ci.snapshot"
+SNAPSHOT_FILE="${ROOT_DIR}/.local/qdrant-snapshot/squadrules_ci.snapshot"
 
 # Load environment from correct .env file
 ENV="${ENV:-dev_simple}"
@@ -23,7 +23,7 @@ fi
 # Qdrant config (from .env)
 QDRANT_URL="${QDRANT_URL:-http://127.0.0.1:6333}"
 QDRANT_API_KEY="${QDRANT_API_KEY:-}"
-COLLECTION_NAME="${QDRANT_COLLECTION:-kairos_ci}"
+COLLECTION_NAME="${QDRANT_COLLECTION:-squadrules_ci}"
 
 # Headers for Qdrant API
 CURL_HEADERS=("-H" "Content-Type: application/json")
@@ -117,7 +117,7 @@ else
 fi
 
 # Import traces snapshot if it exists
-TRACES_SNAPSHOT_FILE="${ROOT_DIR}/.local/qdrant-snapshot/kairos_ci_traces.snapshot"
+TRACES_SNAPSHOT_FILE="${ROOT_DIR}/.local/qdrant-snapshot/squadrules_ci_traces.snapshot"
 if [ -f "${TRACES_SNAPSHOT_FILE}" ]; then
   log_info "Restoring traces collection from snapshot..."
   # Do NOT create collection - snapshot will create it with correct schema

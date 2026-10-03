@@ -1,6 +1,6 @@
 # GitHub Actions – workflow design
 
-<!-- kairos-lint-allow-protocol-synonyms -->
+<!-- squadrules-lint-allow-protocol-synonyms -->
 
 ## Overview
 
@@ -18,7 +18,7 @@ flowchart LR
   HEALTH -.-> PUB
 ```
 
-[Release and dependency automation](../../.agents/skills/kairos-dev/references/release-semver.md) is the authoritative runbook for schedules, credentials, rollout, semantic versioning, prereleases, artifact identity and recovery. Automation is disabled until its rollout prerequisites are verified. Copilot auto-fix is outside the release path and remains disabled.
+[Release and dependency automation](../../.agents/skills/squadrules-dev/references/release-semver.md) is the authoritative runbook for schedules, credentials, rollout, semantic versioning, prereleases, artifact identity and recovery. Automation is disabled until its rollout prerequisites are verified. Copilot auto-fix is outside the release path and remains disabled.
 
 ## Workflows
 
@@ -71,7 +71,7 @@ Every main push, manual validation and merge group forces `code=image=helm=true`
 
 Transport-neutral assertions live in `tests/integration/contracts/`; scenario bootstrap is in `tests/integration/harness/`; wrappers are in `tests/integration/scenarios/`. The npm dev scripts select wrappers for the matching AUTH, HTTP-simple or STDIO stack.
 
-Follow [build and test](../../.agents/skills/kairos-dev/references/build-test.md), including deployment before integration tests. After deploying the matching stack, individual contract entry points are:
+Follow [build and test](../../.agents/skills/squadrules-dev/references/build-test.md), including deployment before integration tests. After deploying the matching stack, individual contract entry points are:
 
 - `npm run test:integration:contracts:http-auth`
 - `npm run test:integration:contracts:http-simple`
@@ -81,7 +81,7 @@ Follow [build and test](../../.agents/skills/kairos-dev/references/build-test.md
 
 `resolve` chooses one fully validated source or the oldest incomplete draft. `prepare` computes the semantic version and builds, consumer-tests, scans and seals artifacts. `publish` persists recovery bytes, verifies immutable registry identities, then promotes aliases and publishes the GitHub Release. All downstream checkouts use the resolved SHA, not a mutable branch or the completion event's SHA.
 
-There is no old-tag republishing fallback. No releasable history is a true no-op. Incomplete releases recover the original source/version/checksums and block newer publication. See the [release runbook](../../.agents/skills/kairos-dev/references/release-semver.md#artifact-identity-and-recovery) for recovery and registry verification, including the separate `kairos-mcp-chart` Quay repository.
+There is no old-tag republishing fallback. No releasable history is a true no-op. Incomplete releases recover the original source/version/checksums and block newer publication. See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md#artifact-identity-and-recovery) for recovery and registry verification, including the separate `squadrules-mcp-chart` Quay repository.
 
 Release images use the validated local npm package through Docker's `runtime-ci` target. The standalone `runtime` target installs an already-published version; `Dockerfile.dev` builds local source. The Dockerfiles' pinned `FROM` declarations determine container Node versions independently of the Node 24 CI gate.
 

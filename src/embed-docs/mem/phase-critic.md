@@ -17,7 +17,7 @@ for contradictions.
 
 **Typically invoked by:** another protocol at the end of a plan, implement,
 validation, or review phase via `forward` with the stored adapter URI
-`kairos://adapter/phase-critic`.
+`squadrules://adapter/phase-critic`.
 
 **Can be invoked directly when agent needs:**
 - "review phase output" / "verify plan" / "audit implementation"

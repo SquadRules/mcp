@@ -20,7 +20,7 @@ _d('HTTP REST API Activate Endpoint', () => {
       const baseSearchKeys = ['choices', 'message', 'must_obey', 'next_action', 'query'];
       const optionalKeys = [
         ...('execution_id' in data ? ['execution_id'] : []),
-        ...('kairos_local_artifact_dir' in data ? ['kairos_local_artifact_dir'] : []),
+        ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : []),
         ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : [])
       ];
       expect(Object.keys(data).sort()).toEqual([...baseSearchKeys, ...optionalKeys].sort());
@@ -33,8 +33,8 @@ _d('HTTP REST API Activate Endpoint', () => {
         expect(typeof data.execution_id).toBe('string');
         expect(data.execution_id as string).toMatch(/^[0-9a-f-]{36}$/i);
       }
-      if ('kairos_local_artifact_dir' in data) {
-        const hints = data.kairos_local_artifact_dir;
+      if ('squadrules_local_artifact_dir' in data) {
+        const hints = data.squadrules_local_artifact_dir;
         // Field is now an ordered array of client-resolvable URI hints; never a server filesystem path.
         expect(Array.isArray(hints)).toBe(true);
         expect((hints as unknown[]).length).toBeGreaterThan(0);

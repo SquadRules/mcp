@@ -21,7 +21,7 @@ export class AuthRequiredError extends Error {
 
 /** True when BROWSER=true (tests/automation) or none/no/false/0; use in scripts/tests to disable opening. */
 export function isBrowserDisabled(): boolean {
-    if (process.env['KAIROS_NO_BROWSER'] === '1') return true;
+    if (process.env['SQUADRULES_NO_BROWSER'] === '1') return true;
     const b = process.env['BROWSER'];
     return b != null && b !== '' && /^(true|none|no|false|0)$/i.test(b);
 }

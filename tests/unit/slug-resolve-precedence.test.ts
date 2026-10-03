@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 import { findFirstStepMemoryUuidBySlug } from '../../src/services/qdrant/memory-retrieval.js';
 import { runWithSpaceContextAsync } from '../../src/utils/tenant-context.js';
 
@@ -24,7 +24,7 @@ function makeConn(points: ScrollPoint[]) {
 describe('findFirstStepMemoryUuidBySlug precedence', () => {
   test('prefers personal over group and app/system regardless of default write space', async () => {
     const conn = makeConn([
-      { id: '30000000-0000-4000-8000-000000000000', payload: { space_id: KAIROS_APP_SPACE_ID, adapter: { id: 'app-adapter' } } },
+      { id: '30000000-0000-4000-8000-000000000000', payload: { space_id: SQUADRULES_APP_SPACE_ID, adapter: { id: 'app-adapter' } } },
       { id: '20000000-0000-4000-8000-000000000000', payload: { space_id: 'group:realm:team', adapter: { id: 'group-adapter' } } },
       { id: '10000000-0000-4000-8000-000000000000', payload: { space_id: 'user:realm:user-1', adapter: { id: 'personal-adapter' } } }
     ]);
@@ -33,7 +33,7 @@ describe('findFirstStepMemoryUuidBySlug precedence', () => {
       {
         userId: 'u',
         groupIds: [],
-        allowedSpaceIds: ['user:realm:user-1', 'group:realm:team', KAIROS_APP_SPACE_ID],
+        allowedSpaceIds: ['user:realm:user-1', 'group:realm:team', SQUADRULES_APP_SPACE_ID],
         defaultWriteSpaceId: 'group:realm:team',
         personalSpaceId: 'user:realm:user-1'
       },
@@ -45,7 +45,7 @@ describe('findFirstStepMemoryUuidBySlug precedence', () => {
 
   test('prefers group over app when personal is absent', async () => {
     const conn = makeConn([
-      { id: '30000000-0000-4000-8000-000000000000', payload: { space_id: KAIROS_APP_SPACE_ID, adapter: { id: 'app-adapter' } } },
+      { id: '30000000-0000-4000-8000-000000000000', payload: { space_id: SQUADRULES_APP_SPACE_ID, adapter: { id: 'app-adapter' } } },
       { id: '20000000-0000-4000-8000-000000000000', payload: { space_id: 'group:realm:team', adapter: { id: 'group-adapter' } } }
     ]);
 
@@ -53,8 +53,8 @@ describe('findFirstStepMemoryUuidBySlug precedence', () => {
       {
         userId: 'u',
         groupIds: [],
-        allowedSpaceIds: ['group:realm:team', KAIROS_APP_SPACE_ID],
-        defaultWriteSpaceId: KAIROS_APP_SPACE_ID,
+        allowedSpaceIds: ['group:realm:team', SQUADRULES_APP_SPACE_ID],
+        defaultWriteSpaceId: SQUADRULES_APP_SPACE_ID,
         personalSpaceId: ''
       },
       () => findFirstStepMemoryUuidBySlug(conn as never, 'demo-slug')

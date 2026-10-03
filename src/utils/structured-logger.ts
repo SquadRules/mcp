@@ -1,5 +1,5 @@
 /**
- * Structured HTTP Access Logging for KAIROS MCP
+ * Structured HTTP Access Logging for SQUADRULES MCP
  *
  * Uses shared Pino backend (log-core) for consistent JSON shape.
  * See the Testing and Observability topic in the project Wiki for levels, standard fields, and usage.

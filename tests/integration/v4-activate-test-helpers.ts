@@ -1,5 +1,5 @@
 /**
- * Shared helpers for v4-kairos-activate integration tests.
+ * Shared helpers for v4-squadrules-activate integration tests.
  * Relies on Jest-injected `expect` (no @jest/globals import — blocked in tests/integration).
  */
 import { parseMcpJson } from '../utils/expect-with-raw.js';
@@ -74,7 +74,7 @@ export function expectNoDeprecatedTopLevelFields(parsed: ParsedActivate): void {
 export function nextActionLooksActionable(next: string): boolean {
   return (
     next.includes("choice's next_action") ||
-    next.includes('kairos://') ||
+    next.includes('squadrules://') ||
     next.toLowerCase().includes('forward')
   );
 }

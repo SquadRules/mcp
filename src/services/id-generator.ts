@@ -1,5 +1,5 @@
 /**
- * ID Generator Service for KAIROS
+ * ID Generator Service for SQUADRULES
  *
  * Generates UUID-based identifiers for knowledge items.
  * Uses URI-based UUIDv5 for deterministic Qdrant IDs where appropriate.
@@ -8,9 +8,9 @@
 import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
 import { structuredLogger } from '../utils/structured-logger.js';
 
-// KAIROS namespace UUID for deterministic ID generation
+// SQUADRULES namespace UUID for deterministic ID generation
 // Generate once and hardcode for deployment consistency
-export const KAIROS_NAMESPACE = '6f1d7e2b-8f7b-4b1e-9c8f-2f2f0b1a2e11';
+export const SQUADRULES_NAMESPACE = '6f1d7e2b-8f7b-4b1e-9c8f-2f2f0b1a2e11';
 
 export class IDGenerator {
     /**
@@ -35,7 +35,7 @@ export class IDGenerator {
      */
     static generateDeterministicProtocolId(domain: string, type: string, task: string): string {
         const input = `${domain}:${type}:${task}`;
-        return uuidv5(input, KAIROS_NAMESPACE);
+        return uuidv5(input, SQUADRULES_NAMESPACE);
     }
 
     /**
@@ -45,12 +45,12 @@ export class IDGenerator {
      */
     static generateAdapterUUIDv5(label: string): string {
         const normalized = (label || '').trim().replace(/\s+/g, ' ').toLowerCase();
-        return uuidv5(normalized, KAIROS_NAMESPACE);
+        return uuidv5(normalized, SQUADRULES_NAMESPACE);
     }
 
     /**
      * Generate a UUID for unified protocol
-     * Used for kairos://UUID URIs in the unified store protocol
+     * Used for squadrules://UUID URIs in the unified store protocol
      *
      * @returns RFC 4122 UUID v4 string
      */
@@ -64,59 +64,47 @@ export class IDGenerator {
      * This enables URI-based retrieval: given a URI, we can always regenerate
      * the exact same Qdrant ID for direct lookup.
      *
-     * @param humanUri - Full human-readable URI (e.g., "kairos://uuid" or older "kairos://ai/rule/coding-rules@lF5kZa9D/step/1")
+     * @param humanUri - Full human-readable URI (e.g., "squadrules://adapter/{slug}")
      * @returns Deterministic UUIDv5 string
      *
      * @example
-     * buildQdrantId("kairos://700468C5-2C80-4502-B60B-9A8C74044A35")
+     * buildQdrantId("squadrules://700468C5-2C80-4502-B60B-9A8C74044A35")
      * // Returns: "700468C5-2C80-4502-B60B-9A8C74044A35" (direct UUID)
      */
     static buildQdrantId(humanUri: string): string {
-        return uuidv5(humanUri, KAIROS_NAMESPACE);
+        return uuidv5(humanUri, SQUADRULES_NAMESPACE);
     }
 
     /**
-     * Convert URI to Qdrant ID
-     * Supports both new {scheme}://UUID and older URI formats.
-     * Accepts kairos:// (canonical) and squadrules:// (alias) on input; the
-     * deterministic v5 hash is always computed from the canonical kairos:// form
-     * so stored Qdrant IDs stay stable regardless of the scheme the caller used.
+     * Convert a canonical squadrules:// URI to a Qdrant point ID.
      *
-     * @param uri - Full URI string
+     * Bare-UUID segments are returned as-is; everything else is hashed
+     * deterministically with UUIDv5 against the SquadRules namespace so the
+     * same URI always maps to the same point ID.
+     *
+     * @param uri - Full URI string (squadrules://…)
      * @returns UUID string for Qdrant operations
      */
     static qdrantIdFromUri(uri: string): string {
         structuredLogger.debug(`qdrantIdFromUri called with URI: ${uri}`);
 
-        // Canonicalize the alias scheme so v5 hashes match stored kairos:// IDs.
-        const canonicalUri = uri.replace(/^squadrules:\/\//i, 'kairos://');
-
-        const layerMatch = uri.match(/^(?:kairos|squadrules):\/\/layer\/([^/?#]+)/i);
+        // squadrules://layer/{uuid}[?execution_id=…] → direct id
+        const layerMatch = uri.match(/^squadrules:\/\/layer\/([^/?#]+)/i);
         if (layerMatch?.[1]) {
             const id = layerMatch[1];
             if (/^[0-9a-fA-F-]{32,36}$/.test(id)) {
                 return id;
             }
         }
-        const olderLayerRowPrefix = ['kairos', '://', 'me', 'm', '/'].join('');
-        if (uri.startsWith(olderLayerRowPrefix)) {
-            return uri.substring(olderLayerRowPrefix.length).split('?')[0]!.split('/')[0]!;
-        }
 
-        // {scheme}://{domain}/{type}/{task}/step/{step} (deterministic hashed id)
-        if (/^(?:kairos|squadrules):\/\//i.test(uri) && uri.includes('/step/')) {
-            return IDGenerator.buildQdrantId(canonicalUri);
-        }
-
-        // {scheme}://{uuid}
-        const simpleMatch = uri.match(/^(?:kairos|squadrules):\/\/([\s\S]*)$/i);
+        // squadrules://{rest} → bare UUID passthrough, otherwise deterministic v5 hash
+        const simpleMatch = uri.match(/^squadrules:\/\/([\s\S]*)$/i);
         if (simpleMatch) {
             const candidate = simpleMatch[1] ?? '';
-            // If it's a bare UUID, return it; otherwise, fall back to v5 hash of the canonical URI
             if (/^[0-9a-fA-F-]{32,36}$/.test(candidate)) {
                 return candidate;
             }
-            return IDGenerator.buildQdrantId(canonicalUri);
+            return IDGenerator.buildQdrantId(uri);
         }
 
         throw new Error(`Unsupported URI format: ${uri}`);

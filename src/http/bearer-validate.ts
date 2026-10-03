@@ -24,7 +24,7 @@ export interface AuthPayload {
   groups: string[];
   /** Raw issuer retained for deterministic space-id derivation across Keycloak hosts. */
   iss: string;
-  /** Realm from token issuer (e.g. kairos) for space isolation. */
+  /** Realm from token issuer (e.g. the deployment realm) for space isolation. */
   realm: string;
   preferred_username?: string;
   name?: string;

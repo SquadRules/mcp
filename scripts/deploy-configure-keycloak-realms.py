@@ -2,59 +2,59 @@
 """
 Idempotent Keycloak realm setup: apply config from scripts/keycloak/import via Admin API.
 
-Configures sub-realms only (e.g. kairos-dev, kairos-prod). Uses master realm only to obtain
+Configures sub-realms only (e.g. squadrules-dev, squadrules-prod). Uses master realm only to obtain
 an admin token; does not modify master.
 Single source of truth for realm config. Use when Keycloak is already running. Do not use
 Keycloak startup --import-realm (would conflict with existing realms). Reads realm JSONs
 from scripts/keycloak/import relative to repo root (works regardless of CWD).
 
 1. Realms: create minimal if missing, then always merge and PUT config from import/*.json (idempotent).
-   **kairos-mcp** `redirectUris` / `webOrigins` are then pushed again via **PUT …/clients/{id}**
+   **squadrules-mcp** `redirectUris` / `webOrigins` are then pushed again via **PUT …/clients/{id}**
    because realm-level PUT does not reliably update existing clients (redirect list would stay stale).
    **Groups:** realm PUT does not reliably create/re-parent groups. The script enforces
    top-level groups from import JSON, plus **shared** → **ci-test** (JWT path `/shared/ci-test`).
-   If the import lists **kairos-shares**, it also nests **kairos-operator** under it via Admin API.
+   If the import lists **squadrules-shares**, it also nests **squadrules-operator** under it via Admin API.
    Top-level groups present in Keycloak but not in the import are **removed** (prune) so the dump
    matches the JSON.
 2. Trusted hosts: set env-specific IPs (dev: Docker gateway; prod: app-prod).
 3. OIDC scope `openid` for dynamic registration: ensure a realm Client Scope named `openid`
    exists and is a **default** (not optional) client scope. Without `openid` in every token,
    Keycloak's Userinfo endpoint returns 403 "Missing openid scope", which breaks the
-   Bearer-auth groups fallback in KAIROS (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
-   The scope is also linked to **kairos-mcp** and **kairos-cli** for backwards compatibility
+   Bearer-auth groups fallback in SQUADRULES (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
+   The scope is also linked to **squadrules-mcp** and **squadrules-cli** for backwards compatibility
    (named clients created before `openid` became a realm default don't inherit it automatically).
 4. Allowed client scopes (policies): whitelist client-scope templates for anonymous/authenticated
-   registration (includes `openid` and kairos-cli default templates).
+   registration (includes `openid` and squadrules-cli default templates).
 4b. OIDC **Group Membership** protocol mapper on a shared **client scope** so JWTs include a
    `groups` claim (access + ID + userinfo + introspection). The scope is attached as a **default**
    client scope so new OAuth clients (including dynamically registered MCP hosts) inherit it, and
-   it is linked to **kairos-mcp** and **kairos-cli** for backwards compatibility. Mapper
-   **`full.path` is always enabled** (full Keycloak paths, e.g. `/kairos-auditor`,
-   `/shared/team-platform`) — not configurable here so running systems stay consistent with KAIROS
+   it is linked to **squadrules-mcp** and **squadrules-cli** for backwards compatibility. Mapper
+   **`full.path` is always enabled** (full Keycloak paths, e.g. `/squadrules-auditor`,
+   `/shared/team-platform`) — not configurable here so running systems stay consistent with SQUADRULES
    allowlists and space ids.
-5. Test user: ensure TEST_USERNAME/TEST_PASSWORD exists in **kairos-dev** with profile fields and
+5. Test user: ensure TEST_USERNAME/TEST_PASSWORD exists in **squadrules-dev** with profile fields and
    no required actions so **direct access grants** (password) do not return `invalid_grant` /
    **Account is not fully set up** (Keycloak 24+ expects first/last name; see keycloak#36108).
 6. Verify realm dump matches import JSON.
 7. Add test users to groups last; **GET** user groups to confirm (so Admin UI matches):
-   **kairos-tester** → **kairos-auditor** and **ci-test**; if the import includes **kairos-shares**,
-   also **kairos-operator**; optional **KAIROS_CI_TEST_USERNAME** (default **kairos-ci-tester**)
+   **squadrules-tester** → **squadrules-auditor** and **ci-test**; if the import includes **squadrules-shares**,
+   also **squadrules-operator**; optional **SQUADRULES_CI_TEST_USERNAME** (default **squadrules-ci-tester**)
    → **ci-test** only.
 
 Identity providers (e.g. Google) are not in realm JSON; configure via deploy-configure-keycloak-google-idp.py.
 
 Env: KEYCLOAK_URL (default http://localhost:8080), KEYCLOAK_ADMIN_PASSWORD,
-TEST_USERNAME (default kairos-tester), TEST_PASSWORD (default kairos-tester-secret),
-KAIROS_CI_TEST_USERNAME / KAIROS_CI_TEST_PASSWORD (optional second dev user for `/shared/ci-test` only).
-KAIROS app: set OIDC_GROUPS_ALLOWLIST (comma-separated; use a trailing `/` on an entry for path-prefix match)
-to intersect JWT groups with what KAIROS stores.
-If unset or empty, KAIROS keeps all JWT groups (no allowlist filtering).
+TEST_USERNAME (default squadrules-tester), TEST_PASSWORD (default squadrules-tester-secret),
+SQUADRULES_CI_TEST_USERNAME / SQUADRULES_CI_TEST_PASSWORD (optional second dev user for `/shared/ci-test` only).
+SQUADRULES app: set OIDC_GROUPS_ALLOWLIST (comma-separated; use a trailing `/` on an entry for path-prefix match)
+to intersect JWT groups with what SQUADRULES stores.
+If unset or empty, SQUADRULES keeps all JWT groups (no allowlist filtering).
 (Keycloak's mapper still lists all memberships the user has in the realm).
-AUTH_CALLBACK_BASE_URL (optional) — for **kairos-dev** **kairos-mcp**, adds that origin/callback
+AUTH_CALLBACK_BASE_URL (optional) — for **squadrules-dev** **squadrules-mcp**, adds that origin/callback
 if not already covered by the port range (Keycloak has no native port-range wildcard).
 
-KAIROS_DEV_APP_PORT_MIN / KAIROS_DEV_APP_PORT_MAX (optional, defaults 3300 / 3301) — inclusive range;
-the script expands **kairos-mcp** `redirectUris` and `webOrigins` for `localhost` and `127.0.0.1`
+SQUADRULES_DEV_APP_PORT_MIN / SQUADRULES_DEV_APP_PORT_MAX (optional, defaults 3300 / 3301) — inclusive range;
+the script expands **squadrules-mcp** `redirectUris` and `webOrigins` for `localhost` and `127.0.0.1`
 per port (max span 256 ports). Import JSON lists 3300–3301 as documentation; applied config
 comes from these env vars when you run this script.
 
@@ -83,7 +83,7 @@ TRUSTED_HOSTS_PROVIDER_ID = "trusted-hosts"
 ALLOWED_CLIENT_TEMPLATES_PROVIDER_ID = "allowed-client-templates"
 # Realm client-scope names permitted for OIDC dynamic registration. `openid` must be a real
 # Client Scope in the realm (ensure_openid_client_scope); OAuth scope "openid" maps to that name.
-# Other entries align with default scopes on kairos-cli.
+# Other entries align with default scopes on squadrules-cli.
 DYNAMIC_REGISTRATION_ALLOWED_CLIENT_SCOPES = [
     "openid",
     "basic",
@@ -92,23 +92,23 @@ DYNAMIC_REGISTRATION_ALLOWED_CLIENT_SCOPES = [
     "profile",
     "roles",
     "email",
-    "kairos-groups",
+    "squadrules-groups",
     "offline_access",
     "address",
     "phone",
     "service_account",
 ]
 REALM_FILES = [
-    ("kairos-dev", "kairos-dev-realm.json"),
-    ("kairos-prod", "kairos-prod-realm.json"),
+    ("squadrules-dev", "squadrules-dev-realm.json"),
+    ("squadrules-prod", "squadrules-prod-realm.json"),
 ]
 
-KAIROS_OIDC_GROUP_MAPPER_NAME = "kairos-oidc-groups"
-KAIROS_OIDC_GROUP_MAPPER_PROVIDER = "oidc-group-membership-mapper"
-KAIROS_GROUPS_CLIENT_SCOPE_NAME = "kairos-groups"
-CLIENT_IDS_FOR_GROUP_MAPPER = frozenset({"kairos-mcp", "kairos-cli"})
+SQUADRULES_OIDC_GROUP_MAPPER_NAME = "squadrules-oidc-groups"
+SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER = "oidc-group-membership-mapper"
+SQUADRULES_GROUPS_CLIENT_SCOPE_NAME = "squadrules-groups"
+CLIENT_IDS_FOR_GROUP_MAPPER = frozenset({"squadrules-mcp", "squadrules-cli"})
 # Scopes that named clients must be able to request but are not always included.
-# Mirrors optionalClientScopes in helm/kairos-mcp/files/kairos-realm.json.
+# Mirrors optionalClientScopes in helm/squadrules-mcp/files/squadrules-realm.json.
 CLIENT_OPTIONAL_SCOPES = ("profile", "email", "offline_access")
 
 # Keycloak has no redirect_uri port-range syntax; we emit one URI per port. Cap list growth.
@@ -130,21 +130,21 @@ def _parse_port_env(env: dict, key: str, default: int) -> int:
 
 def dev_app_port_bounds(env: dict) -> tuple[int, int]:
     """Inclusive bounds for dev app HTTP ports (localhost + 127.0.0.1)."""
-    lo = _parse_port_env(env, "KAIROS_DEV_APP_PORT_MIN", 3300)
-    hi = _parse_port_env(env, "KAIROS_DEV_APP_PORT_MAX", 3301)
+    lo = _parse_port_env(env, "SQUADRULES_DEV_APP_PORT_MIN", 3300)
+    hi = _parse_port_env(env, "SQUADRULES_DEV_APP_PORT_MAX", 3301)
     if lo > hi:
         lo, hi = hi, lo
     if hi - lo > _DEV_APP_PORT_RANGE_MAX_SPAN:
         sys.exit(
-            f"KAIROS_DEV_APP_PORT span too large ({hi - lo} > {_DEV_APP_PORT_RANGE_MAX_SPAN}); "
-            "narrow MIN/MAX or edit kairos-mcp in Keycloak Admin UI."
+            f"SQUADRULES_DEV_APP_PORT span too large ({hi - lo} > {_DEV_APP_PORT_RANGE_MAX_SPAN}); "
+            "narrow MIN/MAX or edit squadrules-mcp in Keycloak Admin UI."
         )
     return lo, hi
 
 
-def build_kairos_mcp_dev_redirect_lists(env: dict) -> tuple[list[str], list[str], str]:
+def build_squadrules_mcp_dev_redirect_lists(env: dict) -> tuple[list[str], list[str], str]:
     """
-    Build redirectUris and webOrigins for kairos-mcp (dev) from port range + optional callback base.
+    Build redirectUris and webOrigins for squadrules-mcp (dev) from port range + optional callback base.
     Also returns post.logout.redirect.uris (##-separated) for OIDC RP-initiated logout → continue-signin.
     """
     lo, hi = dev_app_port_bounds(env)
@@ -185,16 +185,16 @@ def build_kairos_mcp_dev_redirect_lists(env: dict) -> tuple[list[str], list[str]
     return redirect_uris, web_origins, post_logout_uris
 
 
-def apply_kairos_mcp_dev_client_urls(desired: dict, env: dict, realm_name: str) -> None:
+def apply_squadrules_mcp_dev_client_urls(desired: dict, env: dict, realm_name: str) -> None:
     """
-    Replace kairos-mcp redirectUris/webOrigins for kairos-dev with range-expanded lists.
+    Replace squadrules-mcp redirectUris/webOrigins for squadrules-dev with range-expanded lists.
     Verification uses the same helper so dump matches expected after apply.
     """
-    if realm_name != "kairos-dev":
+    if realm_name != "squadrules-dev":
         return
-    redirect_uris, web_origins, post_logout_uris = build_kairos_mcp_dev_redirect_lists(env)
+    redirect_uris, web_origins, post_logout_uris = build_squadrules_mcp_dev_redirect_lists(env)
     for client in desired.get("clients") or []:
-        if client.get("clientId") != "kairos-mcp":
+        if client.get("clientId") != "squadrules-mcp":
             continue
         client["redirectUris"] = redirect_uris
         client["webOrigins"] = web_origins
@@ -207,7 +207,7 @@ def apply_kairos_mcp_dev_client_urls(desired: dict, env: dict, realm_name: str) 
 
 def load_desired_realm(path: Path, env: dict, realm_name: str) -> dict:
     desired = json.loads(path.read_text())
-    apply_kairos_mcp_dev_client_urls(desired, env, realm_name)
+    apply_squadrules_mcp_dev_client_urls(desired, env, realm_name)
     return desired
 
 
@@ -334,15 +334,15 @@ def get_realm_clients(base_url: str, realm_name: str, token: str) -> list[dict]:
         sys.exit(f"List clients {realm_name} failed: {e.code} {body}")
 
 
-def push_kairos_mcp_redirect_config(
+def push_squadrules_mcp_redirect_config(
     base_url: str, realm_name: str, desired: dict, token: str
 ) -> None:
     """
-    Apply kairos-mcp redirectUris and webOrigins from desired realm JSON via Clients Admin API.
+    Apply squadrules-mcp redirectUris and webOrigins from desired realm JSON via Clients Admin API.
     Keycloak often ignores client redirect list updates embedded in PUT /admin/realms/{realm}.
     """
     mcp_desired = next(
-        (c for c in desired.get("clients") or [] if c.get("clientId") == "kairos-mcp"),
+        (c for c in desired.get("clients") or [] if c.get("clientId") == "squadrules-mcp"),
         None,
     )
     if not mcp_desired:
@@ -353,9 +353,9 @@ def push_kairos_mcp_redirect_config(
         return
 
     clients = get_realm_clients(base_url, realm_name, token)
-    existing = next((c for c in clients if c.get("clientId") == "kairos-mcp"), None)
+    existing = next((c for c in clients if c.get("clientId") == "squadrules-mcp"), None)
     if not existing or not existing.get("id"):
-        print(f"  WARNING: kairos-mcp not found in {realm_name}; skip redirect push.", file=sys.stderr)
+        print(f"  WARNING: squadrules-mcp not found in {realm_name}; skip redirect push.", file=sys.stderr)
         return
 
     internal_id = existing["id"]
@@ -379,10 +379,10 @@ def push_kairos_mcp_redirect_config(
         urllib.request.urlopen(req, timeout=15)
     except urllib.error.HTTPError as e:
         body = e.read().decode() if e.fp else ""
-        sys.exit(f"PUT kairos-mcp client in {realm_name} failed: {e.code} {body}")
+        sys.exit(f"PUT squadrules-mcp client in {realm_name} failed: {e.code} {body}")
 
     n = len(patch.get("redirectUris") or [])
-    print(f"  kairos-mcp redirect URIs set via Clients API ({realm_name}, {n} URIs).")
+    print(f"  squadrules-mcp redirect URIs set via Clients API ({realm_name}, {n} URIs).")
 
 
 def create_realm_client(base_url: str, realm_name: str, client_payload: dict, token: str) -> None:
@@ -446,7 +446,7 @@ def _mapper_config_matches(existing: dict[str, str], desired: dict[str, str]) ->
     return True
 
 
-def ensure_kairos_oidc_group_mapper_for_client(
+def ensure_squadrules_oidc_group_mapper_for_client(
     base_url: str,
     realm_name: str,
     client_uuid: str,
@@ -454,14 +454,14 @@ def ensure_kairos_oidc_group_mapper_for_client(
     token: str,
     full_path: bool,
 ) -> None:
-    """Idempotent: Group Membership mapper -> JWT claim `groups` for kairos-mcp / kairos-cli."""
+    """Idempotent: Group Membership mapper -> JWT claim `groups` for squadrules-mcp / squadrules-cli."""
     desired_cfg = _oidc_group_membership_mapper_config(full_path)
     mappers = list_client_protocol_mappers(base_url, realm_name, client_uuid, token)
-    existing = next((m for m in mappers if m.get("name") == KAIROS_OIDC_GROUP_MAPPER_NAME), None)
+    existing = next((m for m in mappers if m.get("name") == SQUADRULES_OIDC_GROUP_MAPPER_NAME), None)
     if existing:
-        if existing.get("protocolMapper") != KAIROS_OIDC_GROUP_MAPPER_PROVIDER:
+        if existing.get("protocolMapper") != SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER:
             sys.exit(
-                f"{realm_name} client {client_label}: mapper {KAIROS_OIDC_GROUP_MAPPER_NAME!r} exists "
+                f"{realm_name} client {client_label}: mapper {SQUADRULES_OIDC_GROUP_MAPPER_NAME!r} exists "
                 f"with provider {existing.get('protocolMapper')!r}; remove or rename in Keycloak Admin UI."
             )
         cur = {k: str(v) for k, v in (existing.get("config") or {}).items()}
@@ -469,13 +469,13 @@ def ensure_kairos_oidc_group_mapper_for_client(
             return
         mapper_id = existing.get("id")
         if not isinstance(mapper_id, str) or not mapper_id:
-            sys.exit(f"{realm_name} client {client_label}: mapper {KAIROS_OIDC_GROUP_MAPPER_NAME!r} has no id")
+            sys.exit(f"{realm_name} client {client_label}: mapper {SQUADRULES_OIDC_GROUP_MAPPER_NAME!r} has no id")
         merged_cfg = {**cur, **desired_cfg}
         body = {
             "id": mapper_id,
-            "name": KAIROS_OIDC_GROUP_MAPPER_NAME,
+            "name": SQUADRULES_OIDC_GROUP_MAPPER_NAME,
             "protocol": "openid-connect",
-            "protocolMapper": KAIROS_OIDC_GROUP_MAPPER_PROVIDER,
+            "protocolMapper": SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER,
             "config": merged_cfg,
         }
         url = (
@@ -495,9 +495,9 @@ def ensure_kairos_oidc_group_mapper_for_client(
         return
 
     create_body = {
-        "name": KAIROS_OIDC_GROUP_MAPPER_NAME,
+        "name": SQUADRULES_OIDC_GROUP_MAPPER_NAME,
         "protocol": "openid-connect",
-        "protocolMapper": KAIROS_OIDC_GROUP_MAPPER_PROVIDER,
+        "protocolMapper": SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER,
         "config": desired_cfg,
     }
     url = (
@@ -534,7 +534,7 @@ def list_client_scope_protocol_mappers(
         sys.exit(f"List scope protocol mappers {realm_name} scope={scope_id} failed: {e.code} {body}")
 
 
-def ensure_kairos_oidc_group_mapper_for_client_scope(
+def ensure_squadrules_oidc_group_mapper_for_client_scope(
     base_url: str,
     realm_name: str,
     scope_id: str,
@@ -544,11 +544,11 @@ def ensure_kairos_oidc_group_mapper_for_client_scope(
 ) -> None:
     desired_cfg = _oidc_group_membership_mapper_config(full_path)
     mappers = list_client_scope_protocol_mappers(base_url, realm_name, scope_id, token)
-    existing = next((m for m in mappers if m.get("name") == KAIROS_OIDC_GROUP_MAPPER_NAME), None)
+    existing = next((m for m in mappers if m.get("name") == SQUADRULES_OIDC_GROUP_MAPPER_NAME), None)
     if existing:
-        if existing.get("protocolMapper") != KAIROS_OIDC_GROUP_MAPPER_PROVIDER:
+        if existing.get("protocolMapper") != SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER:
             sys.exit(
-                f"{realm_name} scope {scope_label}: mapper {KAIROS_OIDC_GROUP_MAPPER_NAME!r} exists "
+                f"{realm_name} scope {scope_label}: mapper {SQUADRULES_OIDC_GROUP_MAPPER_NAME!r} exists "
                 f"with provider {existing.get('protocolMapper')!r}; remove or rename in Keycloak Admin UI."
             )
         cur = {k: str(v) for k, v in (existing.get("config") or {}).items()}
@@ -556,13 +556,13 @@ def ensure_kairos_oidc_group_mapper_for_client_scope(
             return
         mapper_id = existing.get("id")
         if not isinstance(mapper_id, str) or not mapper_id:
-            sys.exit(f"{realm_name} scope {scope_label}: mapper {KAIROS_OIDC_GROUP_MAPPER_NAME!r} has no id")
+            sys.exit(f"{realm_name} scope {scope_label}: mapper {SQUADRULES_OIDC_GROUP_MAPPER_NAME!r} has no id")
         merged_cfg = {**cur, **desired_cfg}
         body = {
             "id": mapper_id,
-            "name": KAIROS_OIDC_GROUP_MAPPER_NAME,
+            "name": SQUADRULES_OIDC_GROUP_MAPPER_NAME,
             "protocol": "openid-connect",
-            "protocolMapper": KAIROS_OIDC_GROUP_MAPPER_PROVIDER,
+            "protocolMapper": SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER,
             "config": merged_cfg,
         }
         url = (
@@ -582,9 +582,9 @@ def ensure_kairos_oidc_group_mapper_for_client_scope(
         return
 
     create_body = {
-        "name": KAIROS_OIDC_GROUP_MAPPER_NAME,
+        "name": SQUADRULES_OIDC_GROUP_MAPPER_NAME,
         "protocol": "openid-connect",
-        "protocolMapper": KAIROS_OIDC_GROUP_MAPPER_PROVIDER,
+        "protocolMapper": SQUADRULES_OIDC_GROUP_MAPPER_PROVIDER,
         "config": desired_cfg,
     }
     url = (
@@ -603,13 +603,13 @@ def ensure_kairos_oidc_group_mapper_for_client_scope(
     print(f"  Added OIDC group mapper (scope {realm_name}, {scope_label})")
 
 
-def ensure_kairos_groups_client_scope(base_url: str, realm_name: str, token: str) -> str:
+def ensure_squadrules_groups_client_scope(base_url: str, realm_name: str, token: str) -> str:
     scopes = list_realm_client_scopes(base_url, realm_name, token)
-    scope_row = next((s for s in scopes if s.get("name") == KAIROS_GROUPS_CLIENT_SCOPE_NAME), None)
+    scope_row = next((s for s in scopes if s.get("name") == SQUADRULES_GROUPS_CLIENT_SCOPE_NAME), None)
     if not scope_row:
         url = f"{base_url.rstrip('/')}/admin/realms/{realm_name}/client-scopes"
         payload = json.dumps({
-            "name": KAIROS_GROUPS_CLIENT_SCOPE_NAME,
+            "name": SQUADRULES_GROUPS_CLIENT_SCOPE_NAME,
             "protocol": "openid-connect",
             "attributes": {
                 "include.in.token.scope": "true",
@@ -624,20 +624,20 @@ def ensure_kairos_groups_client_scope(base_url: str, realm_name: str, token: str
         except urllib.error.HTTPError as e:
             if e.code != 409:
                 body = e.read().decode() if e.fp else ""
-                sys.exit(f"Create client scope {KAIROS_GROUPS_CLIENT_SCOPE_NAME} in {realm_name} failed: {e.code} {body}")
+                sys.exit(f"Create client scope {SQUADRULES_GROUPS_CLIENT_SCOPE_NAME} in {realm_name} failed: {e.code} {body}")
         scopes = list_realm_client_scopes(base_url, realm_name, token)
-        scope_row = next((s for s in scopes if s.get("name") == KAIROS_GROUPS_CLIENT_SCOPE_NAME), None)
+        scope_row = next((s for s in scopes if s.get("name") == SQUADRULES_GROUPS_CLIENT_SCOPE_NAME), None)
         if not scope_row:
-            sys.exit(f"Client scope {KAIROS_GROUPS_CLIENT_SCOPE_NAME} missing in {realm_name} after create attempt")
-        print(f"  Created client scope '{KAIROS_GROUPS_CLIENT_SCOPE_NAME}' in {realm_name}")
+            sys.exit(f"Client scope {SQUADRULES_GROUPS_CLIENT_SCOPE_NAME} missing in {realm_name} after create attempt")
+        print(f"  Created client scope '{SQUADRULES_GROUPS_CLIENT_SCOPE_NAME}' in {realm_name}")
     else:
-        print(f"  Client scope '{KAIROS_GROUPS_CLIENT_SCOPE_NAME}' already present in {realm_name}")
+        print(f"  Client scope '{SQUADRULES_GROUPS_CLIENT_SCOPE_NAME}' already present in {realm_name}")
 
     scope_id = scope_row.get("id")
     if not isinstance(scope_id, str) or not scope_id:
-        sys.exit(f"Client scope {KAIROS_GROUPS_CLIENT_SCOPE_NAME} missing id in {realm_name}")
-    ensure_kairos_oidc_group_mapper_for_client_scope(
-        base_url, realm_name, scope_id, KAIROS_GROUPS_CLIENT_SCOPE_NAME, token, full_path=True
+        sys.exit(f"Client scope {SQUADRULES_GROUPS_CLIENT_SCOPE_NAME} missing id in {realm_name}")
+    ensure_squadrules_oidc_group_mapper_for_client_scope(
+        base_url, realm_name, scope_id, SQUADRULES_GROUPS_CLIENT_SCOPE_NAME, token, full_path=True
     )
     return scope_id
 
@@ -752,7 +752,7 @@ def ensure_client_optional_scope(
         sys.exit(f"Add {scope_name} to client optional scopes {realm_name} client={client_uuid} failed: {e.code} {body}")
 
 
-def remove_kairos_oidc_group_mapper_from_client(
+def remove_squadrules_oidc_group_mapper_from_client(
     base_url: str,
     realm_name: str,
     client_uuid: str,
@@ -760,12 +760,12 @@ def remove_kairos_oidc_group_mapper_from_client(
     token: str,
 ) -> None:
     mappers = list_client_protocol_mappers(base_url, realm_name, client_uuid, token)
-    existing = next((m for m in mappers if m.get("name") == KAIROS_OIDC_GROUP_MAPPER_NAME), None)
+    existing = next((m for m in mappers if m.get("name") == SQUADRULES_OIDC_GROUP_MAPPER_NAME), None)
     if not existing:
         return
     mapper_id = existing.get("id")
     if not isinstance(mapper_id, str) or not mapper_id:
-        sys.exit(f"{realm_name} client {client_label}: mapper {KAIROS_OIDC_GROUP_MAPPER_NAME!r} has no id")
+        sys.exit(f"{realm_name} client {client_label}: mapper {SQUADRULES_OIDC_GROUP_MAPPER_NAME!r} has no id")
     url = (
         f"{base_url.rstrip('/')}/admin/realms/{realm_name}/clients/"
         f"{client_uuid}/protocol-mappers/models/{mapper_id}"
@@ -802,7 +802,7 @@ def ensure_openid_client_scope(base_url: str, realm_name: str, token: str) -> st
     The scope is added as a **default** (not optional) client scope so every token — including
     those issued to dynamically registered MCP clients — carries the `openid` scope. Without it,
     the OIDC Userinfo endpoint returns 403 "Missing openid scope", which breaks the Bearer-auth
-    groups fallback path in KAIROS (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
+    groups fallback path in SQUADRULES (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
 
     Returns the scope id so callers can link it to named clients.
     """
@@ -930,13 +930,13 @@ DOCKER_BRIDGE_GATEWAYS = [f"172.{octet}.0.1" for octet in range(16, 32)]
 
 
 def _docker_container_ip_on_network(service_name: str) -> str | None:
-    """Find a container's IP by searching all kairos-related Docker networks."""
+    """Find a container's IP by searching all squadrules-related Docker networks."""
     IP_RE = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
     out = _run_docker("network", "ls", "--format", "{{.Name}}")
     if not out:
         return None
     for net_name in out.splitlines():
-        if "kairos" not in net_name:
+        if "squadrules" not in net_name:
             continue
         cdata = _run_docker("network", "inspect", net_name, "--format", "{{json .Containers}}")
         if not cdata:
@@ -1098,7 +1098,7 @@ def create_user(base_url: str, realm: str, username: str, token: str) -> str | N
         {
             "username": username,
             "enabled": True,
-            "firstName": "Kairos",
+            "firstName": "Squadrules",
             "lastName": "Tester",
             "email": email,
             "emailVerified": True,
@@ -1160,7 +1160,7 @@ def finalize_test_user_for_direct_grant(
     rest = {k: v for k, v in user.items() if k != "credentials"}
     fn = (rest.get("firstName") or "").strip()
     ln = (rest.get("lastName") or "").strip()
-    rest["firstName"] = fn or "Kairos"
+    rest["firstName"] = fn or "Squadrules"
     rest["lastName"] = ln or "Tester"
     if not (rest.get("email") or "").strip():
         rest["email"] = username if "@" in username else f"{username}@localhost"
@@ -1178,8 +1178,8 @@ def finalize_test_user_for_direct_grant(
         sys.exit(f"Finalize test user {username!r} failed: {e.code} {body}")
 
 
-_KAIROS_SHARES_GROUP = "kairos-shares"
-_KAIROS_OPERATOR_GROUP = "kairos-operator"
+_SQUADRULES_SHARES_GROUP = "squadrules-shares"
+_SQUADRULES_OPERATOR_GROUP = "squadrules-operator"
 _SHARED_GROUP = "shared"
 _CI_TEST_SUBGROUP = "ci-test"
 
@@ -1221,7 +1221,7 @@ def get_realm_group_id_by_name(
     base_url: str, realm: str, group_name: str, token: str
 ) -> str | None:
     # Top-level GET often omits subGroups unless search/q is used; recurse when present,
-    # and resolve nested kairos-operator under kairos-shares via /children.
+    # and resolve nested squadrules-operator under squadrules-shares via /children.
     q = urllib.parse.urlencode({"briefRepresentation": "false", "max": "1000"})
     url = f"{base_url.rstrip('/')}/admin/realms/{realm}/groups?{q}"
     req = urllib.request.Request(url, method="GET")
@@ -1234,13 +1234,13 @@ def get_realm_group_id_by_name(
             found = _find_group_id_by_name(raw, group_name)
             if found:
                 return found
-            if group_name == _KAIROS_OPERATOR_GROUP:
-                shares_id = _find_group_id_by_name(raw, _KAIROS_SHARES_GROUP)
+            if group_name == _SQUADRULES_OPERATOR_GROUP:
+                shares_id = _find_group_id_by_name(raw, _SQUADRULES_SHARES_GROUP)
                 if shares_id:
                     for ch in list_direct_group_children(
                         base_url, realm, shares_id, token
                     ):
-                        if ch.get("name") == _KAIROS_OPERATOR_GROUP:
+                        if ch.get("name") == _SQUADRULES_OPERATOR_GROUP:
                             cid = ch.get("id")
                             if isinstance(cid, str) and cid:
                                 return cid
@@ -1279,12 +1279,12 @@ def _operator_is_child_of_shares(
     base_url: str, realm: str, token: str
 ) -> bool:
     shares_id = get_realm_group_id_by_name(
-        base_url, realm, _KAIROS_SHARES_GROUP, token
+        base_url, realm, _SQUADRULES_SHARES_GROUP, token
     )
     if not shares_id:
         return False
     for ch in list_direct_group_children(base_url, realm, shares_id, token):
-        if ch.get("name") == _KAIROS_OPERATOR_GROUP:
+        if ch.get("name") == _SQUADRULES_OPERATOR_GROUP:
             return True
     return False
 
@@ -1352,28 +1352,28 @@ def post_group_child(
         )
 
 
-def ensure_kairos_shares_operator_hierarchy(base_url: str, realm: str, token: str) -> None:
-    """Nest kairos-operator under kairos-shares (idempotent). Realm JSON alone is insufficient."""
+def ensure_squadrules_shares_operator_hierarchy(base_url: str, realm: str, token: str) -> None:
+    """Nest squadrules-operator under squadrules-shares (idempotent). Realm JSON alone is insufficient."""
     if _operator_is_child_of_shares(base_url, realm, token):
         print(
-            f"  Groups {realm}: {_KAIROS_OPERATOR_GROUP!r} already under {_KAIROS_SHARES_GROUP!r}"
+            f"  Groups {realm}: {_SQUADRULES_OPERATOR_GROUP!r} already under {_SQUADRULES_SHARES_GROUP!r}"
         )
         return
     shares_id = create_top_level_group_if_missing(
-        base_url, realm, _KAIROS_SHARES_GROUP, token
+        base_url, realm, _SQUADRULES_SHARES_GROUP, token
     )
     tree = fetch_realm_groups_tree(base_url, realm, token)
-    operator_id = _find_group_id_by_name(tree, _KAIROS_OPERATOR_GROUP)
+    operator_id = _find_group_id_by_name(tree, _SQUADRULES_OPERATOR_GROUP)
     post_group_child(
-        base_url, realm, shares_id, _KAIROS_OPERATOR_GROUP, operator_id, token
+        base_url, realm, shares_id, _SQUADRULES_OPERATOR_GROUP, operator_id, token
     )
     if not _operator_is_child_of_shares(base_url, realm, token):
         sys.exit(
-            f"{realm}: expected {_KAIROS_OPERATOR_GROUP!r} under {_KAIROS_SHARES_GROUP!r} "
+            f"{realm}: expected {_SQUADRULES_OPERATOR_GROUP!r} under {_SQUADRULES_SHARES_GROUP!r} "
             "after Admin API child POST; re-check Keycloak state."
         )
     print(
-        f"  Groups {realm}: nested {_KAIROS_OPERATOR_GROUP!r} under {_KAIROS_SHARES_GROUP!r}"
+        f"  Groups {realm}: nested {_SQUADRULES_OPERATOR_GROUP!r} under {_SQUADRULES_SHARES_GROUP!r}"
     )
 
 
@@ -1565,8 +1565,8 @@ _CLIENT_COMPARE_KEYS = (
     "clientId", "name", "enabled", "publicClient", "standardFlowEnabled", "directAccessGrantsEnabled",
     "redirectUris", "webOrigins", "attributes",
 )
-# Only verify these clients (kairos-cli is used by CLI login; kairos-mcp is server's client, often env-specific)
-_VERIFY_CLIENT_IDS = frozenset({"kairos-cli"})
+# Only verify these clients (squadrules-cli is used by CLI login; squadrules-mcp is server's client, often env-specific)
+_VERIFY_CLIENT_IDS = frozenset({"squadrules-cli"})
 
 
 def get_realm_groups(base_url: str, realm_name: str, token: str) -> list[dict]:
@@ -1691,10 +1691,10 @@ def main() -> int:
     if not admin_password:
         sys.exit("KEYCLOAK_ADMIN_PASSWORD not set. Set in .env or export.")
 
-    test_username = env.get("TEST_USERNAME", "kairos-tester")
-    test_password = env.get("TEST_PASSWORD", "kairos-tester-secret")
-    ci_test_only_username = env.get("KAIROS_CI_TEST_USERNAME", "kairos-ci-tester")
-    ci_test_only_password = env.get("KAIROS_CI_TEST_PASSWORD", "kairos-ci-tester-secret")
+    test_username = env.get("TEST_USERNAME", "squadrules-tester")
+    test_password = env.get("TEST_PASSWORD", "squadrules-tester-secret")
+    ci_test_only_username = env.get("SQUADRULES_CI_TEST_USERNAME", "squadrules-ci-tester")
+    ci_test_only_password = env.get("SQUADRULES_CI_TEST_PASSWORD", "squadrules-ci-tester-secret")
 
     token = get_admin_token(base_url, admin_password)
     import_dir = root / "scripts" / "keycloak" / "import"
@@ -1726,7 +1726,7 @@ def main() -> int:
             print(f"  Created client {cid} in {realm_name}.")
             existing_ids.add(cid)
 
-        push_kairos_mcp_redirect_config(base_url, realm_name, desired, token)
+        push_squadrules_mcp_redirect_config(base_url, realm_name, desired, token)
 
     # 1b. Realm PUT does not reliably create/move groups; enforce import top-level groups
     # and then /shared plus optional shares/operator hierarchy via Admin API.
@@ -1735,13 +1735,13 @@ def main() -> int:
         ensure_top_level_groups_from_import(base_url, realm_name, desired, token)
         ensure_shared_group(base_url, realm_name, token)
         ensure_shared_ci_test_hierarchy(base_url, realm_name, token)
-        if import_includes_top_level_group(desired, _KAIROS_SHARES_GROUP):
-            ensure_kairos_shares_operator_hierarchy(base_url, realm_name, token)
+        if import_includes_top_level_group(desired, _SQUADRULES_SHARES_GROUP):
+            ensure_squadrules_shares_operator_hierarchy(base_url, realm_name, token)
         prune_top_level_groups_not_in_import(base_url, realm_name, desired, token)
 
     # 2. Set trusted hosts per realm (dev / prod)
     for realm_name, _ in REALM_FILES:
-        env_key = realm_name.replace("kairos-", "")
+        env_key = realm_name.replace("squadrules-", "")
         ensure_trusted_hosts(base_url, realm_name, env_key, token)
 
     # 3. Client Scope `openid` as realm **default** (not optional) so Userinfo works for
@@ -1754,22 +1754,22 @@ def main() -> int:
     # 3b. Shared groups client scope (default for all clients, including dynamic registration).
     group_scope_ids: dict[str, str] = {}
     for realm_name, _ in REALM_FILES:
-        group_scope_ids[realm_name] = ensure_kairos_groups_client_scope(base_url, realm_name, token)
+        group_scope_ids[realm_name] = ensure_squadrules_groups_client_scope(base_url, realm_name, token)
 
     # 4. Dynamic client registration: allowed client-scope templates
     for realm_name, _ in REALM_FILES:
         ensure_allowed_client_templates(base_url, realm_name, token)
 
-    # 4b. Attach groups + openid scopes to realm defaults + named clients (kairos-mcp / kairos-cli).
+    # 4b. Attach groups + openid scopes to realm defaults + named clients (squadrules-mcp / squadrules-cli).
     #     Realm defaults apply to newly registered DCR clients automatically. Named clients
     #     need explicit linking because they were created before the scopes became defaults.
     for realm_name, _ in REALM_FILES:
         scope_id = group_scope_ids.get(realm_name)
         if not scope_id:
-            sys.exit(f"Missing {KAIROS_GROUPS_CLIENT_SCOPE_NAME} scope id for {realm_name}")
+            sys.exit(f"Missing {SQUADRULES_GROUPS_CLIENT_SCOPE_NAME} scope id for {realm_name}")
         openid_id = openid_scope_ids.get(realm_name)
         ensure_default_client_scope(
-            base_url, realm_name, token, scope_id, KAIROS_GROUPS_CLIENT_SCOPE_NAME
+            base_url, realm_name, token, scope_id, SQUADRULES_GROUPS_CLIENT_SCOPE_NAME
         )
         for cid in sorted(CLIENT_IDS_FOR_GROUP_MAPPER):
             c_uuid = get_client_internal_id_by_client_id(base_url, realm_name, cid, token)
@@ -1780,13 +1780,13 @@ def main() -> int:
                 )
                 continue
             ensure_client_default_scope(
-                base_url, realm_name, token, c_uuid, scope_id, KAIROS_GROUPS_CLIENT_SCOPE_NAME
+                base_url, realm_name, token, c_uuid, scope_id, SQUADRULES_GROUPS_CLIENT_SCOPE_NAME
             )
             if openid_id:
                 ensure_client_default_scope(
                     base_url, realm_name, token, c_uuid, openid_id, "openid"
                 )
-            remove_kairos_oidc_group_mapper_from_client(base_url, realm_name, c_uuid, cid, token)
+            remove_squadrules_oidc_group_mapper_from_client(base_url, realm_name, c_uuid, cid, token)
             # Optional scopes (profile, email, offline_access) — available when requested.
             realm_scopes = list_realm_client_scopes(base_url, realm_name, token)
             for opt_name in CLIENT_OPTIONAL_SCOPES:
@@ -1799,7 +1799,7 @@ def main() -> int:
                 )
 
     # 5. Test users in dev only (password); group membership runs after verify (step 7)
-    for realm_name in ("kairos-dev",):
+    for realm_name in ("squadrules-dev",):
         ensure_test_user(base_url, realm_name, test_username, test_password, token)
         ensure_test_user(base_url, realm_name, ci_test_only_username, ci_test_only_password, token)
 
@@ -1813,12 +1813,12 @@ def main() -> int:
     print("Verified: dump matches import.")
 
     # 7. Test user groups last (realm/clients verified); GET confirms membership for Admin UI / tokens
-    for realm_name in ("kairos-dev",):
+    for realm_name in ("squadrules-dev",):
         desired = desired_by_realm.get(realm_name, {})
-        ensure_test_user_in_group(base_url, realm_name, test_username, "kairos-auditor", token)
-        if import_includes_top_level_group(desired, _KAIROS_SHARES_GROUP):
+        ensure_test_user_in_group(base_url, realm_name, test_username, "squadrules-auditor", token)
+        if import_includes_top_level_group(desired, _SQUADRULES_SHARES_GROUP):
             ensure_test_user_in_group(
-                base_url, realm_name, test_username, "kairos-operator", token
+                base_url, realm_name, test_username, "squadrules-operator", token
             )
         ensure_test_user_in_group(base_url, realm_name, test_username, "ci-test", token)
         ensure_test_user_in_group(base_url, realm_name, ci_test_only_username, "ci-test", token)

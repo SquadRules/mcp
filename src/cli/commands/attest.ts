@@ -11,8 +11,8 @@ import { createClientFromProgram } from '../client-factory.js';
 export function rewardCommand(program: Command): void {
     program
         .command('reward')
-        .description('Record a reward signal for a KAIROS adapter execution')
-        .argument('<uri>', 'KAIROS layer URI (kairos://layer/...)')
+        .description('Record a reward signal for a SQUADRULES adapter execution')
+        .argument('<uri>', 'SQUADRULES layer URI (squadrules://layer/...)')
         .argument('<outcome>', 'Outcome: success or failure')
         .argument('<feedback>', 'Reward feedback describing the completion or failure')
         .option('--score <number>', 'Normalized reward score in the 0..1 range')

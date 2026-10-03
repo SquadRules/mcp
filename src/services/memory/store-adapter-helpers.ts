@@ -1,12 +1,12 @@
 import { logger } from '../../utils/structured-logger.js';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import { SIMILAR_MEMORY_THRESHOLD } from '../../config.js';
 import { getSpaceContext } from '../../utils/tenant-context.js';
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../../utils/protected-space-write-guard.js';
 import type { MemoryQdrantStoreMethods } from './store-methods.js';
-import { buildAdapterUri, buildLayerUri } from '../../tools/kairos-uri.js';
+import { buildAdapterUri, buildLayerUri } from '../../tools/squadrules-uri.js';
 import { MAX_AUTO_SUFFIX_ATTEMPTS, nextAutoSlugCandidate } from '../../utils/protocol-slug.js';
 
 /**
@@ -63,7 +63,7 @@ export async function handleDuplicateAdapter(
         label: (p.payload?.label as string) || 'Memory',
         uri: buildLayerUri(String(p.id))
       }));
-      throw new KairosError('Duplicate adapter', 'DUPLICATE_ADAPTER', 409, { adapter_id: adapterUuid, items });
+      throw new SquadrulesError('Duplicate adapter', 'DUPLICATE_ADAPTER', 409, { adapter_id: adapterUuid, items });
     }
     const protectedEntries = (dup.points || []).filter((p: any) =>
       isProtectedWriteSpace(typeof p?.payload?.space_id === 'string' ? p.payload.space_id : '')
@@ -76,7 +76,7 @@ export async function handleDuplicateAdapter(
       }));
       const firstSpaceId =
         typeof protectedEntries[0]?.payload?.space_id === 'string' ? protectedEntries[0].payload.space_id : undefined;
-      throw new KairosError(
+      throw new SquadrulesError(
         protectedWriteErrorMessage(firstSpaceId),
         'PROTECTED_SPACE_WRITE_FORBIDDEN',
         403,
@@ -155,7 +155,7 @@ export async function checkSimilarAdapterByTitle(
       `[MemoryQdrantStore] Similar adapter title: query "${label}" ~ existing "${matchedAdapterName}" score ${bestScore.toFixed(3)}`
     );
 
-    throw new KairosError(
+    throw new SquadrulesError(
       'Similar memory found by title',
       'SIMILAR_MEMORY_FOUND',
       409,
@@ -225,7 +225,7 @@ export async function allocateAdapterSlugForMint(
   if (authorSupplied) {
     const clash = await usedByOtherAdapter(baseSlug);
     if (clash) {
-      throw new KairosError(
+      throw new SquadrulesError(
         `Slug "${baseSlug}" is already used by another protocol in this space.`,
         'DUPLICATE_SLUG',
         409,
@@ -245,7 +245,7 @@ export async function allocateAdapterSlugForMint(
     if (!clash) return candidate;
   }
 
-  throw new KairosError(
+  throw new SquadrulesError(
     `Could not allocate a unique slug from "${baseSlug}" after ${MAX_AUTO_SUFFIX_ATTEMPTS} attempts.`,
     'SLUG_ALLOCATION_EXHAUSTED',
     409,

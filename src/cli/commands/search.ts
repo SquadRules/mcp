@@ -11,7 +11,7 @@ import { createClientFromProgram } from '../client-factory.js';
 export function activateCommand(program: Command): void {
     program
         .command('activate')
-        .description('Activate the best matching KAIROS adapter for a query')
+        .description('Activate the best matching SQUADRULES adapter for a query')
         .argument('<query...>', 'Search query (multiple words allowed)')
         .action(async (query: string[]) => {
             try {

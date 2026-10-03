@@ -48,7 +48,7 @@ and your infrastructure requirements as the source of truth.
 ## Start
 
 ```sh
-docker compose -p kairos-mcp --profile fullstack up -d
+docker compose -p squadrules-mcp --profile fullstack up -d
 ```
 
 After the stack is running, confirm the application health endpoint:

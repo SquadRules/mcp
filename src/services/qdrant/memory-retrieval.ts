@@ -3,7 +3,7 @@ import { validateAndConvertId } from './utils.js';
 import { qdrantOperations, qdrantOperationDuration } from '../metrics/qdrant-metrics.js';
 import { getTenantId, getSpaceContext, getSearchSpaceIds } from '../../utils/tenant-context.js';
 import { buildAdapterSiblingScrollFilter, buildSpaceFilter } from '../../utils/space-filter.js';
-import { KAIROS_APP_SPACE_ID } from '../../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../config.js';
 import { structuredLogger } from '../../utils/structured-logger.js';
 import { ALLOWED_ARTIFACT_MIMES } from '../../tools/artifact-mime.js';
 
@@ -43,9 +43,9 @@ export async function retrievePointAccessById(
     return { status: 'not_found' };
   }
 
-  const pointSpaceId = String((point.payload as any)?.space_id ?? KAIROS_APP_SPACE_ID);
+  const pointSpaceId = String((point.payload as any)?.space_id ?? SQUADRULES_APP_SPACE_ID);
   const allowed = getSpaceContext().allowedSpaceIds;
-  const canRead = allowed.includes(pointSpaceId) || pointSpaceId === KAIROS_APP_SPACE_ID;
+  const canRead = allowed.includes(pointSpaceId) || pointSpaceId === SQUADRULES_APP_SPACE_ID;
   if (!canRead) {
     return { status: 'forbidden', pointId: String(point.id), spaceId: pointSpaceId };
   }
@@ -214,7 +214,7 @@ export interface ArtifactSlugResolveOutcome {
 function getSlugSpacePrecedence(spaceId: string): number {
   if (spaceId.startsWith('user:')) return 0;
   if (spaceId.startsWith('group:')) return 1;
-  if (spaceId === KAIROS_APP_SPACE_ID || spaceId.startsWith('app:')) return 2;
+  if (spaceId === SQUADRULES_APP_SPACE_ID || spaceId.startsWith('app:')) return 2;
   return 2;
 }
 
@@ -272,7 +272,7 @@ export async function findFirstStepMemoryUuidBySlug(
       return { layerUuid: String(unique[0]!.id) };
     }
 
-    const spaceOf = (p: any) => String(p.payload?.space_id ?? KAIROS_APP_SPACE_ID);
+    const spaceOf = (p: any) => String(p.payload?.space_id ?? SQUADRULES_APP_SPACE_ID);
     const sorted = [...unique].sort((a: any, b: any) => {
       const aPriority = getSlugSpacePrecedence(spaceOf(a));
       const bPriority = getSlugSpacePrecedence(spaceOf(b));
@@ -294,7 +294,7 @@ export async function findFirstStepMemoryUuidBySlug(
         return `${adapterId}@${pointSpaceId}`;
       })
       .join(', ');
-    const note = `Slug "${normalized}" matched ${unique.length} adapters; selected "${adapterHint}" from "${winnerSpaceId}" by precedence (personal > group > app/system, then stable id). Candidates: ${contenderSummary}. Prefer an explicit adapter URI such as kairos://adapter/${adapterHint} to avoid ambiguity.`;
+    const note = `Slug "${normalized}" matched ${unique.length} adapters; selected "${adapterHint}" from "${winnerSpaceId}" by precedence (personal > group > app/system, then stable id). Candidates: ${contenderSummary}. Prefer an explicit adapter URI such as squadrules://adapter/${adapterHint} to avoid ambiguity.`;
     structuredLogger.warn(`[slug-resolve] ${note}`);
     return { layerUuid: chosenId, disambiguation_note: note };
   });

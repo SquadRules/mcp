@@ -44,17 +44,17 @@ describe('validateBearerToken group extraction', () => {
   });
 
   test('uses id_token groups when access token has no groups', async () => {
-    const issuer = 'https://kc.example/realms/kairos-dev';
+    const issuer = 'https://kc.example/realms/squadrules-dev';
     const token = tokenFor({
       iss: issuer,
       sub: 'user-1',
-      aud: ['kairos-mcp'],
+      aud: ['squadrules-mcp'],
       id_token: tokenFor({
         groups: ['/SHARED/PE-TEAM']
       })
     });
 
-    const auth = await validateBearerToken(token, [issuer], ['kairos-mcp']);
+    const auth = await validateBearerToken(token, [issuer], ['squadrules-mcp']);
     expect(auth).not.toBeNull();
     expect(auth?.groups).toEqual(['/SHARED/PE-TEAM']);
   });
@@ -66,14 +66,14 @@ describe('validateBearerToken group extraction', () => {
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const issuer = 'https://kc.example/realms/kairos-dev';
+    const issuer = 'https://kc.example/realms/squadrules-dev';
     const token = tokenFor({
       iss: issuer,
       sub: 'user-1',
-      aud: ['kairos-mcp']
+      aud: ['squadrules-mcp']
     });
 
-    const auth = await validateBearerToken(token, [issuer], ['kairos-mcp']);
+    const auth = await validateBearerToken(token, [issuer], ['squadrules-mcp']);
     expect(fetchMock).toHaveBeenCalled();
     const callUrl = fetchMock.mock.calls[0]?.[0] as string;
     expect(callUrl).toContain('/protocol/openid-connect/userinfo');
@@ -94,7 +94,7 @@ describe('validateBearerToken group extraction', () => {
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const issuer = 'https://kc.example/realms/kairos';
+    const issuer = 'https://kc.example/realms/squadrules';
     const token = tokenFor({
       iss: issuer,
       sub: 'user-1',
@@ -103,7 +103,7 @@ describe('validateBearerToken group extraction', () => {
       scope: 'openid email profile'
     });
 
-    const auth = await validateBearerToken(token, [issuer], ['kairos-mcp', 'kairos-cli', 'account']);
+    const auth = await validateBearerToken(token, [issuer], ['squadrules-mcp', 'squadrules-cli', 'account']);
     expect(fetchMock).toHaveBeenCalled();
     expect(auth).not.toBeNull();
     expect(auth?.groups).toEqual([]);

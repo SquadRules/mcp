@@ -1,14 +1,14 @@
 ---
 slug: create-new-protocol
 version: "4.8.6"
-title: Create / Review / Refactor KAIROS Protocol
+title: Create / Review / Refactor SQUADRULES Protocol
 ---
 
 
 
-# Create / Review / Refactor KAIROS Protocol
+# Create / Review / Refactor SQUADRULES Protocol
 
-> **Note to the agent:** KAIROS protocols are interfaces for AI agents — you
+> **Note to the agent:** SQUADRULES protocols are interfaces for AI agents — you
 > are the primary user. When you author a protocol, you design behaviour for
 > yourself and others. Write for them: single source of truth (never duplicate
 > rules), explicit over implicit (agents fill ambiguity with hallucination),
@@ -18,7 +18,7 @@ title: Create / Review / Refactor KAIROS Protocol
 
 ## Activation Patterns
 
-KAIROS authoring lifecycle — create, review, or update adapters / protocols / workflows.
+SQUADRULES authoring lifecycle — create, review, or update adapters / protocols / workflows.
 In this context, those words refer to the same stored artifact and can be treated
 as synonyms. Supports three operations:
 
@@ -31,8 +31,8 @@ as synonyms. Supports three operations:
 
 **Run this protocol when the user says ANY of:**
 
-- "create a new KAIROS protocol" / "create new protocol adapter"
-- "register personal KAIROS adapter" / "register a personal adapter"
+- "create a new SQUADRULES protocol" / "create new protocol adapter"
+- "register personal SQUADRULES adapter" / "register a personal adapter"
 - "train adapter into personal" / "train protocol into personal"
 - "train a workflow" / "register a new adapter" / "create a new workflow"
 - "review protocol" / "audit adapters" / "check protocol families for gaps"
@@ -63,7 +63,7 @@ as synonyms. Supports three operations:
 - Enforce the 350-line limit per file.
 
 **Good trigger examples:**
-- "Create a new KAIROS protocol for code review" → run this protocol (create)
+- "Create a new SQUADRULES protocol for code review" → run this protocol (create)
 - "No match found; I want to create a new protocol" → run this protocol (create)
 - "Review all v4 protocol families for missing cross-references" → run this protocol (review)
 - "Update the MR adapter to include a review step" → run this protocol (update)
@@ -146,7 +146,7 @@ For `update`: ask which adapter to update and what the issue is.
 and which parts stay in the router vs extensions.
 
 **4. If Chain pattern:** Load `protocol-linking-guide` for full rules
-(`forward` with `kairos://adapter/protocol-linking-guide`). Collect: chain
+(`forward` with `squadrules://adapter/protocol-linking-guide`). Collect: chain
 links and concerns, minimum number of links, entry point (matched by
 `activate`), and artifacts flowing between links.
 
@@ -202,7 +202,7 @@ Draft the full markdown for `train`.
 
 Write a structured gap report to `$REVIEW_FINDINGS_FILE` (an absolute path
 provided by the invoking agent or chosen by you under
-`$KAIROS_LOCAL_ARTIFACT_DIR` with a session-unique segment). For each finding
+`$SQUADRULES_LOCAL_ARTIFACT_DIR` with a session-unique segment). For each finding
 include:
 
 - adapter title
@@ -217,7 +217,7 @@ Apply the identified change and show a diff-style summary of what changed.
 
 ### Shared drafting rules (all operations)
 
-**Core KAIROS rule — right mode at the right time:**
+**Core SQUADRULES rule — right mode at the right time:**
 
 Every protocol must help the agent recognise whether the current step is for
 exploration, clarification, ideation, planning, execution, validation, review,
@@ -257,7 +257,7 @@ Every protocol gets a short, unique, lowercase-hyphenated `slug`.
 
 Store scripts or config blobs as artifacts via `train` (set `mime`,
 `artifact_name`, `adapter_uri`). Retrieve with `export` using
-`kairos://artifact/{uuid}`.
+`squadrules://artifact/{uuid}`.
 
 **Protocol structure:** H1 title, first H2 Activation Patterns, second H2
 Preflight Dependencies, middle H2s one per step with JSON contract block, last
@@ -265,10 +265,10 @@ H2 Reward Signal. Frontmatter: `slug` (required), `version` (optional),
 `chain_root` (required for mid-chain adapters).
 
 **Challenge types:** Load `challenge-type-guide` for decision rules and JSON
-formats (`forward` with `kairos://adapter/challenge-type-guide`).
+formats (`forward` with `squadrules://adapter/challenge-type-guide`).
 
 **Phase-critic and mutation gates:** Load `phase-critic-guide` for placement,
-FAIL gate, and solution check rules (`forward` with `kairos://adapter/phase-critic-guide`).
+FAIL gate, and solution check rules (`forward` with `squadrules://adapter/phase-critic-guide`).
 
 **If Router pattern:** draft the router and each extension as separate files.
 
@@ -284,7 +284,7 @@ For `create` and `update`: run phase-critic against the drafted markdown before
 presenting to the user. This is the quality gate — the agent owns content, the
 critic owns quality.
 
-1. Invoke phase-critic via `forward` with `kairos://adapter/phase-critic`.
+1. Invoke phase-critic via `forward` with `squadrules://adapter/phase-critic`.
    Provide the drafted markdown as `input_file`, the slug as
    `calling_protocol_slug`, and "structural compliance and agent behaviour"
    as `verification_target`.
@@ -342,5 +342,5 @@ Protocol complete when:
 - `review` — findings report delivered and acknowledged
 - `update` — corrected adapter trained with `force_update: true` + review_evidence, repo file updated
 
-A successful result means the resulting KAIROS adapter is more truthful,
+A successful result means the resulting SQUADRULES adapter is more truthful,
 phase-aware, agent-readable, and aligned with human–AI harmony.

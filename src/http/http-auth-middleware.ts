@@ -32,12 +32,8 @@ export { setWwwAuthenticate };
 
 export type { AuthPayload };
 
-// Cookie name retained as kairos_session for deployment compatibility.
-// Renaming requires dual-emit with matching security attributes, coordinated
-// logout clearing, and refresh handling. Deferred to a separate decision.
-const SESSION_COOKIE_NAME = 'kairos_session';
-/** Alternative cookie name accepted on read for forward-compatibility during SquadRules migration. */
-const SESSION_COOKIE_NAME_ALT = 'squadrules_session';
+// Session cookie name.
+const SESSION_COOKIE_NAME = 'squadrules_session';
 const KNOWN_HTTP_METHODS = new Set<string>(METHODS);
 
 function jsonInvalidTokenResponse(message: string): Record<string, unknown> {
@@ -54,14 +50,10 @@ function getSessionCookie(req: Request): string | null {
   const raw = req.get('cookie');
   if (!raw) return null;
   const cookies = raw.split(';').map((s) => s.trim());
-  // Primary cookie takes precedence; fall back to the alternative name
-  // for clients that have already adopted squadrules_session.
-  for (const name of [SESSION_COOKIE_NAME, SESSION_COOKIE_NAME_ALT]) {
-    const match = cookies.find((s) => s.startsWith(name + '='));
-    if (match) {
-      const value = match.slice((name + '=').length).trim();
-      if (value) return decodeURIComponent(value);
-    }
+  const match = cookies.find((s) => s.startsWith(SESSION_COOKIE_NAME + '='));
+  if (match) {
+    const value = match.slice((SESSION_COOKIE_NAME + '=').length).trim();
+    if (value) return decodeURIComponent(value);
   }
   return null;
 }

@@ -6,7 +6,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       var el = document.getElementById('out'), headerTitle = document.getElementById('header-title');
       var headerTopMatch = document.getElementById('header-top-match'), PROTO = '2026-01-26';
       var nextId = 1, pending = {}, hostCtxState = {};
-      var ACTIVATE_VISIBLE_CHOICES = 3, BATCH = 10, PRESENTATION_ONLY = __KAIROS_WIDGET_PRESENTATION_ONLY__;
+      var ACTIVATE_VISIBLE_CHOICES = 3, BATCH = 10, PRESENTATION_ONLY = __SQUADRULES_WIDGET_PRESENTATION_ONLY__;
 
       window.addEventListener('message', function (ev) {
         var d = ev.data;
@@ -89,7 +89,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
           }
         }
         if (st && st.css && st.css.fonts && typeof st.css.fonts === 'string' && st.css.fonts.trim()) {
-          var fid = 'kairos-host-fonts';
+          var fid = 'squadrules-host-fonts';
           var styleEl = document.getElementById(fid);
           if (!styleEl) {
             styleEl = document.createElement('style');
@@ -140,13 +140,13 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       }
 
       function headerHtmlIdle() {
-        return '<span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span>';
+        return '<span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span>';
       }
 
       function headerHtmlWithQuery(q) {
         var safe = escapeHtml(q && String(q).trim() ? String(q).trim() : '—');
         return (
-          '<span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-label">query: </span><span class="ht-protocol-name">' +
+          '<span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-label">query: </span><span class="ht-protocol-name">' +
           safe +
           '</span>'
         );
@@ -217,7 +217,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       function showRawJson(obj) {
         clearTopMatch();
         if (headerTitle) headerTitle.innerHTML = headerHtmlIdle();
-        document.title = 'Activate — KAIROS';
+        document.title = 'Activate — SQUADRULES';
         if (el) {
           var pre = document.createElement('pre');
           pre.className = 'raw';
@@ -235,7 +235,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         }
         clearTopMatch();
         if (headerTitle) headerTitle.innerHTML = headerHtmlIdle();
-        document.title = 'Activate — KAIROS';
+        document.title = 'Activate — SQUADRULES';
         if (!el) return;
         var wrap = document.createElement('div');
         var msgEl = document.createElement('p');
@@ -355,7 +355,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         if (headerTitle) headerTitle.innerHTML = headerHtmlWithQuery(sc.query != null ? sc.query : '');
         paintTopMatch(all);
         var qt = sc.query != null && String(sc.query).trim() ? String(sc.query).trim() : 'Activate';
-        document.title = qt.length > 48 ? qt.slice(0, 45) + '… — KAIROS' : qt + ' — KAIROS';
+        document.title = qt.length > 48 ? qt.slice(0, 45) + '… — SQUADRULES' : qt + ' — SQUADRULES';
         if (!el) return;
         el.replaceChildren();
         var ul = document.createElement('ul');
@@ -417,13 +417,13 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
             var ph = document.createElement('span');
             ph.className = 'waiting';
             ph.textContent =
-              'Presentation-only: MCP bridge disabled (set KAIROS_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
+              'Presentation-only: MCP bridge disabled (set SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
             el.appendChild(ph);
           }
           return;
         }
         sendRequest('ui/initialize', {
-          appInfo: { name: 'kairos-activate-view', version: '1.0.0' },
+          appInfo: { name: 'squadrules-activate-view', version: '1.0.0' },
           appCapabilities: {},
           protocolVersion: PROTO
         }).then(function (result) {

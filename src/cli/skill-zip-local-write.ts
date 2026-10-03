@@ -17,7 +17,7 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
 }
 
 function maxSkillZipDownloadBytes(): number {
-  return parsePositiveInt(process.env['KAIROS_EXPORT_ZIP_MAX_DOWNLOAD_BYTES'], DEFAULT_MAX_SKILL_ZIP_BYTES);
+  return parsePositiveInt(process.env['SQUADRULES_EXPORT_ZIP_MAX_DOWNLOAD_BYTES'], DEFAULT_MAX_SKILL_ZIP_BYTES);
 }
 
 /**
@@ -60,7 +60,7 @@ export function assertSkillZipBufferAllowedForDiskWrite(data: Buffer): void {
   }
   if (data.length > max) {
     throw new Error(
-      `Export ZIP download exceeds configured maximum (${max} bytes); set KAIROS_EXPORT_ZIP_MAX_DOWNLOAD_BYTES to raise the cap.`
+      `Export ZIP download exceeds configured maximum (${max} bytes); set SQUADRULES_EXPORT_ZIP_MAX_DOWNLOAD_BYTES to raise the cap.`
     );
   }
   const pk = data[0] === 0x50 && data[1] === 0x4b;

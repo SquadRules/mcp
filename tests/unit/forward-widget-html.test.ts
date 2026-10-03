@@ -7,7 +7,7 @@ describe('buildForwardWidgetHtml', () => {
     expect(html).toContain('ui/notifications/initialized');
     expect(html).toContain('ui/notifications/tool-result');
     expect(html).toContain('isForwardStructured');
-    expect(html).toContain('kairos-forward-view');
+    expect(html).toContain('squadrules-forward-view');
     expect(html).toContain('ui/notifications/host-context-changed');
     expect(html).toContain('paintHostContext');
     expect(html).toContain('data-theme');
@@ -29,7 +29,7 @@ describe('buildForwardWidgetHtml', () => {
     expect(html).toContain('renderProgress');
     expect(html).toContain('seg-issue');
     expect(html).toContain('--color-warning');
-    expect(html).toContain('kairos-forward-root');
+    expect(html).toContain('squadrules-forward-root');
     expect(html).toContain('normalizeForwardErrorState');
     expect(html).toContain('renderForwardError');
     expect(html).toContain('renderHumanError');

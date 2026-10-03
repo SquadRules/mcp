@@ -8,7 +8,7 @@ describe('deriveGroupSpacePathExampleFromAllowlist', () => {
   });
 
   test('returns null when no prefix entry', () => {
-    expect(deriveGroupSpacePathExampleFromAllowlist(['kairos-auditor', '/exact-path'], 'x')).toBeNull();
+    expect(deriveGroupSpacePathExampleFromAllowlist(['squadrules-auditor', '/exact-path'], 'x')).toBeNull();
   });
 
   test('strips trailing slashes on prefix', () => {

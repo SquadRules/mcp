@@ -19,9 +19,9 @@ export async function streamSkillZipHttpResponse(
 
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${DEFAULT_EXPORT_SKILL_ZIP_FILENAME}"`);
-  res.setHeader('X-KAIROS-Primary-Export-Uri', primaryUri);
-  res.setHeader('X-KAIROS-Export-Adapter-Count', String(items.length));
-  res.setHeader('X-KAIROS-Export-Binary', '1');
+  res.setHeader('X-SQUADRULES-Primary-Export-Uri', primaryUri);
+  res.setHeader('X-SQUADRULES-Export-Adapter-Count', String(items.length));
+  res.setHeader('X-SQUADRULES-Export-Binary', '1');
   // Dual headers for SquadRules migration: both sets emitted so clients reading either name work.
   res.setHeader('X-SquadRules-Primary-Export-Uri', primaryUri);
   res.setHeader('X-SquadRules-Export-Adapter-Count', String(items.length));

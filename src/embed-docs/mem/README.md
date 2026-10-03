@@ -1,15 +1,15 @@
 # Bundled meta-protocols
 
-This directory contains the bundled KAIROS-internal adapters and policy
-documents that are injected into the Kairos app space at boot.
+This directory contains the bundled SQUADRULES-internal adapters and policy
+documents that are injected into the Squadrules app space at boot.
 
-<!-- kairos-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
+<!-- squadrules-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
 
 Version: **4.2.0**
 
 ## Philosophy
 
-KAIROS exists for AI agents and for human–AI harmony.
+SQUADRULES exists for AI agents and for human–AI harmony.
 
 The bundle is designed to help agents recognise the right mode at the right
 time: discovery, clarification, ideation, planning, execution, validation,
@@ -23,7 +23,7 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 
 | File | Slug | Purpose |
 |------|------|---------|
-| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor KAIROS protocols |
+| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
 | [phase-critic.md](phase-critic.md) | `phase-critic` | Phase-boundary adversarial review — verify claims against evidence |
 | [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |
@@ -31,7 +31,7 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 ### Linked authoring flow
 
 ```text
-create-new-protocol (Author) → forward(kairos://adapter/phase-critic) → phase-critic (Phase-Critic Review) → train (with review_evidence)
+create-new-protocol (Author) → forward(squadrules://adapter/phase-critic) → phase-critic (Phase-Critic Review) → train (with review_evidence)
 ```
 
 ## Reference Documents
@@ -65,8 +65,8 @@ lines should stay as one adapter with 6 H2 layers.
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with kairos://adapter/phase-critic and no solution to start the phase critic
-call forward with kairos://adapter/implement-terraform and no solution to start this adapter
+call forward with squadrules://adapter/phase-critic and no solution to start the phase critic
+call forward with squadrules://adapter/implement-terraform and no solution to start this adapter
 ```
 
 Slugs are globally unique (enforced by `train`), so resolution is
@@ -83,7 +83,7 @@ A bare `mcp` contract checks only the tool name:
 An `mcp` contract **with `arguments`** verifies the exact target:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"kairos://adapter/code-review-policy"}},"required":true}}
+{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
 ```
 
 The server validates that `solution.mcp.arguments` is a superset of the

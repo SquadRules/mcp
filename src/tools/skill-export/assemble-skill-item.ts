@@ -15,14 +15,9 @@ function toCurrentMarkdown(markdownDoc: string): string {
   return markdownDoc.replaceAll('"challenge":', '"contract":');
 }
 
-/** True when the value already carries a supported URI scheme (kairos:// or squadrules://). */
-function hasKairosScheme(value: string): boolean {
-  return /^(?:kairos|squadrules):\/\//i.test(value);
-}
-
-/** Canonicalize the alias scheme so all emitted URIs use kairos:// (stored form). */
-function toCanonicalScheme(value: string): string {
-  return value.replace(/^squadrules:\/\//i, 'kairos://');
+/** True when the value already carries the squadrules:// URI scheme. */
+function hasSquadrulesScheme(value: string): boolean {
+  return /^squadrules:\/\//i.test(value);
 }
 
 export interface AssembleSkillItemParams {
@@ -41,7 +36,7 @@ export interface AssembleSkillItemParams {
  */
 export async function assembleSkillExportItem(params: AssembleSkillItemParams): Promise<SkillExportItem> {
   const dump = await executeDump(params.memoryStore, params.qdrantService, {
-    uri: `kairos://layer/${params.layerId}`,
+    uri: `squadrules://layer/${params.layerId}`,
     protocol: true
   });
   const headMemory = await params.memoryStore.getMemory(params.layerId);
@@ -50,14 +45,14 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
   const memorySlug =
     typeof headMemory?.slug === 'string' && headMemory.slug.trim().length > 0 ? headMemory.slug.trim() : null;
 
-  const canonicalRequestUri = toCanonicalScheme(params.requestUri);
+  const canonicalRequestUri = params.requestUri;
   const rawMd = toCurrentMarkdown(String(dump['content'] ?? ''));
   const meta = deriveSkillMetadata({
     protocolMarkdown: rawMd,
     label,
     memorySlug,
     adapterName,
-    kairosUri: canonicalRequestUri
+    squadrulesUri: canonicalRequestUri
   });
 
   const adapterVersion = typeof dump['adapter_version'] === 'string' ? dump['adapter_version'] : null;
@@ -66,17 +61,17 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
   const hash = sha256Hex(skillBody);
 
   const dumpUri = typeof dump['uri'] === 'string' ? dump['uri'] : '';
-  const kairosUri = hasKairosScheme(dumpUri)
-    ? toCanonicalScheme(dumpUri)
-    : hasKairosScheme(canonicalRequestUri)
+  const squadrulesUri = hasSquadrulesScheme(dumpUri)
+    ? dumpUri
+    : hasSquadrulesScheme(canonicalRequestUri)
       ? canonicalRequestUri
-      : `kairos://adapter/${params.adapterId}`;
+      : `squadrules://adapter/${params.adapterId}`;
 
   return {
     slug: meta.slug,
     name: meta.name,
     description: meta.description,
-    kairosUri,
+    squadrulesUri,
     adapterVersion,
     files: [
       {

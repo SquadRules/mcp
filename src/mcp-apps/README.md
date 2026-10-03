@@ -1,9 +1,9 @@
-# `src/mcp-apps/` — KAIROS MCP Apps Widgets
+# `src/mcp-apps/` — SQUADRULES MCP Apps Widgets
 
 Agent-facing guide for developing, maintaining, and debugging MCP Apps widgets
 in this codebase.
 
-<!-- kairos-doc-keep: directory-local widget implementation detail (file layout, IIFE pattern, ESLint rules); the wiki "Web Interface" topic covers user-facing UI, not this source-tree how-to -->
+<!-- squadrules-doc-keep: directory-local widget implementation detail (file layout, IIFE pattern, ESLint rules); the wiki "Web Interface" topic covers user-facing UI, not this source-tree how-to -->
 
 ## What are MCP Apps?
 
@@ -44,7 +44,7 @@ Key reference paths inside the clone:
 | `src/spec.types.ts` | Type definitions, `McpUiHostContext`, CSS variable names |
 | `src/styles.ts` | `applyDocumentTheme`, `applyHostStyleVariables` |
 | `docs/patterns.md` | Polling, chunked responses, fullscreen, CSP, streaming input |
-| `examples/basic-server-vanillajs/` | Minimal vanilla JS MCP App (closest to KAIROS pattern) |
+| `examples/basic-server-vanillajs/` | Minimal vanilla JS MCP App (closest to SQUADRULES pattern) |
 
 ## MCP Apps lifecycle (the handshake)
 
@@ -71,9 +71,9 @@ All messages use JSON-RPC 2.0 over `postMessage`. The widget **must** handle
 both `ui/notifications/tool-result` and the older `notifications/tool-result`
 method names for older host support.
 
-## KAIROS widget architecture
+## SQUADRULES widget architecture
 
-KAIROS widgets use **vanilla JS inlined in a single HTML fragment** — no
+SQUADRULES widgets use **vanilla JS inlined in a single HTML fragment** — no
 framework, no build step for the client side. The server assembles the fragment
 at resource-read time from three TypeScript string exports:
 
@@ -96,11 +96,11 @@ at resource-read time from three TypeScript string exports:
 
 | File | Role |
 |---|---|
-| `kairos-ui-constants.ts` | URIs (`ui://kairos/*`), `_meta` objects, MIME types |
+| `squadrules-ui-constants.ts` | URIs (`ui://squadrules/*`), `_meta` objects, MIME types |
 | `mcp-widget-chrome-inline-css.ts` | Shared CSS tokens and layout (colors, typography, dark mode) |
-| `mcp-widget-presentation-inject.ts` | Injects `KAIROS_MCP_WIDGET_PRESENTATION_ONLY` flag into scripts |
-| `kairos-server-ui-capability.ts` | Server `extensions` block advertised on `initialize` |
-| `kairos-logo-embedded.ts` | Inline SVG logo |
+| `mcp-widget-presentation-inject.ts` | Injects `SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY` flag into scripts |
+| `squadrules-server-ui-capability.ts` | Server `extensions` block advertised on `initialize` |
+| `squadrules-logo-embedded.ts` | Inline SVG logo |
 | `list-offerings-for-ui.ts` | Builds the combined tools + resources + prompts listing for UI discovery |
 
 ### Registration flow (server side)
@@ -110,7 +110,7 @@ In `src/server.ts`, each widget is wired in two steps:
 ```typescript
 // 1. Tool registration — _meta.ui.resourceUri links tool to widget
 server.registerTool('forward', {
-  _meta: KAIROS_FORWARD_TOOL_UI_META,  // { ui: { resourceUri: 'ui://kairos/forward-result' } }
+  _meta: SQUADRULES_FORWARD_TOOL_UI_META,  // { ui: { resourceUri: 'ui://squadrules/forward-result' } }
   ...
 }, handler);
 
@@ -126,8 +126,8 @@ maximize host compatibility:
 
 | URI scheme | MIME type | Profile |
 |---|---|---|
-| `ui://kairos/{name}-result` | `text/html;profile=mcp-app` | MCP Apps (Cursor, Claude Desktop) |
-| `ui://open-ai/kairos/{name}-result` | `text/html+skybridge` | Skybridge (ChatGPT, Windsurf) |
+| `ui://squadrules/{name}-result` | `text/html;profile=mcp-app` | MCP Apps (Cursor, Claude Desktop) |
+| `ui://open-ai/squadrules/{name}-result` | `text/html+skybridge` | Skybridge (ChatGPT, Windsurf) |
 
 ## Widget script pattern (vanilla JS IIFE)
 
@@ -143,7 +143,7 @@ Every inline script follows this structure:
   var nextId = 1;
   var pending = {};
   var hostCtxState = {};
-  var PRESENTATION_ONLY = __KAIROS_WIDGET_PRESENTATION_ONLY__;
+  var PRESENTATION_ONLY = __SQUADRULES_WIDGET_PRESENTATION_ONLY__;
 
   // Message listener — route JSON-RPC 2.0 messages
   window.addEventListener('message', function (ev) {
@@ -205,7 +205,7 @@ The `mergeHostContextDelta()` + `paintHostContext()` functions apply these to
 
 ### `PRESENTATION_ONLY` mode
 
-Set `KAIROS_MCP_WIDGET_PRESENTATION_ONLY=true` in the server environment to
+Set `SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY=true` in the server environment to
 disable all `postMessage` bridge calls. Widgets show a static placeholder
 instead. Useful for:
 - Diagnosing host-side crashes (isolates whether the widget's JS is the cause)
@@ -213,11 +213,11 @@ instead. Useful for:
 
 ## ESLint rules for widgets
 
-### `kairos-mcp-widget/handshake-and-safety`
+### `squadrules-mcp-widget/handshake-and-safety`
 
 Widget inline script files (`*-widget-inline-script.ts`) must contain both
 `ui/initialize` and `ui/notifications/initialized` strings. The ESLint rule
-`kairos-mcp-widget/handshake-and-safety` enforces this to guarantee host
+`squadrules-mcp-widget/handshake-and-safety` enforces this to guarantee host
 compatibility. Do not remove the handshake even during debugging — use the
 `PRESENTATION_ONLY` flag to bypass it at runtime instead.
 
@@ -237,12 +237,12 @@ Widget script files have a `max-lines` override in `eslint/flat-config.cjs`
 2. **Create the registration file:**
    - `register-{name}-ui-resources.ts` (register both MCP App and Skybridge)
 
-3. **Add constants to `kairos-ui-constants.ts`:**
-   - `KAIROS_{NAME}_UI_URI` / `KAIROS_{NAME}_UI_SKYBRIDGE_URI`
-   - `KAIROS_{NAME}_TOOL_UI_META`
+3. **Add constants to `squadrules-ui-constants.ts`:**
+   - `SQUADRULES_{NAME}_UI_URI` / `SQUADRULES_{NAME}_UI_SKYBRIDGE_URI`
+   - `SQUADRULES_{NAME}_TOOL_UI_META`
 
 4. **Wire into the tool:**
-   - Add `_meta: KAIROS_{NAME}_TOOL_UI_META` to `registerTool` call
+   - Add `_meta: SQUADRULES_{NAME}_TOOL_UI_META` to `registerTool` call
    - Call `register{Name}UiResources(server)` in `src/server.ts`
 
 5. **Add to offerings:**

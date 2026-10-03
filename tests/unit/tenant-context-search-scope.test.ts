@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 import { getSearchSpaceIds, runWithSpaceContext } from '../../src/utils/tenant-context.js';
 import type { SpaceContext } from '../../src/utils/tenant-context.js';
 
@@ -18,7 +18,7 @@ describe('getSearchSpaceIds', () => {
     });
   });
 
-  it('appends Kairos app when scope is unset and app is not in allowed', () => {
+  it('appends Squadrules app when scope is unset and app is not in allowed', () => {
     const full: SpaceContext = {
       userId: 'u',
       groupIds: [],
@@ -29,7 +29,7 @@ describe('getSearchSpaceIds', () => {
     runWithSpaceContext(full, () => {
       const ids = getSearchSpaceIds();
       expect(ids).toContain('user:r:sub1');
-      expect(ids).toContain(KAIROS_APP_SPACE_ID);
+      expect(ids).toContain(SQUADRULES_APP_SPACE_ID);
     });
   });
 
@@ -37,13 +37,13 @@ describe('getSearchSpaceIds', () => {
     const appScoped: SpaceContext = {
       userId: 'u',
       groupIds: [],
-      allowedSpaceIds: [KAIROS_APP_SPACE_ID],
+      allowedSpaceIds: [SQUADRULES_APP_SPACE_ID],
       defaultWriteSpaceId: 'user:r:sub1',
       personalSpaceId: 'user:r:sub1',
-      activateSpaceScope: [KAIROS_APP_SPACE_ID]
+      activateSpaceScope: [SQUADRULES_APP_SPACE_ID]
     };
     runWithSpaceContext(appScoped, () => {
-      expect(getSearchSpaceIds()).toEqual([KAIROS_APP_SPACE_ID]);
+      expect(getSearchSpaceIds()).toEqual([SQUADRULES_APP_SPACE_ID]);
     });
   });
 });
