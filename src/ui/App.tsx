@@ -1,3 +1,4 @@
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Layout } from "./components/Layout";

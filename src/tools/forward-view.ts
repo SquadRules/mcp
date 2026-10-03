@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import type { InferenceContractDefinition, Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -10,7 +11,7 @@ import { forwardRuntimeStore } from '../services/forward-runtime-store.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import type { ForwardOutput, ForwardSolution } from './forward_schema.js';
 import { KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
-import { buildLayerUri, parseKairosUri } from './kairos-uri.js';
+import { buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { buildEvidenceHint, buildEmptySolutionTemplate } from './forward-helpers.js';
 
@@ -146,7 +147,7 @@ export type LoadMemoryForParsedUriResult = {
 export async function loadMemoryForParsedUri(
   memoryStore: MemoryQdrantStore,
   qdrantService: QdrantService | undefined,
-  parsed: ReturnType<typeof parseKairosUri>
+  parsed: ReturnType<typeof parseSquadrulesUri>
 ): Promise<LoadMemoryForParsedUriResult> {
   if (parsed.kind === 'layer') {
     const memory = await memoryStore.getMemory(parsed.id);

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Integration tests for OAuth 2.0 Protected Resource Metadata (RFC 9728).
  * Validates well-known endpoints and 401 WWW-Authenticate headers per the

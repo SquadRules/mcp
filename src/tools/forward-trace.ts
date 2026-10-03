@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import crypto from 'node:crypto';
 import type { Memory, TensorValue } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';

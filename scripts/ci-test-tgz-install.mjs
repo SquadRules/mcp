@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 /**
  * Installs the built tgz (from npm pack) into a temp dir and runs a quick smoke test.
  * Ensures the package can be installed and the CLI runs. Used before publish.

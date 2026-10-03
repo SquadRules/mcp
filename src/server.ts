@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ServerCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';

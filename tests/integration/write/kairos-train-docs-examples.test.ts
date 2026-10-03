@@ -1,5 +1,5 @@
 /**
- * Kairos Train integration tests for docs/examples (workflow test — imports scenario).
+ * Squadrules Train integration tests for docs/examples (workflow test — imports scenario).
  *
  * Trains each example adapter from docs/examples/ via train. Used in dev/qa
  * to validate that canonical examples can be imported; complements agent-driven
@@ -12,7 +12,7 @@ import { join } from 'path';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-describe('Kairos Train Docs Examples (docs/examples)', () => {
+describe('Squadrules Train Docs Examples (docs/examples)', () => {
   let mcpConnection;
 
   beforeAll(async () => {

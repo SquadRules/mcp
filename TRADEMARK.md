@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
 # SquadRules MCP Trademark Policy
 
 ## Trademark Notice
@@ -49,7 +50,7 @@ However forks must:
 ## CLI Naming Policy
 
 The shipped CLI binary name `squadrules` is part of the SquadRules MCP
-trademark. The former `kairos` and `kairos-mcp` binary names are retained only
+trademark. The former `squadrules` and `squadrules-mcp` binary names are retained only
 as compatibility aliases for the prior product name.
 
 Forks and redistributions must rename the CLI binary.

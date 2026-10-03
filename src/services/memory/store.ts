@@ -1,3 +1,4 @@
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { Memory } from '../../types/memory.js';
 import { logger } from '../../utils/structured-logger.js';

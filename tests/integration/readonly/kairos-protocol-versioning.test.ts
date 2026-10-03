@@ -47,7 +47,7 @@ Content.
 Done.`;
 }
 
-describe('Kairos protocol versioning', () => {
+describe('Squadrules protocol versioning', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;
 
   beforeAll(async () => {

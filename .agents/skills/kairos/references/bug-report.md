@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 # Bug report — structured MCP failure capture
 
 Produce a structured Markdown bug report for the latest MCP interaction,

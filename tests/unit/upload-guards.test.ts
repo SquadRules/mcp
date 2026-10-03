@@ -28,7 +28,7 @@ Reward successful completion.
 describe('normalizeAndValidateApiBaseUrl', () => {
   test('accepts plain http and https base URLs', () => {
     expect(normalizeAndValidateApiBaseUrl('http://localhost:3300')).toBe('http://localhost:3300');
-    expect(normalizeAndValidateApiBaseUrl('https://kairos.example.com/')).toBe('https://kairos.example.com');
+    expect(normalizeAndValidateApiBaseUrl('https://squadrules.example.com/')).toBe('https://squadrules.example.com');
   });
 
   test('rejects credentials and query strings', () => {
@@ -41,7 +41,7 @@ describe('normalizeAndValidateApiBaseUrl', () => {
   });
 
   test('rejects unsupported protocols', () => {
-    expect(() => normalizeAndValidateApiBaseUrl('file:///tmp/kairos')).toThrow(
+    expect(() => normalizeAndValidateApiBaseUrl('file:///tmp/squadrules')).toThrow(
       'Unsupported API base URL protocol: file:'
     );
   });

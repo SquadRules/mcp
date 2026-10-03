@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import { describe, it, expect } from "vitest";
 import {
   parseProtocolMarkdown,

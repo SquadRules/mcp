@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { GROUP_SPACE_PATH_EXAMPLE } from '../config.js';
 import { getToolDoc } from '../resources/embedded-mcp-resources.js';
 

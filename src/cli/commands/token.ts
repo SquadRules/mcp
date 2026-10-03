@@ -1,5 +1,5 @@
 /**
- * kairos token — print the stored bearer token to stdout (for scripting).
+ * squadrules token — print the stored bearer token to stdout (for scripting).
  */
 
 import { Command } from 'commander';
@@ -30,12 +30,12 @@ export function tokenCommand(program: Command): void {
                 }
 
                 if (!token) {
-                    writeError('No stored token. Run `kairos login` or use `kairos token --login`.');
+                    writeError('No stored token. Run `squadrules login` or use `squadrules token --login`.');
                     process.exit(1);
                 }
 
                 if (opts.validate && !(await isTokenValid(baseUrl, token))) {
-                    writeError('Token invalid or expired. Run `kairos login` to re-authenticate.');
+                    writeError('Token invalid or expired. Run `squadrules login` to re-authenticate.');
                     process.exit(1);
                 }
 

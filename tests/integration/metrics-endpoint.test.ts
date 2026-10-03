@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { fetch, Agent } from 'undici';
 import { validatePrometheusMetrics } from '../utils/prometheus-parser.js';
 import { isHttpTransport } from '../utils/auth-headers.js';

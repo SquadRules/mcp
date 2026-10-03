@@ -74,7 +74,7 @@ export function ProtocolEditPreviewColumn({
               <br />
               references/
               <br />
-              &nbsp;&nbsp;KAIROS.md
+              &nbsp;&nbsp;SQUADRULES.md
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">

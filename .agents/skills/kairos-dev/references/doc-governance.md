@@ -10,6 +10,7 @@ description: >-
   docs, and handing wiki regeneration to Qoder + the
   sync-qoder-repowiki-to-github-wiki workflow (scripts/sync-wiki.sh).
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Documentation governance (kairos-mcp)
 

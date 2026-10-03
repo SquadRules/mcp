@@ -1,3 +1,4 @@
+// squadrules-compat-surface: sets X-KAIROS-* HTTP response headers consumed by existing clients
 import express from 'express';
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { verifyExportArtifactDownloadCapability } from '../services/export-artifact-download-capability.js';

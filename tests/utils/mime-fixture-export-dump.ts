@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 

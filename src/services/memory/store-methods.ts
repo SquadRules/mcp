@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { Memory } from '../../types/memory.js';
 import { logger } from '../../utils/structured-logger.js';

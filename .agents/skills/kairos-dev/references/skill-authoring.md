@@ -7,6 +7,7 @@ description: >-
   and CI validation (npm run lint:skills). Use when adding or editing a skill or
   a references/ file in this repository.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Skills folder — references and structure (skill authors)
 

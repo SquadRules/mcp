@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 {
   "id": "kairos-dev",
   "realm": "kairos-dev",
@@ -25,7 +26,7 @@
   "clients": [
     {
       "clientId": "kairos-mcp",
-      "name": "KAIROS MCP (dev)",
+      "name": "SQUADRULES MCP (dev)",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -53,7 +54,7 @@
     },
     {
       "clientId": "kairos-cli",
-      "name": "KAIROS CLI / MCP host (public PKCE)",
+      "name": "SQUADRULES CLI / MCP host (public PKCE)",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,

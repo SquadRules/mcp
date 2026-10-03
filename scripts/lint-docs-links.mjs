@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: honors the kairos-doc-keep doc marker present in existing colocated README files
 /**
- * Documentation link / DRY linter for KAIROS MCP.
+ * Documentation link / DRY linter for SQUADRULES MCP.
  *
  * Enforces the `documentation-authority` rule (.qoder/rules/) mechanically:
  *   (a) dangling relative links in tracked *.md            -> ERROR

@@ -1,14 +1,15 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getAdapterId } from '../services/memory/memory-accessors.js';
-import { parseKairosUri } from './kairos-uri.js';
+import { parseSquadrulesUri } from './kairos-uri.js';
 
 export async function resolveExportAdapter(
   memoryStore: MemoryQdrantStore,
   qdrantService: QdrantService | undefined,
   uri: string
 ): Promise<{ adapterId: string; layerId: string }> {
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter') {
     if (parsed.idKind === 'slug') {
       if (!qdrantService) {

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { ExecutionTrace } from '../../src/types/memory.js';
 import { ExecutionTraceStore } from '../../src/services/execution-trace-store.js';
 import { buildLayerUri } from '../../src/tools/kairos-uri.js';

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
@@ -22,7 +23,7 @@ export function registerActivateUiResources(server: McpServer): void {
     'kairos-activate-widget',
     KAIROS_ACTIVATE_UI_URI,
     {
-      title: 'KAIROS activate result',
+      title: 'SQUADRULES activate result',
       description: 'Inline view for the activate tool (ranked choices, roles, next_action).',
       mimeType: MCP_APP_HTML_MIME_TYPE
     },
@@ -33,7 +34,7 @@ export function registerActivateUiResources(server: McpServer): void {
     'kairos-activate-widget-skybridge',
     KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
     {
-      title: 'KAIROS activate result (Skybridge profile)',
+      title: 'SQUADRULES activate result (Skybridge profile)',
       description: 'Same activate widget with text/html+skybridge for hosts that require that profile.',
       mimeType: SKYBRIDGE_HTML_MIME_TYPE
     },

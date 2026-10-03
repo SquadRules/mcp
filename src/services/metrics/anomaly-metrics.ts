@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Counter } from 'prom-client';
 import { register } from './registry.js';
 

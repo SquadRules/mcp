@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { deleteInputSchema } from '../../src/tools/delete_schema.js';
 import { exportInputSchema } from '../../src/tools/export_schema.js';
 import { tuneInputSchema } from '../../src/tools/tune_schema.js';

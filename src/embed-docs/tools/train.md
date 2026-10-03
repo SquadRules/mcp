@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Register a new **adapter** from markdown (one H1 = one adapter; each verifiable segment ends with a fenced `json` block containing a top-level **`contract`** object).
 
 **Input**

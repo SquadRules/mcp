@@ -1,7 +1,8 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Static spec-parity gate — the no-infra twin of the runtime api-mcp-parity test.
  *
- * `src/tools/*_schema.ts` (Zod) is the single source of truth for the KAIROS tool
+ * `src/tools/*_schema.ts` (Zod) is the single source of truth for the SQUADRULES tool
  * surface. This test asserts that every transport exposes that same surface
  * identically, WITHOUT starting a server or touching Qdrant/OpenAI, so cross-surface
  * spec drift fails the pipeline in seconds during the fast static phase:
@@ -21,7 +22,7 @@ import { dirname, resolve } from 'node:path';
 import {
   KAIROS_TOOL_REGISTRY,
   KAIROS_TOOL_NAMES,
-  type KairosToolName
+  type SquadrulesToolName
 } from '../../src/tools/tool-registry.js';
 import { createProgram } from '../../src/cli/program.js';
 
@@ -49,13 +50,13 @@ const EXPECTED_TOOL_NAMES = [
   'delete',
   'export',
   'spaces'
-] as const satisfies readonly KairosToolName[];
+] as const satisfies readonly SquadrulesToolName[];
 
 /** CLI-only commands that intentionally have no MCP/HTTP tool counterpart. */
 const CLI_ONLY_COMMANDS = ['serve', 'login', 'logout', 'token'] as const;
 
 /** The canonical Zod schema objects, imported directly from src/tools/*_schema.ts. */
-const CANONICAL_SCHEMAS: Record<KairosToolName, { input: unknown; output: unknown }> = {
+const CANONICAL_SCHEMAS: Record<SquadrulesToolName, { input: unknown; output: unknown }> = {
   activate: { input: activateInputSchema, output: activateOutputSchema },
   forward: { input: forwardInputSchema, output: forwardOutputSchema },
   train: { input: trainInputSchema, output: trainOutputSchema },
@@ -72,7 +73,7 @@ const CANONICAL_SCHEMAS: Record<KairosToolName, { input: unknown; output: unknow
  * so it only asserts the route path + wiring.
  */
 const HTTP_ROUTES: Record<
-  KairosToolName,
+  SquadrulesToolName,
   { file: string; path: string; setup: string; boundSchema: string | null }
 > = {
   activate: { file: 'http-api-begin.ts', path: '/api/activate', setup: 'setupActivateRoute', boundSchema: 'activateInputSchema' },

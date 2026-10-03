@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import crypto from 'node:crypto';
 import type { Memory, ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
 import { proofOfWorkStore, MAX_RETRIES, type ProofOfWorkResultRecord } from '../services/proof-of-work-store.js';

@@ -1,8 +1,9 @@
+// squadrules-compat-surface: dual-accepts canonical kairos:// URIs (squadrules:// alias) so existing stored URIs and clients keep resolving
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
 /**
- * Kairos Train integration tests (edge cases).
+ * Squadrules Train integration tests (edge cases).
  *
  * Goals:
  * - Verify fallback behavior and caching.
@@ -10,7 +11,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
  *   instead of wrapping it in an extra "Failed to parse..." error.
  */
 
-describe('Kairos Train Edge Cases', () => {
+describe('Squadrules Train Edge Cases', () => {
   let mcpConnection;
 
   beforeAll(async () => {

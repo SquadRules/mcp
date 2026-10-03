@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Regression: activate/search output schemas include per-choice slug (github.com/jakub-plichcinski/kairos-mcp#306).
  * Non-null slugs must satisfy {@link AUTHOR_SLUG_RE} (same as protocol frontmatter / train).

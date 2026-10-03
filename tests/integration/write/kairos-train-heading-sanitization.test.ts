@@ -11,7 +11,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
  * - Adapter layer order remains correct regardless of user input format
  */
 
-describe('Kairos Train Heading Sanitization and Multiple H1 Support', () => {
+describe('Squadrules Train Heading Sanitization and Multiple H1 Support', () => {
   let mcpConnection;
   const FETCH_FAILED_RETRY_ATTEMPTS = 3;
 

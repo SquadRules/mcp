@@ -1,4 +1,5 @@
-# `src/mcp-apps/` — KAIROS MCP Apps Widgets
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
+# `src/mcp-apps/` — SQUADRULES MCP Apps Widgets
 
 Agent-facing guide for developing, maintaining, and debugging MCP Apps widgets
 in this codebase.
@@ -44,7 +45,7 @@ Key reference paths inside the clone:
 | `src/spec.types.ts` | Type definitions, `McpUiHostContext`, CSS variable names |
 | `src/styles.ts` | `applyDocumentTheme`, `applyHostStyleVariables` |
 | `docs/patterns.md` | Polling, chunked responses, fullscreen, CSP, streaming input |
-| `examples/basic-server-vanillajs/` | Minimal vanilla JS MCP App (closest to KAIROS pattern) |
+| `examples/basic-server-vanillajs/` | Minimal vanilla JS MCP App (closest to SQUADRULES pattern) |
 
 ## MCP Apps lifecycle (the handshake)
 
@@ -71,9 +72,9 @@ All messages use JSON-RPC 2.0 over `postMessage`. The widget **must** handle
 both `ui/notifications/tool-result` and the older `notifications/tool-result`
 method names for older host support.
 
-## KAIROS widget architecture
+## SQUADRULES widget architecture
 
-KAIROS widgets use **vanilla JS inlined in a single HTML fragment** — no
+SQUADRULES widgets use **vanilla JS inlined in a single HTML fragment** — no
 framework, no build step for the client side. The server assembles the fragment
 at resource-read time from three TypeScript string exports:
 

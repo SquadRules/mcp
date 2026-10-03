@@ -1,9 +1,10 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
 /**
- * Kairos Train integration tests (integration with other tools).
+ * Squadrules Train integration tests (integration with other tools).
  *
  * Goals:
  * - Verify integration with forward and resource reading.
@@ -11,7 +12,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
  *   instead of wrapping it in an extra "Failed to parse..." error.
  */
 
-describe('Kairos Train Integration', () => {
+describe('Squadrules Train Integration', () => {
   let mcpConnection;
 
   beforeAll(async () => {

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -7,7 +8,7 @@ import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
 import { executeTrainStore, TrainError } from './train-store.js';
 import { executeDump } from './dump.js';
 import { KAIROS_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
-import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseKairosUri } from './kairos-uri.js';
+import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
 import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
 import { resolveTrainOutputAdapterUri } from './train-output-adapter-uri.js';
 import { resolveTrainMime } from './train-mime.js';
@@ -103,7 +104,7 @@ async function resolveContentForTrain(
   let adapterId = '';
   try {
     const canonicalAdapterUri = assertWireAdapterUri(sourceUri);
-    const parsed = parseKairosUri(canonicalAdapterUri);
+    const parsed = parseSquadrulesUri(canonicalAdapterUri);
     const resolved = await qdrantService.findFirstStepMemoryUuidBySlug(parsed.id);
     if (!resolved.layerUuid) {
       throw new TrainError('SOURCE_ADAPTER_NOT_FOUND', `source_adapter_uri adapter slug "${parsed.id}" was not found.`, {
@@ -187,7 +188,7 @@ export async function executeTrain(
       let adapterId = memory?.adapter?.id;
       if (!adapterId && typeof item.adapter_uri === 'string' && item.adapter_uri.trim().length > 0) {
         try {
-          const parsed = parseKairosUri(item.adapter_uri.trim());
+          const parsed = parseSquadrulesUri(item.adapter_uri.trim());
           if (parsed.kind === 'adapter') adapterId = parsed.id;
         } catch {
           /* ignore invalid uri */
@@ -195,7 +196,7 @@ export async function executeTrain(
       }
       if (!adapterId && isArtifactRow && typeof canonicalAdapterUri === 'string' && canonicalAdapterUri.trim().length > 0) {
         try {
-          const parsed = parseKairosUri(canonicalAdapterUri.trim());
+          const parsed = parseSquadrulesUri(canonicalAdapterUri.trim());
           if (parsed.kind === 'adapter') adapterId = parsed.id;
         } catch {
           /* ignore invalid uri */

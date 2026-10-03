@@ -42,13 +42,13 @@ describe('buildSpacesWidgetHtml', () => {
     expect(html).toContain('ui/notifications/initialized');
     expect(html).toContain('ui/notifications/tool-result');
     expect(html).toContain('renderSpacesTable');
-    expect(html).toContain('kairos-spaces-view');
+    expect(html).toContain('squadrules-spaces-view');
     expect(html).toContain('ui/notifications/host-context-changed');
     expect(html).toContain('paintHostContext');
     expect(html).toContain('data-theme');
     expect(html).toContain('html.dark');
     expect(html).toContain("classList.add('dark')");
-    expect(html).toContain('kairos-spaces-root');
+    expect(html).toContain('squadrules-spaces-root');
     expect(html).toContain('space-row-personal');
     expect(html).toContain('space-display-name');
     expect(html).toContain('space-type-badge--personal');

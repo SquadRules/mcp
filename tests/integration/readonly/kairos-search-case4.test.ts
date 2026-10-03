@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
 
@@ -8,7 +9,7 @@ import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
  * Tests from reports/outputs.md
  */
 
-describe('Kairos Search - CASE 4: NO RELEVANT RESULTS', () => {
+describe('Squadrules Search - CASE 4: NO RELEVANT RESULTS', () => {
   let mcpConnection;
 
   beforeAll(async () => {

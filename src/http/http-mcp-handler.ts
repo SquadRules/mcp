@@ -16,7 +16,7 @@ import { getSpaceContext, getTenantId, runWithSpaceContextAsync } from '../utils
 import { buildListOfferingsForUIResult } from '../mcp-apps/list-offerings-for-ui.js';
 import { createServer } from '../server.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 import { validateBearerToken } from './bearer-validate.js';
 import { generateCorrelationId, installResponseCapture, emitRequestStart, emitRequestEnd, emitToolCallAudit, AUDIT_LOG_LEVEL } from './mcp-audit-emit.js';
 const MAX_CONCURRENT = resolveMaxConcurrentRequests(MAX_CONCURRENT_MCP_REQUESTS_RAW);
@@ -75,7 +75,7 @@ function sanitizeMcpErrorDetails(details: unknown): Record<string, unknown> {
 function mcpErrorToHelp(
   error: unknown
 ): { message: string; error_code: string; retry_hint: string; details?: Record<string, unknown> } {
-  if (error instanceof KairosError) {
+  if (error instanceof SquadrulesError) {
     const details = sanitizeMcpErrorDetails(error.details);
     const nextAction = typeof details['next_action'] === 'string' ? details['next_action'] : undefined;
     return {

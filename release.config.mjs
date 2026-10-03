@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references KAIROS_* environment variable names still honored as aliases for existing deployments
 /** Single version authority. ci-release consumes semantic-release's dry-run result,
  * then validates and persists immutable artifacts before publishing or tagging. */
 // Read the new SQUADRULES_PRERELEASE_BRANCH first, falling back to the legacy

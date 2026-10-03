@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { closeSync, fstatSync, openSync, readFileSync } from 'fs';
 import { validateProtocolStructure } from '../services/memory/validate-protocol-structure.js';
 import { normalizeMarkdownBlob } from '../utils/memory-store-utils.js';

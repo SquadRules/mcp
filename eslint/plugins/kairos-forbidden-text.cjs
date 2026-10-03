@@ -147,6 +147,20 @@ function kairosForbiddenDeprecatedLayerRowUriSchemeMessage() {
   );
 }
 
+// Retired prior brand word, concatenated so this file never contains it contiguously.
+const PRIOR_BRAND_WORD = ['ka', 'iros'].join('');
+
+// A top-of-file `squadrules-compat-surface: <reason>` comment (non-empty reason, first 60 lines,
+// // # <!-- --> or /* */ syntax) lifts ONLY the PRIOR_BRAND_WORD ban for the whole file.
+function hasSquadrulesCompatSurfaceMarker(text) {
+  const head = text.split('\n').slice(0, 60).join('\n');
+  const re = /(?:\/\/|#|<!--|\/\*)\s*squadrules-compat-surface\s*:([^\n]*)/gi;
+  for (let m = re.exec(head); m !== null; m = re.exec(head)) {
+    if (m[1].replace(/\s*(?:\*\/|-->)\s*$/, '').trim()) return true;
+  }
+  return false;
+}
+
 /** Full-source scan; keep this module outside matched lint globs or it would self-match list entries. */
 const kairosForbiddenTextPlugin = {
   rules: {
@@ -155,7 +169,7 @@ const kairosForbiddenTextPlugin = {
         type: 'problem',
         docs: {
           description:
-            'Disallow KAIROS_BEARER_TOKEN, kairos_* MCP names, prior-era wording "legacy" (case-insensitive substring), standalone "v10" (not v10-*), multi-word phrases (case-insensitive; /\\bWORD1[\\W_]+WORD2\\b/i — separators only, e.g. multiple spaces or underscores, not letters), and KAIROS:BODY-* markers (case-sensitive). Applied to src/, scripts/, tests/ (code), all **/*.md, and root context7.json. Fix by removing obsolete code/shims and rewording—do not strip useful comments only to pass lint.',
+            'Disallow KAIROS_BEARER_TOKEN, kairos_* MCP names, prior-era wording "legacy" (case-insensitive substring), the retired prior brand word (case-insensitive substring; whole-file opt-out via a top-of-file squadrules-compat-surface marker with a non-empty reason), standalone "v10" (not v10-*), multi-word phrases (case-insensitive; /\\bWORD1[\\W_]+WORD2\\b/i — separators only, e.g. multiple spaces or underscores, not letters), and KAIROS:BODY-* markers (case-sensitive). Applied to src/, scripts/, tests/ (code), all **/*.md, and root context7.json. Fix by removing obsolete code/shims and rewording—do not strip useful comments only to pass lint.',
         },
         schema: [],
       },
@@ -163,6 +177,7 @@ const kairosForbiddenTextPlugin = {
         const sourceCode = context.sourceCode;
         const text = sourceCode.getText();
         const seenAt = new Set();
+        const compatSurfaceFile = hasSquadrulesCompatSurfaceMarker(text);
         for (const canonical of KAIROS_FORBIDDEN_LEGACY_REFERENCE_NAMES) {
           if (canonical === 'legacy') {
             continue;
@@ -229,6 +244,17 @@ const kairosForbiddenTextPlugin = {
             context.report({
               loc: { start, end },
               message: kairosForbiddenDeprecatedLayerRowUriSchemeMessage(),
+            });
+          }
+        }
+        if (!compatSurfaceFile) {
+          const re = new RegExp(escapeRegExp(PRIOR_BRAND_WORD), 'gi');
+          for (let m = re.exec(text); m !== null; m = re.exec(text)) {
+            if (seenAt.has(m.index)) continue;
+            seenAt.add(m.index);
+            context.report({
+              loc: { start: sourceCode.getLocFromIndex(m.index), end: sourceCode.getLocFromIndex(m.index + m[0].length) },
+              message: 'Disallowed retired brand word (matched "' + m[0] + '", case-insensitive substring). Rebrand prose/comments/identifiers/non-compat values to SquadRules. If this file intentionally carries wire-visible or stored prior-brand identifiers (canonical URIs, KAIROS_* env names, Keycloak realms/clients, Qdrant collections, Redis prefixes, UUID namespaces, session cookie, JSON fields, ui:// resource URIs, HTTP headers, keyring/config-dir names) or imports a retained prior-brand-named module, add a top-of-file `// squadrules-compat-surface: <reason>` marker (also # / <!-- --> / /* */) to lift only this ban; clean non-compat branding anyway.',
             });
           }
         }

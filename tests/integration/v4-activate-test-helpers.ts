@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Shared helpers for v4-kairos-activate integration tests.
  * Relies on Jest-injected `expect` (no @jest/globals import — blocked in tests/integration).

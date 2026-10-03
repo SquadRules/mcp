@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * Whitelisted OIDC claims for session, Bearer auth, and GET /api/me.
  * Do not echo full JWTs — only explicitly allowed keys reduce risk of leaking future custom claims.
@@ -112,8 +113,8 @@ function groupPathForm(g: string): string {
  * - **Exact:** plain name or path (`kairos-auditor`, `/kairos-auditor`) — slash optional on either side.
  * - **Prefix:** entry ends with `/` (e.g. `/kairos-shares/`) — keep any JWT group whose path form starts with that prefix (after normalizing a leading slash on the entry).
  * - **Default (no filter):** empty allowlist keeps **all** JWT groups (same membership the IdP issued).
- *   Set a non-empty allowlist to restrict which paths become KAIROS spaces.
- * Keycloak's Group Membership mapper lists every group the user belongs to; use this on KAIROS
+ *   Set a non-empty allowlist to restrict which paths become SQUADRULES spaces.
+ * Keycloak's Group Membership mapper lists every group the user belongs to; use this on SQUADRULES
  * to restrict which entries become session/API groups when you configure an allowlist.
  */
 export function applyOidcGroupsAllowlist(groups: string[], allowlist: readonly string[]): string[] {

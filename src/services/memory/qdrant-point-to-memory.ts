@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import crypto from 'node:crypto';
 import type { Memory, InferenceContractDefinition } from '../../types/memory.js';
 import { KAIROS_APP_SPACE_ID } from '../../config.js';

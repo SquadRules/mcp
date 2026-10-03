@@ -51,7 +51,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-batch-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-batch-'));
     try {
       writeFileSync(join(dir, 'z-second.md'), minimalProtocolMd(`CLI Batch Z ${ts}`), 'utf-8');
       writeFileSync(join(dir, 'a-first.md'), minimalProtocolMd(`CLI Batch A ${ts}`), 'utf-8');
@@ -82,7 +82,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-rec-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-rec-'));
     try {
       mkdirSync(join(dir, 'nested'), { recursive: true });
       writeFileSync(join(dir, 'root.md'), minimalProtocolMd(`CLI Rec Root ${ts}`), 'utf-8');
@@ -112,7 +112,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-readme-rec-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-readme-rec-'));
     try {
       mkdirSync(join(dir, 'nested'), { recursive: true });
       writeFileSync(join(dir, 'root.md'), minimalProtocolMd(`CLI ReadmeRec Root ${ts}`), 'utf-8');
@@ -144,7 +144,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-readme-flat-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-readme-flat-'));
     try {
       writeFileSync(join(dir, 'a.md'), minimalProtocolMd(`CLI ReadmeFlat A ${ts}`), 'utf-8');
       writeFileSync(join(dir, 'README.md'), '# Human docs\n', 'utf-8');
@@ -168,7 +168,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-flat-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-flat-'));
     try {
       mkdirSync(join(dir, 'nested'), { recursive: true });
       writeFileSync(join(dir, 'only-root.md'), minimalProtocolMd(`CLI Flat Root ${ts}`), 'utf-8');
@@ -193,7 +193,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-artifacts-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-artifacts-'));
     try {
       writeFileSync(join(dir, 'skill.md'), minimalProtocolMd(`CLI Artifacts ${ts}`), 'utf-8');
       writeFileSync(join(dir, 'helper.py'), "print('hello')\n", 'utf-8');
@@ -236,7 +236,7 @@ _d('CLI train directory batch', () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
     const ts = Date.now();
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-artifacts-nomodel-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-artifacts-nomodel-'));
     try {
       writeFileSync(join(dir, 'skill.md'), minimalProtocolMd(`CLI ArtifactsNoModel ${ts}`), 'utf-8');
       writeFileSync(join(dir, 'helper.py'), "print('hello')\n", 'utf-8');
@@ -268,7 +268,7 @@ _d('CLI train directory batch', () => {
   test('train empty directory exits with error', async () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
-    const dir = mkdtempSync(join(tmpdir(), 'kairos-train-empty-'));
+    const dir = mkdtempSync(join(tmpdir(), 'squadrules-train-empty-'));
     try {
       try {
         await execAsync(`node ${CLI_PATH} train --url ${BASE_URL} "${dir}"`, { timeout: 30000 });

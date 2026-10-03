@@ -5,6 +5,7 @@ description: >-
   dispatch, immutable artifact recovery, and automation rollout. No manual tags
   or version-bump PRs; conventional commits determine the version.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Releases and dependency automation
 

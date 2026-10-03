@@ -1,14 +1,15 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 slug: create-new-protocol
 version: "4.8.6"
-title: Create / Review / Refactor KAIROS Protocol
+title: Create / Review / Refactor SQUADRULES Protocol
 ---
 
 
 
-# Create / Review / Refactor KAIROS Protocol
+# Create / Review / Refactor SQUADRULES Protocol
 
-> **Note to the agent:** KAIROS protocols are interfaces for AI agents — you
+> **Note to the agent:** SQUADRULES protocols are interfaces for AI agents — you
 > are the primary user. When you author a protocol, you design behaviour for
 > yourself and others. Write for them: single source of truth (never duplicate
 > rules), explicit over implicit (agents fill ambiguity with hallucination),
@@ -18,7 +19,7 @@ title: Create / Review / Refactor KAIROS Protocol
 
 ## Activation Patterns
 
-KAIROS authoring lifecycle — create, review, or update adapters / protocols / workflows.
+SQUADRULES authoring lifecycle — create, review, or update adapters / protocols / workflows.
 In this context, those words refer to the same stored artifact and can be treated
 as synonyms. Supports three operations:
 
@@ -31,8 +32,8 @@ as synonyms. Supports three operations:
 
 **Run this protocol when the user says ANY of:**
 
-- "create a new KAIROS protocol" / "create new protocol adapter"
-- "register personal KAIROS adapter" / "register a personal adapter"
+- "create a new SQUADRULES protocol" / "create new protocol adapter"
+- "register personal SQUADRULES adapter" / "register a personal adapter"
 - "train adapter into personal" / "train protocol into personal"
 - "train a workflow" / "register a new adapter" / "create a new workflow"
 - "review protocol" / "audit adapters" / "check protocol families for gaps"
@@ -63,7 +64,7 @@ as synonyms. Supports three operations:
 - Enforce the 350-line limit per file.
 
 **Good trigger examples:**
-- "Create a new KAIROS protocol for code review" → run this protocol (create)
+- "Create a new SQUADRULES protocol for code review" → run this protocol (create)
 - "No match found; I want to create a new protocol" → run this protocol (create)
 - "Review all v4 protocol families for missing cross-references" → run this protocol (review)
 - "Update the MR adapter to include a review step" → run this protocol (update)
@@ -217,7 +218,7 @@ Apply the identified change and show a diff-style summary of what changed.
 
 ### Shared drafting rules (all operations)
 
-**Core KAIROS rule — right mode at the right time:**
+**Core SQUADRULES rule — right mode at the right time:**
 
 Every protocol must help the agent recognise whether the current step is for
 exploration, clarification, ideation, planning, execution, validation, review,
@@ -342,5 +343,5 @@ Protocol complete when:
 - `review` — findings report delivered and acknowledged
 - `update` — corrected adapter trained with `force_update: true` + review_evidence, repo file updated
 
-A successful result means the resulting KAIROS adapter is more truthful,
+A successful result means the resulting SQUADRULES adapter is more truthful,
 phase-aware, agent-readable, and aligned with human–AI harmony.

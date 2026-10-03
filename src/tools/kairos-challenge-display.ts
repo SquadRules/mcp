@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import type { ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { GENESIS_HASH } from './kairos-genesis-proof-hash.js';

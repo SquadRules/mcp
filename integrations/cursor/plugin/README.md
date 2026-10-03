@@ -1,8 +1,9 @@
-# KAIROS MCP — Cursor plugin (local)
+<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
+# SQUADRULES MCP — Cursor plugin (local)
 
 This folder is a **Cursor plugin** bundle: manifest, logo, and MCP server config
-for connecting to the KAIROS streamable HTTP endpoint. Use it when you want
-Cursor’s tool row to show the KAIROS logo (plugin metadata), not only a manual
+for connecting to the SQUADRULES streamable HTTP endpoint. Use it when you want
+Cursor’s tool row to show the SQUADRULES logo (plugin metadata), not only a manual
 `mcp.json` entry.
 
 Official artwork matches [logo/kairos-mcp.svg](../../../logo/kairos-mcp.svg)
@@ -18,14 +19,14 @@ in the repository root (copied here as `assets/logo.svg`).
 
 ## Prerequisites
 
-- A running KAIROS server on the URL you configure (default in `mcp/mcp.json` is
+- A running SQUADRULES server on the URL you configure (default in `mcp/mcp.json` is
   `http://localhost:3300/mcp`, aligned with local dev in this repo).
 - Cursor with support for [Cursor
   plugins](https://cursor.com/docs/plugins/building).
 
 ## Install (local plugin directory)
 
-1. Start KAIROS and confirm health on the base URL you will use (for example
+1. Start SQUADRULES and confirm health on the base URL you will use (for example
    `curl http://localhost:3300/health`).
 2. If your server is not on port **3300**, edit
    `mcp/mcp.json` and set `"url"` to your `/mcp` endpoint.
@@ -38,11 +39,11 @@ in the repository root (copied here as `assets/logo.svg`).
 
 1. Open a chat that can call MCP tools.
 2. Run **`spaces`** (empty `{}` is enough).
-3. Confirm the **KAIROS** logo appears next to the tool run in the tool row and
+3. Confirm the **SQUADRULES** logo appears next to the tool run in the tool row and
    that the call still hits your HTTP MCP server (same behavior as a manual
    `mcp.json` entry).
 
 ## Trademark
 
 The name and logo are governed by [TRADEMARK.md](../../../TRADEMARK.md). Use this
-bundle to connect to **official** KAIROS MCP, not for unrelated distributions.
+bundle to connect to **official** SQUADRULES MCP, not for unrelated distributions.

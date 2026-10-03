@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Auth-related errors and handling (401 with login_url).
  * Auth message is written without "Error: " prefix; --open can open the URL.

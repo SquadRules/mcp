@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Journey replay: replays an exported journey JSON against a running KAIROS MCP server.
+ * Journey replay: replays an exported journey JSON against a running SQUADRULES MCP server.
  * Sends each tool call in sequence and runs consistency checks.
  * Usage: node scripts/journey-replay.mjs --journey ./journeys/corr-abc.json --server http://localhost:3300
  * Options: --journey <path> --server <url> --bearer <token> --strict --redact-tenant <id> --dry-run --help
@@ -28,7 +28,7 @@ function hasFlag(name) {
 }
 
 if (hasFlag('help')) {
-  console.log('Journey replay: replay exported journey against a KAIROS server\n\nUsage:\n  node scripts/journey-replay.mjs --journey ./journeys/corr-abc.json --server http://localhost:3300\n\nOptions: --journey <path> --server <url> --bearer <token> --strict --redact-tenant <id> --dry-run --help');
+  console.log('Journey replay: replay exported journey against a SQUADRULES server\n\nUsage:\n  node scripts/journey-replay.mjs --journey ./journeys/corr-abc.json --server http://localhost:3300\n\nOptions: --journey <path> --server <url> --bearer <token> --strict --redact-tenant <id> --dry-run --help');
   process.exit(0);
 }
 

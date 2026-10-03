@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * List the agent's available spaces with human-readable names,
  * adapter counts per space, and optionally adapter titles and layer counts.

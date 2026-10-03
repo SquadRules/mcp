@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references KAIROS_* environment variable names still honored as aliases for existing deployments -->
 # artifact export parity spec
 
 This spec defines the end-to-end artifact train and export parity contract for

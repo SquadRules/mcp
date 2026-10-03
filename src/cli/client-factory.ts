@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Factory for creating ApiClient instances with resolved global CLI options.
  * Separated from program.ts to avoid circular imports with command modules.

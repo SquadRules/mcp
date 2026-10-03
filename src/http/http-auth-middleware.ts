@@ -1,3 +1,4 @@
+// squadrules-compat-surface: uses the kairos_session auth cookie name required by existing browser sessions
 /**
  * Auth middleware: when AUTH_ENABLED, require session or Bearer for /api and /mcp.
  * Unauthenticated browser GET -> redirect to Keycloak; otherwise 401 with login_url.

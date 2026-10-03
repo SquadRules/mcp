@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: documents the KAIROS-to-SquadRules migration and old-to-new name map; intentionally references retired names for operators (compat reference) -->
 # Migration from KAIROS
 
 This project was formerly named **KAIROS**. It is now **SquadRules** — an
@@ -15,12 +16,12 @@ working unchanged, and lists the concrete steps for operators plus rollback.
 
 | Surface | Former (KAIROS) | Current (SquadRules) | Old name still works? |
 |---------|-----------------|----------------------|-----------------------|
-| npm package | `@jakub-plichcinski/kairos-mcp` | `@squadrules/mcp` | Installable, but no longer the primary distribution |
+| npm package | `@SquadRules/mcp` | `@squadrules/mcp` | Installable, but no longer the primary distribution |
 | CLI command | `kairos`, `kairos-mcp` | `squadrules`, `squadrules-mcp` | Yes — all four bin names ship |
 | Container (canonical) | `quay.io/jakubplichcinski/kairos-mcp` | `quay.io/squadrules/mcp` | No — update image references |
 | Container (mirror) | `docker.io/jakubplichcinski/kairos-mcp` | `docker.io/squadrules/mcp` | No — update image references |
 | Helm chart | `kairos-mcp` (`oci://quay.io/<namespace>/kairos-mcp-chart`) | `mcp` (`oci://ghcr.io/squadrules/charts/mcp`) | See [Helm](#helm-deployments) |
-| Repository | `jakub-plichcinski/kairos-mcp` | `SquadRules/mcp` | GitHub keeps redirects after transfer |
+| Repository | `SquadRules/mcp` | `SquadRules/mcp` | GitHub keeps redirects after transfer |
 | MCP server name | `KAIROS` | `SquadRules` | Update your `mcp.json` server key |
 | Server env vars | `KAIROS_*` | `SQUADRULES_*` (preferred) | Yes — aliased, with a deprecation notice |
 | CLI config dir | `~/.config/kairos` | `~/.config/squadrules` | Yes — legacy fallback, copied forward |
@@ -148,7 +149,7 @@ with the same release identity over uninstall/reinstall.
 Legacy names remain functional, so rolling back is safe:
 
 - Reinstall the previous version — for example
-  `npm install -g @jakub-plichcinski/kairos-mcp@<version>` or the prior image
+  `npm install -g @SquadRules/mcp@<version>` or the prior image
   tag — and the `kairos` / `kairos-mcp` bins, `KAIROS_*` env vars, `kairos://`
   URIs, `kairos` config directory, and `kairos-cli` keyring all continue to work.
 - The config-directory copy never deletes `~/.config/kairos`, and `kairos-cli`
