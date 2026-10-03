@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Integration tests for export (MCP tool; markdown aggregate via current export).
  */
@@ -6,7 +7,7 @@ import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-describe('Kairos export (MCP)', () => {
+describe('Squadrules export (MCP)', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;
 
   beforeAll(async () => {

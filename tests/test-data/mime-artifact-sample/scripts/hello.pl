@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 use strict;
 use warnings;
 use utf8;

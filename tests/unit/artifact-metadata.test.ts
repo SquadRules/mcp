@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads the stored "# kairos-artifact:" metadata delimiter written into existing artifacts
 import { describe, expect, it } from '@jest/globals';
 import { extractArtifactMetadata } from '../../src/services/memory/artifact-metadata.js';
 

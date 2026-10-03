@@ -23,7 +23,7 @@ import {
   handleDuplicateAdapter
 } from './store-adapter-helpers.js';
 import { resolveProtocolSlugCandidate } from '../../utils/protocol-slug.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import type { CodeBlockProcessor } from '../code-block-processor.js';
 import type { MemoryQdrantStoreMethods } from './store-methods.js';
 import { buildActivationSearchFieldsForMemory } from './activation-search-fields.js';
@@ -67,7 +67,7 @@ export async function storeDefaultAdapter(
     firstGeneratedLabel
   );
   if ('error' in slugCand) {
-    throw new KairosError(slugCand.message, 'INVALID_SLUG', 400, { message: slugCand.message });
+    throw new SquadrulesError(slugCand.message, 'INVALID_SLUG', 400, { message: slugCand.message });
   }
   const protocolSlug = await allocateAdapterSlugForMint(
     client,

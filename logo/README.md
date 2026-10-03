@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
 # SquadRules MCP Logo
 
 This directory contains the official SquadRules MCP logo.

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * Unit test: browser PKCE login flow — callback → token exchange → config write → reuse.
  *

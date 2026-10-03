@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 """Hello world using conf/app-config.toml (MIME: text/x-python)."""
 from __future__ import annotations
 

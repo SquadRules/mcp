@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 /**
  * Parser for the comma-separated env `KAIROS_LOCAL_ARTIFACT_DIRS` that defines
  * the ordered URI hints emitted as `kairos_local_artifact_dir` in tool

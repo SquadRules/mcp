@@ -15,6 +15,7 @@ metadata:
   author: kairos-mcp
   internal: true
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 <!-- DEPRECATED: Use .agents/skills/squadrules-dev/ instead. Retained for backward compatibility with existing installations. -->
 <!-- If .agents/skills/squadrules-dev/ is present, this skill defers to it. Do not load both. -->

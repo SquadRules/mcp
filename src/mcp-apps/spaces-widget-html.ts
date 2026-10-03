@@ -66,7 +66,7 @@ export function renderSpacesWidgetHtml(spaces: SpacesWidgetSpaceRow[]): string {
     .join('\n');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Spaces</title></head><body>
-<section aria-label="KAIROS spaces">
+<section aria-label="SQUADRULES spaces">
   <table style="border-collapse:collapse;width:100%;max-width:56rem;font-family:system-ui,sans-serif;font-size:14px;">
     <thead><tr>
       <th style="text-align:left;padding:0.3em 0.45em;border-bottom:2px solid #333;">Space</th>

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Auth headers for integration tests when AUTH_ENABLED=true.
  * Reads .test-auth-env.dev.json written by globalSetup (when server requires auth).

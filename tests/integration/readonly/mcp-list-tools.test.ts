@@ -1,3 +1,4 @@
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { withRawOnFail } from '../../utils/expect-with-raw.js';
 import { isLikelyToolInputJsonSchema } from '../../utils/mcp-list-tools-schema-helpers.js';

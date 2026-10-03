@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -8,7 +9,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 import { SearchResultsSkeleton } from "@/components/SearchResultsSkeleton";
 import { toConfidencePercent } from "@/utils/confidence";
 import { browseAdaptersFromSpaces } from "@/utils/browse-adapters";
-import { KairosActivateResultsSection, KairosBrowseByLabelSection } from "@/pages/kairos-page-sections";
+import { SquadrulesActivateResultsSection, SquadrulesBrowseByLabelSection } from "@/pages/kairos-page-sections";
 
 /** Role badge colors matching mockup 07 (match=green, refine=blue, create=amber). */
 const roleBadgeClass: Record<string, string> = {
@@ -175,7 +176,7 @@ export function KairosPage() {
       {!isLoading && !isError && !(showBrowse && spacesError) && (
         <>
           {!submittedQuery ? (
-            <KairosBrowseByLabelSection
+            <SquadrulesBrowseByLabelSection
               t={t}
               spacesLoading={spacesLoading}
               browseAdapters={browseAdapters}
@@ -204,7 +205,7 @@ export function KairosPage() {
               </div>
             </div>
           ) : submittedQuery ? (
-            <KairosActivateResultsSection
+            <SquadrulesActivateResultsSection
               t={t}
               choices={choices}
               topScore={topScore}

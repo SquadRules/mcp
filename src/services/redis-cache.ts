@@ -1,3 +1,4 @@
+// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 import type { Memory } from '../types/memory.js';
 import { logger } from '../utils/structured-logger.js';
 import { keyValueStore } from './key-value-store-factory.js';

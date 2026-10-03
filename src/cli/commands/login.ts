@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * kairos login — obtain and store a Bearer token (--token or browser + PKCE).
  */
@@ -38,7 +39,7 @@ export function getBaseUrl(): string {
 
 /** Check if token is valid (GET /api/me). Used by login to skip relogin and by ApiClient. */
 export async function isTokenValid(baseUrl: string, token: string): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const res = await fetch(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
     });
@@ -46,7 +47,7 @@ export async function isTokenValid(baseUrl: string, token: string): Promise<bool
 }
 
 async function loginWithToken(baseUrl: string, token: string): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const res = await fetch(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
     });
@@ -67,7 +68,7 @@ export interface LoginWithBrowserOptions {
 
 /** Run browser PKCE login and store token. Exported for 401+--open retry from ApiClient. */
 export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrowserOptions): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const endpoints = await fetchOAuthProtectedResourceMetadata(baseUrl);
     if (!endpoints) {
         const wellKnownUrl = `${baseUrl.replace(/\/$/, '')}/.well-known/oauth-protected-resource`;
@@ -200,7 +201,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
                 writeStderr(authUrlStr); // also stderr so tests see it when stdout is pipe-buffered
             } else {
                 openBrowser(authUrlStr);
-                writeStdout('[i] Log in to KAIROS in the browser.');
+                writeStdout('[i] Log in to SQUADRULES in the browser.');
                 writeStdout(`[i] If the browser did not open, open this link:\n${authUrlStr}`);
                 writeStdout('[i] Awaiting authentication in the browser.');
             }

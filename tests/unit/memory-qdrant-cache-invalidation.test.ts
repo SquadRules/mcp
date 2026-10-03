@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Verifies Qdrant memory CUD paths call invalidateAfterUpdate so activate:* Redis entries
  * (executeSearch / MCP activate) are cleared, not only search:* keys.

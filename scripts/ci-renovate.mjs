@@ -13,7 +13,7 @@ if (!validate) {
   await verifyIdentity(api);
 }
 const env = { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' };
-const directory = mkdtempSync(join(tmpdir(), 'kairos-renovate-'));
+const directory = mkdtempSync(join(tmpdir(), 'squadrules-renovate-'));
 if (!validate) {
   const config = JSON.parse(readFileSync('renovate.json', 'utf8'));
   writeFileSync(join(directory, 'config.json'), JSON.stringify({ ...config, enabled: true }));

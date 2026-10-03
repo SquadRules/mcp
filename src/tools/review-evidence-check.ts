@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Shared review_evidence validation for train and tune.
  * Extracted to keep per-file line counts within ESLint max-lines.

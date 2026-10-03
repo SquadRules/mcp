@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 # Add a demo user to Keycloak realm kairos-dev using the Admin CLI (kcadm.sh) inside the container.
 # Requires: Keycloak running (docker compose -p kairos-mcp --env-file .env --profile fullstack up -d).
 #

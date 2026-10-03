@@ -7,6 +7,7 @@ description: >-
   .local/mcp-qa-reports/; phase 3 failing integration tests; phase 4 plan
   and fix. Not installed via npx skills add (see .agents/skills/README.md).
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # MCP E2E QA (kairos-mcp)
 

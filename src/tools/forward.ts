@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -23,7 +24,7 @@ import {
 } from './next-previous-step.js';
 import { updateStepQuality } from './next.js';
 import { type ForwardInput, type ForwardOutput } from './forward_schema.js';
-import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseKairosUriOrThrow } from './kairos-uri.js';
+import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUriOrThrow } from './kairos-uri.js';
 import {
   buildForwardView,
   buildCurrentLayerView,
@@ -32,7 +33,7 @@ import {
   mapProofSolution,
 } from './forward-view.js';
 import { appendExecutionTrace, handleTensorForward, solutionToTensorValue } from './forward-trace.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 
 function traceFireAndForget(op: Promise<void>): void {
   op.catch((err) => {
@@ -96,15 +97,15 @@ export async function executeForward(
   qdrantService: QdrantService | undefined,
   input: ForwardInput
 ): Promise<ForwardOutput> {
-  const parsedInputUri = parseKairosUriOrThrow(input.uri);
+  const parsedInputUri = parseSquadrulesUriOrThrow(input.uri);
   const parsed =
     parsedInputUri.kind === 'adapter'
-      ? parseKairosUriOrThrow(assertWireAdapterUri(input.uri))
+      ? parseSquadrulesUriOrThrow(assertWireAdapterUri(input.uri))
       : parsedInputUri;
   const loaded = await loadMemoryForParsedUri(memoryStore, qdrantService, parsed);
   const memory = loaded.memory;
   if (!memory) {
-    throw new KairosError('Layer or adapter not found', 'NOT_FOUND', 404);
+    throw new SquadrulesError('Layer or adapter not found', 'NOT_FOUND', 404);
   }
 
   const adapterId = getAdapterId(memory);

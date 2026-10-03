@@ -1,3 +1,4 @@
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 import { buildListOfferingsForUIResult } from '../../src/mcp-apps/list-offerings-for-ui.js';
 import {
   KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,

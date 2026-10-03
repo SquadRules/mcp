@@ -1,5 +1,5 @@
 /**
- * kairos serve — help and flag validation (no full server boot; requires dist/cli).
+ * squadrules serve — help and flag validation (no full server boot; requires dist/cli).
  */
 
 import { execAsync, CLI_PATH } from './cli-commands-shared.js';

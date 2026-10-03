@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Space and tenant context for multitenancy.
  * SpaceContext is derived from Keycloak (sub + groups); getTenantId() remains for metrics.
@@ -35,7 +36,7 @@ export interface SpaceContext {
   spaceNamesById?: Record<string, string>;
   requestId?: string;
   /**
-   * When set (e.g. activate/search space parameter), vector search uses exactly these IDs — no implicit merge of Kairos app.
+   * When set (e.g. activate/search space parameter), vector search uses exactly these IDs — no implicit merge of Squadrules app.
    * Writes should still use defaultWriteSpaceId when the scope is read-only (app space).
    */
   activateSpaceScope?: string[];
@@ -63,7 +64,7 @@ function defaultSpaceContext(): SpaceContext {
     allowedSpaceIds: [personalSpaceId, appSpaceId],
     defaultWriteSpaceId: personalSpaceId,
     personalSpaceId: personalSpaceId,
-    spaceNamesById: { [personalSpaceId]: 'Personal', [appSpaceId]: 'Kairos app' },
+    spaceNamesById: { [personalSpaceId]: 'Personal', [appSpaceId]: 'Squadrules app' },
     requestId: ''
   };
 }
@@ -130,7 +131,7 @@ export function getRequestIdFromStorage(): string {
 }
 
 /**
- * Space IDs to use for search only: allowedSpaceIds plus Kairos app space (deduped).
+ * Space IDs to use for search only: allowedSpaceIds plus Squadrules app space (deduped).
  * Writes (train, tune, delete) continue to use allowedSpaceIds only.
  */
 export function getSearchSpaceIds(): string[] {

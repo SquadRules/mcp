@@ -1,5 +1,6 @@
+// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 /**
- * Redis Service for KAIROS persistence
+ * Redis Service for SQUADRULES persistence
  *
  * Provides Redis-based persistence for game data and other shared state.
  * Uses configurable key prefix (default: 'kb:') via KAIROS_REDIS_PREFIX env var for isolation.

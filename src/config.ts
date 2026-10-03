@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 /**
  * Centralized configuration for environment variables.
  * This file contains all environment variable parsing logic.
@@ -157,13 +158,13 @@ export const AUTH_TRUSTED_ISSUERS_STRING = getEnvString('AUTH_TRUSTED_ISSUERS', 
 /** Comma-separated list of allowed JWT audiences (e.g. kairos-mcp). Required when AUTH_MODE=oidc_bearer. */
 export const AUTH_ALLOWED_AUDIENCES_STRING = getEnvString('AUTH_ALLOWED_AUDIENCES', '');
 /**
- * Comma-separated group names (or /paths) allowed in the KAIROS auth session after OIDC.
+ * Comma-separated group names (or /paths) allowed in the SQUADRULES auth session after OIDC.
  * Only JWT `groups` entries that match any entry are kept:
  * exact name or path (slash optional), or a **prefix** entry ending with `/` (e.g. `/shared/`
  * keeps every group whose path starts with that prefix). Matching is **case-insensitive** for paths.
  * Empty = do not filter: keep all token `groups` (recommended default so group spaces match IdP membership).
  * To restrict, set entries; to approximate “no group spaces”, use an allowlist that matches nothing you issue (e.g. a dedicated sentinel name).
- * Keycloak still issues full membership in the JWT; this filter controls what KAIROS forwards internally when non-empty.
+ * Keycloak still issues full membership in the JWT; this filter controls what SQUADRULES forwards internally when non-empty.
  */
 export const OIDC_GROUPS_ALLOWLIST: readonly string[] = (() => {
   const raw = getEnvString('OIDC_GROUPS_ALLOWLIST', '').trim();

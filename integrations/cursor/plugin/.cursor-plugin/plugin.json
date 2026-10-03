@@ -1,15 +1,15 @@
 {
-  "name": "kairos-mcp",
+  "name": "squadrules-mcp",
   "version": "1.0.0",
-  "description": "KAIROS MCP over streamable HTTP — persistent memory and deterministic adapter execution for agents.",
+  "description": "SQUADRULES MCP over streamable HTTP — persistent memory and deterministic adapter execution for agents.",
   "author": {
     "name": "Jakub Plichcinski",
     "email": "kuba@xpl.pl"
   },
-  "homepage": "https://github.com/jakub-plichcinski/kairos-mcp",
-  "repository": "https://github.com/jakub-plichcinski/kairos-mcp",
+  "homepage": "https://github.com/SquadRules/mcp",
+  "repository": "https://github.com/SquadRules/mcp",
   "license": "MIT",
-  "keywords": ["kairos", "mcp", "memory", "adapters", "workflows"],
+  "keywords": ["squadrules", "mcp", "memory", "adapters", "workflows"],
   "logo": "assets/logo.svg",
   "mcpServers": "mcp/mcp.json"
 }

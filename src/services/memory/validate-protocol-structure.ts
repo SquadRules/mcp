@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Lightweight structural validation for adapter markdown before train.
  * Ensures required sections (Activation Patterns, Reward Signal) and at least

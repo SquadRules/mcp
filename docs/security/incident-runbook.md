@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references Keycloak realm/client names (kairos-dev/kairos-prod/kairos-mcp) provisioned in existing deployments -->
 # Incident response runbook
 
 This runbook explains how you investigate and contain security incidents in

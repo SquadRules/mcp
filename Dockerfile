@@ -1,3 +1,4 @@
+# squadrules-compat-surface: references Qdrant collection names (kairos_ci/kairos_memories/kairos_simple_ci) provisioned in existing deployments
 # Release image: install published package from npm (no source build).
 # Used by CI/release; version passed as build-arg. For local dev build-from-source, use Dockerfile.dev.
 # Multi-arch: build for linux/amd64,linux/arm64 (set by buildx).

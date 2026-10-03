@@ -1,6 +1,6 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
-  "projectTitle": "KAIROS MCP",
+  "projectTitle": "SquadRules MCP",
   "description": "MCP server for persistent memory and deterministic adapter execution for AI agents.",
   "folders": ["docs", "src/embed-docs"],
   "excludeFolders": ["node_modules", "dist", ".git", "reports", "tests"],

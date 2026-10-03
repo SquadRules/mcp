@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * MCP Client Connection Utilities for Integration Tests
  * Provides reusable connection setup and teardown functions.

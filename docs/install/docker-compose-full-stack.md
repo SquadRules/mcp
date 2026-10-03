@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references the docker-compose project/service name kairos-mcp retained for backward compatibility -->
 # Docker Compose — full stack (advanced)
 
 The repository includes an optional `fullstack` Compose profile that adds

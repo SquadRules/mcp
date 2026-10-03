@@ -117,12 +117,12 @@ function prepareImages() {
     '--output', `type=oci,dest=${dir}/image.oci.tar`, '.'], { env: noCredentials() });
   for (const arch of ['amd64', 'arm64']) {
     run('skopeo', ['copy', '--override-os', 'linux', '--override-arch', arch,
-      `oci-archive:${dir}/image.oci.tar`, `docker-archive:${dir}/scan-${arch}.tar:kairos-scan:${arch}`]);
+      `oci-archive:${dir}/image.oci.tar`, `docker-archive:${dir}/scan-${arch}.tar:squadrules-scan:${arch}`]);
     run('docker', ['load', '--input', `${dir}/scan-${arch}.tar`]);
-    const actual = run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `kairos-scan:${arch}`,
+    const actual = run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `squadrules-scan:${arch}`,
       '-p', `require('./node_modules/${packageName}/package.json').version`], { capture: true }).toString().trim();
     requireSame(actual, plan.version, `Image ${arch} package version`);
-    run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `kairos-scan:${arch}`,
+    run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `squadrules-scan:${arch}`,
       `node_modules/${packageName}/dist/cli/index.js`, 'serve', '--help']);
   }
 }

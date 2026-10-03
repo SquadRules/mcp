@@ -4,7 +4,7 @@ import { join } from 'path';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-describe('Kairos Train AI_CODING_RULES.md Import', () => {
+describe('Squadrules Train AI_CODING_RULES.md Import', () => {
   let mcpConnection;
 
   beforeAll(async () => {

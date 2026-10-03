@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 console.debug('kairos-next-output-shape.test.ts');
 
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
@@ -64,7 +65,7 @@ describe('forward response schema (train → forward)', () => {
 
   test('returns continue payload with current_layer and contract', async () => {
     const ts = Date.now();
-    const items = await trainThreeStepProtocol(`Kairos Forward Schema ${ts}`);
+    const items = await trainThreeStepProtocol(`Squadrules Forward Schema ${ts}`);
     const secondLayerId = layerIdFromUri(items[1].uri);
 
     const openResult = await mcpConnection.client.callTool({
@@ -109,7 +110,7 @@ describe('forward response schema (train → forward)', () => {
 
   test('returns completed payload when final step', async () => {
     const ts = Date.now();
-    const items = await trainTwoStepProtocol(`Kairos Forward Final ${ts}`);
+    const items = await trainTwoStepProtocol(`Squadrules Forward Final ${ts}`);
     const lastLayerId = layerIdFromUri(items[items.length - 1].uri);
 
     const openResult = await mcpConnection.client.callTool({

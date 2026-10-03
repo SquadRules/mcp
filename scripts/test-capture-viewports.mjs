@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Capture the UI at multiple viewport sizes. Agent tool for design review at real-world dimensions.
  *
@@ -11,7 +12,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveKairosAppBaseUrl } from "./test-integration-app-base-url.mjs";
+import { resolveSquadrulesAppBaseUrl } from "./test-integration-app-base-url.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -24,7 +25,7 @@ const VIEWPORTS = [
   { name: "wide", width: 1920, height: 1080 },
 ];
 
-const baseUrl = process.argv[2] ?? `${resolveKairosAppBaseUrl()}/ui/`;
+const baseUrl = process.argv[2] ?? `${resolveSquadrulesAppBaseUrl()}/ui/`;
 
 async function main() {
   await mkdir(outDir, { recursive: true });

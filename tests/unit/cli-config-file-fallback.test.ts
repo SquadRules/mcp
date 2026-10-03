@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * Regression for the config-file fallback path (issue #638).
  *

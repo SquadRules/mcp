@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 # mime-artifact-sample
 
 This fixture is the byte-level contract for MIME artifact end-to-end export

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 /**
  * JSON field exposing the run's local handoff dir as ordered URI hints
  * (`project://<rel>`, `user://<rel>`). The server never names a path on

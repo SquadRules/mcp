@@ -1,5 +1,6 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
- * ID Generator Service for KAIROS
+ * ID Generator Service for SQUADRULES
  *
  * Generates UUID-based identifiers for knowledge items.
  * Uses URI-based UUIDv5 for deterministic Qdrant IDs where appropriate.
@@ -8,7 +9,7 @@
 import { v5 as uuidv5, v4 as uuidv4 } from 'uuid';
 import { structuredLogger } from '../utils/structured-logger.js';
 
-// KAIROS namespace UUID for deterministic ID generation
+// SQUADRULES namespace UUID for deterministic ID generation
 // Generate once and hardcode for deployment consistency
 export const KAIROS_NAMESPACE = '6f1d7e2b-8f7b-4b1e-9c8f-2f2f0b1a2e11';
 

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
 import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inject.js';
 
@@ -15,10 +16,10 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  */
 export function buildSpacesWidgetHtml(): string {
   const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
-  return substituteWidgetPresentationToken(`<div id="kairos-spaces-root">
+  return substituteWidgetPresentationToken(`<div id="squadrules-spaces-root">
   <div class="brand">
     ${logo}
-    <h1>KAIROS · Your spaces</h1>
+    <h1>SQUADRULES · Your spaces</h1>
   </div>
   <div id="out"><span class="waiting">Loading your spaces...</span></div>
   <p class="hint">From the <code>spaces</code> tool: where your adapters live, and how many adapters each space holds. Use the space <strong>name</strong> in other tools when asked for a space, not a raw id.</p>
@@ -387,7 +388,7 @@ export function buildSpacesWidgetHtml(): string {
           return;
         }
         sendRequest('ui/initialize', {
-          appInfo: { name: 'kairos-spaces-view', version: '1.0.0' },
+          appInfo: { name: 'squadrules-spaces-view', version: '1.0.0' },
           appCapabilities: {},
           protocolVersion: PROTO
         }).then(function (result) {

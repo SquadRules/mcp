@@ -5,6 +5,7 @@ description: >-
   intended use of KAIROS, KAIROS-DEVELOPMENT, and KAIROS-HELM-INTEGRATION, plus
   how to resolve config keys to agent-visible server ids when MCP calls fail.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # MCP host bridge (kairos-mcp)
 

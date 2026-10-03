@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { describe, expect, it } from '@jest/globals';
 import { deriveSkillMetadata, stripLeadingFrontmatter } from '../../src/tools/skill-export/derive-metadata.js';
 import { buildSkillMdFile } from '../../src/tools/skill-export/build-skill-md.js';
@@ -16,7 +17,7 @@ Body here.`;
     const out = deriveSkillMetadata({
       protocolMarkdown: md,
       label: 'L',
-      kairosUri: 'kairos://adapter/uuid'
+      squadrulesUri: 'kairos://adapter/uuid'
     });
     expect(out.name).toBe('my-skill');
     expect(out.slug).toBe('my-skill');
@@ -34,7 +35,7 @@ Second line still same paragraph.
     const out = deriveSkillMetadata({
       protocolMarkdown: md,
       label: 'Lab',
-      kairosUri: 'kairos://adapter/uuid'
+      squadrulesUri: 'kairos://adapter/uuid'
     });
     expect(out.description).toContain('First para');
     expect(out.slug.length).toBeGreaterThan(0);

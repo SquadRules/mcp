@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references the persisted app-space id space:kairos-app stored in existing Qdrant points
 import { describe, expect, it } from "vitest";
 import { browseAdaptersFromSpaces } from "../../src/ui/utils/browse-adapters";
 import type { SpaceInfo } from "../../src/ui/hooks/useSpaces";

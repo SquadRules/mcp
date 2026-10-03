@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * CLI `train` command (single file or directory batch).
  */
@@ -69,7 +70,7 @@ function readUtf8RegularFile(absPath: string): string {
 export function trainCliCommand(program: Command): void {
   program
     .command('train')
-    .description('Register a new KAIROS adapter from markdown, or attach a text artifact to an adapter')
+    .description('Register a new SQUADRULES adapter from markdown, or attach a text artifact to an adapter')
     .argument(
       '[path]',
       'Path to a markdown/artifact file, or a directory of .md files (omit when using --source-adapter-uri)'

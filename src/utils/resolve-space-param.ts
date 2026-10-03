@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Resolve human-oriented space input (train / activate / tune) to a canonical space_id.
  * Matches the train tool: "personal", group names, optional "Group: " prefix, or raw allowed IDs.
@@ -13,7 +14,7 @@ export type ResolveSpaceParamResult =
 
 export type ResolveSpaceParamOptions = {
   /**
-   * When true, the Kairos app space (built-in adapters) may be resolved for activate/search scoping only.
+   * When true, the Squadrules app space (built-in adapters) may be resolved for activate/search scoping only.
    * Train/tune omit this so the app space stays a read-only target for writes.
    */
   allowReadOnlyAppSearchScope?: boolean;
@@ -53,9 +54,9 @@ export function resolveSpaceParamForContext(
     return { ok: true, spaceId };
   }
 
-  const isKairosAppLabel = trimmed.toLowerCase() === KAIROS_APP_SPACE_DISPLAY_NAME.toLowerCase();
-  const isKairosAppRaw = trimmed === KAIROS_APP_SPACE_ID;
-  if (isKairosAppLabel || isKairosAppRaw) {
+  const isSquadrulesAppLabel = trimmed.toLowerCase() === KAIROS_APP_SPACE_DISPLAY_NAME.toLowerCase();
+  const isSquadrulesAppRaw = trimmed === KAIROS_APP_SPACE_ID;
+  if (isSquadrulesAppLabel || isSquadrulesAppRaw) {
     if (options?.allowReadOnlyAppSearchScope) {
       return { ok: true, spaceId: KAIROS_APP_SPACE_ID };
     }

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import {
   KAIROS_CREATION_PROTOCOL_SLUG,
   KAIROS_REFINING_PROTOCOL_SLUG,

@@ -22,7 +22,7 @@
   "clients": [
     {
       "clientId": "kairos-mcp",
-      "name": "KAIROS MCP (prod)",
+      "name": "SQUADRULES MCP (prod)",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -44,7 +44,7 @@
     },
     {
       "clientId": "kairos-cli",
-      "name": "KAIROS CLI / MCP host (public PKCE)",
+      "name": "SQUADRULES CLI / MCP host (public PKCE)",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,

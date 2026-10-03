@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Use existing Keycloak from .env (KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID) for auth tests.
  * Provisions hardcoded test user kairos-tester via Admin API; no container.

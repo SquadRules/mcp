@@ -1,3 +1,4 @@
+// squadrules-compat-surface: uses persisted Qdrant collection names (kairos / kairos_memories / kairos_ci / kairos_simple_ci); renaming would orphan existing vectors
 # Keycloak realm import
 
 Realm JSONs in this directory are applied **idempotently** by **scripts/deploy-configure-keycloak-realms.py** via the Admin API. No Docker import mount; do not use Keycloak `--import-realm` (would conflict with existing realms).
@@ -46,9 +47,9 @@ The script:
 
 Requires `KEYCLOAK_ADMIN_PASSWORD` in `.env` or environment. Optional: `KEYCLOAK_URL` (default `http://localhost:8080`), `TEST_USERNAME`, `TEST_PASSWORD`.
 
-## Claims used by KAIROS account and spaces
+## Claims used by SQUADRULES account and spaces
 
-KAIROS expects explicit token claims (not inferred fallbacks):
+SQUADRULES expects explicit token claims (not inferred fallbacks):
 
 - `identity_provider` (string) for account labeling (for example `google` -> `Google (SSO)` in `/ui/account`)
 - `groups` (array of strings) for group-derived spaces and account group display
@@ -61,11 +62,11 @@ For brokered login (Google/Okta/etc.), configure a **User Session Note** mapper 
 - token claim name: `identity_provider`
 - include in access token and/or ID token
 
-Without this mapper, KAIROS treats users as local account type because the claim is absent.
+Without this mapper, SQUADRULES treats users as local account type because the claim is absent.
 
 ### Groups claim (explicit memberships only)
 
-KAIROS reads only the JWT `groups` claim. It does **not** fallback to `realm_access.roles`.
+SQUADRULES reads only the JWT `groups` claim. It does **not** fallback to `realm_access.roles`.
 
 `deploy-configure-keycloak-realms.py` creates a shared client scope named
 `kairos-groups` and attaches the **Group Membership** mapper named
@@ -74,7 +75,7 @@ clients inherit the claim, and the script links it to `kairos-mcp` and
 `kairos-cli`. Keycloak’s mapper lists **every** realm group the user belongs to
 (you cannot whitelist individual groups in that mapper on current Keycloak).
 
-To **choose which groups KAIROS uses** (spaces, `/api/me`, session cookie) after
+To **choose which groups SQUADRULES uses** (spaces, `/api/me`, session cookie) after
 the token is issued, set **`OIDC_GROUPS_ALLOWLIST`** in the app `.env` to a
 comma-separated list of full group **paths** or **path prefixes** ending with
 `/`. For example, `/shared/` matches `/shared/team-platform`.
@@ -83,14 +84,14 @@ Leave the allowlist empty or unset to deny all group paths (default deny). Use
 `/` or a more specific prefix to accept group paths and then tighten the list
 as needed.
 
-KAIROS builds deterministic space ids at request time using the issuer and
+SQUADRULES builds deterministic space ids at request time using the issuer and
 token claims:
 
 - Personal space: `user:<realmSlug>:<uuidv5(iss + "\\nuser\\n" + sub)>`
 - Group space: `group:<realmSlug>:<uuidv5(iss + "\\ngroup\\n" + fullPath)>`
 
 If you manage Keycloak manually, add the same style of **Group Membership**
-mapper yourself. Keep the claim name `groups` so KAIROS can read it.
+mapper yourself. Keep the claim name `groups` so SQUADRULES can read it.
 
 ## Adding other users
 
