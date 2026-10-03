@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, openS
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { GitHub, gateRuns, output, report } from './ci-automation.mjs';
-import { ARTIFACTS, assertManifest, fileDigest, digest, releaseRecord, recordBody, channelTags, requireSame, retry, versionPattern, ensurePublished, publishStages, recordChannel } from './ci-release-state.mjs';
-import { registries, remoteManifest, download } from './ci-registry.mjs';
+import { ARTIFACTS, assertManifest, fileDigest, digest, releaseRecord, recordBody, requireSame, versionPattern, ensurePublished, publishStages, recordChannel } from './ci-release-state.mjs';
+import { download } from './ci-registry.mjs';
 
 const dir = '.local/release';
 const packageName = '@squadrules/mcp';
@@ -106,41 +106,15 @@ function preparePackage() {
   // dependency here anymore.
 }
 
-function prepareImages() {
-  const plan = json(`${dir}/plan.json`);
-  requireSame(source(), plan.sourceSha, 'Image source');
-  mkdirSync('.ci/docker', { recursive: true });
-  copyFileSync(`${dir}/package.tgz`, '.ci/docker/package.tgz');
-  run('docker', ['buildx', 'build', '--platform', 'linux/amd64,linux/arm64', '--target', 'runtime-ci',
-    '--build-arg', `PACKAGE_VERSION=${plan.version}`, '--label', `org.opencontainers.image.revision=${plan.sourceSha}`,
-    '--label', `org.opencontainers.image.version=${plan.version}`, '--provenance=false', '--sbom=false',
-    '--output', `type=oci,dest=${dir}/image.oci.tar`, '.'], { env: noCredentials() });
-  for (const arch of ['amd64', 'arm64']) {
-    run('skopeo', ['copy', '--override-os', 'linux', '--override-arch', arch,
-      `oci-archive:${dir}/image.oci.tar`, `docker-archive:${dir}/scan-${arch}.tar:squadrules-scan:${arch}`]);
-    run('docker', ['load', '--input', `${dir}/scan-${arch}.tar`]);
-    const actual = run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `squadrules-scan:${arch}`,
-      '-p', `require('./node_modules/${packageName}/package.json').version`], { capture: true }).toString().trim();
-    requireSame(actual, plan.version, `Image ${arch} package version`);
-    run('docker', ['run', '--rm', '--platform', `linux/${arch}`, '--entrypoint', 'node', `squadrules-scan:${arch}`,
-      `node_modules/${packageName}/dist/cli/index.js`, 'serve', '--help']);
-  }
-}
-
 async function seal() {
   const plan = json(`${dir}/plan.json`);
   requireSame(source(), plan.sourceSha, 'Validated source');
   if (process.env.VALIDATION_PASSED !== 'true') throw new Error('Validation is required before sealing artifacts');
-  for (const arch of ['amd64', 'arm64']) {
-    runToFile('trivy', ['image', '--input', `${dir}/scan-${arch}.tar`,
-      '--format', 'cyclonedx', '--scanners', 'vuln'], `${dir}/image-${arch}-sbom.json`);
-  }
   save(`${dir}/validation.json`, { sourceSha: plan.sourceSha, version: plan.version, packedConsumer: true,
-    platforms: ['linux/amd64', 'linux/arm64'], imageSmoke: true, trivy: 'CRITICAL,HIGH', runId: process.env.GITHUB_RUN_ID });
+    runId: process.env.GITHUB_RUN_ID });
   const files = {};
   for (const file of ARTIFACTS) files[file] = await fileDigest(`${dir}/${file}`);
   const manifest = assertManifest({ schema: 1, ...plan, files, validated: true,
-    imageDigest: `sha256:${digest(run('skopeo', ['inspect', '--raw', `oci-archive:${dir}/image.oci.tar`], { capture: true }))}`,
     npmIntegrity: `sha512-${await fileDigest(`${dir}/package.tgz`, 'sha512', 'base64')}` });
   save(`${dir}/manifest.json`, manifest);
   report(manifest);
@@ -236,54 +210,16 @@ async function publishNpm(manifest) {
   });
 }
 
-async function publishImages(manifest, targets) {
-  for (const target of targets) {
-    await ensurePublished({
-      lookup: () => remoteManifest(target, manifest.version),
-      publish: async () => run('skopeo', ['copy', '--all', '--preserve-digests', '--authfile', `${process.env.HOME}/.docker/config.json`,
-        `oci-archive:${dir}/image.oci.tar`, `docker://${target.image}:${manifest.version}`]),
-      verify: existing => requireSame(existing.digest, manifest.imageDigest, target.image),
-    });
-    await retry(async () => {
-      // Cosign keyless identity is the publishing workflow ref; after the rebrand it
-      // resolves at runtime to the SquadRules/mcp release workflow, so no repository
-      // path is hard-coded here.
-      run('cosign', ['sign', '--yes', `${target.image}@${manifest.imageDigest}`]);
-      run('cosign', ['verify', '--certificate-identity', `https://github.com/${process.env.GITHUB_WORKFLOW_REF}`,
-        '--certificate-oidc-issuer', 'https://token.actions.githubusercontent.com', `${target.image}@${manifest.imageDigest}`]);
-    });
-  }
-}
-
-// Chart publication moved to the SquadRules/charts repository; the release pipeline no
-// longer packages or pushes a Helm chart, so there is no `chart` stage here.
-
-async function promote(manifest, targets) {
-  requireSame((await npmVersion(manifest.version))?.dist?.integrity, manifest.npmIntegrity, 'npm promotion');
-  for (const target of targets) {
-    requireSame((await remoteManifest(target, manifest.version))?.digest, manifest.imageDigest, 'Image promotion source');
-    for (const tag of channelTags(manifest)) {
-      await retry(async () => {
-        run('skopeo', ['copy', '--all', '--preserve-digests', '--authfile', `${process.env.HOME}/.docker/config.json`,
-          `docker://${target.image}@${manifest.imageDigest}`, `docker://${target.image}:${tag}`]);
-        requireSame((await remoteManifest(target, tag))?.digest, manifest.imageDigest, `Alias ${tag}`);
-      });
-    }
-  }
-  await retry(async () => {
-    // The channel tag is set atomically by `npm publish --tag <channel>`; npm OIDC does
-    // not authorize a separate dist-tag PUT, so this only verifies it propagated.
-    const response = await fetch(`https://registry.npmjs.org/-/package/${encodeURIComponent(packageName)}/dist-tags`);
-    if (!response.ok) throw new Error(`npm dist-tags: HTTP ${response.status}`);
-    requireSame((await response.json())[manifest.channel], manifest.version, 'npm dist-tag');
-  });
-}
+// Image publication (Docker Hub + quay), cosign signing, alias promotion and the Helm chart
+// all moved out of this pipeline: images are built FROM the published npm package by
+// SquadRules/containers, and the chart lives in SquadRules/charts. The npm release therefore
+// has a single publication stage (`npm`); the channel dist-tag is set atomically by
+// `npm publish --tag <channel>`.
 
 async function publish() {
   const api = new GitHub();
   const release = await draft(api);
   const record = releaseRecord(release);
-  const targets = registries();
   await publishStages(record, {
     validate: async manifest => {
       if (!(await gates(api, manifest.sourceSha, manifest.branch)).ready) throw new Error('Exact-source release validations are not successful');
@@ -299,8 +235,6 @@ async function publish() {
       await recordChannel(api, manifest);
     },
     npm: publishNpm,
-    images: manifest => publishImages(manifest, targets),
-    promoted: manifest => promote(manifest, targets),
     complete: async manifest => {
       const tag = `v${manifest.version}`;
       const published = await api.request(`/releases/${release.id}`, { method: 'PATCH', body: {
@@ -308,7 +242,7 @@ async function publish() {
       } });
       if (published.draft || !published.published_at) throw new Error('GitHub Release promotion was not confirmed');
       requireSame((await api.request(`/releases/tags/${tag}`)).id, release.id, 'GitHub release tag binding');
-      report({ state: 'published', sourceSha: manifest.sourceSha, version: manifest.version, imageDigest: manifest.imageDigest });
+      report({ state: 'published', sourceSha: manifest.sourceSha, version: manifest.version });
     },
   });
 }
@@ -319,7 +253,6 @@ async function main() {
   if (command === 'resolve') return resolve();
   if (command === 'plan') return plan();
   if (command === 'package') return preparePackage();
-  if (command === 'images') return prepareImages();
   if (command === 'seal') return seal();
   if (command === 'publish') {
     // Release runs by default and is not governed by vars.AUTOMATION_ENABLED (which only

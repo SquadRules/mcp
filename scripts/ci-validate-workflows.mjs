@@ -13,8 +13,8 @@ const release = workflow('release');
 for (const config of [integration, security, policy]) {
   assert.ok(Object.hasOwn(config.on, 'pull_request') && Object.hasOwn(config.on, 'push') && Object.hasOwn(config.on, 'merge_group'));
   for (const [jobName, job] of Object.entries(config.jobs)) {
-    // Security workflow's auto-remediation jobs (npm-audit, container-base-os-trivy) are allowed to write
-    const isSecurityAutoRemediation = config === security && ['npm-audit', 'container-base-os-trivy'].includes(jobName);
+    // Security workflow's npm-audit auto-remediation job is allowed to write
+    const isSecurityAutoRemediation = config === security && jobName === 'npm-audit';
     
     if (!isSecurityAutoRemediation) {
       assert.notEqual(job.permissions?.contents, 'write', 'PR tests must not write repository contents');
@@ -55,7 +55,7 @@ assert.equal(release.concurrency['cancel-in-progress'], false);
 const source = readFileSync('scripts/ci-release.mjs', 'utf8');
 assert.doesNotMatch(source, /git describe|already published versions|already exist/);
 assert.match(source, /await publishStages\(record/);
-for (const stage of ['validate', 'recover', 'tag', 'npm', 'images', 'promoted', 'complete']) {
+for (const stage of ['validate', 'recover', 'tag', 'npm', 'complete']) {
   assert.match(source, new RegExp(`\\b${stage}:`), `Release must wire the tested ${stage} stage`);
 }
 const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));

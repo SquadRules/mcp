@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 
-export const ARTIFACTS = ['package.tgz', 'image.oci.tar', 'npm-sbom.json', 'image-amd64-sbom.json', 'image-arm64-sbom.json', 'validation.json'];
+// npm-only release artifacts. Container images are built/published by SquadRules/containers
+// FROM this published package, so no image OCI/SBOM artifacts are produced or sealed here.
+export const ARTIFACTS = ['package.tgz', 'npm-sbom.json', 'validation.json'];
 export const versionPattern = /^\d+\.\d+\.\d+(?:-[a-z0-9-]+\.\d+)?$/;
 // Accept the older `squadrules-release` marker (existing published drafts/releases) as well as
 // the new `squadrules-release` marker so in-flight releases survive the rebrand. New records
@@ -19,7 +21,7 @@ export function assertManifest(m) {
   if (m.schema !== 1 || !versionPattern.test(m.version) || !/^[a-f0-9]{40}$/.test(m.sourceSha) ||
       typeof m.branch !== 'string' || !m.branch || !/^[a-z0-9][a-z0-9-]*$/.test(m.channel) ||
       (m.version.includes('-') ? m.channel === 'latest' || /^v?\d+$/.test(m.channel) || m.branch === 'main' : m.channel !== 'latest' || m.branch !== 'main') ||
-      m.validated !== true || !/^sha256:[a-f0-9]{64}$/.test(m.imageDigest) ||
+      m.validated !== true ||
       !/^sha512-[A-Za-z0-9+/]+=*$/.test(m.npmIntegrity) ||
       !ARTIFACTS.every(file => /^[a-f0-9]{64}$/.test(m.files?.[file])) ||
       Object.keys(m.files).length !== ARTIFACTS.length) throw new Error('Invalid or unvalidated release manifest');
@@ -39,12 +41,6 @@ export function releaseRecord(release) {
 export function recordBody(record) {
   assertManifest(record.manifest);
   return `${record.notes || ''}\n\n<!-- squadrules-release:${Buffer.from(JSON.stringify(record)).toString('base64')} -->`;
-}
-export function channelTags(manifest) {
-  assertManifest(manifest);
-  if (manifest.version.includes('-')) return [manifest.channel];
-  const [major, minor] = manifest.version.split('.');
-  return ['latest', major, `${major}.${minor}`];
 }
 export function requireSame(actual, expected, artifact) {
   if (actual !== expected) throw new Error(`${artifact} immutable identity mismatch`);
@@ -111,7 +107,7 @@ export async function publishStages(record, operations) {
   await operations.recover(manifest);
   await operations.mark('persisted');
   await operations.tag(manifest);
-  for (const stage of ['npm', 'images', 'promoted']) {
+  for (const stage of ['npm']) {
     await operations[stage](manifest);
     await operations.mark(stage);
   }
