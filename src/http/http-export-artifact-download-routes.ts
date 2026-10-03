@@ -1,4 +1,3 @@
-// squadrules-compat-surface: sets X-KAIROS-* HTTP response headers consumed by existing clients
 import express from 'express';
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { verifyExportArtifactDownloadCapability } from '../services/export-artifact-download-capability.js';
@@ -45,7 +44,7 @@ export function setupExportArtifactDownloadRoutes(
       const filename = record.filename.replace(/"/g, '');
       res.setHeader('Content-Type', record.content_type || memory.content_type || 'text/plain');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('X-KAIROS-Artifact-Sha256', record.sha256);
+      res.setHeader('X-SQUADRULES-Artifact-Sha256', record.sha256);
       // Dual header for SquadRules migration: both emitted so clients reading either name work.
       res.setHeader('X-SquadRules-Artifact-Sha256', record.sha256);
       res.status(200).send(body);

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
@@ -10,7 +9,7 @@ function renderLayout(initialPath = "/") {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<span>Home content</span>} />
-          <Route path="kairos" element={<span>SQUADRULES content</span>} />
+          <Route path="squadrules" element={<span>SQUADRULES content</span>} />
           <Route path="account" element={<span>Account content</span>} />
         </Route>
       </Routes>
@@ -37,7 +36,7 @@ describe("Layout", () => {
   it("renders Home, SQUADRULES and Account nav links", () => {
     renderLayout();
     expect(screen.getByRole("link", { name: "nav.home" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "nav.kairos" })).toHaveAttribute("href", "/kairos");
+    expect(screen.getByRole("link", { name: "nav.squadrules" })).toHaveAttribute("href", "/squadrules");
     expect(screen.getByRole("link", { name: "nav.account" })).toHaveAttribute("href", "/account");
   });
 

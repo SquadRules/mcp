@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 version: "4.8.6"
 slug: challenge-type-guide
@@ -82,7 +81,7 @@ Does the step call an MCP tool?
 
 **mcp with arguments (chain link)**
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"kairos://adapter/<slug>"}},"required":true}}
+{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/<slug>"}},"required":true}}
 ```
 
 Use the `arguments` form when the step's purpose is to invoke a specific
@@ -191,7 +190,7 @@ escaping, rewrite in Perl. If you need imports for data formats, use Python.
 
 ## Security and Working Directory Rules
 
-Use `$KAIROS_LOCAL_ARTIFACT_DIR` as the base directory for local handoff
+Use `$SQUADRULES_LOCAL_ARTIFACT_DIR` as the base directory for local handoff
 artifacts. File paths within it are provided as variables by the invoking agent
 to avoid collisions between parallel sessions.
 
@@ -199,10 +198,10 @@ to avoid collisions between parallel sessions.
 - all file paths in shell challenges reference variables (e.g., `$DRAFT_FILE`,
   `$VERDICT_FILE`) set by the parent agent — never hardcode filenames
 - the parent agent constructs collision-free paths under
-  `$KAIROS_LOCAL_ARTIFACT_DIR` (e.g., with a session ID or random suffix)
-- when using SQUADRULES MCP, the latest `activate` / `forward` / `next` response field `kairos_local_artifact_dir` is an ordered array of URI hints (`project://<rel>`, `user://<rel>`); pick one (`project://` when you have exactly one project context, otherwise `user://`), resolve on your machine, and `export KAIROS_LOCAL_ARTIFACT_DIR="<absolute>"` if your shell does not already define it
+  `$SQUADRULES_LOCAL_ARTIFACT_DIR` (e.g., with a session ID or random suffix)
+- when using SQUADRULES MCP, the latest `activate` / `forward` / `next` response field `squadrules_local_artifact_dir` is an ordered array of URI hints (`project://<rel>`, `user://<rel>`); pick one (`project://` when you have exactly one project context, otherwise `user://`), resolve on your machine, and `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` if your shell does not already define it
 - if the server-returned path is not usable on your local filesystem, resolve
-  locally to `$PROJECT_DIR/.local/kairos/work` and keep it stable for the run
+  locally to `$PROJECT_DIR/.local/squadrules/work` and keep it stable for the run
 - prerequisites create the directory
 - Reward Signal cleans it up
 - never write credentials or secrets to files
@@ -225,7 +224,7 @@ to avoid collisions between parallel sessions.
 - print the final status marker to stderr when stdout is machine-readable
 - preserve the original status exactly:
   ```bash
-  ( set -o pipefail; <command> ); rc=$?; printf '\nKAIROS_SHELL_EXIT=%s\n' "$rc" >&2; exit "$rc"
+  ( set -o pipefail; <command> ); rc=$?; printf '\nSQUADRULES_SHELL_EXIT=%s\n' "$rc" >&2; exit "$rc"
   ```
 - keep `&&` inside `<command>` for ordered checks; use the final
   `; rc=$?; ...` trailer only to capture, print, and return the process status
@@ -259,7 +258,7 @@ to avoid collisions between parallel sessions.
 - NOT a replacement for layers — layers remain the primary unit of work
 - example contract:
   ```json
-  {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"kairos://adapter/implement-plan"}},"required":true}}
+  {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
   ```
 
 ```json

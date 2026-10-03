@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 # mime-artifact-sample
 
 This fixture is the byte-level contract for MIME artifact end-to-end export
@@ -52,7 +51,7 @@ part of the test contract: if the tree cannot be created, the test fails. Layout
 **`.local/mime-fixture-export/<pid>/<api|mcp|cli>/<skill_tree|skill_zip>/stage<0|1|2>/`**
 (`<pid>` is the Jest worker process id so parallel runs do not overwrite each other). Each
 folder contains the exported files, **`SHA256SUMS.exported`**, and **`export-dump-meta.json`**.
-Override the root with **`KAIROS_MIME_FIXTURE_EXPORT_DIR`** if you want a different base path.
+Override the root with **`SQUADRULES_MIME_FIXTURE_EXPORT_DIR`** if you want a different base path.
 
 ## train inputs
 
@@ -63,7 +62,7 @@ Attach non-markdown files through `POST /api/train` JSON (or MCP `train`) with
 `mime`, `artifact_name`, `adapter_uri`, and `content` read from the paths
 listed below.
 
-Set `KAIROS_MIME_SAMPLE_ROOT` to this directory when running scripts from
+Set `SQUADRULES_MIME_SAMPLE_ROOT` to this directory when running scripts from
 another working directory.
 
 | Source file | `mime` for artifact train |

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 /**
  * In-memory key-value store for setups without a shared Redis backend.
  * Same key prefix and space namespacing as RedisService; keys(pattern) uses simple glob.
@@ -7,7 +6,7 @@
  */
 
 import { logger } from '../utils/structured-logger.js';
-import { KAIROS_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX, OIDC_STATE_KEY_PREFIX } from '../config.js';
+import { SQUADRULES_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX, OIDC_STATE_KEY_PREFIX } from '../config.js';
 import { getSpaceIdFromStorage } from '../utils/tenant-context.js';
 import type { IKeyValueStore } from './key-value-store.js';
 
@@ -23,7 +22,7 @@ function globToRegex(glob: string): RegExp {
 }
 
 export class MemoryStore implements IKeyValueStore {
-  private readonly prefix = KAIROS_REDIS_PREFIX;
+  private readonly prefix = SQUADRULES_REDIS_PREFIX;
   private readonly strings = new Map<string, TtlEntry>();
   private readonly hashes = new Map<string, Map<string, string>>();
   private readonly counters = new Map<string, number>();
@@ -31,7 +30,7 @@ export class MemoryStore implements IKeyValueStore {
 
   constructor() {
     logger.debug(
-      `[MemoryStore] Initializing with KAIROS_REDIS_PREFIX="${this.prefix}" (no Redis)`
+      `[MemoryStore] Initializing with SQUADRULES_REDIS_PREFIX="${this.prefix}" (no Redis)`
     );
   }
 

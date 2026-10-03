@@ -1,8 +1,7 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import crypto from 'crypto';
 import {
-  KAIROS_EXPORT_DOWNLOAD_SECRET,
-  KAIROS_EXPORT_DOWNLOAD_TTL_SEC,
+  SQUADRULES_EXPORT_DOWNLOAD_SECRET,
+  SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC,
   resolvePublicExportBaseUrl
 } from '../config/export-download-settings.js';
 import { DEFAULT_EXPORT_SKILL_ZIP_FILENAME } from '../config/export-zip-settings.js';
@@ -44,7 +43,7 @@ function fromBase64UrlJson<T>(value: string): T {
 
 function sign(payloadB64: string): string {
   return crypto
-    .createHmac('sha256', KAIROS_EXPORT_DOWNLOAD_SECRET)
+    .createHmac('sha256', SQUADRULES_EXPORT_DOWNLOAD_SECRET)
     .update(payloadB64)
     .digest('base64url');
 }
@@ -65,7 +64,7 @@ export async function mintExportDownloadCapability(
   input: MintExportDownloadCapabilityInput
 ): Promise<MintedExportDownloadCapability> {
   const id = crypto.randomUUID();
-  const exp = Math.floor(Date.now() / 1000) + KAIROS_EXPORT_DOWNLOAD_TTL_SEC;
+  const exp = Math.floor(Date.now() / 1000) + SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC;
   const expiresAt = new Date(exp * 1000).toISOString();
   const payload: ExportDownloadTokenPayload = { id, exp };
   const payloadB64 = toBase64Url(JSON.stringify(payload));
@@ -81,7 +80,7 @@ export async function mintExportDownloadCapability(
     expires_at: expiresAt,
     space_context: getSpaceContextFromStorage()
   };
-  await exportDownloadCapabilityStore.put(record, KAIROS_EXPORT_DOWNLOAD_TTL_SEC);
+  await exportDownloadCapabilityStore.put(record, SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC);
   return {
     url: buildExportDownloadUrl(opaque, input.baseUrl),
     expires_at: expiresAt,

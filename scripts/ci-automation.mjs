@@ -1,4 +1,3 @@
-// squadrules-compat-surface: preserves the docker compose project name kairos-mcp used by existing volumes/containers
 import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -87,7 +86,7 @@ export function dependencyTitle(title) {
 }
 
 function dependencyFile(path) {
-  return /^(package(?:-lock)?\.json|Dockerfile(?:\.[\w-]+)?|compose(?:\.[\w-]+)?\.ya?ml|\.github\/workflows\/[\w.-]+\.ya?ml|helm\/kairos-mcp\/(Chart\.(yaml|lock)|values\.yaml))$/.test(path);
+  return /^(package(?:-lock)?\.json|Dockerfile(?:\.[\w-]+)?|compose(?:\.[\w-]+)?\.ya?ml|\.github\/workflows\/[\w.-]+\.ya?ml|helm\/squadrules-mcp\/(Chart\.(yaml|lock)|values\.yaml))$/.test(path);
 }
 
 export function managedPull(pr, files, repo, actorId) {

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 /**
  * SQUADRULES MCP Server
  *
@@ -17,7 +16,7 @@ import {
   METRICS_PORT,
   QDRANT_SNAPSHOT_ON_START,
   QDRANT_SNAPSHOT_DIR,
-  KAIROS_LOCAL_ARTIFACT_DIRS,
+  SQUADRULES_LOCAL_ARTIFACT_DIRS,
   TRANSPORT_TYPE
 } from './config.js';
 import { qdrantService } from './services/qdrant/index.js';
@@ -99,7 +98,7 @@ export async function runSquadrulesServer(): Promise<void> {
         installSignalHandlers();
 
         structuredLogger.info(
-          `KAIROS_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${KAIROS_LOCAL_ARTIFACT_DIRS.join(', ')}`
+          `SQUADRULES_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
         );
 
         const memoryStore = new MemoryQdrantStore();
@@ -137,7 +136,7 @@ export async function runSquadrulesServer(): Promise<void> {
             startMetricsServer();
         }
 
-        const transportSource = process.env['KAIROS_CLI_TRANSPORT_SOURCE']?.trim();
+        const transportSource = process.env['SQUADRULES_CLI_TRANSPORT_SOURCE']?.trim();
         if (transportSource === 'cli' || transportSource === 'env') {
             structuredLogger.info(
                 `Resolved MCP transport: ${TRANSPORT_TYPE} (source: ${transportSource === 'cli' ? '--transport' : 'TRANSPORT_TYPE'})`

@@ -1,11 +1,10 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { QdrantService } from '../services/qdrant/service.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
 import { getTenantId, getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { applyRewardMetrics, type RewardMetricsResult } from '../services/reward-metrics.js';
 import { rewardInputSchema, rewardOutputSchema, type RewardInput, type RewardOutput } from './reward_schema.js';
-import { buildLayerUri, parseSquadrulesUriOrThrow } from './kairos-uri.js';
+import { buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { evaluateReward } from '../services/reward-evals.js';
 import { SquadrulesError } from '../types/index.js';

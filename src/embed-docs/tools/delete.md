@@ -1,10 +1,9 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Remove adapters or individual layers by URI.
 
 **Input**
 
-- `uris` — non-empty array of `kairos://adapter/{uuid}` or
-  `kairos://layer/{uuid}`.
+- `uris` — non-empty array of `squadrules://adapter/{uuid}` or
+  `squadrules://layer/{uuid}`.
 
 **Behavior**
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 """
-Doc wording pass: reduce kairos-forbidden-text/review-protocol-wording hits.
+Doc wording pass: reduce squadrules-forbidden-text/review-protocol-wording hits.
 Skip lines with URL path /protocol/ (Keycloak OIDC). The `.agents/skills/**`
 tree is exempt from the review-protocol-wording rule (see eslint/flat-config.cjs)
 and is intentionally not processed here.
@@ -14,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Order matters. Do not replace phrases already allowlisted in kairos-forbidden-text.cjs
+# Order matters. Do not replace phrases already allowlisted in squadrules-forbidden-text.cjs
 # (e.g. protocol execution, protocol examples, mintable protocol, protocol surface, protocol chains).
 SUBS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bprotocol engine\b", re.I), "adapter execution engine"),
@@ -22,7 +21,7 @@ SUBS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bprotocol workflow\b", re.I), "adapter workflow"),
     (re.compile(r"\bthe protocol runs\b", re.I), "the adapter run"),
     (re.compile(r"\bprotocol authoring\b", re.I), "adapter authoring"),
-    (re.compile(r"\bKAIROS protocols\b", re.I), "SQUADRULES adapters"),
+    (re.compile(r"\bSQUADRULES protocols\b", re.I), "SQUADRULES adapters"),
     (re.compile(r"\bbundle a protocol\b", re.I), "bundle an adapter"),
     (re.compile(r"\bprotocol markdown\b", re.I), "adapter markdown"),
     (re.compile(r"\bprotocol files\b", re.I), "adapter markdown files"),
@@ -34,7 +33,7 @@ SUBS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bTwelve Step Linear Test Protocol\b", re.I), "Twelve Step Linear Test Adapter"),
     (re.compile(r"\btwelve step linear test protocol\b", re.I), "twelve step linear test adapter"),
     (re.compile(r"\btrain protocol\.md\b", re.I), "train adapter.md"),
-    (re.compile(r"\bkairos train protocol\.md\b", re.I), "kairos train adapter.md"),
+    (re.compile(r"\bsquadrules train protocol\.md\b", re.I), "squadrules train adapter.md"),
     (re.compile(r"\./protocols\b", re.I), "./adapters"),
     (re.compile(r"\bprotocol steps\b", re.I), "adapter layers"),
     (re.compile(r"\bprotocol text\b", re.I), "adapter markdown"),

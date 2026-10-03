@@ -1,4 +1,3 @@
-<!-- squadrules-compat-surface: references KAIROS_* environment variable names still honored as aliases for existing deployments -->
 # artifact export parity spec
 
 This spec defines the end-to-end artifact train and export parity contract for
@@ -32,7 +31,7 @@ tests and `scripts/dev-mime-fixture-train-export.mjs` load it so lists cannot dr
 
 ### Auth for manual dev script
 
-`scripts/dev-mime-fixture-train-export.mjs` reads **`KAIROS_BASE_URL`** (default
+`scripts/dev-mime-fixture-train-export.mjs` reads **`SQUADRULES_BASE_URL`** (default
 `http://localhost:3300`) and optional **`AUTH_BEARER_TOKEN`** for `Authorization:
 Bearer …`. Integration tests use the same bearer source as other dev tests via
 `getAuthHeaders()` / `.test-auth-env.<env>.json` (see repo test setup docs).

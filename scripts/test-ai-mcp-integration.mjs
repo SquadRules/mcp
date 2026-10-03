@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * AI-MCP integration: run example adapters against a SQUADRULES dev server.
  * - Store each example markdown document via POST /api/train/raw
@@ -8,11 +7,11 @@
  * - Write one report per example under reports/<run-id>/<protocol-folder>/report.md
  *
  * Usage: node scripts/test-ai-mcp-integration.mjs
- * Env:   KAIROS_BASE_URL (else KAIROS_API_URL / .env SERVER_PORT; default port 3300 matches deploy-run-env.sh dev), RUN_ID (default workflow-YYYY-MM-DD-HHmmss)
+ * Env:   SQUADRULES_BASE_URL (else SQUADRULES_API_URL / .env SERVER_PORT; default port 3300 matches deploy-run-env.sh dev), RUN_ID (default workflow-YYYY-MM-DD-HHmmss)
  *
  * Auth (when the dev server has Keycloak / AUTH_ENABLED): same bearer as Jest integration tests —
  * either `.test-auth-env.dev.json` in the repo root (written by globalSetup when you run
- * AUTH_ENABLED=true npm run dev:test after deploy), or override with env KAIROS_INTEGRATION_BEARER
+ * AUTH_ENABLED=true npm run dev:test after deploy), or override with env SQUADRULES_INTEGRATION_BEARER
  * (raw JWT string, no Bearer prefix).
  */
 
@@ -64,11 +63,11 @@ const RUN_ID = resolveRunId();
 
 const INTEGRATION_BEARER = loadIntegrationBearer(ROOT);
 
-const KAIROS_URI_REGEX = /kairos:\/\/(?:adapter|layer|mem)\/[a-f0-9-]+(?:\?execution_id=[a-f0-9-]+)?/gi;
+const SQUADRULES_URI_REGEX = /squadrules:\/\/(?:adapter|layer|mem)\/[a-f0-9-]+(?:\?execution_id=[a-f0-9-]+)?/gi;
 
 function extractUriFromNextAction(nextAction) {
   if (!nextAction || typeof nextAction !== 'string') return null;
-  const m = nextAction.match(KAIROS_URI_REGEX);
+  const m = nextAction.match(SQUADRULES_URI_REGEX);
   return m ? m[0] : null;
 }
 
@@ -319,13 +318,13 @@ function listAdapterExampleFiles() {
 }
 
 async function main() {
-  console.log(`KAIROS_BASE_URL=${BASE_URL} RUN_ID=${RUN_ID}`);
+  console.log(`SQUADRULES_BASE_URL=${BASE_URL} RUN_ID=${RUN_ID}`);
   if (INTEGRATION_BEARER) {
-    const src = process.env.KAIROS_INTEGRATION_BEARER?.trim() ? 'KAIROS_INTEGRATION_BEARER' : '.test-auth-env.dev.json';
+    const src = process.env.SQUADRULES_INTEGRATION_BEARER?.trim() ? 'SQUADRULES_INTEGRATION_BEARER' : '.test-auth-env.dev.json';
     console.log(`Auth: Bearer from ${src}`);
   } else {
     console.warn(
-      'Auth: no bearer token. With AUTH_ENABLED, use .test-auth-env.dev.json (e.g. AUTH_ENABLED=true npm run dev:test after deploy) or set KAIROS_INTEGRATION_BEARER.'
+      'Auth: no bearer token. With AUTH_ENABLED, use .test-auth-env.dev.json (e.g. AUTH_ENABLED=true npm run dev:test after deploy) or set SQUADRULES_INTEGRATION_BEARER.'
     );
   }
   const examples = listAdapterExampleFiles();

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 slug: create-new-protocol
 version: "4.8.6"
@@ -147,7 +146,7 @@ For `update`: ask which adapter to update and what the issue is.
 and which parts stay in the router vs extensions.
 
 **4. If Chain pattern:** Load `protocol-linking-guide` for full rules
-(`forward` with `kairos://adapter/protocol-linking-guide`). Collect: chain
+(`forward` with `squadrules://adapter/protocol-linking-guide`). Collect: chain
 links and concerns, minimum number of links, entry point (matched by
 `activate`), and artifacts flowing between links.
 
@@ -203,7 +202,7 @@ Draft the full markdown for `train`.
 
 Write a structured gap report to `$REVIEW_FINDINGS_FILE` (an absolute path
 provided by the invoking agent or chosen by you under
-`$KAIROS_LOCAL_ARTIFACT_DIR` with a session-unique segment). For each finding
+`$SQUADRULES_LOCAL_ARTIFACT_DIR` with a session-unique segment). For each finding
 include:
 
 - adapter title
@@ -258,7 +257,7 @@ Every protocol gets a short, unique, lowercase-hyphenated `slug`.
 
 Store scripts or config blobs as artifacts via `train` (set `mime`,
 `artifact_name`, `adapter_uri`). Retrieve with `export` using
-`kairos://artifact/{uuid}`.
+`squadrules://artifact/{uuid}`.
 
 **Protocol structure:** H1 title, first H2 Activation Patterns, second H2
 Preflight Dependencies, middle H2s one per step with JSON contract block, last
@@ -266,10 +265,10 @@ H2 Reward Signal. Frontmatter: `slug` (required), `version` (optional),
 `chain_root` (required for mid-chain adapters).
 
 **Challenge types:** Load `challenge-type-guide` for decision rules and JSON
-formats (`forward` with `kairos://adapter/challenge-type-guide`).
+formats (`forward` with `squadrules://adapter/challenge-type-guide`).
 
 **Phase-critic and mutation gates:** Load `phase-critic-guide` for placement,
-FAIL gate, and solution check rules (`forward` with `kairos://adapter/phase-critic-guide`).
+FAIL gate, and solution check rules (`forward` with `squadrules://adapter/phase-critic-guide`).
 
 **If Router pattern:** draft the router and each extension as separate files.
 
@@ -285,7 +284,7 @@ For `create` and `update`: run phase-critic against the drafted markdown before
 presenting to the user. This is the quality gate — the agent owns content, the
 critic owns quality.
 
-1. Invoke phase-critic via `forward` with `kairos://adapter/phase-critic`.
+1. Invoke phase-critic via `forward` with `squadrules://adapter/phase-critic`.
    Provide the drafted markdown as `input_file`, the slug as
    `calling_protocol_slug`, and "structural compliance and agent behaviour"
    as `verification_target`.

@@ -1,9 +1,8 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { QdrantConnection } from './connection.js';
 import { createQdrantCollection, getVectorDescriptors, getCollectionVectorConfig } from '../../utils/qdrant-utils.js';
 import { logger } from '../../utils/structured-logger.js';
 import { parseBooleanEnv } from './utils.js';
-import { KAIROS_APP_SPACE_ID } from '../../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../config.js';
 
 /**
  * Initialization related helpers that operate using QdrantConnection.
@@ -128,7 +127,7 @@ export async function createOrUpdateAlias(conn: QdrantConnection, aliasName: str
 const BACKFILL_BATCH_SIZE = 256;
 
 /**
- * Backfill space_id for points that lack it (idempotent). Uses KAIROS_APP_SPACE_ID for older points.
+ * Backfill space_id for points that lack it (idempotent). Uses SQUADRULES_APP_SPACE_ID for older points.
  */
 export async function backfillSpaceId(conn: QdrantConnection): Promise<{ updated: number }> {
   return conn.executeWithReconnect(async () => {
@@ -147,11 +146,11 @@ export async function backfillSpaceId(conn: QdrantConnection): Promise<{ updated
         const batch = toUpsert.map((p: any) => ({
           id: p.id,
           vector: p.vector,
-          payload: { ...p.payload, space_id: KAIROS_APP_SPACE_ID }
+          payload: { ...p.payload, space_id: SQUADRULES_APP_SPACE_ID }
         }));
         await conn.client.upsert(conn.collectionName, { points: batch });
         updated += batch.length;
-        logger.info(`backfillSpaceId: upserted ${batch.length} points with space_id=${KAIROS_APP_SPACE_ID} (total so far: ${updated})`);
+        logger.info(`backfillSpaceId: upserted ${batch.length} points with space_id=${SQUADRULES_APP_SPACE_ID} (total so far: ${updated})`);
       }
       offset = page?.next_page_offset;
     } while (offset);

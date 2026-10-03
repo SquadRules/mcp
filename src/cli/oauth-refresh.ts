@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * OAuth refresh_token grant for CLI: discover token endpoint from
  * /.well-known/oauth-protected-resource, then POST refresh_token + client_id.
@@ -7,7 +6,7 @@
 import { tryNormalizeHttpUrlForFetch } from './safe-http-url.js';
 
 /** Hardcoded OIDC client_id for CLI (same as login command). */
-export const KAIROS_CLI_CLIENT_ID = 'kairos-cli';
+export const SQUADRULES_CLI_CLIENT_ID = 'squadrules-cli';
 
 export interface OAuthProtectedResourceMeta {
     authorization_servers?: string[];
@@ -77,7 +76,7 @@ export async function refreshAccessToken(
             body: new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: refreshToken,
-                client_id: KAIROS_CLI_CLIENT_ID,
+                client_id: SQUADRULES_CLI_CLIENT_ID,
             }),
             signal: ac.signal,
         });

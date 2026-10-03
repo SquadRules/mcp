@@ -1,8 +1,7 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { Memory } from '../../types/memory.js';
 import { logger } from '../../utils/structured-logger.js';
-import { KAIROS_APP_SPACE_ID } from '../../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../config.js';
 import { getSpaceContext, getSearchSpaceIds } from '../../utils/tenant-context.js';
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { CodeBlockProcessor } from '../code-block-processor.js';
@@ -11,8 +10,8 @@ import { embeddingService } from '../embedding/service.js';
 import { bm25Tokenizer } from '../embedding/bm25-tokenizer.js';
 import { buildHeaderMemoryAdapter as buildAdapter } from './adapter-builder.js';
 import {
-  KAIROS_CREATION_PROTOCOL_SLUG,
-  KAIROS_REFINING_PROTOCOL_SLUG,
+  SQUADRULES_CREATION_PROTOCOL_SLUG,
+  SQUADRULES_REFINING_PROTOCOL_SLUG,
   memoryIsBuiltinSearchFooterProtocol
 } from '../../constants/builtin-search-meta.js';
 import { pointToMemory as mapQdrantPointToMemory } from './qdrant-point-to-memory.js';
@@ -60,9 +59,9 @@ export class MemoryQdrantStoreMethods {
       return null;
     }
     const point = points[0]!;
-    const pointSpaceId = (point.payload as any)?.space_id ?? KAIROS_APP_SPACE_ID;
+    const pointSpaceId = (point.payload as any)?.space_id ?? SQUADRULES_APP_SPACE_ID;
     const allowed = getSpaceContext().allowedSpaceIds;
-    const canRead = allowed.includes(pointSpaceId) || pointSpaceId === KAIROS_APP_SPACE_ID;
+    const canRead = allowed.includes(pointSpaceId) || pointSpaceId === SQUADRULES_APP_SPACE_ID;
     if (!canRead) {
       return null;
     }
@@ -83,9 +82,9 @@ export class MemoryQdrantStoreMethods {
     });
     if (!points || points.length === 0) return null;
     const point = points[0]!;
-    const pointSpaceId = (point.payload as any)?.space_id ?? KAIROS_APP_SPACE_ID;
+    const pointSpaceId = (point.payload as any)?.space_id ?? SQUADRULES_APP_SPACE_ID;
     const allowed = getSpaceContext().allowedSpaceIds;
-    const canRead = allowed.includes(pointSpaceId) || pointSpaceId === KAIROS_APP_SPACE_ID;
+    const canRead = allowed.includes(pointSpaceId) || pointSpaceId === SQUADRULES_APP_SPACE_ID;
     if (!canRead) {
       return null;
     }
@@ -134,7 +133,7 @@ export class MemoryQdrantStoreMethods {
     });
     const filter = {
       ...baseFilter,
-      must_not: [{ key: 'slug', match: { any: [KAIROS_REFINING_PROTOCOL_SLUG, KAIROS_CREATION_PROTOCOL_SLUG] } }]
+      must_not: [{ key: 'slug', match: { any: [SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG] } }]
     };
 
     const bm25Leg = {

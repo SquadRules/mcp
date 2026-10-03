@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,9 +15,9 @@ export function getPackageVersionForUi(): string {
   }
 }
 
-/** Vite/Vitest `define` map so the UI reads `import.meta.env.VITE_KAIROS_VERSION`. */
+/** Vite/Vitest `define` map so the UI reads `import.meta.env.VITE_SQUADRULES_VERSION`. */
 export function getUiImportMetaEnvDefine(): Record<string, string> {
   return {
-    "import.meta.env.VITE_KAIROS_VERSION": JSON.stringify(getPackageVersionForUi()),
+    "import.meta.env.VITE_SQUADRULES_VERSION": JSON.stringify(getPackageVersionForUi()),
   };
 }

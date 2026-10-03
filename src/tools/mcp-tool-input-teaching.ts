@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { ZodError } from 'zod';
 import { FORWARD_SOLUTION_FORBIDDEN_ON_START_MESSAGE } from './forward_schema.js';
 
@@ -38,7 +37,7 @@ function readString(raw: unknown, keys: string[]): string | null {
 function uriExecutionId(raw: unknown): string | null {
   const uri = readString(raw, ['uri']);
   if (!uri) return null;
-  const match = uri.match(/^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}\?execution_id=([0-9a-f-]{36})$/i);
+  const match = uri.match(/^squadrules:\/\/layer\/[0-9a-f-]{36}\?execution_id=([0-9a-f-]{36})$/i);
   return match?.[1] ?? null;
 }
 
@@ -50,7 +49,7 @@ function retryCounter(tool: SquadrulesToolNameForInputTeaching, raw: unknown): {
     readString(raw, ['transport_session_id', 'session_id']) ??
     readString(raw, ['origin_ip', 'ip']) ??
     'unknown';
-  const key = `kairos:retry:default:${tool}:${scope}`;
+  const key = `squadrules:retry:default:${tool}:${scope}`;
   const now = Date.now();
   const existing = retryCounters.get(key);
   const count = existing && existing.expiresAt > now ? existing.count + 1 : 1;
@@ -103,8 +102,8 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
   );
   const rawUri = readString(raw, ['uri']);
   const adapterUuidOnWire =
-    typeof rawUri === 'string' && /^(?:kairos|squadrules):\/\/adapter\/[0-9a-f-]{36}$/i.test(rawUri);
-  const memUriMisuse = typeof rawUri === 'string' && /^(?:kairos|squadrules):\/\/mem\//i.test(rawUri);
+    typeof rawUri === 'string' && /^squadrules:\/\/adapter\/[0-9a-f-]{36}$/i.test(rawUri);
+  const memUriMisuse = typeof rawUri === 'string' && /^squadrules:\/\/mem\//i.test(rawUri);
 
   if (uriProblem && adapterUuidOnWire) {
     return withRetry('forward', raw, {
@@ -112,9 +111,9 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       tool: 'forward',
       message: 'Input validation error: Adapter URIs are slug-only on the wire for forward.',
       next_action:
-        'Retry forward with {"uri":"kairos://adapter/<slug>"} copied from activate `choices[].forward_first_call.uri`.',
+        'Retry forward with {"uri":"squadrules://adapter/<slug>"} copied from activate `choices[].forward_first_call.uri`.',
       invalid_fields: paths,
-      example: { uri: 'kairos://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/phase-critic' }
     });
   }
   if (uriProblem && memUriMisuse) {
@@ -125,7 +124,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with an adapter slug URI for start calls or a layer URI with execution_id for continuation calls.',
       invalid_fields: paths,
-      example: { uri: 'kairos://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/phase-critic' }
     });
   }
   if (uriProblem) {
@@ -133,11 +132,11 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       error: MCP_INVALID_TOOL_INPUT,
       tool: 'forward',
       message:
-        'Input validation error: `uri` is required and must be a JSON string using kairos://adapter/<slug> or kairos://layer/<uuid>[?execution_id=<uuid>].',
+        'Input validation error: `uri` is required and must be a JSON string using squadrules://adapter/<slug> or squadrules://layer/<uuid>[?execution_id=<uuid>].',
       next_action:
-        'Retry forward with {"uri":"kairos://adapter/<slug>"} for start, or the exact layer URI from the previous forward response.',
+        'Retry forward with {"uri":"squadrules://adapter/<slug>"} for start, or the exact layer URI from the previous forward response.',
       invalid_fields: paths,
-      example: { uri: 'kairos://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/phase-critic' }
     });
   }
   if (solutionProblem && forbiddenSolutionOnStart) {
@@ -148,7 +147,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with {"uri":"<adapter-slug-or-layer-uri-without-execution_id>"} only. Omit `solution` on start.',
       invalid_fields: paths,
-      example: { uri: 'kairos://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/phase-critic' }
     });
   }
   if (solutionProblem && missingSolutionType) {
@@ -161,7 +160,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
         'Retry with the same layer URI including execution_id and provide solution.type plus evidence payload.',
       invalid_fields: paths,
       example: {
-        uri: 'kairos://layer/<uuid>?execution_id=<uuid>',
+        uri: 'squadrules://layer/<uuid>?execution_id=<uuid>',
         solution: { type: 'comment', outcome: 'success', evidence: { text: 'done' } }
       }
     });
@@ -176,7 +175,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
         'Retry with solution.type set to contract.type, outcome: "success", and evidence with required proof data.',
       invalid_fields: paths,
       example: {
-        uri: 'kairos://layer/<uuid>?execution_id=<uuid>',
+        uri: 'squadrules://layer/<uuid>?execution_id=<uuid>',
         solution: { type: 'shell', outcome: 'success', evidence: { exit_code: 0 } }
       }
     });
@@ -187,7 +186,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
     message: 'Input validation error: Invalid arguments for tool forward.',
     next_action: 'Retry forward with valid JSON matching the schema.',
     invalid_fields: paths,
-    example: { uri: 'kairos://adapter/phase-critic' }
+    example: { uri: 'squadrules://adapter/phase-critic' }
   });
 }
 
@@ -197,11 +196,11 @@ function teachingReward(error: ZodError, raw: unknown): Record<string, unknown> 
     error: MCP_INVALID_TOOL_INPUT,
     tool: 'reward',
     message:
-      'Input validation error: `reward` needs `uri` = final layer URI from the last forward (`kairos://layer/<uuid>` with `?execution_id=...` when the run used it), plus `outcome` ("success" or "failure"). Optional: score, feedback, rater, rubric_version (required for SFT/preference export), llm_model_id (required with rater for evaluator identity).',
+      'Input validation error: `reward` needs `uri` = final layer URI from the last forward (`squadrules://layer/<uuid>` with `?execution_id=...` when the run used it), plus `outcome` ("success" or "failure"). Optional: score, feedback, rater, rubric_version (required for SFT/preference export), llm_model_id (required with rater for evaluator identity).',
     next_action:
       'Call reward with {"uri":"<layer uri from forward>","outcome":"success"|"failure","rubric_version":"v1","rater":"agent","llm_model_id":"<model>"} — copy the layer uri verbatim from the forward response that told you to reward.',
     invalid_fields: paths,
-    example: { uri: 'kairos://layer/<uuid>?execution_id=<uuid>', outcome: 'success' }
+    example: { uri: 'squadrules://layer/<uuid>?execution_id=<uuid>', outcome: 'success' }
   });
 }
 
@@ -236,9 +235,9 @@ function teachingTune(error: ZodError, raw: unknown): Record<string, unknown> {
     message:
       'Input validation error: `tune` requires non-empty `uris` (adapter and/or layer URIs). Provide at least one of: parallel `content` strings (same length as uris), `updates` map, or `space` to move targets.',
     next_action:
-      'Call tune with {"uris":["kairos://adapter/<slug>"],"content":["..."]} or {"uris":[...],"space":"personal"}.',
+      'Call tune with {"uris":["squadrules://adapter/<slug>"],"content":["..."]} or {"uris":[...],"space":"personal"}.',
     invalid_fields: paths,
-    example: { uris: ['kairos://adapter/phase-critic'], content: ['# Updated adapter markdown'] }
+    example: { uris: ['squadrules://adapter/phase-critic'], content: ['# Updated adapter markdown'] }
   });
 }
 
@@ -249,9 +248,9 @@ function teachingDelete(error: ZodError, raw: unknown): Record<string, unknown> 
     tool: 'delete',
     message:
       'Input validation error: `delete` requires `uris`: a non-empty array of adapter-slug or layer URIs.',
-    next_action: 'Retry delete with {"uris":["kairos://adapter/<slug>"]} or layer URIs you intend to remove.',
+    next_action: 'Retry delete with {"uris":["squadrules://adapter/<slug>"]} or layer URIs you intend to remove.',
     invalid_fields: paths,
-    example: { uris: ['kairos://adapter/phase-critic'] }
+    example: { uris: ['squadrules://adapter/phase-critic'] }
   });
 }
 
@@ -263,9 +262,9 @@ function teachingExport(error: ZodError, raw: unknown): Record<string, unknown> 
     message:
       'Input validation error: `export` requires exactly one selection: `uri`, or non-empty `adapters`, or `all_adapters`+`space_name`. Default `format` is `skill_zip`; use `format: markdown` for flat single-file adapter Markdown. Optional `include_reward`.',
     next_action:
-      'Call export with {"uri":"kairos://adapter/<slug>","format":"skill_zip"} or for flat Markdown {"uri":"kairos://adapter/<slug>","format":"markdown"}.',
+      'Call export with {"uri":"squadrules://adapter/<slug>","format":"skill_zip"} or for flat Markdown {"uri":"squadrules://adapter/<slug>","format":"markdown"}.',
     invalid_fields: paths,
-    example: { uri: 'kairos://adapter/phase-critic', format: 'skill_zip' }
+    example: { uri: 'squadrules://adapter/phase-critic', format: 'skill_zip' }
   });
 }
 

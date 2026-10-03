@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 version: "4.8.6"
 slug: protocol-linking-guide
@@ -123,12 +122,12 @@ When you are executing **`forward`** inside a **multi-layer** adapter (for examp
 a root conductor), each continuation follows **`next_call`** for the **same**
 `execution_id` until the last layer directs **`reward`**. A layer that mentions
 another adapter URI only as routing guidance — for example
-`kairos://adapter/e2e-coding-pr-delivery` — does **not** cause the server to
+`squadrules://adapter/e2e-coding-pr-delivery` — does **not** cause the server to
 switch executions: the next **`forward`** in that run still advances the
 **current** adapter’s next layer.
 
 To run an extension adapter, call **`forward`** with
-`kairos://adapter/<slug>` as a **new** first call (adapter URI; omit
+`squadrules://adapter/<slug>` as a **new** first call (adapter URI; omit
 `solution`). That starts a **separate** execution with its own layers. Common
 pattern: complete the conductor with **`reward`**, then **`forward`** to the
 extension slug when coding or PR-shaped work should run under that adapter’s
@@ -143,8 +142,8 @@ contracts.
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with kairos://adapter/phase-critic ...
-call forward with kairos://adapter/implement-terraform ...
+call forward with squadrules://adapter/phase-critic ...
+call forward with squadrules://adapter/implement-terraform ...
 ```
 
 Slugs are globally unique (enforced by `train`), so resolution is
@@ -165,7 +164,7 @@ A bare `mcp` contract checks only the tool name:
 An `mcp` contract **with `arguments`** verifies the exact target:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"kairos://adapter/code-review-policy"}},"required":true}}
+{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
 ```
 
 The server validates that `solution.mcp.arguments` is a superset of the

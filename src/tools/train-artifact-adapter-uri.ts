@@ -1,6 +1,5 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { QdrantService } from '../services/qdrant/service.js';
-import { assertWireAdapterUri, buildAdapterUri, parseSquadrulesUri } from './kairos-uri.js';
+import { assertWireAdapterUri, buildAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { TrainError } from './train-store.js';
 
 export async function resolveCanonicalAdapterUriForArtifact(
@@ -14,7 +13,7 @@ export async function resolveCanonicalAdapterUriForArtifact(
   try {
     parsed = parseSquadrulesUri(assertWireAdapterUri(raw));
   } catch {
-    throw new TrainError('INVALID_ADAPTER_URI', 'adapter_uri must be kairos://adapter/{slug}', {
+    throw new TrainError('INVALID_ADAPTER_URI', 'adapter_uri must be squadrules://adapter/{slug}', {
       must_obey: true
     });
   }

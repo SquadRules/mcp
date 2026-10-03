@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * MCP Client Connection Utilities for Integration Tests
  * Provides reusable connection setup and teardown functions.
@@ -194,7 +193,7 @@ export async function createMcpConnection() {
     return createStdioMcpConnection();
   }
 
-  // Refresh password-grant token so it includes optional scopes (e.g. kairos-groups) and matches server OIDC merge.
+  // Refresh password-grant token so it includes optional scopes (e.g. squadrules-groups) and matches server OIDC merge.
   if (serverRequiresAuth()) {
     await refreshTestAuthToken();
   }

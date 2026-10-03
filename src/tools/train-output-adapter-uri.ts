@@ -1,6 +1,5 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
-import { buildAdapterUri, parseSquadrulesUri } from './kairos-uri.js';
+import { buildAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 
 export function resolveTrainOutputAdapterUri(args: {
   memorySlug: string | undefined;

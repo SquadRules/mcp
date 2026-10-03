@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Shared helpers for skill_zip / skill_tree integration tests.
  * Keeps each test file focused on assertions and under the repo line cap.
@@ -22,12 +21,12 @@ export interface TrainArtifactResult {
   artifactUuid?: string;
 }
 
-/** Layer URI for delete cleanup (`kairos://layer/{uuid}`) from a train-artifact response. */
+/** Layer URI for delete cleanup (`squadrules://layer/{uuid}`) from a train-artifact response. */
 export function trainArtifactCleanupUri(result: TrainArtifactResult): string {
   if (result.artifactUuid && /^[0-9a-f-]{36}$/i.test(result.artifactUuid)) {
-    return `kairos://layer/${result.artifactUuid}`;
+    return `squadrules://layer/${result.artifactUuid}`;
   }
-  if (result.layerUri.startsWith('kairos://layer/')) {
+  if (result.layerUri.startsWith('squadrules://layer/')) {
     return result.layerUri;
   }
   throw new Error(`train artifact response missing usable layer id: ${JSON.stringify(result)}`);

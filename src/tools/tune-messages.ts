@@ -1,7 +1,6 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
-/** Canonical layer URIs and the transitional older layer-row form in tool copy. */
+/** Canonical layer URIs in tool copy. */
 const LAYER_URI_IN_MESSAGE = new RegExp(
-  `kairos://(?:layer|${['me', 'm'].join('')})/[0-9a-f-]{36}`,
+  'squadrules://layer/[0-9a-f-]{36}',
   'gi'
 );
 

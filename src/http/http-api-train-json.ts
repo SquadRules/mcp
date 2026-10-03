@@ -1,14 +1,13 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import express from 'express';
-import { kairosTrainSimilarAdapterFound } from '../services/metrics/mcp-metrics.js';
+import { squadrulesTrainSimilarAdapterFound } from '../services/metrics/mcp-metrics.js';
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { TrainError } from '../tools/train-store.js';
 import { executeTrain } from '../tools/train.js';
 import { trainInputSchema } from '../tools/train_schema.js';
-import { buildAdapterUri } from '../tools/kairos-uri.js';
-import { KAIROS_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
+import { buildAdapterUri } from '../tools/squadrules-uri.js';
+import { SQUADRULES_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
 import { SquadrulesError } from '../types/index.js';
 import { getSpaceContext, runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { listWritableSpaceDisplayNames, resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
@@ -38,7 +37,7 @@ function sanitizeTrainDetails(details?: Record<string, unknown>): Record<string,
 }
 
 function creationAdapterUri(): string {
-  return buildAdapterUri(KAIROS_CREATION_PROTOCOL_SLUG);
+  return buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG);
 }
 
 /**
@@ -145,7 +144,7 @@ export function setupTrainJsonRoute(
         return;
       }
       if (err?.code === 'SIMILAR_MEMORY_FOUND') {
-        kairosTrainSimilarAdapterFound.inc({ transport: 'http', tenant_id: 'http' });
+        squadrulesTrainSimilarAdapterFound.inc({ transport: 'http', tenant_id: 'http' });
         structuredLogger.warn(`✗ Similar memory found: ${err.message}`);
         const d = err.details || {};
         res.status(409).json({

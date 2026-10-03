@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -7,8 +6,8 @@ import { getTenantId, getSpaceContextFromStorage, runWithSpaceContextAsync } fro
 import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
 import { executeTrainStore, TrainError } from './train-store.js';
 import { executeDump } from './dump.js';
-import { KAIROS_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
-import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
+import { SQUADRULES_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
+import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
 import { resolveTrainOutputAdapterUri } from './train-output-adapter-uri.js';
 import { resolveTrainMime } from './train-mime.js';
@@ -19,7 +18,7 @@ import {
   type TrainOutput,
   type TrainStoreInput
 } from './train_schema.js';
-import { kairosTrainSimilarAdapterFound, mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
+import { squadrulesTrainSimilarAdapterFound, mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { mcpRateLimitErrorResult } from './mcp-runtime-error.js';
@@ -31,7 +30,7 @@ interface RegisterTrainOptions {
 }
 
 function creationAdapterUri(): string {
-  return buildAdapterUri(KAIROS_CREATION_PROTOCOL_SLUG);
+  return buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG);
 }
 
 const TRAIN_ERROR_DETAIL_KEYS = new Set([
@@ -114,7 +113,7 @@ async function resolveContentForTrain(
     adapterId = resolved.layerUuid;
   } catch (error) {
     if (error instanceof TrainError) throw error;
-    throw new TrainError('INVALID_SOURCE_URI', 'source_adapter_uri must be kairos://adapter/{slug}', {
+    throw new TrainError('INVALID_SOURCE_URI', 'source_adapter_uri must be squadrules://adapter/{slug}', {
       must_obey: true
     });
   }
@@ -220,8 +219,8 @@ export async function executeTrain(
         ? memory.artifact.slug.trim()
         : (typeof tagSlug === 'string' ? tagSlug.trim() : '');
       const artifactUri = artifactSlug.length > 0
-        ? `kairos://artifact/${artifactSlug}`
-        : `kairos://artifact/${storedId}`;
+        ? `squadrules://artifact/${artifactSlug}`
+        : `squadrules://artifact/${storedId}`;
 
       return {
         uri: item.content_type && item.content_type !== 'text/markdown'
@@ -327,7 +326,7 @@ export function registerTrainTool(server: any, memoryStore: MemoryQdrantStore, o
           };
         }
         if (err.code === 'SIMILAR_MEMORY_FOUND') {
-          kairosTrainSimilarAdapterFound.inc({ transport: 'mcp', tenant_id: tenantId });
+          squadrulesTrainSimilarAdapterFound.inc({ transport: 'mcp', tenant_id: tenantId });
         }
         if (err.code === 'DUPLICATE_ADAPTER' || err.code === 'DUPLICATE_KEY' || err.code === 'SIMILAR_MEMORY_FOUND') {
           mcpToolCalls.inc({ tool: toolName, status: 'error', tenant_id: tenantId });

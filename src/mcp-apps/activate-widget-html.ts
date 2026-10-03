@@ -1,5 +1,4 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
-import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
+import { SQUADRULES_LOGO_SVG } from './squadrules-logo-embedded.js';
 import { ACTIVATE_WIDGET_INLINE_CSS } from './activate-widget-inline-css.js';
 import { ACTIVATE_WIDGET_INLINE_SCRIPT } from './activate-widget-inline-script.js';
 import { minifyInlineWidgetHtml } from './widget-inline-minify.js';
@@ -10,7 +9,7 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  * widgets: the host supplies the document shell. Chrome aligns with {@link ./forward-widget-html.ts}.
  */
 export function buildActivateWidgetHtml(): string {
-  const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
+  const logo = SQUADRULES_LOGO_SVG.replaceAll('`', '&#96;');
   return minifyInlineWidgetHtml(`<div id="squadrules-activate-root">
   <div class="brand activate-brand-row">
     <div class="activate-brand-left">

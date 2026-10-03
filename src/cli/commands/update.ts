@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * tune command
  */
@@ -86,7 +85,7 @@ export function updateCommand(program: Command): void {
                 if (updates) tuneOpts.updates = updates;
                 if (rawSpace.length > 0) tuneOpts.space = rawSpace;
                 // Auto-inject review_evidence from env (used by integration tests)
-                const envReviewEvidence = process.env['KAIROS_REVIEW_EVIDENCE'];
+                const envReviewEvidence = process.env['SQUADRULES_REVIEW_EVIDENCE'];
                 if (envReviewEvidence) {
                     try {
                         const parsed = JSON.parse(envReviewEvidence);

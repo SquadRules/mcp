@@ -1,11 +1,10 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { cleanupViaApi, cleanupViaCli, cleanupViaMcp } from '../utils/artifact-fixture-cleanup.js';
 
 describe('artifact-fixture-cleanup', () => {
-  const adapterUri = 'kairos://adapter/artifact-fixture-parent';
+  const adapterUri = 'squadrules://adapter/artifact-fixture-parent';
   const artifactUris = [
-    'kairos://artifact/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    'kairos://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+    'squadrules://artifact/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'squadrules://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
   ];
 
   it('calls API delete with adapter plus normalized artifact layer URIs', async () => {
@@ -29,8 +28,8 @@ describe('artifact-fixture-cleanup', () => {
       const parsed = JSON.parse(String(calls[0]!.init?.body)) as { uris: string[] };
       expect(parsed.uris).toEqual([
         adapterUri,
-        'kairos://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        'kairos://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+        'squadrules://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'squadrules://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
       ]);
     } finally {
       global.fetch = originalFetch;
@@ -48,8 +47,8 @@ describe('artifact-fixture-cleanup', () => {
             text: JSON.stringify({
               results: [
                 { uri: adapterUri, status: 'deleted', message: 'ok' },
-                { uri: 'kairos://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', status: 'deleted', message: 'ok' },
-                { uri: 'kairos://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', status: 'deleted', message: 'ok' }
+                { uri: 'squadrules://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', status: 'deleted', message: 'ok' },
+                { uri: 'squadrules://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', status: 'deleted', message: 'ok' }
               ],
               total_deleted: 3,
               total_failed: 0
@@ -66,8 +65,8 @@ describe('artifact-fixture-cleanup', () => {
       arguments: {
         uris: [
           adapterUri,
-          'kairos://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-          'kairos://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+          'squadrules://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          'squadrules://layer/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
         ]
       }
     });
@@ -89,6 +88,6 @@ describe('artifact-fixture-cleanup', () => {
     expect(execCalls).toHaveLength(1);
     expect(execCalls[0]).toContain(' delete ');
     expect(execCalls[0]).toContain(adapterUri);
-    expect(execCalls[0]).toContain('kairos://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+    expect(execCalls[0]).toContain('squadrules://layer/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   });
 });

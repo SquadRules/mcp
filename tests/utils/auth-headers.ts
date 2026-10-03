@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Auth headers for integration tests when AUTH_ENABLED=true.
  * Reads .test-auth-env.dev.json written by globalSetup (when server requires auth).
@@ -17,14 +16,14 @@ function getAuthEnvFilePath(): string {
   return join(process.cwd(), `.test-auth-env.${getEnvSuffix()}.json`);
 }
 
-export const TEST_USERNAME = 'kairos-tester';
-export const TEST_PASSWORD = 'kairos-tester-secret';
+export const TEST_USERNAME = 'squadrules-tester';
+export const TEST_PASSWORD = 'squadrules-tester-secret';
 
 interface TestAuthEnv {
   bearerToken?: string;
   baseUrl?: string;
   keycloakUrl?: string;
-  /** Space of kairos-tester (user:realm:sub from token); use for activate space_id so tests use actual test user scope */
+  /** Space of squadrules-tester (user:realm:sub from token); use for activate space_id so tests use actual test user scope */
   spaceId?: string;
 }
 
@@ -98,9 +97,9 @@ async function fetchKeycloakToken(
   password: string
 ): Promise<string> {
   const tokenUrl = `${keycloakUrl.replace(/\/$/, '')}/realms/${realm}/protocol/openid-connect/token`;
-  /** Include `kairos-groups` so access token + userinfo carry Group Membership (integration / #278). */
+  /** Include `squadrules-groups` so access token + userinfo carry Group Membership (integration / #278). */
   const scope =
-    process.env.KAIROS_TEST_OIDC_SCOPE?.trim() || 'openid kairos-groups';
+    process.env.SQUADRULES_TEST_OIDC_SCOPE?.trim() || 'openid squadrules-groups';
   const res = await fetch(tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -124,7 +123,7 @@ async function fetchKeycloakToken(
 /**
  * Fetch a fresh Keycloak token and update `.test-auth-env.dev.json`.
  * Works from `process.env` alone (KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID) so integration
- * tests get `kairos-groups` + password grant even when the auth file is missing or stale (#278).
+ * tests get `squadrules-groups` + password grant even when the auth file is missing or stale (#278).
  */
 export async function refreshTestAuthToken(): Promise<boolean> {
   if (process.env.AUTH_ENABLED !== 'true') return false;
@@ -135,7 +134,7 @@ export async function refreshTestAuthToken(): Promise<boolean> {
   const port = process.env['SERVER_PORT'] || '3300';
   const baseUrl =
     readAuthEnv()?.baseUrl?.trim() ||
-    process.env.KAIROS_TEST_BASE_URL?.trim() ||
+    process.env.SQUADRULES_TEST_BASE_URL?.trim() ||
     `http://localhost:${port}`;
   const username = process.env.TEST_USERNAME?.trim() || TEST_USERNAME;
   const password = process.env.TEST_PASSWORD?.trim() || TEST_PASSWORD;
@@ -203,7 +202,7 @@ export function getMcpTestBearerToken(): string | undefined {
   return readAuthEnv()?.bearerToken ?? undefined;
 }
 
-/** Stable activate/write scope for kairos-tester when AUTH_ENABLED. Prefer the human-oriented selector over raw UUID-derived ids in tests. */
+/** Stable activate/write scope for squadrules-tester when AUTH_ENABLED. Prefer the human-oriented selector over raw UUID-derived ids in tests. */
 export function getTestSpaceId(): string | undefined {
   if (process.env.AUTH_ENABLED !== 'true') return undefined;
   const env = readAuthEnv();

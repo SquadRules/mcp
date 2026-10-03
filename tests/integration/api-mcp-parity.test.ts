@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * API-MCP parity tests: same operation via MCP and HTTP must return identical response shapes.
  * No stripping of metadata; if HTTP adds fields (e.g. metadata) that MCP does not have, tests fail.
@@ -20,7 +19,7 @@ const API_BASE = `${BASE_URL}/api`;
 const _d = isHttpTransport() ? describe : describe.skip;
 
 /** Boot-injected creation adapter (by slug) — valid export input. */
-const SAMPLE_EXPORT_URI = 'kairos://adapter/create-new-protocol';
+const SAMPLE_EXPORT_URI = 'squadrules://adapter/create-new-protocol';
 
 function httpFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(path, {
@@ -116,7 +115,7 @@ _d('API-MCP parity: identical response shapes', () => {
     test('MCP and HTTP responses have identical key sets', async () => {
       expect.hasAssertions();
 
-      const uris = ['kairos://layer/00000000-0000-0000-0000-000000000000'];
+      const uris = ['squadrules://layer/00000000-0000-0000-0000-000000000000'];
       const mcpResult = await mcpConnection.client.callTool({
         name: 'delete',
         arguments: { uris }
@@ -197,7 +196,7 @@ _d('API-MCP parity: identical response shapes', () => {
       expect.hasAssertions();
       const mcpResult = await mcpConnection.client.callTool({
         name: 'delete',
-        arguments: { uris: ['kairos://layer/00000000-0000-0000-0000-000000000000'] }
+        arguments: { uris: ['squadrules://layer/00000000-0000-0000-0000-000000000000'] }
       });
       const mcpParsed = parseMcpJson(mcpResult, 'delete MCP');
       const parsed = deleteOutputSchema.safeParse(mcpParsed);
@@ -225,20 +224,20 @@ _d('API-MCP parity: identical response shapes', () => {
         }
         const f = choice.forward_first_call as Record<string, unknown>;
         expect(typeof f?.uri).toBe('string');
-        expect(String(f.uri)).toMatch(/^kairos:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i);
+        expect(String(f.uri)).toMatch(/^squadrules:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i);
       }
     });
 
     test('forward start/middle/terminal include next_call parity', async () => {
       const beginMcp = await mcpConnection.client.callTool({
         name: 'forward',
-        arguments: { uri: 'kairos://adapter/refine-search' }
+        arguments: { uri: 'squadrules://adapter/refine-search' }
       });
       const beginPayload = parseMcpJson(beginMcp, 'forward MCP begin parity');
       const beginHttpRes = await httpFetch(`${API_BASE}/forward`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uri: 'kairos://adapter/refine-search' })
+        body: JSON.stringify({ uri: 'squadrules://adapter/refine-search' })
       });
       const beginHttpPayload = (await beginHttpRes.json()) as Record<string, unknown>;
       expect(forwardOutputSchema.safeParse(beginPayload).success).toBe(true);
@@ -247,7 +246,7 @@ _d('API-MCP parity: identical response shapes', () => {
         (beginHttpPayload.next_call as Record<string, unknown>).kind
       );
       const beginUri = String((beginPayload.next_call as any).args.uri);
-      expect(beginUri).toMatch(/^kairos:\/\/layer\/[0-9a-f-]{36}\?execution_id=[0-9a-f-]{36}$/i);
+      expect(beginUri).toMatch(/^squadrules:\/\/layer\/[0-9a-f-]{36}\?execution_id=[0-9a-f-]{36}$/i);
 
       const middleMcp = await mcpConnection.client.callTool({
         name: 'forward',
@@ -261,7 +260,7 @@ _d('API-MCP parity: identical response shapes', () => {
       const middleNextCall = middlePayload.next_call as Record<string, unknown>;
       expect(typeof (middleNextCall.args as Record<string, unknown>).uri).toBe('string');
       expect(String((middleNextCall.args as Record<string, unknown>).uri)).toMatch(
-        /^kairos:\/\/layer\/[0-9a-f-]{36}\?execution_id=[0-9a-f-]{36}$/i
+        /^squadrules:\/\/layer\/[0-9a-f-]{36}\?execution_id=[0-9a-f-]{36}$/i
       );
       if (middleNextCall.kind === 'reward') {
         const rewardUri = String((middleNextCall.args as Record<string, unknown>).uri);

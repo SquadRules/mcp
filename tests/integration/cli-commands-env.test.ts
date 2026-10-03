@@ -1,7 +1,6 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * CLI Commands Environment Variable and Error Handling Tests
- * Tests KAIROS_API_URL environment variable and error scenarios
+ * Tests SQUADRULES_API_URL environment variable and error scenarios
  */
 
 import {
@@ -46,12 +45,12 @@ _d('CLI Commands Environment & Error Tests', () => {
     }, 25000);
   });
 
-  describe('KAIROS_API_URL environment variable', () => {
-    test('activate uses KAIROS_API_URL environment variable', async () => {
+  describe('SQUADRULES_API_URL environment variable', () => {
+    test('activate uses SQUADRULES_API_URL environment variable', async () => {
       requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
       const { stdout, stderr } = await execAsync(
-        `KAIROS_API_URL=${BASE_URL} node ${CLI_PATH} activate "test query"`
+        `SQUADRULES_API_URL=${BASE_URL} node ${CLI_PATH} activate "test query"`
       );
 
       expect(stderr).toBe('');
@@ -62,15 +61,15 @@ _d('CLI Commands Environment & Error Tests', () => {
       expect(result).toHaveProperty('choices');
     }, 30000);
 
-    test('forward uses KAIROS_API_URL environment variable with URI', async () => {
+    test('forward uses SQUADRULES_API_URL environment variable with URI', async () => {
       requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
       // Train test protocol then activate to get a valid URI (no longer rely on built-in mem docs)
       await execAsync(
-        `KAIROS_API_URL=${BASE_URL} node ${CLI_PATH} train --force "${TEST_FILE}"`
+        `SQUADRULES_API_URL=${BASE_URL} node ${CLI_PATH} train --force "${TEST_FILE}"`
       );
       const searchResult = await execAsync(
-        `KAIROS_API_URL=${BASE_URL} node ${CLI_PATH} activate "Minimal CLI Test Document"`
+        `SQUADRULES_API_URL=${BASE_URL} node ${CLI_PATH} activate "Minimal CLI Test Document"`
       );
       const searchData = JSON.parse(searchResult.stdout);
       // V2: extract URI from choices array (first match)
@@ -81,7 +80,7 @@ _d('CLI Commands Environment & Error Tests', () => {
       expect(uri).toBeDefined();
 
       const { stdout, stderr } = await execAsync(
-        `KAIROS_API_URL=${BASE_URL} node ${CLI_PATH} forward "${uri}"`
+        `SQUADRULES_API_URL=${BASE_URL} node ${CLI_PATH} forward "${uri}"`
       );
 
       expect(stderr).toBe('');
@@ -93,12 +92,12 @@ _d('CLI Commands Environment & Error Tests', () => {
       expect(result.current_layer).toBeDefined();
     }, 30000);
 
-    test('train uses KAIROS_API_URL environment variable', async () => {
+    test('train uses SQUADRULES_API_URL environment variable', async () => {
       requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
       // Use --force to handle case where the adapter already exists from previous test runs
       const { stdout, stderr } = await execAsync(
-        `KAIROS_API_URL=${BASE_URL} node ${CLI_PATH} train --force "${TEST_FILE}"`
+        `SQUADRULES_API_URL=${BASE_URL} node ${CLI_PATH} train --force "${TEST_FILE}"`
       );
 
       expect(stderr).toBe('');
@@ -106,12 +105,12 @@ _d('CLI Commands Environment & Error Tests', () => {
       expect(result).toHaveProperty('status');
     }, 30000);
 
-    test('--url parameter overrides KAIROS_API_URL environment variable', async () => {
+    test('--url parameter overrides SQUADRULES_API_URL environment variable', async () => {
       requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
 
       // Set env var to wrong URL, but --url should override
       const { stdout, stderr } = await execAsync(
-        `KAIROS_API_URL=http://wrong-url:9999 node ${CLI_PATH} activate --url ${BASE_URL} "test query"`
+        `SQUADRULES_API_URL=http://wrong-url:9999 node ${CLI_PATH} activate --url ${BASE_URL} "test query"`
       );
 
       expect(stderr).toBe('');
@@ -147,7 +146,7 @@ _d('CLI Commands Environment & Error Tests', () => {
       try {
         await execAsyncWithConfig(
           `node ${CLI_PATH} activate --url ${BASE_URL} "test query"`,
-          { KAIROS_API_URL: BASE_URL, bearerToken: 'invalid-token' },
+          { SQUADRULES_API_URL: BASE_URL, bearerToken: 'invalid-token' },
           { timeout: 15000 }
         );
         expect('CLI should have exited with auth error').toBe(false);
@@ -177,7 +176,7 @@ _d('CLI Commands Environment & Error Tests', () => {
       // URI can be any; we are asserting the client rejects when server URL is invalid
       await expect(
         execAsync(
-          `node ${CLI_PATH} forward --url http://invalid-url:9999 "kairos://adapter/invalid-adapter-slug"`
+          `node ${CLI_PATH} forward --url http://invalid-url:9999 "squadrules://adapter/invalid-adapter-slug"`
         )
       ).rejects.toThrow();
     }, 30000);

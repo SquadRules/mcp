@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 """
-Create or update the Google Identity Provider in a Keycloak realm (e.g. kairos).
+Create or update the Google Identity Provider in a Keycloak realm (e.g. squadrules).
 
 Reads KEYCLOAK_URL, KEYCLOAK_ADMIN_PASSWORD, KEYCLOAK_REALM, GOOGLE_CLIENT_ID,
 GOOGLE_CLIENT_SECRET from .env (same pattern as deploy-configure-keycloak-realms.py).
@@ -119,7 +118,7 @@ def main() -> None:
 
     base_url = env.get("KEYCLOAK_URL", "http://localhost:8080").strip()
     admin_password = env.get("KEYCLOAK_ADMIN_PASSWORD", "").strip()
-    realm = env.get("KEYCLOAK_REALM", "kairos-dev").strip()
+    realm = env.get("KEYCLOAK_REALM", "squadrules-dev").strip()
     client_id = env.get("GOOGLE_CLIENT_ID", "").strip()
     client_secret = env.get("GOOGLE_CLIENT_SECRET", "").strip()
 

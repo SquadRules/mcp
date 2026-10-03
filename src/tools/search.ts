@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { redisCacheService } from '../services/redis-cache.js';
@@ -11,10 +10,10 @@ import {
 import type { Memory } from '../types/memory.js';
 import {
   SCORE_THRESHOLD,
-  KAIROS_SEARCH_MAX_CHOICES,
-  KAIROS_SEARCH_LIMIT_CAP,
-  KAIROS_SEARCH_LIMIT_MIN,
-  KAIROS_ENABLE_GROUP_COLLAPSE,
+  SQUADRULES_SEARCH_MAX_CHOICES,
+  SQUADRULES_SEARCH_LIMIT_CAP,
+  SQUADRULES_SEARCH_LIMIT_MIN,
+  SQUADRULES_ENABLE_GROUP_COLLAPSE,
   isRedisConfigured
 } from '../config.js';
 import { createResults, generateUnifiedOutput } from './search_output.js';
@@ -22,26 +21,26 @@ import { searchOutputSchema, type SearchInput, type SearchOutput } from './searc
 import { logSearchAnomaly } from '../services/embedding/audit.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import {
-  KAIROS_CREATION_FOOTER_NEXT_ACTION,
-  KAIROS_CREATION_PROTOCOL_SLUG,
-  KAIROS_REFINING_PROTOCOL_SLUG
+  SQUADRULES_CREATION_FOOTER_NEXT_ACTION,
+  SQUADRULES_CREATION_PROTOCOL_SLUG,
+  SQUADRULES_REFINING_PROTOCOL_SLUG
 } from '../constants/builtin-search-meta.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
-import { buildAdapterUri } from './kairos-uri.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
+import { buildAdapterUri } from './squadrules-uri.js';
 
-const CREATION_PROTOCOL_URI = buildAdapterUri(KAIROS_CREATION_PROTOCOL_SLUG);
-const REFINING_PROTOCOL_URI = buildAdapterUri(KAIROS_REFINING_PROTOCOL_SLUG);
+const CREATION_PROTOCOL_URI = buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG);
+const REFINING_PROTOCOL_URI = buildAdapterUri(SQUADRULES_REFINING_PROTOCOL_SLUG);
 const REFINING_NEXT_ACTION = `call forward with ${REFINING_PROTOCOL_URI} to execute the refine adapter`;
-const CREATE_NEXT_ACTION = KAIROS_CREATION_FOOTER_NEXT_ACTION;
+const CREATE_NEXT_ACTION = SQUADRULES_CREATION_FOOTER_NEXT_ACTION;
 
 /** Strip built-in protocol URIs and slugs from query so they are not used for search or cache key. */
 function queryForSearch(query: string): string {
   let q = (query || '').trim();
   for (const token of [
     REFINING_PROTOCOL_URI,
-    KAIROS_REFINING_PROTOCOL_SLUG,
+    SQUADRULES_REFINING_PROTOCOL_SLUG,
     CREATION_PROTOCOL_URI,
-    KAIROS_CREATION_PROTOCOL_SLUG
+    SQUADRULES_CREATION_PROTOCOL_SLUG
   ]) {
     q = q.replace(new RegExp(escapeRegex(token), 'gi'), ' ');
   }
@@ -118,12 +117,12 @@ async function resolveFooterProtocolVersions(
 ): Promise<{ refine: string | null; create: string | null }> {
   try {
     const { client, collection } = memoryStore.getQdrantAccess();
-    const slugs = [KAIROS_REFINING_PROTOCOL_SLUG, KAIROS_CREATION_PROTOCOL_SLUG];
+    const slugs = [SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG];
     const page = await client.scroll(collection, {
       filter: {
         must: [
           { key: 'slug', match: { any: slugs } },
-          { key: 'space_id', match: { value: KAIROS_APP_SPACE_ID } },
+          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
           { key: 'adapter.layer_index', match: { value: 1 } }
         ]
       },
@@ -140,8 +139,8 @@ async function resolveFooterProtocolVersions(
       const version = typeof payload['adapter']?.protocol_version === 'string'
         ? payload['adapter'].protocol_version
         : null;
-      if (slug === KAIROS_REFINING_PROTOCOL_SLUG) refine = version;
-      if (slug === KAIROS_CREATION_PROTOCOL_SLUG) create = version;
+      if (slug === SQUADRULES_REFINING_PROTOCOL_SLUG) refine = version;
+      if (slug === SQUADRULES_CREATION_PROTOCOL_SLUG) create = version;
     }
     return { refine, create };
   } catch (err) {
@@ -165,7 +164,7 @@ async function doSearch(
   const candidateMap = await searchAndBuildCandidates(
     memoryStore,
     searchQuery,
-    KAIROS_ENABLE_GROUP_COLLAPSE,
+    SQUADRULES_ENABLE_GROUP_COLLAPSE,
     effectiveLimit
   );
   const defaultWriteForSort = getSpaceContextFromStorage().defaultWriteSpaceId;
@@ -210,21 +209,21 @@ export async function executeSearch(
   const { query, space, space_id, max_choices } = input;
   const spaceParam = space ?? space_id;
   const effectiveLimit = Math.max(
-    KAIROS_SEARCH_LIMIT_MIN,
-    Math.min(KAIROS_SEARCH_LIMIT_CAP, max_choices ?? KAIROS_SEARCH_MAX_CHOICES)
+    SQUADRULES_SEARCH_LIMIT_MIN,
+    Math.min(SQUADRULES_SEARCH_LIMIT_CAP, max_choices ?? SQUADRULES_SEARCH_MAX_CHOICES)
   );
   const searchQuery = queryForSearch(query);
 
   const runWithCache = async (): Promise<SearchOutput> => {
     const effectiveSpaceId = spaceParam ?? getSpaceIdFromStorage();
-    const cacheKey = `activate:v6:${effectiveSpaceId}:${searchQuery}:${KAIROS_ENABLE_GROUP_COLLAPSE}:${effectiveLimit}`;
+    const cacheKey = `activate:v6:${effectiveSpaceId}:${searchQuery}:${SQUADRULES_ENABLE_GROUP_COLLAPSE}:${effectiveLimit}`;
     const tenantId = getTenantId();
     const requestId = getRequestIdFromStorage();
     const cacheDebugBase: Record<string, unknown> = {
       component: 'activate_search_cache',
       cache_backend: isRedisConfigured ? 'redis' : 'memory',
       cache_key_version: 'v6',
-      group_collapse: KAIROS_ENABLE_GROUP_COLLAPSE,
+      group_collapse: SQUADRULES_ENABLE_GROUP_COLLAPSE,
       effective_limit: effectiveLimit,
       normalized_query_len: searchQuery.length,
       effective_space_id: effectiveSpaceId,

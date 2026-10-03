@@ -1,11 +1,10 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { QdrantService } from '../services/qdrant/service.js';
 import { qdrantService as qdrantServiceSingleton } from '../services/qdrant/index.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { getTenantId } from '../utils/tenant-context.js';
 import { deleteInputSchema, deleteOutputSchema, type DeleteInput, type DeleteOutput } from './delete_schema.js';
-import { assertWireAdapterUri, parseSquadrulesUri } from './kairos-uri.js';
+import { assertWireAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 

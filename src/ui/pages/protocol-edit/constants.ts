@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-accepts canonical kairos:// URIs alongside squadrules:// so existing stored URIs keep resolving
 import { z } from "zod";
 import type { StepFormState } from "@/hooks/useProtocol";
 
@@ -18,4 +17,4 @@ export const DEFAULT_STEP: StepFormState = {
 
 export const CHALLENGE_TYPE_KEYS: StepFormState["type"][] = ["shell", "mcp", "user_input", "comment"];
 
-export const SOURCE_ADAPTER_URI_RE = /^(?:kairos|squadrules):\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
+export const SOURCE_ADAPTER_URI_RE = /^squadrules:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;

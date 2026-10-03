@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Registry } from 'prom-client';
 import { getBuildVersion } from '../../utils/build-version.js';
 import os from 'os';
@@ -13,8 +12,8 @@ export const register = new Registry();
 
 // Set mandatory default labels on all metrics
 register.setDefaultLabels({
-  service: 'kairos',
-  kairos_version: getBuildVersion(),
+  service: 'squadrules',
+  squadrules_version: getBuildVersion(),
   instance: process.env['INSTANCE_ID'] || os.hostname() || 'unknown'
 });
 

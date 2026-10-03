@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { getSharedMcpConnection } from '../utils/mcp-client-utils.js';
 import { getMetricValue } from '../utils/prometheus-parser.js';
 import { isHttpTransport } from '../utils/auth-headers.js';
@@ -77,7 +76,7 @@ _d('Metrics Operational Tests', () => {
     const beforeMetrics = await beforeResponse.text();
     const beforeCount = getMetricValue(
       beforeMetrics, 
-      'kairos_mcp_tool_calls_total',
+      'squadrules_mcp_tool_calls_total',
       { tool: 'activate', status: 'success' }
     ) || 0;
     
@@ -95,7 +94,7 @@ _d('Metrics Operational Tests', () => {
     const afterMetrics = await afterResponse.text();
     const afterCount = getMetricValue(
       afterMetrics,
-      'kairos_mcp_tool_calls_total',
+      'squadrules_mcp_tool_calls_total',
       { tool: 'activate', status: 'success' }
     ) || 0;
     
@@ -113,7 +112,7 @@ _d('Metrics Operational Tests', () => {
     const metrics = await response.text();
     
     // Check for system metrics (may vary based on implementation)
-    expect(metrics).toMatch(/kairos_system_/);
+    expect(metrics).toMatch(/squadrules_system_/);
   });
 
   test('memory metrics are present', async () => {
@@ -125,9 +124,9 @@ _d('Metrics Operational Tests', () => {
     const response = await fetch(METRICS_URL);
     const metrics = await response.text();
     
-    expect(metrics).toContain('kairos_memory_store_total');
-    expect(metrics).toContain('kairos_memory_store_duration_seconds');
-    expect(metrics).toContain('kairos_memory_adapter_size');
+    expect(metrics).toContain('squadrules_memory_store_total');
+    expect(metrics).toContain('squadrules_memory_store_duration_seconds');
+    expect(metrics).toContain('squadrules_memory_adapter_size');
   });
 
   test('qdrant metrics are present', async () => {
@@ -139,8 +138,8 @@ _d('Metrics Operational Tests', () => {
     const response = await fetch(METRICS_URL);
     const metrics = await response.text();
     
-    expect(metrics).toContain('kairos_qdrant_operations_total');
-    expect(metrics).toContain('kairos_qdrant_query_duration_seconds');
+    expect(metrics).toContain('squadrules_qdrant_operations_total');
+    expect(metrics).toContain('squadrules_qdrant_query_duration_seconds');
   });
 
   test('agent metrics are present', async () => {
@@ -152,8 +151,8 @@ _d('Metrics Operational Tests', () => {
     const response = await fetch(METRICS_URL);
     const metrics = await response.text();
     
-    expect(metrics).toContain('kairos_agent_contributions_total');
-    expect(metrics).toContain('kairos_agent_quality_score');
+    expect(metrics).toContain('squadrules_agent_contributions_total');
+    expect(metrics).toContain('squadrules_agent_quality_score');
   });
 });
 

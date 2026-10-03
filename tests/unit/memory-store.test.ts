@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Unit tests for MemoryStore (in-memory key-value store).
  * Run with REDIS_URL unset or empty to use the memory backend without Redis.
@@ -6,7 +5,7 @@
 
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { MemoryStore } from '../../src/services/memory-store.js';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 import { runWithSpaceContext } from '../../src/utils/tenant-context.js';
 
 function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
@@ -14,8 +13,8 @@ function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
     {
       userId: '',
       groupIds: [],
-      allowedSpaceIds: [KAIROS_APP_SPACE_ID],
-      defaultWriteSpaceId: KAIROS_APP_SPACE_ID,
+      allowedSpaceIds: [SQUADRULES_APP_SPACE_ID],
+      defaultWriteSpaceId: SQUADRULES_APP_SPACE_ID,
       personalSpaceId: ''
     },
     fn

@@ -1,6 +1,5 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
-import { GENESIS_HASH } from './kairos-genesis-proof-hash.js';
+import { GENESIS_HASH } from './squadrules-genesis-proof-hash.js';
 
 /** Build challenge shape from proof only (no nonce, no store). Used by forward / next proof flow. */
 export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Record<string, unknown> {

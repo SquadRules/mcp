@@ -1,4 +1,3 @@
-# squadrules-compat-surface: references Qdrant collection names (kairos_ci/kairos_memories/kairos_simple_ci) provisioned in existing deployments
 # Release image: install published package from npm (no source build).
 # Used by CI/release; version passed as build-arg. For local dev build-from-source, use Dockerfile.dev.
 # Multi-arch: build for linux/amd64,linux/arm64 (set by buildx).
@@ -82,7 +81,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + process.env.SERVER_PORT + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 ENV NODE_ENV=production
 ENV QDRANT_URL=http://qdrant:6333
-ENV QDRANT_COLLECTION=kairos_memories
+ENV QDRANT_COLLECTION=squadrules_memories
 CMD ["node", "node_modules/@squadrules/mcp/dist/index.js"]
 
 FROM deps-registry AS runtime
@@ -98,5 +97,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + process.env.SERVER_PORT + '/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 ENV NODE_ENV=production
 ENV QDRANT_URL=http://qdrant:6333
-ENV QDRANT_COLLECTION=kairos_memories
+ENV QDRANT_COLLECTION=squadrules_memories
 CMD ["node", "node_modules/@squadrules/mcp/dist/index.js"]

@@ -6,9 +6,9 @@ const {
   NO_AUTH_ENABLED_OVERRIDE_RULE,
 } = require('./rules/shared-snippets.cjs');
 const { markdownPlainTextParser } = require('./parsers/markdown-plain-text.cjs');
-const { kairosForbiddenTextPlugin } = require('./plugins/kairos-forbidden-text.cjs');
-const { kairosCodeqlLineCommentsPlugin } = require('./plugins/kairos-codeql-line-comments.cjs');
-const { kairosMcpWidgetPlugin } = require('./plugins/kairos-mcp-widget.cjs');
+const { squadrulesForbiddenTextPlugin } = require('./plugins/squadrules-forbidden-text.cjs');
+const { squadrulesCodeqlLineCommentsPlugin } = require('./plugins/squadrules-codeql-line-comments.cjs');
+const { squadrulesMcpWidgetPlugin } = require('./plugins/squadrules-mcp-widget.cjs');
 
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
@@ -35,8 +35,8 @@ function createFlatConfig(rootDir) {
         '.cache/**',
         'helm/**',
         '.ai/**',
-        '.kairos/**',
-        '.kairos-work/**',
+        '.squadrules/**',
+        '.squadrules-work/**',
         '.local/**',
         'non-public/marketing-positioning.md',
         '.git',
@@ -194,7 +194,7 @@ function createFlatConfig(rootDir) {
       },
       plugins: {
         '@typescript-eslint': tsPlugin,
-        'kairos-codeql-comments': kairosCodeqlLineCommentsPlugin,
+        'squadrules-codeql-comments': squadrulesCodeqlLineCommentsPlugin,
       },
       rules: {
         'max-lines': [
@@ -213,7 +213,7 @@ function createFlatConfig(rootDir) {
             caughtErrorsIgnorePattern: '^_',
           },
         ],
-        'kairos-codeql-comments/codeql-line-comment-integrity': 'error',
+        'squadrules-codeql-comments/codeql-line-comment-integrity': 'error',
         ...NO_AUTH_ENABLED_OVERRIDE_RULE,
       },
     },
@@ -235,7 +235,7 @@ function createFlatConfig(rootDir) {
       },
       plugins: {
         '@typescript-eslint': tsPlugin,
-        'kairos-codeql-comments': kairosCodeqlLineCommentsPlugin,
+        'squadrules-codeql-comments': squadrulesCodeqlLineCommentsPlugin,
       },
       rules: {
         'max-lines': [
@@ -254,7 +254,7 @@ function createFlatConfig(rootDir) {
             caughtErrorsIgnorePattern: '^_',
           },
         ],
-        'kairos-codeql-comments/codeql-line-comment-integrity': 'error',
+        'squadrules-codeql-comments/codeql-line-comment-integrity': 'error',
         ...NO_AUTH_ENABLED_OVERRIDE_RULE,
       },
     },
@@ -283,7 +283,7 @@ function createFlatConfig(rootDir) {
     },
 
     // -------------------------------------------------------------------------
-    // 3c. Forbidden KAIROS strings (src + scripts + tests JS/TS; Markdown → 3d)
+    // 3c. Forbidden SQUADRULES strings (src + scripts + tests JS/TS; Markdown → 3d)
     // -------------------------------------------------------------------------
     {
       files: [
@@ -293,10 +293,10 @@ function createFlatConfig(rootDir) {
       ],
       ignores: ['src/ui/**', 'src/eslint-inline-allowed/**'],
       plugins: {
-        'kairos-forbidden-text': kairosForbiddenTextPlugin,
+        'squadrules-forbidden-text': squadrulesForbiddenTextPlugin,
       },
       rules: {
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'error',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'error',
       },
     },
     {
@@ -305,10 +305,10 @@ function createFlatConfig(rootDir) {
         noInlineConfig: false,
       },
       plugins: {
-        'kairos-forbidden-text': kairosForbiddenTextPlugin,
+        'squadrules-forbidden-text': squadrulesForbiddenTextPlugin,
       },
       rules: {
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'error',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'error',
       },
     },
     // -------------------------------------------------------------------------
@@ -325,10 +325,10 @@ function createFlatConfig(rootDir) {
       },
       plugins: {
         '@typescript-eslint': tsPlugin,
-        'kairos-mcp-widget': kairosMcpWidgetPlugin,
+        'squadrules-mcp-widget': squadrulesMcpWidgetPlugin,
       },
       rules: {
-        'kairos-mcp-widget/handshake-and-safety': 'error',
+        'squadrules-mcp-widget/handshake-and-safety': 'error',
         'max-lines': [
           'error',
           { max: 520, skipBlankLines: false, skipComments: false },
@@ -346,10 +346,10 @@ function createFlatConfig(rootDir) {
       },
       plugins: {
         '@typescript-eslint': tsPlugin,
-        'kairos-mcp-widget': kairosMcpWidgetPlugin,
+        'squadrules-mcp-widget': squadrulesMcpWidgetPlugin,
       },
       rules: {
-        'kairos-mcp-widget/html-shell': 'error',
+        'squadrules-mcp-widget/html-shell': 'error',
       },
     },
 
@@ -365,32 +365,32 @@ function createFlatConfig(rootDir) {
         },
       },
       plugins: {
-        'kairos-forbidden-text': kairosForbiddenTextPlugin,
+        'squadrules-forbidden-text': squadrulesForbiddenTextPlugin,
       },
       rules: {
         'max-lines': 'off',
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'error',
-        'kairos-forbidden-text/review-protocol-wording': 'warn',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'error',
+        'squadrules-forbidden-text/review-protocol-wording': 'warn',
       },
     },
     {
       files: ['src/embed-docs/mem/*.md'],
       rules: {
-        'kairos-forbidden-text/review-protocol-wording': 'off',
+        'squadrules-forbidden-text/review-protocol-wording': 'off',
       },
     },
     {
       files: ['.github/workflows/README.md'],
       rules: {
-        'kairos-forbidden-text/review-protocol-wording': 'off',
+        'squadrules-forbidden-text/review-protocol-wording': 'off',
       },
     },
     {
       // Maintainer agent skills + root contributing guide: may quote triggers, URIs, and vocabulary by design.
       files: ['.agents/skills/**/*.md', 'CONTRIBUTING.md'],
       rules: {
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'off',
-        'kairos-forbidden-text/review-protocol-wording': 'off',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'off',
+        'squadrules-forbidden-text/review-protocol-wording': 'off',
       },
     },
 
@@ -422,11 +422,11 @@ function createFlatConfig(rootDir) {
         },
       },
       plugins: {
-        'kairos-forbidden-text': kairosForbiddenTextPlugin,
+        'squadrules-forbidden-text': squadrulesForbiddenTextPlugin,
       },
       rules: {
         'max-lines': 'off',
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'error',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'error',
       },
     },
 
@@ -442,11 +442,11 @@ function createFlatConfig(rootDir) {
         },
       },
       plugins: {
-        'kairos-forbidden-text': kairosForbiddenTextPlugin,
+        'squadrules-forbidden-text': squadrulesForbiddenTextPlugin,
       },
       rules: {
         'max-lines': 'off',
-        'kairos-forbidden-text/no-forbidden-kairos-text': 'error',
+        'squadrules-forbidden-text/no-forbidden-squadrules-text': 'error',
       },
     },
 

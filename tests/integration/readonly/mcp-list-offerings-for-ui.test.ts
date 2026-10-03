@@ -1,18 +1,17 @@
-// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 /**
  * MCP Apps discovery: `listOfferingsForUI` is handled in http-mcp-handler (not SDK).
  */
 import { getTestAuthBaseUrl, getAuthHeaders, isHttpTransport } from '../../utils/auth-headers.js';
 import {
-  KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
-  KAIROS_ACTIVATE_UI_URI,
-  KAIROS_FORWARD_UI_SKYBRIDGE_URI,
-  KAIROS_FORWARD_UI_URI,
-  KAIROS_SPACES_UI_SKYBRIDGE_URI,
-  KAIROS_UI_RESOURCE_URI_FLAT_META_KEY,
+  SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,
+  SQUADRULES_ACTIVATE_UI_URI,
+  SQUADRULES_FORWARD_UI_SKYBRIDGE_URI,
+  SQUADRULES_FORWARD_UI_URI,
+  SQUADRULES_SPACES_UI_SKYBRIDGE_URI,
+  SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY,
   MCP_APP_HTML_MIME_TYPE,
   SKYBRIDGE_HTML_MIME_TYPE
-} from '../../../src/mcp-apps/kairos-ui-constants.js';
+} from '../../../src/mcp-apps/squadrules-ui-constants.js';
 
 const BASE_URL = getTestAuthBaseUrl();
 const _d = isHttpTransport() ? describe : describe.skip;
@@ -56,34 +55,34 @@ _d('MCP listOfferingsForUI', () => {
     }>;
     const spaces = tools.find((t) => t.name === 'spaces');
     expect(spaces).toBeDefined();
-    expect(spaces?._meta?.ui?.resourceUri).toBe('ui://kairos/spaces-result');
-    expect(spaces?._meta?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]).toBe('ui://kairos/spaces-result');
+    expect(spaces?._meta?.ui?.resourceUri).toBe('ui://squadrules/spaces-result');
+    expect(spaces?._meta?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]).toBe('ui://squadrules/spaces-result');
 
     const forwardTool = tools.find((t) => t.name === 'forward');
     expect(forwardTool).toBeDefined();
-    expect(forwardTool?._meta?.ui?.resourceUri).toBe(KAIROS_FORWARD_UI_URI);
-    expect(forwardTool?._meta?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]).toBe(KAIROS_FORWARD_UI_URI);
+    expect(forwardTool?._meta?.ui?.resourceUri).toBe(SQUADRULES_FORWARD_UI_URI);
+    expect(forwardTool?._meta?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]).toBe(SQUADRULES_FORWARD_UI_URI);
 
     const activateTool = tools.find((t) => t.name === 'activate');
     expect(activateTool).toBeDefined();
-    expect(activateTool?._meta?.ui?.resourceUri).toBe(KAIROS_ACTIVATE_UI_URI);
-    expect(activateTool?._meta?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]).toBe(KAIROS_ACTIVATE_UI_URI);
+    expect(activateTool?._meta?.ui?.resourceUri).toBe(SQUADRULES_ACTIVATE_UI_URI);
+    expect(activateTool?._meta?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]).toBe(SQUADRULES_ACTIVATE_UI_URI);
 
     const prompts = body.result!.prompts as Array<{ name?: string; title?: string; description?: string }>;
     expect(prompts).toHaveLength(0);
 
     const resources = body.result!.resources as Array<{ uri?: string; mimeType?: string }>;
-    expect(resources.some((r) => r.uri === 'ui://kairos/spaces-result')).toBe(true);
-    expect(resources.find((r) => r.uri === 'ui://kairos/spaces-result')?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
-    expect(resources.some((r) => r.uri === KAIROS_SPACES_UI_SKYBRIDGE_URI)).toBe(true);
-    expect(resources.find((r) => r.uri === KAIROS_SPACES_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
-    expect(resources.some((r) => r.uri === KAIROS_FORWARD_UI_URI)).toBe(true);
-    expect(resources.find((r) => r.uri === KAIROS_FORWARD_UI_URI)?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
-    expect(resources.some((r) => r.uri === KAIROS_FORWARD_UI_SKYBRIDGE_URI)).toBe(true);
-    expect(resources.find((r) => r.uri === KAIROS_FORWARD_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
-    expect(resources.some((r) => r.uri === KAIROS_ACTIVATE_UI_URI)).toBe(true);
-    expect(resources.find((r) => r.uri === KAIROS_ACTIVATE_UI_URI)?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
-    expect(resources.some((r) => r.uri === KAIROS_ACTIVATE_UI_SKYBRIDGE_URI)).toBe(true);
-    expect(resources.find((r) => r.uri === KAIROS_ACTIVATE_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === 'ui://squadrules/spaces-result')).toBe(true);
+    expect(resources.find((r) => r.uri === 'ui://squadrules/spaces-result')?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === SQUADRULES_SPACES_UI_SKYBRIDGE_URI)).toBe(true);
+    expect(resources.find((r) => r.uri === SQUADRULES_SPACES_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === SQUADRULES_FORWARD_UI_URI)).toBe(true);
+    expect(resources.find((r) => r.uri === SQUADRULES_FORWARD_UI_URI)?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === SQUADRULES_FORWARD_UI_SKYBRIDGE_URI)).toBe(true);
+    expect(resources.find((r) => r.uri === SQUADRULES_FORWARD_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === SQUADRULES_ACTIVATE_UI_URI)).toBe(true);
+    expect(resources.find((r) => r.uri === SQUADRULES_ACTIVATE_UI_URI)?.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
+    expect(resources.some((r) => r.uri === SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI)).toBe(true);
+    expect(resources.find((r) => r.uri === SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI)?.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
   });
 });

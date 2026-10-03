@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import type { InferenceContractDefinition, Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -10,8 +9,8 @@ import { buildChallenge, type ProofOfWorkSubmission } from './next-pow-helpers.j
 import { forwardRuntimeStore } from '../services/forward-runtime-store.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import type { ForwardOutput, ForwardSolution } from './forward_schema.js';
-import { KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
-import { buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
+import { SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { buildLayerUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { buildEvidenceHint, buildEmptySolutionTemplate } from './forward-helpers.js';
 
@@ -278,7 +277,7 @@ export async function buildForwardView(
     next_call: nextCall,
     ...(tensorIn && Object.keys(tensorIn).length > 0 ? { tensor_in: tensorIn } : {}),
     ...buildForwardUiSummary(memory),
-    ...buildLocalArtifactDirFields(KAIROS_LOCAL_ARTIFACT_DIRS),
+    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
     next_action: final
       ? `call reward with ${layer.uri} and outcome (success or failure) and feedback to complete the adapter`
       : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}, and include nonce/proof_hash from contract`,

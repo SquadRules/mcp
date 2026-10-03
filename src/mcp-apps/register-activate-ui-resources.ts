@@ -1,13 +1,10 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
-  KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
-  KAIROS_ACTIVATE_UI_URI,
-  MCP_APP_HTML_MIME_TYPE,
-  SKYBRIDGE_HTML_MIME_TYPE,
   SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,
-  SQUADRULES_ACTIVATE_UI_URI
-} from './kairos-ui-constants.js';
+  SQUADRULES_ACTIVATE_UI_URI,
+  MCP_APP_HTML_MIME_TYPE,
+  SKYBRIDGE_HTML_MIME_TYPE
+} from './squadrules-ui-constants.js';
 import { buildActivateWidgetHtml } from './activate-widget-html.js';
 
 function readActivateWidget(uri: string, mimeType: string) {
@@ -17,31 +14,8 @@ function readActivateWidget(uri: string, mimeType: string) {
   };
 }
 
-/** Registers MCP App and Skybridge HTML resources for the activate chat widget (prior + SquadRules URIs). */
+/** Registers MCP App and Skybridge HTML resources for the activate chat widget. */
 export function registerActivateUiResources(server: McpServer): void {
-  server.registerResource(
-    'kairos-activate-widget',
-    KAIROS_ACTIVATE_UI_URI,
-    {
-      title: 'SQUADRULES activate result',
-      description: 'Inline view for the activate tool (ranked choices, roles, next_action).',
-      mimeType: MCP_APP_HTML_MIME_TYPE
-    },
-    () => readActivateWidget(KAIROS_ACTIVATE_UI_URI, MCP_APP_HTML_MIME_TYPE)
-  );
-
-  server.registerResource(
-    'kairos-activate-widget-skybridge',
-    KAIROS_ACTIVATE_UI_SKYBRIDGE_URI,
-    {
-      title: 'SQUADRULES activate result (Skybridge profile)',
-      description: 'Same activate widget with text/html+skybridge for hosts that require that profile.',
-      mimeType: SKYBRIDGE_HTML_MIME_TYPE
-    },
-    () => readActivateWidget(KAIROS_ACTIVATE_UI_SKYBRIDGE_URI, SKYBRIDGE_HTML_MIME_TYPE)
-  );
-
-  // SquadRules-branded aliases serve the same widget HTML under new URIs.
   server.registerResource(
     'squadrules-activate-widget',
     SQUADRULES_ACTIVATE_UI_URI,

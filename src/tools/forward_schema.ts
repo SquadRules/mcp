@@ -1,14 +1,13 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
-import { ADAPTER_SLUG_URI_INPUT_REGEX, LAYER_URI_INPUT_REGEX } from './kairos-uri.js';
+import { ADAPTER_SLUG_URI_INPUT_REGEX, LAYER_URI_INPUT_REGEX } from './squadrules-uri.js';
 
 const adapterUriSchema = z
   .string()
-  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match kairos://adapter/{slug}');
+  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match squadrules://adapter/{slug}');
 
 const layerUriSchema = z
   .string()
-  .regex(LAYER_URI_INPUT_REGEX, 'must match kairos://layer/{uuid}[?execution_id={uuid}]');
+  .regex(LAYER_URI_INPUT_REGEX, 'must match squadrules://layer/{uuid}[?execution_id={uuid}]');
 
 const forwardUriSchema = z.union([adapterUriSchema, layerUriSchema]);
 
@@ -240,7 +239,7 @@ function isStartingNewForwardRun(uri: string): boolean {
 }
 
 export const FORWARD_SOLUTION_FORBIDDEN_ON_START_MESSAGE =
-  'Omit `solution` when starting a run (`kairos://adapter/...` or `kairos://layer/{uuid}` without `?execution_id=...`). The first call loads `contract`; then call `forward` again with the layer URI including `?execution_id=...` and a `solution` whose `type` matches `contract.type` (prefer v2: include `outcome` and `evidence`).';
+  'Omit `solution` when starting a run (`squadrules://adapter/...` or `squadrules://layer/{uuid}` without `?execution_id=...`). The first call loads `contract`; then call `forward` again with the layer URI including `?execution_id=...` and a `solution` whose `type` matches `contract.type` (prefer v2: include `outcome` and `evidence`).';
 
 export const forwardInputSchema = z.object({
   uri: forwardUriSchema.describe('Adapter or layer URI'),
@@ -262,7 +261,7 @@ export const forwardInputSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['solution'],
       message:
-        '`solution` is required when continuing a run with `kairos://layer/...?execution_id=...`. Omit `solution` only on the first forward call of a run.'
+        '`solution` is required when continuing a run with `squadrules://layer/...?execution_id=...`. Omit `solution` only on the first forward call of a run.'
     });
   }
 });
@@ -336,8 +335,6 @@ export const forwardOutputSchema = z.object({
   current_layer_label: z.string().optional(),
   adapter_layer_index: z.number().int().positive().optional(),
   adapter_layer_count: z.number().int().positive().optional(),
-  kairos_local_artifact_dir: z.array(z.string()).optional(),
-  /** Compatibility alias for kairos_local_artifact_dir (same value). */
   squadrules_local_artifact_dir: z.array(z.string()).optional()
 }).strict();
 

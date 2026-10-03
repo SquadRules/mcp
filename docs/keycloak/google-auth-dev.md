@@ -1,14 +1,13 @@
-<!-- squadrules-compat-surface: documents Keycloak broker setup for the retained realm kairos and OAuth client_id kairos-mcp provisioned in existing deployments -->
 # Appendix: Google sign-in for Keycloak (dev)
 
 **Not part of `docs/install/`.** For operators who already run Keycloak (or an
 equivalent IdP) **at their own discretion**. SquadRules talks to Keycloak for OIDC;
-below adds Google as a broker in the **`kairos`** realm. Layout and ports:
+below adds Google as a broker in the **`squadrules`** realm. Layout and ports:
 [Infrastructure (project Wiki)](https://github.com/SquadRules/mcp/wiki).
 
 ## Prerequisites
 
-- Keycloak reachable and **`kairos`** (or your target realm) under your control
+- Keycloak reachable and **`squadrules`** (or your target realm) under your control
 - Optional Compose context: [`fullstack` operator note](../install/docker-compose-full-stack.md), `npm run infra:up`, or your own deployment
 - Admin access to the local Keycloak realm
 - A Google OAuth client created in Google Cloud
@@ -19,7 +18,7 @@ In Google Cloud Console, create an **OAuth client ID** of type
 **Web application** and add this redirect URI exactly:
 
 ```text
-http://localhost:8080/realms/kairos/broker/google/endpoint
+http://localhost:8080/realms/squadrules/broker/google/endpoint
 ```
 
 Copy the resulting client ID and client secret.
@@ -44,17 +43,17 @@ Start the full local auth stack and configure realms:
 npm run infra:up
 ```
 
-In **Keycloak Admin Console** (realm **kairos**): **Identity providers** → **Google** (or **OpenID Connect v1.0**). Set **Client ID** and **Client secret** from your Google OAuth client (same values as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`). Save. Confirm the Google redirect URI in Google Cloud still matches **§1** above.
+In **Keycloak Admin Console** (realm **squadrules**): **Identity providers** → **Google** (or **OpenID Connect v1.0**). Set **Client ID** and **Client secret** from your Google OAuth client (same values as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`). Save. Confirm the Google redirect URI in Google Cloud still matches **§1** above.
 
 Use [Keycloak identity broker](https://www.keycloak.org/docs/latest/server_admin/#_identity_broker) if you need provider-specific options.
 
 ## 4. Verify the login flow
 
 Start or restart the app if needed, then open a browser login flow that uses
-the `kairos-mcp` client. For the default local callback base:
+the `squadrules-mcp` client. For the default local callback base:
 
 ```text
-http://localhost:8080/realms/kairos/protocol/openid-connect/auth?client_id=kairos-mcp&redirect_uri=http%3A%2F%2Flocalhost%3A3300%2Fauth%2Fcallback&response_type=code&scope=openid
+http://localhost:8080/realms/squadrules/protocol/openid-connect/auth?client_id=squadrules-mcp&redirect_uri=http%3A%2F%2Flocalhost%3A3300%2Fauth%2Fcallback&response_type=code&scope=openid
 ```
 
 If your local setup uses a different `AUTH_CALLBACK_BASE_URL`, replace the
@@ -76,7 +75,7 @@ redirect URI does not match exactly. Re-check the Google Cloud OAuth client and
 make sure it includes:
 
 ```text
-http://localhost:8080/realms/kairos/broker/google/endpoint
+http://localhost:8080/realms/squadrules/broker/google/endpoint
 ```
 
 ### Keycloak does not show the Google button

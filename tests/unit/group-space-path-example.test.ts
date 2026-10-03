@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 import { deriveGroupSpacePathExampleFromAllowlist } from '../../src/config.js';
 
 describe('deriveGroupSpacePathExampleFromAllowlist', () => {
@@ -9,7 +8,7 @@ describe('deriveGroupSpacePathExampleFromAllowlist', () => {
   });
 
   test('returns null when no prefix entry', () => {
-    expect(deriveGroupSpacePathExampleFromAllowlist(['kairos-auditor', '/exact-path'], 'x')).toBeNull();
+    expect(deriveGroupSpacePathExampleFromAllowlist(['squadrules-auditor', '/exact-path'], 'x')).toBeNull();
   });
 
   test('strips trailing slashes on prefix', () => {

@@ -1,5 +1,4 @@
-// squadrules-compat-surface: writes the KAIROS:BODY start/end delimiters into stored artifact bodies that must keep parsing
-const BODY_MARKER_PREFIX = 'KAIROS:BODY';
+const BODY_MARKER_PREFIX = 'SQUADRULES:BODY';
 const BODY_START_RE = new RegExp(`<!--\\s*${BODY_MARKER_PREFIX}-START\\s*-->`, 'i');
 const BODY_END_RE = new RegExp(`<!--\\s*${BODY_MARKER_PREFIX}-END\\s*-->`, 'i');
 

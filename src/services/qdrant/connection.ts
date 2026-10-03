@@ -1,4 +1,3 @@
-// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { readFileSync } from 'fs';
 import { logger } from '../../utils/structured-logger.js';
@@ -25,7 +24,7 @@ export class QdrantConnection {
   constructor(
     qdrantUrl: string = process.env['QDRANT_URL'] || 'http://localhost:6333',
     apiKey: string = process.env['QDRANT_API_KEY'] || '',
-    collectionAlias: string = process.env['QDRANT_COLLECTION'] || 'kairos',
+    collectionAlias: string = process.env['QDRANT_COLLECTION'] || 'squadrules',
     caCertPath?: string
   ) {
     this.qdrantUrl = qdrantUrl;

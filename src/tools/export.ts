@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
@@ -6,7 +5,7 @@ import { getSpaceContextFromStorage, getTenantId } from '../utils/tenant-context
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { executeDump } from './dump.js';
 import { exportInputSchema, exportOutputSchema, type ExportInput, type ExportOutput } from './export_schema.js';
-import { assertWireAdapterUri, parseSquadrulesUri } from './kairos-uri.js';
+import { assertWireAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { spaceIdToDisplayName, spaceKindFromSpaceId } from '../utils/space-display.js';
@@ -88,7 +87,7 @@ async function executeExportImpl(
     }
     const { layerId } = await resolveExportAdapter(memoryStore, qdrantService, input.uri);
     const dump = await executeDump(memoryStore, qdrantService, {
-      uri: `kairos://layer/${layerId}`,
+      uri: `squadrules://layer/${layerId}`,
       protocol: true
     });
     const headMemory = await memoryStore.getMemory(layerId);
@@ -184,7 +183,7 @@ async function executeExportImpl(
         skills: items.map((it) => ({
           slug: it.slug,
           version: it.adapterVersion ?? null,
-          kairos_uri: it.squadrulesUri,
+          squadrules_uri: it.squadrulesUri,
           files: it.files.map((f) => ({ path: f.path, content: typeof f.content === 'string' ? f.content : f.content.toString('utf8') })),
           diagnostics: it.diagnostics
         }))

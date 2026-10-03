@@ -1,11 +1,10 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
-import { KAIROS_SEARCH_LIMIT_CAP, KAIROS_SEARCH_LIMIT_MIN } from '../config.js';
-import { ADAPTER_SLUG_URI_INPUT_REGEX } from './kairos-uri.js';
+import { SQUADRULES_SEARCH_LIMIT_CAP, SQUADRULES_SEARCH_LIMIT_MIN } from '../config.js';
+import { ADAPTER_SLUG_URI_INPUT_REGEX } from './squadrules-uri.js';
 
 const adapterSlugUriSchema = z
   .string()
-  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match kairos://adapter/{slug}');
+  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match squadrules://adapter/{slug}');
 
 const choiceUriSchema = adapterSlugUriSchema;
 
@@ -19,8 +18,8 @@ export const searchInputSchema = z.object({
   max_choices: z
     .number()
     .int()
-    .min(KAIROS_SEARCH_LIMIT_MIN)
-    .max(KAIROS_SEARCH_LIMIT_CAP)
+    .min(SQUADRULES_SEARCH_LIMIT_MIN)
+    .max(SQUADRULES_SEARCH_LIMIT_CAP)
     .optional()
     .describe('Max match choices to return. Omit for server default; use higher for broad/vague queries.')
 });
@@ -47,7 +46,7 @@ export const searchOutputSchema = z.object({
       .string()
       .nullable()
       .describe(
-        'Adapter routing slug when stored (use with kairos://adapter/{slug} in forward); null for refine/create or when absent'
+        'Adapter routing slug when stored (use with squadrules://adapter/{slug} in forward); null for refine/create or when absent'
       )
   })).describe('Options: match(es) first, then refine (if present), then create (if present).')
 }).strict();

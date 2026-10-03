@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -60,7 +59,7 @@ describe('cli config keychain sentinel behavior', () => {
   });
 
   beforeEach(() => {
-    xdgDir = mkdtempSync(join(tmpdir(), 'kairos-cli-config-test-'));
+    xdgDir = mkdtempSync(join(tmpdir(), 'squadrules-cli-config-test-'));
     process.env['XDG_CONFIG_HOME'] = xdgDir;
     keyringState.available = true;
     keyringState.tokens.clear();

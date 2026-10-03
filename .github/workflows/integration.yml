@@ -1,4 +1,3 @@
-# squadrules-compat-surface: CI uses retained compat identifiers: docker-compose project kairos-mcp and Qdrant collections kairos_ci/kairos_ci_traces; workflow step/artifact names are explicit non-goals
 # Integration workflow: build npm tgz, then verify in parallel (UI/static, npm+infra tests, Docker+Trivy).
 # Secrets: OPENAI_API_KEY (from GitHub secrets). Infra/dev secrets are generated in verify-integration-primary each run.
 # See .github/workflows/README.md for gh secret/variable setup.
@@ -370,7 +369,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          docker compose -p kairos-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
+          docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
           node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci &
           pid_npm=$!
@@ -383,7 +382,7 @@ jobs:
         run: |
           mkdir -p .cache/docker-infra
           # Only save images for services we start (valkey, qdrant, postgres, keycloak); config --images includes app image which is not pulled
-          mapfile -t images < <(docker compose -p kairos-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
+          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
           docker save -o .cache/docker-infra/images.tar "${images[@]}"
 
       - name: Cache infra Docker images
@@ -447,8 +446,8 @@ jobs:
         id: qdrant-snapshot-cache
         with:
           path: |
-            .local/qdrant-snapshot/kairos_ci.snapshot
-            .local/qdrant-snapshot/kairos_ci_traces.snapshot
+            .local/qdrant-snapshot/squadrules_ci.snapshot
+            .local/qdrant-snapshot/squadrules_ci_traces.snapshot
           key: ${{ runner.os }}-qdrant-snapshot-${{ hashFiles('scripts/seed-test-snapshot.sh', 'scripts/import-test-snapshot.sh', 'tests/test-data/AI_CODING_RULES.md') }}
           restore-keys: |
             ${{ runner.os }}-qdrant-snapshot-
@@ -460,7 +459,7 @@ jobs:
           QDRANT_SNAPSHOT_DIR: var/snapshots
         run: |
           mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/kairos.log 2>&1 &
+          npm run dev:start:installed > var/log/squadrules.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:3300/health >/dev/null && break
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
@@ -486,19 +485,19 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos log - check
+      - name: Upload squadrules log - check
         if: always() && failure()
         run: |
           pwd
           ls -la var/log 2>/dev/null || true
-          if [ -f var/log/kairos.log ]; then ls -la var/log/kairos.log; cat var/log/kairos.log; else echo "No var/log/kairos.log"; fi
+          if [ -f var/log/squadrules.log ]; then ls -la var/log/squadrules.log; cat var/log/squadrules.log; else echo "No var/log/squadrules.log"; fi
 
-      - name: Upload kairos log
+      - name: Upload squadrules log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-log-node24
-          path: var/log/kairos.log
+          name: squadrules-log-node24
+          path: var/log/squadrules.log
           if-no-files-found: ignore
 
   verify-integration-simple-smoke:
@@ -598,10 +597,10 @@ jobs:
           HEALTH_CHECK_ATTEMPTS: 15
           ENV: dev_simple
           QDRANT_SNAPSHOT_DIR: var/snapshots
-          QDRANT_COLLECTION: kairos_ci
+          QDRANT_COLLECTION: squadrules_ci
         run: |
           mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/kairos-simple.log 2>&1 &
+          npm run dev:start:installed > var/log/squadrules-simple.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:4300/health >/dev/null && break
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
@@ -611,7 +610,7 @@ jobs:
       - name: Run SIMPLE transport smoke tests
         env:
           ENV: dev_simple
-          QDRANT_COLLECTION: kairos_ci
+          QDRANT_COLLECTION: squadrules_ci
         run: |
           npm run dev_simple:test -- \
             tests/integration/scenarios/spaces-tool.http-simple.test.ts \
@@ -634,12 +633,12 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos simple log
+      - name: Upload squadrules simple log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-simple-log-node24
-          path: var/log/kairos-simple.log
+          name: squadrules-simple-log-node24
+          path: var/log/squadrules-simple.log
           if-no-files-found: ignore
 
       - name: Stop Qdrant (binary)
@@ -727,7 +726,7 @@ jobs:
       - name: Run STDIO transport smoke tests
         env:
           ENV: dev_stdio
-          QDRANT_COLLECTION: kairos_simple_ci
+          QDRANT_COLLECTION: squadrules_simple_ci
           CI: "true"
         run: |
           npm run dev_stdio:test -- \
@@ -750,12 +749,12 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos stdio log
+      - name: Upload squadrules stdio log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-stdio-log-node24
-          path: var/log/kairos-stdio.log
+          name: squadrules-stdio-log-node24
+          path: var/log/squadrules-stdio.log
           if-no-files-found: ignore
 
       - name: Stop Qdrant (binary)

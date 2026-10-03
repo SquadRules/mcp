@@ -1,4 +1,3 @@
-<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # SquadRules CLI
 
 The `squadrules` CLI talks to a running SquadRules server over HTTP.
@@ -52,7 +51,7 @@ squadrules-mcp serve --transport stdio
 - **`--metrics-port`** — sets `METRICS_PORT` for this process before configuration is read.
 - **`--server-port`** — sets the main HTTP listener (`SERVER_PORT`); see numbered list above.
 
-The root **`--url`** option applies to **client** commands (it sets `KAIROS_API_URL`); it does **not** change the HTTP bind address for `serve`. For supported full-stack installation, prefer **Docker Compose** in [install/README.md](install/README.md); use `serve` when you already run backing services and want a single Node entrypoint.
+The root **`--url`** option applies to **client** commands (it sets `SQUADRULES_API_URL`); it does **not** change the HTTP bind address for `serve`. For supported full-stack installation, prefer **Docker Compose** in [install/README.md](install/README.md); use `serve` when you already run backing services and want a single Node entrypoint.
 
 **From a local clone (npm scripts):** build the publishable tarball and run the install smoke test:
 
@@ -69,7 +68,7 @@ Set **`QDRANT_URL`**, **`QDRANT_COLLECTION`**, and an embedding backend (e.g. **
 The CLI resolves the API base URL in this order:
 
 1. `--url`
-2. `KAIROS_API_URL`
+2. `SQUADRULES_API_URL`
 3. the default URL stored in the shared CLI config
 4. fallback: `http://localhost:3000`
 
@@ -77,16 +76,14 @@ Examples:
 
 ```bash
 squadrules --url http://localhost:3000 search "release checklist"
-export KAIROS_API_URL=http://localhost:3000
+export SQUADRULES_API_URL=http://localhost:3000
 squadrules search "release checklist"
 ```
 
-> **Environment-variable naming.** Server configuration variables accept a
-> `SQUADRULES_*` name (preferred) with the `KAIROS_*` name as a compatibility
-> fallback — see [Migration from SQUADRULES](migration-from-kairos.md). A few
-> CLI-only connection variables (`KAIROS_API_URL`, `KAIROS_TIMEOUT_MS`,
-> `KAIROS_RETRIES`, `KAIROS_LOGIN_CALLBACK_PORT`) currently use the `KAIROS_*`
-> prefix only; keep using those exact names for the CLI.
+> **Environment-variable naming.** Server configuration variables use the
+> `SQUADRULES_*` prefix. A few CLI-only connection variables (`SQUADRULES_API_URL`,
+> `SQUADRULES_TIMEOUT_MS`, `SQUADRULES_RETRIES`, `SQUADRULES_LOGIN_CALLBACK_PORT`)
+> likewise use the `SQUADRULES_*` prefix only; keep using those exact names for the CLI.
 
 ## Authentication
 
@@ -108,8 +105,8 @@ Environment variables (useful in CI / scripts):
 
 | Variable | Description |
 |----------|-------------|
-| `KAIROS_TIMEOUT_MS` | Request timeout in milliseconds (e.g. `120000`) |
-| `KAIROS_RETRIES` | Max network-error retries (e.g. `5`, or `0` to disable) |
+| `SQUADRULES_TIMEOUT_MS` | Request timeout in milliseconds (e.g. `120000`) |
+| `SQUADRULES_RETRIES` | Max network-error retries (e.g. `5`, or `0` to disable) |
 
 Precedence: CLI flag > env var > default.
 
@@ -145,7 +142,7 @@ When keyring storage is active, `config.json` keeps non-secret sentinels:
 The `__KEYCHAIN__` marker means the secret is stored in the OS keychain and
 must be resolved from there at runtime. The marker itself is never used as an
 HTTP bearer token. The keyring service name is `squadrules-cli`; credentials
-stored under the former `kairos-cli` service are copied forward on first read.
+stored under the former `squadrules-cli` service are copied forward on first read.
 
 **If absent:** Run `squadrules login` (browser PKCE or `squadrules login --token <token>`).
 The CLI writes tokens (and API URL) to the keyring or, on fallback, to that
@@ -181,7 +178,7 @@ squadrules login
 The CLI:
 
 - discovers auth endpoints from `/.well-known/oauth-protected-resource`
-- uses the public client ID `kairos-cli` (the Keycloak default; override with
+- uses the public client ID `squadrules-cli` (the Keycloak default; override with
   `KEYCLOAK_CLI_CLIENT_ID`)
 - binds a local callback port
 - exchanges the code for an access token
@@ -196,7 +193,7 @@ squadrules login --no-browser
 To pin the callback port:
 
 ```bash
-export KAIROS_LOGIN_CALLBACK_PORT=38123
+export SQUADRULES_LOGIN_CALLBACK_PORT=38123
 squadrules login
 ```
 
@@ -245,11 +242,11 @@ returned one) and a `--solution` JSON object whose `type` matches the current
 `contract`.
 
 ```bash
-squadrules forward kairos://adapter/<uuid>
-squadrules forward 'kairos://layer/<uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
+squadrules forward squadrules://adapter/<uuid>
+squadrules forward 'squadrules://layer/<uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
 ```
 
-The server emits `kairos://` URIs as the canonical stored form; echo them back
+The server emits `squadrules://` URIs as the canonical stored form; echo them back
 verbatim. `squadrules://` is also accepted on input as an alias for the same
 adapter and layer URIs.
 
@@ -282,10 +279,10 @@ Directory-batch behavior:
 Update one or more adapter or layer URIs.
 
 ```bash
-squadrules tune kairos://adapter/<uuid> --file updated.md
-squadrules tune kairos://adapter/<uuid> --updates '{"tags":["updated"]}'
-squadrules tune kairos://layer/<a> kairos://layer/<b> --files a.md b.md
-squadrules tune kairos://layer/<uuid> --updates '{"text":"new content"}'
+squadrules tune squadrules://adapter/<uuid> --file updated.md
+squadrules tune squadrules://adapter/<uuid> --updates '{"tags":["updated"]}'
+squadrules tune squadrules://layer/<a> squadrules://layer/<b> --files a.md b.md
+squadrules tune squadrules://layer/<uuid> --updates '{"text":"new content"}'
 ```
 
 Use one of:
@@ -306,8 +303,8 @@ squadrules train adapter.md --model "gpt-4.1" --force
 Delete one or more adapters or layers by URI.
 
 ```bash
-squadrules delete kairos://adapter/<uuid>
-squadrules delete kairos://layer/<a> kairos://layer/<b>
+squadrules delete squadrules://adapter/<uuid>
+squadrules delete squadrules://layer/<a> squadrules://layer/<b>
 ```
 
 ### `reward`
@@ -316,8 +313,8 @@ Attach a reward outcome to the **final layer** URI for a completed run (see tool
 docs for `execution_id` when applicable).
 
 ```bash
-squadrules reward kairos://layer/<uuid> success "Completed successfully"
-squadrules reward 'kairos://layer/<uuid>?execution_id=<id>' failure "Validation failed"
+squadrules reward squadrules://layer/<uuid> success "Completed successfully"
+squadrules reward 'squadrules://layer/<uuid>?execution_id=<id>' failure "Validation failed"
 ```
 
 Options:
@@ -332,8 +329,8 @@ Options:
 Export an adapter or layer as markdown or training JSONL.
 
 ```bash
-squadrules export kairos://adapter/<uuid>
-squadrules export kairos://layer/<uuid> --format reward_jsonl --output json
+squadrules export squadrules://adapter/<uuid>
+squadrules export squadrules://layer/<uuid> --format reward_jsonl --output json
 ```
 
 Options:
@@ -348,9 +345,9 @@ Options:
 
 ```bash
 squadrules activate "release checklist"
-squadrules forward kairos://adapter/<uuid>
-squadrules forward 'kairos://layer/<step-uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
-squadrules reward 'kairos://layer/<last-layer-uuid>?execution_id=<id>' success "Run completed"
+squadrules forward squadrules://adapter/<uuid>
+squadrules forward 'squadrules://layer/<step-uuid>?execution_id=<id>' --solution '{"type":"comment","comment":{"text":"done"}}'
+squadrules reward 'squadrules://layer/<last-layer-uuid>?execution_id=<id>' success "Run completed"
 ```
 
 ### Batch train a bundle
@@ -389,7 +386,7 @@ Verify the target server:
 curl http://localhost:3000/health
 ```
 
-Also confirm you are using the intended `--url` or `KAIROS_API_URL`.
+Also confirm you are using the intended `--url` or `SQUADRULES_API_URL`.
 
 ### The CLI says authentication is required
 
@@ -415,6 +412,5 @@ one host/port pair (for example `http://localhost:3300`) is different from a tok
 - [Install index](install/README.md)
 - [Environment variables and secrets](install/prerequisites.md)
 - [Cursor and MCP](install/README.md#cursor-and-mcp)
-- [Migration from SQUADRULES](migration-from-kairos.md)
 - [Architecture (project Wiki)](https://github.com/SquadRules/mcp/wiki)
 - [Adapter examples](examples/README.md)

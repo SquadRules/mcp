@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { closeSync, fstatSync, openSync, readFileSync } from 'fs';
 import { validateProtocolStructure } from '../services/memory/validate-protocol-structure.js';
 import { normalizeMarkdownBlob } from '../utils/memory-store-utils.js';
@@ -6,11 +5,11 @@ import { normalizeMarkdownBlob } from '../utils/memory-store-utils.js';
 export type SafeMarkdownUpload = string & { readonly __safeMarkdownUpload: unique symbol };
 
 const DEFAULT_MAX_MARKDOWN_UPLOAD_BYTES = 512 * 1024;
-const SENSITIVE_CONTENT_OVERRIDE_ENV = 'KAIROS_ALLOW_SENSITIVE_UPLOADS';
-const TRUSTED_HOSTS_ENV = 'KAIROS_TRUSTED_API_HOSTS';
+const SENSITIVE_CONTENT_OVERRIDE_ENV = 'SQUADRULES_ALLOW_SENSITIVE_UPLOADS';
+const TRUSTED_HOSTS_ENV = 'SQUADRULES_TRUSTED_API_HOSTS';
 
 function markdownUploadByteLimit(): number {
-  const raw = process.env['KAIROS_CLI_MAX_MARKDOWN_BYTES'];
+  const raw = process.env['SQUADRULES_CLI_MAX_MARKDOWN_BYTES'];
   if (!raw) return DEFAULT_MAX_MARKDOWN_UPLOAD_BYTES;
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_MARKDOWN_UPLOAD_BYTES;

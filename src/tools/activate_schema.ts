@@ -1,18 +1,17 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
-import { KAIROS_SEARCH_LIMIT_CAP, KAIROS_SEARCH_LIMIT_MIN } from '../config.js';
+import { SQUADRULES_SEARCH_LIMIT_CAP, SQUADRULES_SEARCH_LIMIT_MIN } from '../config.js';
 
 const adapterUriSchema = z
   .string()
   .regex(
-    /^(?:kairos|squadrules):\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
-    'must match kairos://adapter/{slug} (squadrules:// also accepted)'
+    /^squadrules:\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
+    'must match squadrules://adapter/{slug}'
   );
 const adapterSlugUriSchema = z
   .string()
   .regex(
-    /^(?:kairos|squadrules):\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
-    'must match kairos://adapter/{slug} (squadrules:// also accepted)'
+    /^squadrules:\/\/adapter\/([0-9a-f-]{36}|[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)$/i,
+    'must match squadrules://adapter/{slug}'
   );
 const forwardFirstCallSchema = z
   .object({
@@ -30,7 +29,7 @@ const linkedArtifactSchema = z
     download_url: z.string(),
     sha256: z.string(),
     content_type: z.string(),
-    materialize: z.string().describe('Shell command to download + verify this artifact into $KAIROS_LOCAL_ARTIFACT_DIR')
+    materialize: z.string().describe('Shell command to download + verify this artifact into $SQUADRULES_LOCAL_ARTIFACT_DIR')
   })
   .strict();
 const activateChoiceCommonSchema = z.object({
@@ -50,7 +49,7 @@ const activateChoiceCommonSchema = z.object({
     .string()
     .nullable()
     .describe(
-      'Adapter routing slug when stored (use with kairos://adapter/{slug} in forward); null for refine/create or when absent'
+      'Adapter routing slug when stored (use with squadrules://adapter/{slug} in forward); null for refine/create or when absent'
     )
 });
 const activateMatchChoiceSchema = activateChoiceCommonSchema.extend({
@@ -82,8 +81,8 @@ export const activateInputSchema = z.object({
   max_choices: z
     .number()
     .int()
-    .min(KAIROS_SEARCH_LIMIT_MIN)
-    .max(KAIROS_SEARCH_LIMIT_CAP)
+    .min(SQUADRULES_SEARCH_LIMIT_MIN)
+    .max(SQUADRULES_SEARCH_LIMIT_CAP)
     .optional()
     .describe('Maximum adapter choices to return')
 });
@@ -110,11 +109,9 @@ export const activateOutputSchema = z.object({
    * Ordered URI hints (preferred first) for the run's local handoff dir. Resolve **on the client**:
    * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`.
    * Use `project://` when you have exactly one project context; fall through to `user://` when your session
-   * spans multiple projects. Export the resolved absolute path as `KAIROS_LOCAL_ARTIFACT_DIR` for shell
+   * spans multiple projects. Export the resolved absolute path as `SQUADRULES_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.
    */
-  kairos_local_artifact_dir: z.array(z.string()).optional(),
-  /** Compatibility alias for kairos_local_artifact_dir (same value). */
   squadrules_local_artifact_dir: z.array(z.string()).optional()
 }).strict();
 

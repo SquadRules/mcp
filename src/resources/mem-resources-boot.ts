@@ -1,8 +1,7 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { runWithSpaceContextAsync } from '../utils/tenant-context.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { MEM_FILE_SLUG_KEY, getMemDir, getMemDirFallback, readMemFiles } from './mem-dir-utils.js';
 import { deletePreexistingAppSpaceEntries, extractFrontmatterSlug } from './mem-uuid-mapper.js';
 import { sha256Hex } from '../tools/skill-export/sha256.js';
@@ -28,7 +27,7 @@ async function getStoredAdapterVersion(
     with_vector: false,
     filter: {
       must: [
-        { key: 'space_id', match: { value: KAIROS_APP_SPACE_ID } },
+        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
         { key: 'slug', match: { value: slug } }
       ]
     }
@@ -67,8 +66,8 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
   const appSpaceContext = {
     userId: '',
     groupIds: [],
-    allowedSpaceIds: [KAIROS_APP_SPACE_ID],
-    defaultWriteSpaceId: KAIROS_APP_SPACE_ID,
+    allowedSpaceIds: [SQUADRULES_APP_SPACE_ID],
+    defaultWriteSpaceId: SQUADRULES_APP_SPACE_ID,
     personalSpaceId: ''
   };
 

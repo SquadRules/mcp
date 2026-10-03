@@ -1,8 +1,7 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_KAIROS_VERSION: string;
+  readonly VITE_SQUADRULES_VERSION: string;
 }
 
 interface ImportMeta {

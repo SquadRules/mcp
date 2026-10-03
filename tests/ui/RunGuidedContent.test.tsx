@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { RunGuidedContent } from "@/components/run/RunGuidedContent";
@@ -6,11 +5,11 @@ import type { RunSession } from "@/hooks/useRunSession";
 
 const baseRun: RunSession = {
   id: "run-1",
-  adapter_uri: "kairos://adapter/foo",
+  adapter_uri: "squadrules://adapter/foo",
   started_at: "2024-01-01T00:00:00.000Z",
   updated_at: "2024-01-01T00:00:00.000Z",
   status: "running",
-  current_layer: { uri: "kairos://layer/11111111-1111-1111-1111-111111111111", content: "Step content", mimeType: "text/plain" },
+  current_layer: { uri: "squadrules://layer/11111111-1111-1111-1111-111111111111", content: "Step content", mimeType: "text/plain" },
   contract: { type: "comment", comment: { min_length: 5 } },
   history: [],
 };
@@ -34,7 +33,7 @@ describe("RunGuidedContent", () => {
     render(<RunGuidedContent {...defaultProps} run={baseRun} />);
     expect(screen.getByRole("heading", { name: "run.progressHeading" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "run.currentStepHeading" })).toBeInTheDocument();
-    expect(screen.getByText("kairos://layer/11111111-1111-1111-1111-111111111111")).toBeInTheDocument();
+    expect(screen.getByText("squadrules://layer/11111111-1111-1111-1111-111111111111")).toBeInTheDocument();
     expect(screen.getByText("Step content")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "run.challengeHeading" })).toBeInTheDocument();
     expect(screen.getByText("Comment")).toBeInTheDocument();
@@ -70,7 +69,7 @@ describe("RunGuidedContent", () => {
       ...baseRun,
       history: [
         {
-          layer: { uri: "kairos://layer/00000000-0000-0000-0000-000000000000", content: "", mimeType: "text/plain" },
+          layer: { uri: "squadrules://layer/00000000-0000-0000-0000-000000000000", content: "", mimeType: "text/plain" },
           contract: { type: "comment" },
           solution: { type: "comment", comment: { text: "done" } },
           submitted_at: "2024-01-01T00:01:00.000Z",

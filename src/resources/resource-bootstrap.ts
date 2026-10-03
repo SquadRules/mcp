@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 /**
@@ -8,9 +7,9 @@ import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
  */
 export function bootstrapEmptyResourceHandlers(server: any) {
   // Register a throwaway resource to trigger handler installation, then remove it.
-  const placeholderUri = 'kairos://__internal__/bootstrap';
+  const placeholderUri = 'squadrules://__internal__/bootstrap';
   const placeholderResource = server.registerResource(
-    '__kairos_internal_bootstrap_resource__',
+    '__squadrules_internal_bootstrap_resource__',
     placeholderUri,
     {
       title: 'bootstrap',
@@ -24,13 +23,13 @@ export function bootstrapEmptyResourceHandlers(server: any) {
   placeholderResource.remove();
 
   // Same trick for resource templates so /resources/templates/list stays available.
-  const template = new ResourceTemplate('kairos://__internal__/bootstrap/{id}', {
+  const template = new ResourceTemplate('squadrules://__internal__/bootstrap/{id}', {
     async list() {
       return { resources: [] };
     }
   });
   const placeholderTemplate = server.registerResource(
-    '__kairos_internal_bootstrap_template__',
+    '__squadrules_internal_bootstrap_template__',
     template,
     {
       title: 'bootstrap template',

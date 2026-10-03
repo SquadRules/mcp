@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { z } from 'zod';
 import { nextInputSchema, nextOutputSchema } from './next_schema.js';
@@ -17,9 +16,9 @@ import { buildChallenge, handleProofSubmission, GENESIS_HASH, type ProofOfWorkSu
 import { tryApplySolutionToPreviousStep, tryApplySolutionToPreviousStepWhenSolutionMatchesPrevious, ensurePreviousProofCompleted } from './next-previous-step.js';
 import { buildMissingProofPayload } from './next-missing-proof-payload.js';
 import { modelStats } from '../services/stats/model-stats.js';
-import { kairosQualityUpdateErrors } from '../services/metrics/mcp-metrics.js';
-import { buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
-import { KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { squadrulesQualityUpdateErrors } from '../services/metrics/mcp-metrics.js';
+import { buildLayerUri, parseSquadrulesUri } from './squadrules-uri.js';
+import { SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 
 async function loadMemoryWithCache(memoryStore: MemoryQdrantStore, uuid: string): Promise<Memory | null> {
@@ -37,7 +36,7 @@ async function loadMemoryWithCache(memoryStore: MemoryQdrantStore, uuid: string)
 function normalizeLayerUri(value: string): { uuid: string; uri: string; executionId?: string } {
   const parsed = parseSquadrulesUri(value);
   if (parsed.kind !== 'layer') {
-    throw new Error('Invalid SQUADRULES URI. next expects a layer URI.');
+    throw new Error('Invalid SquadRules URI. next expects a layer URI.');
   }
   return {
     uuid: parsed.id,
@@ -70,7 +69,7 @@ async function buildNextPayload(
     must_obey: true as const,
     current_step,
     challenge,
-    ...buildLocalArtifactDirFields(KAIROS_LOCAL_ARTIFACT_DIRS)
+    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
   };
 
   if (nextStepId) {
@@ -124,7 +123,7 @@ export async function updateStepQuality(
     });
     structuredLogger.debug(`forward: Updated quality for ${memory.memory_uuid} outcome=${outcome}`);
   } catch (error) {
-    kairosQualityUpdateErrors.inc({ tenant_id: tenantId });
+    squadrulesQualityUpdateErrors.inc({ tenant_id: tenantId });
     structuredLogger.warn(`forward: Quality update failed for ${memory.memory_uuid}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -248,7 +247,7 @@ async function _executeNext(
         must_obey: payload.retry_count < 3,
         current_step: payload.current_step,
         challenge: payload.challenge,
-        ...buildLocalArtifactDirFields(KAIROS_LOCAL_ARTIFACT_DIRS),
+        ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
         message: previousBlock.message,
         next_action: payload.next_action,
         error_code: previousBlock.error_code || 'MISSING_PROOF',

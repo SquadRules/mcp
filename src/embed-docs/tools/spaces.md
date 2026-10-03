@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 List **spaces** available to the caller (human-readable names) and how many
 adapters each contains.
 
@@ -17,8 +16,8 @@ When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a wri
 **Collaboration patterns**
 
 1. **Precedence** — `activate` search ties break in favour of your **default write space** (usually **Personal**). A personal fork can rank beside an identical-scoring group adapter.
-2. **Scoping `activate`** — pass `space` / `space_id` using the same strings as **`train`** / **`tune`**: `"personal"`, a full group path such as `"{{KAIROS_GROUP_SPACE_PATH_EXAMPLE}}"` (optional `"Group: "` prefix), or the raw `space_id` from this tool.
-3. **Fork** — use **`train`** with `source_adapter_uri` (`kairos://adapter/{uuid}`) and target `space` to copy markdown into a **new** adapter UUID in another space; the original is unchanged.
+2. **Scoping `activate`** — pass `space` / `space_id` using the same strings as **`train`** / **`tune`**: `"personal"`, a full group path such as `"{{SQUADRULES_GROUP_SPACE_PATH_EXAMPLE}}"` (optional `"Group: "` prefix), or the raw `space_id` from this tool.
+3. **Fork** — use **`train`** with `source_adapter_uri` (`squadrules://adapter/{uuid}`) and target `space` to copy markdown into a **new** adapter UUID in another space; the original is unchanged.
 4. **Move** — use **`tune`** with `space` (and optional content edits) to reassign an existing adapter’s layers to another allowed space.
 5. **Visibility** — `activate` **match** choices include **`space_name`** so you can see whether a hit is personal, group, or app-level.
 

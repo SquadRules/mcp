@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Capture the UI at multiple viewport sizes. Agent tool for design review at real-world dimensions.
  *
- * Prereq: App running at baseUrl (default from .env: KAIROS_BASE_URL / KAIROS_API_URL / SERVER_PORT).
+ * Prereq: App running at baseUrl (default from .env: SQUADRULES_BASE_URL / SQUADRULES_API_URL / SERVER_PORT).
  * Usage: npm run design:viewports [baseUrl]
  * Output: .cursor/viewports/{mobile,tablet,desktop,wide}.png
  */

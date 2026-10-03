@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Factory for creating ApiClient instances with resolved global CLI options.
  * Separated from program.ts to avoid circular imports with command modules.
@@ -22,7 +21,7 @@ export function resolveClientOptions(program: Command): ApiClientOptions {
         if (Number.isFinite(sec) && sec > 0) timeoutMs = sec * 1000;
     }
     if (timeoutMs === undefined) {
-        const envTimeout = process.env['KAIROS_TIMEOUT_MS'];
+        const envTimeout = process.env['SQUADRULES_TIMEOUT_MS'];
         if (envTimeout) {
             const ms = Number(envTimeout);
             if (Number.isFinite(ms) && ms > 0) timeoutMs = ms;
@@ -36,7 +35,7 @@ export function resolveClientOptions(program: Command): ApiClientOptions {
         if (Number.isFinite(n) && n >= 0) maxRetries = n;
     }
     if (maxRetries === undefined) {
-        const envRetries = process.env['KAIROS_RETRIES'];
+        const envRetries = process.env['SQUADRULES_RETRIES'];
         if (envRetries) {
             const n = Number(envRetries);
             if (Number.isFinite(n) && n >= 0) maxRetries = n;

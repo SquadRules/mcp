@@ -1,4 +1,3 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { logger } from '../../utils/structured-logger.js';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { SquadrulesError } from '../../types/index.js';
@@ -7,7 +6,7 @@ import { getSpaceContext } from '../../utils/tenant-context.js';
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../../utils/protected-space-write-guard.js';
 import type { MemoryQdrantStoreMethods } from './store-methods.js';
-import { buildAdapterUri, buildLayerUri } from '../../tools/kairos-uri.js';
+import { buildAdapterUri, buildLayerUri } from '../../tools/squadrules-uri.js';
 import { MAX_AUTO_SUFFIX_ATTEMPTS, nextAutoSlugCandidate } from '../../utils/protocol-slug.js';
 
 /**

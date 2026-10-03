@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * OAuth 2.0 well-known metadata endpoints for MCP authorization discovery.
  *
@@ -51,7 +50,7 @@ export function buildProtectedResourceMetadata(): Record<string, unknown> {
   if (KEYCLOAK_CLI_CLIENT_ID) {
     // Dual emission: retain the older field for existing clients, add new alias
     // for SquadRules-aware clients. Both carry the same value.
-    metadata['kairos_cli_client_id'] = KEYCLOAK_CLI_CLIENT_ID;
+    metadata['squadrules_cli_client_id'] = KEYCLOAK_CLI_CLIENT_ID;
     metadata['squadrules_cli_client_id'] = KEYCLOAK_CLI_CLIENT_ID;
   }
   return metadata;

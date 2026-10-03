@@ -1,6 +1,5 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
- * kairos serve — run the SQUADRULES MCP server (same bootstrap as `node dist/bootstrap.js`).
+ * squadrules serve — run the SQUADRULES MCP server (same bootstrap as `node dist/bootstrap.js`).
  * Transport: `--transport` overrides `TRANSPORT_TYPE`; default for this command is stdio.
  * Main HTTP listener: `--server-port` wins over `SERVER_PORT` (same resolution as server config).
  * Other CLI commands do not read `--transport` or `--server-port` unless those env vars are set in the shell.
@@ -28,7 +27,7 @@ function parseListenPort(raw: string, label: string): number {
 }
 
 /**
- * Resolve main HTTP listen port for `kairos serve`: CLI --server-port > SERVER_PORT > unset (inherit in child).
+ * Resolve main HTTP listen port for `squadrules serve`: CLI --server-port > SERVER_PORT > unset (inherit in child).
  */
 export function resolveServeServerPort(cliServerPort: string | undefined): number | undefined {
   const trimmed = cliServerPort?.trim();
@@ -43,7 +42,7 @@ export function resolveServeServerPort(cliServerPort: string | undefined): numbe
 }
 
 /**
- * Resolve MCP transport for `kairos serve`: CLI --transport > TRANSPORT_TYPE > defaultStdio.
+ * Resolve MCP transport for `squadrules serve`: CLI --transport > TRANSPORT_TYPE > defaultStdio.
  */
 export function resolveServeTransport(cliTransport: string | undefined, defaultStdio = true): ServeTransport {
   const trimmed = cliTransport?.trim().toLowerCase();
@@ -67,7 +66,7 @@ function findPackageRoot(): string {
     if (existsSync(pkgJson)) {
       try {
         const pkg = JSON.parse(readFileSync(pkgJson, 'utf8')) as { name?: string };
-        if (pkg.name === '@jakub-plichcinski/kairos-mcp') {
+        if (pkg.name === '@jakub-plichcinski/squadrules-mcp') {
           return dir;
         }
       } catch {
@@ -152,7 +151,7 @@ export function serveCommand(program: Command): void {
           } catch (e) {
             program.error(
               e instanceof Error
-                ? `kairos serve: could not update CLI config defaultUrl: ${e.message}`
+                ? `squadrules serve: could not update CLI config defaultUrl: ${e.message}`
                 : String(e)
             );
             return;
@@ -164,8 +163,8 @@ export function serveCommand(program: Command): void {
         const env: NodeJS.ProcessEnv = {
           ...process.env,
           TRANSPORT_TYPE: transport,
-          KAIROS_CLI_SERVE: '1',
-          KAIROS_CLI_TRANSPORT_SOURCE: source
+          SQUADRULES_CLI_SERVE: '1',
+          SQUADRULES_CLI_TRANSPORT_SOURCE: source
         };
         if (listenPort !== undefined) {
           env['SERVER_PORT'] = String(listenPort);
@@ -178,7 +177,7 @@ export function serveCommand(program: Command): void {
         });
 
         child.on('error', (err) => {
-          process.stderr.write(`kairos serve: failed to start server: ${err.message}\n`);
+          process.stderr.write(`squadrules serve: failed to start server: ${err.message}\n`);
           process.exitCode = 1;
         });
 

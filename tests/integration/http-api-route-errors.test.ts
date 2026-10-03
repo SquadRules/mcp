@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { getAuthHeaders, getTestAuthBaseUrl, isHttpTransport } from '../utils/auth-headers.js';
 
 const BASE_URL = getTestAuthBaseUrl();
@@ -33,7 +32,7 @@ _d('HTTP route error mapping', () => {
     const response = await fetchWithRateLimitRetry(`${API_BASE}/forward`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uri: 'kairos://layer/00000000-0000-0000-0000-000000000099' })
+      body: JSON.stringify({ uri: 'squadrules://layer/00000000-0000-0000-0000-000000000099' })
     });
 
     expect(response.status).toBe(404);
@@ -48,7 +47,7 @@ _d('HTTP route error mapping', () => {
     const response = await fetchWithRateLimitRetry(`${API_BASE}/forward`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uri: 'kairos://adapter/non-existent-slug-for-test' })
+      body: JSON.stringify({ uri: 'squadrules://adapter/non-existent-slug-for-test' })
     });
 
     expect(response.status).toBe(404);
@@ -64,7 +63,7 @@ _d('HTTP route error mapping', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        uri: 'kairos://layer/00000000-0000-0000-0000-000000000099',
+        uri: 'squadrules://layer/00000000-0000-0000-0000-000000000099',
         outcome: 'success',
         feedback: 'test'
       })

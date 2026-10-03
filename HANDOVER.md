@@ -1,6 +1,6 @@
 # Handover — complete SquadRules rebrand delivery
 
-Purpose: hand this work to a coding agent and have it finish the KAIROS → SquadRules rebrand end-to-end, including source, filenames, docs, generated docs, runtime identity, prerelease artifacts, and Helm validation.
+Purpose: hand this work to a coding agent and have it finish the SQUADRULES → SquadRules rebrand end-to-end, including source, filenames, docs, generated docs, runtime identity, prerelease artifacts, and Helm validation.
 
 Remote state is authoritative over this file. Refresh branch/PR/check state before changing anything.
 
@@ -9,7 +9,7 @@ Remote state is authoritative over this file. Refresh branch/PR/check state befo
 ### Application
 
 - Repository: `SquadRules/mcp`
-- Branch: `chore/purge-kairos-branding`
+- Branch: `chore/purge-squadrules-branding`
 - PR: https://github.com/SquadRules/mcp/pull/6
 - Observed head when this handover was updated: `de45e0988110f8b3458b00badda75927a2cdff9c`
 - Do not merge PR #6 until explicitly instructed.
@@ -24,9 +24,9 @@ Remote state is authoritative over this file. Refresh branch/PR/check state befo
 
 The rebrand is complete only when **SquadRules is the sole current identity** across source, filenames, directories, configuration, docs, UI, skills, package metadata, tests, deployment config, and Helm charts.
 
-The **only permitted KAIROS compatibility** is:
+The **only permitted SQUADRULES compatibility** is:
 
-> SquadRules MCP silently accepts inbound legacy `kairos://...` URIs.
+> SquadRules MCP silently accepts inbound legacy `squadrules://...` URIs.
 
 Everything newly emitted/stored/exported must use canonical `squadrules://...` URIs.
 
@@ -45,20 +45,20 @@ squadrules://artifact/...
 Legacy input only:
 
 ```text
-kairos://adapter/...
-kairos://layer/...
-kairos://artifact/...
+squadrules://adapter/...
+squadrules://layer/...
+squadrules://artifact/...
 ```
 
 Required behavior:
 
-1. Accept legacy `kairos://` wherever the equivalent `squadrules://` URI is accepted.
+1. Accept legacy `squadrules://` wherever the equivalent `squadrules://` URI is accepted.
 2. Normalize immediately to the SquadRules representation.
 3. Emit/store/export only `squadrules://`.
 4. Do not warn or expose deprecation messages; acceptance is silent.
 5. Dedicated tests must prove old input works and canonical output is SquadRules.
 
-The current implementation in `src/tools/kairos-uri.ts` is wrong for the final state because it currently treats `kairos://` as canonical and `squadrules://` as an alias. Reverse that behavior and rename the file.
+The current implementation in `src/tools/squadrules-uri.ts` is wrong for the final state because it currently treats `squadrules://` as canonical and `squadrules://` as an alias. Reverse that behavior and rename the file.
 
 ## 4. Current state vs target
 
@@ -67,52 +67,52 @@ The existing PR is a transitional rebrand, not the final rebrand.
 Verified current leftovers include:
 
 - old skill trees:
-  - `.agents/skills/kairos/`
-  - `.agents/skills/kairos-dev/`
-- KAIROS-named source files such as:
-  - `src/tools/kairos-uri.ts`
-  - `src/tools/kairos-challenge-display.ts`
-  - `src/tools/kairos-genesis-proof-hash.ts`
-  - `src/mcp-apps/kairos-ui-constants.ts`
-  - `src/mcp-apps/kairos-logo-embedded.ts`
-  - `src/mcp-apps/kairos-server-ui-capability.ts`
-  - `src/utils/kairos-user-dirs.ts`
-  - `src/utils/kairos-local-artifact-dirs.ts`
-  - `src/ui/pages/KairosPage.tsx`
-- KAIROS-named lint plugins
-- KAIROS-named logo
-- KAIROS-named Keycloak realm files
-- KAIROS-named test files and fixtures
-- broad runtime aliases such as `KAIROS_*`, old cookie/config/keyring/Redis/Qdrant/Keycloak defaults
-- old CLI aliases `kairos` / `kairos-mcp`
-- `ui://kairos/*`
-- generated RepoWiki paths/content containing KAIROS
+  - `.agents/skills/squadrules/`
+  - `.agents/skills/squadrules-dev/`
+- SQUADRULES-named source files such as:
+  - `src/tools/squadrules-uri.ts`
+  - `src/tools/squadrules-challenge-display.ts`
+  - `src/tools/squadrules-genesis-proof-hash.ts`
+  - `src/mcp-apps/squadrules-ui-constants.ts`
+  - `src/mcp-apps/squadrules-logo-embedded.ts`
+  - `src/mcp-apps/squadrules-server-ui-capability.ts`
+  - `src/utils/squadrules-user-dirs.ts`
+  - `src/utils/squadrules-local-artifact-dirs.ts`
+  - `src/ui/pages/SquadrulesPage.tsx`
+- SQUADRULES-named lint plugins
+- SQUADRULES-named logo
+- SQUADRULES-named Keycloak realm files
+- SQUADRULES-named test files and fixtures
+- broad runtime aliases such as `SQUADRULES_*`, old cookie/config/keyring/Redis/Qdrant/Keycloak defaults
+- old CLI aliases `squadrules` / `squadrules-mcp`
+- `ui://squadrules/*`
+- generated RepoWiki paths/content containing SQUADRULES
 
-A tree audit found hundreds of tracked paths containing `kairos`; most are generated RepoWiki, but dozens are normal source/docs/test paths.
+A tree audit found hundreds of tracked paths containing `squadrules`; most are generated RepoWiki, but dozens are normal source/docs/test paths.
 
 The old `squadrules-compat-surface` marker strategy is temporary scaffolding and must not be the final mechanism. It currently makes it too easy to preserve retired branding by tagging files.
 
 ## 5. Rename every path
 
-No tracked filename or directory may contain `kairos` when complete.
+No tracked filename or directory may contain `squadrules` when complete.
 
 Examples that must be renamed or removed:
 
 ```text
-.agents/skills/kairos*
-docs/migration-from-kairos.md
-eslint/plugins/kairos-*.cjs
-logo/kairos-mcp.svg
-scripts/kairos-db-init/
-scripts/keycloak/import/kairos-*-realm.json
-src/mcp-apps/kairos-*.ts
-src/tools/kairos-*.ts
-src/ui/pages/KairosPage.tsx
-src/ui/pages/kairos-page-sections.tsx
-src/utils/kairos-*.ts
-tests/**/kairos-*
-tests/**/v4-kairos-*
-tests/test-data/kairos-*
+.agents/skills/squadrules*
+docs/migration-from-squadrules.md
+eslint/plugins/squadrules-*.cjs
+logo/squadrules-mcp.svg
+scripts/squadrules-db-init/
+scripts/keycloak/import/squadrules-*-realm.json
+src/mcp-apps/squadrules-*.ts
+src/tools/squadrules-*.ts
+src/ui/pages/SquadrulesPage.tsx
+src/ui/pages/squadrules-page-sections.tsx
+src/utils/squadrules-*.ts
+tests/**/squadrules-*
+tests/**/v4-squadrules-*
+tests/test-data/squadrules-*
 ```
 
 Update every import/reference/config/script/workflow path after renaming.
@@ -122,7 +122,7 @@ Do not keep forwarding shim files with old filenames.
 Final path gate:
 
 ```sh
-git ls-files | grep -i kairos
+git ls-files | grep -i squadrules
 ```
 
 must return no output in `SquadRules/mcp`.
@@ -131,22 +131,22 @@ Apply the equivalent gate in `SquadRules/charts`.
 
 ## 6. Remove obsolete compatibility aliases
 
-The final code must not preserve KAIROS-era aliases/defaults except inbound `kairos://` URI parsing.
+The final code must not preserve SQUADRULES-era aliases/defaults except inbound `squadrules://` URI parsing.
 
 Examples to remove/rename:
 
 ```text
-KAIROS_* env aliases
-kairos_session
-kairos_local_artifact_dir
-ui://kairos/*
-kairos Redis/key-value prefix defaults
-kairos Qdrant default collection names
-space:kairos-app
-kairos-cli keyring/config dir fallbacks
-docker compose project kairos-mcp
-kairos / kairos-mcp CLI aliases
-KAIROS Keycloak realm/client/scope defaults
+SQUADRULES_* env aliases
+squadrules_session
+squadrules_local_artifact_dir
+ui://squadrules/*
+squadrules Redis/key-value prefix defaults
+squadrules Qdrant default collection names
+space:squadrules-app
+squadrules-cli keyring/config dir fallbacks
+docker compose project squadrules-mcp
+squadrules / squadrules-mcp CLI aliases
+SQUADRULES Keycloak realm/client/scope defaults
 ```
 
 Stable opaque values may remain stable where technically required, but their source symbol names and public identity must be SquadRules.
@@ -165,11 +165,11 @@ Keep only:
 Remove:
 
 ```text
-.agents/skills/kairos/
-.agents/skills/kairos-dev/
+.agents/skills/squadrules/
+.agents/skills/squadrules-dev/
 ```
 
-Do not retain deprecated KAIROS skill aliases.
+Do not retain deprecated SQUADRULES skill aliases.
 
 Ensure frontmatter, descriptions, metadata, references, install docs, and examples all use SquadRules.
 
@@ -186,15 +186,15 @@ Fully rebrand `src/ui/**` and `src/mcp-apps/**`:
 - embedded logo module names
 - MCP App resource URIs
 
-`ui://kairos/*` is **not** an allowed compatibility surface.
+`ui://squadrules/*` is **not** an allowed compatibility surface.
 
 ## 9. Lint/rebrand enforcement
 
 Replace the broad exemption model with a narrow invariant:
 
-1. case-insensitive `kairos` is forbidden by default;
+1. case-insensitive `squadrules` is forbidden by default;
 2. only explicit legacy-URI parser/tests may contain it;
-3. those occurrences must exist solely to accept/verify `kairos://`;
+3. those occurrences must exist solely to accept/verify `squadrules://`;
 4. no marker may exempt arbitrary branding.
 
 Rename ESLint plugin/rule filenames and IDs to SquadRules-neutral/SquadRules names.
@@ -204,10 +204,10 @@ Add a CI repository scan so both path and content regressions fail.
 Final content gate:
 
 ```sh
-git grep -ni kairos
+git grep -ni squadrules
 ```
 
-may return only the narrow legacy `kairos://` input parser/tests. Review each remaining line manually.
+may return only the narrow legacy `squadrules://` input parser/tests. Review each remaining line manually.
 
 ## 10. Documentation and generated RepoWiki
 
@@ -239,10 +239,10 @@ The full rebrand includes `SquadRules/charts`.
 Verified current leftovers include:
 
 ```text
-charts/mcp/files/kairos-realm.json
+charts/mcp/files/squadrules-realm.json
 ```
 
-and old defaults in `charts/mcp/values.yaml`, including KAIROS-era:
+and old defaults in `charts/mcp/values.yaml`, including SQUADRULES-era:
 
 - global name
 - example hostname
@@ -270,16 +270,16 @@ Rendered Helm manifests must contain no retired branding.
 
 ## 12. Tests
 
-Rename all KAIROS-named test files and fixtures.
+Rename all SQUADRULES-named test files and fixtures.
 
-Retain dedicated URI compatibility tests, but name them around SquadRules legacy-URI compatibility rather than KAIROS branding.
+Retain dedicated URI compatibility tests, but name them around SquadRules legacy-URI compatibility rather than SQUADRULES branding.
 
 Minimum compatibility proof:
 
 ```text
-kairos://adapter/...  accepted -> canonical/output squadrules://adapter/...
-kairos://layer/...    accepted -> canonical/output squadrules://layer/...
-kairos://artifact/... accepted -> canonical/output squadrules://artifact/...
+squadrules://adapter/...  accepted -> canonical/output squadrules://adapter/...
+squadrules://layer/...    accepted -> canonical/output squadrules://layer/...
+squadrules://artifact/... accepted -> canonical/output squadrules://artifact/...
 ```
 
 Also prove new values never emit the old scheme.
@@ -341,7 +341,7 @@ Requirements:
 - health checks pass;
 - MCP smoke/integration tests pass against the published image;
 - runtime identity is SquadRules;
-- no KAIROS identity leaks except silent inbound `kairos://` acceptance.
+- no SQUADRULES identity leaks except silent inbound `squadrules://` acceptance.
 
 ### 13.3 Charts pass validation/tests
 
@@ -443,8 +443,8 @@ Also report:
 - final `SquadRules/mcp` commit SHA;
 - final `SquadRules/charts` commit SHA;
 - PR links;
-- exact remaining case-insensitive occurrences of `kairos`;
-- justification proving each remaining occurrence exists only for inbound legacy `kairos://` compatibility;
+- exact remaining case-insensitive occurrences of `squadrules`;
+- justification proving each remaining occurrence exists only for inbound legacy `squadrules://` compatibility;
 - evidence that npm `latest` and stable releases were not changed.
 
 A green PR without published prerelease artifacts is not completion.

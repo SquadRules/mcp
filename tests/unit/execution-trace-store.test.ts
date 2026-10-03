@@ -1,7 +1,6 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { ExecutionTrace } from '../../src/types/memory.js';
 import { ExecutionTraceStore } from '../../src/services/execution-trace-store.js';
-import { buildLayerUri } from '../../src/tools/kairos-uri.js';
+import { buildLayerUri } from '../../src/tools/squadrules-uri.js';
 
 function buildTrace(params: {
   executionId: string;
@@ -25,7 +24,7 @@ function buildTrace(params: {
   };
 }
 
-const TEST_COLLECTION = `kairos_test_traces_${Date.now()}`;
+const TEST_COLLECTION = `squadrules_test_traces_${Date.now()}`;
 
 describe('ExecutionTraceStore (Qdrant-backed)', () => {
   let store: ExecutionTraceStore;
@@ -54,7 +53,7 @@ describe('ExecutionTraceStore (Qdrant-backed)', () => {
   test('startExecution, appendTrace, setReward, getExecution round-trip', async () => {
     const executionId = `exec-${Date.now()}-1`;
     const adapterId = 'adapter-1';
-    const adapterUri = 'kairos://adapter/adapter-1';
+    const adapterUri = 'squadrules://adapter/adapter-1';
 
     await store.startExecution({
       executionId,
@@ -105,7 +104,7 @@ describe('ExecutionTraceStore (Qdrant-backed)', () => {
   test('listAdapterExecutions and buildTrainingPairsForAdapter', async () => {
     const executionId = `exec-${Date.now()}-2`;
     const adapterId = 'adapter-list-test';
-    const adapterUri = `kairos://adapter/${adapterId}`;
+    const adapterUri = `squadrules://adapter/${adapterId}`;
 
     await store.startExecution({ executionId, adapterId, adapterUri });
     await store.appendTrace(
@@ -129,7 +128,7 @@ describe('ExecutionTraceStore (Qdrant-backed)', () => {
   test('deleteExecution removes data', async () => {
     const executionId = `exec-${Date.now()}-3`;
     const adapterId = 'adapter-delete-test';
-    const adapterUri = `kairos://adapter/${adapterId}`;
+    const adapterUri = `squadrules://adapter/${adapterId}`;
 
     await store.startExecution({ executionId, adapterId, adapterUri });
     await store.deleteExecution(executionId);
@@ -140,7 +139,7 @@ describe('ExecutionTraceStore (Qdrant-backed)', () => {
   test('restarting same execution preserves existing traces', async () => {
     const executionId = `exec-${Date.now()}-4`;
     const adapterId = 'adapter-restart-test';
-    const adapterUri = `kairos://adapter/${adapterId}`;
+    const adapterUri = `squadrules://adapter/${adapterId}`;
 
     await store.startExecution({ executionId, adapterId, adapterUri, activationQuery: 'draft' });
     await store.appendTrace(

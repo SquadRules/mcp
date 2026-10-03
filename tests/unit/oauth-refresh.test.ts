@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { describe, expect, it, jest } from '@jest/globals';
 import {
     fetchOAuthProtectedResourceMetadata,
@@ -68,7 +67,7 @@ describe('oauth-refresh', () => {
                     : new URLSearchParams(typeof rawBody === 'string' ? rawBody : String(rawBody));
             expect(params.get('grant_type')).toBe('refresh_token');
             expect(params.get('refresh_token')).toBe('old-refresh');
-            expect(params.get('client_id')).toBe('kairos-cli');
+            expect(params.get('client_id')).toBe('squadrules-cli');
             return new Response(
                 JSON.stringify({ access_token: 'new-access', refresh_token: 'rotated-refresh' }),
                 { status: 200 }

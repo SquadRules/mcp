@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Persist CLI config / merge secrets (keyring + file). See config-file.ts for read API.
  */
@@ -51,7 +50,7 @@ export async function writeConfig(partial: WriteConfigInput): Promise<void> {
   let environments: Record<string, EnvironmentEntry>;
 
   if (!parsed || isSingleEnvFlatConfig(parsed)) {
-    defaultUrl = typeof parsed?.KAIROS_API_URL === 'string' ? normalizeApiUrl(parsed.KAIROS_API_URL) : undefined;
+    defaultUrl = typeof parsed?.SQUADRULES_API_URL === 'string' ? normalizeApiUrl(parsed.SQUADRULES_API_URL) : undefined;
     environments = {};
     if (defaultUrl) {
       const entry: EnvironmentEntry = {};

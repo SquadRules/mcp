@@ -1,4 +1,3 @@
-<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # Contributing to SquadRules MCP
 
 SquadRules MCP is an MCP server for persistent memory and deterministic
@@ -117,8 +116,8 @@ for—never the reverse.
   echo. Instructions that can be satisfied without reading the last response
   train fabrication, not compliance.
 - **Disambiguate URI lanes in errors and docs.** Adapter execution uses
-  `kairos://adapter/...` and `kairos://layer/...`. Do not reuse phrasing that
-  suggests other URI families (for example `kairos://mem/...` protocol chains)
+  `squadrules://adapter/...` and `squadrules://layer/...`. Do not reuse phrasing that
+  suggests other URI families (for example `squadrules://mem/...` protocol chains)
   apply to **`forward`** unless this server truly accepts them there.
 - **Surgical validation errors.** Prefer machine-oriented paths
   (`invalid_fields`), stable `error_code` values, and messages that distinguish
@@ -285,7 +284,7 @@ Deploy first, then run only what you need. Prefer a single test file during deve
 npm run dev:deploy
 
 # Run a single test file (recommended while iterating)
-npm run dev:test -- tests/integration/readonly/kairos-dump.test.ts
+npm run dev:test -- tests/integration/readonly/squadrules-dump.test.ts
 
 # Run the full integration suite when done or before PR
 npm run dev:test
@@ -500,9 +499,9 @@ When goals conflict:
 
 ## Consumer migrations (MCP / HTTP)
 
-Tool and REST responses expose the local handoff path only as **`kairos_local_artifact_dir`** (lowercase snake of env **`KAIROS_LOCAL_ARTIFACT_DIR`**, alias **`SQUADRULES_LOCAL_ARTIFACT_DIR`**). Migrate any client or shell automation still using older env aliases or the superseded short JSON key for that path; the repository forbids reintroducing those symbols in source (see the identifier list in `eslint/plugins/kairos-forbidden-text.cjs`).
+Tool and REST responses expose the local handoff path only as **`squadrules_local_artifact_dir`** (lowercase snake of env **`SQUADRULES_LOCAL_ARTIFACT_DIR`**, alias **`SQUADRULES_LOCAL_ARTIFACT_DIR`**). Migrate any client or shell automation still using older env aliases or the superseded short JSON key for that path; the repository forbids reintroducing those symbols in source (see the identifier list in `eslint/plugins/squadrules-forbidden-text.cjs`).
 
-The field's value is an **ordered array** of client-resolvable URI hints (preferred first), e.g. `["project://.local/kairos/work","user://.config/kairos/work"]`. Schemes resolved on the client only: `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`. The server never emits a path on its own filesystem, so the same value is correct for stdio and remote (HTTP / Docker) transports. The client picks one hint by scope rule (`project://` when there is exactly one project context; otherwise `user://`), resolves locally, and exports `KAIROS_LOCAL_ARTIFACT_DIR` for shell challenges. The field is **output-only**; clients no longer pass it as input. Server defaults are configurable via the comma-separated env **`KAIROS_LOCAL_ARTIFACT_DIRS`** (alias **`SQUADRULES_LOCAL_ARTIFACT_DIRS`**; each entry must be a `project://<rel>` or `user://<rel>` URI; absolute paths and `..` segments are rejected at boot).
+The field's value is an **ordered array** of client-resolvable URI hints (preferred first), e.g. `["project://.local/squadrules/work","user://.config/squadrules/work"]`. Schemes resolved on the client only: `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`. The server never emits a path on its own filesystem, so the same value is correct for stdio and remote (HTTP / Docker) transports. The client picks one hint by scope rule (`project://` when there is exactly one project context; otherwise `user://`), resolves locally, and exports `SQUADRULES_LOCAL_ARTIFACT_DIR` for shell challenges. The field is **output-only**; clients no longer pass it as input. Server defaults are configurable via the comma-separated env **`SQUADRULES_LOCAL_ARTIFACT_DIRS`** (alias **`SQUADRULES_LOCAL_ARTIFACT_DIRS`**; each entry must be a `project://<rel>` or `user://<rel>` URI; absolute paths and `..` segments are rejected at boot).
 
 ## Reporting issues
 

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { describe, expect, it } from '@jest/globals';
 import { getAdapterLayers } from '../../src/services/qdrant/memory-retrieval.js';
 
@@ -6,7 +5,7 @@ describe('getAdapterLayers artifact exclusion filter', () => {
   it('adds must_not content_type allowlist to exclude artifact points', async () => {
     let capturedFilter: unknown;
     const conn = {
-      collectionName: 'kairos',
+      collectionName: 'squadrules',
       executeWithReconnect: async (fn: () => Promise<unknown>) => fn(),
       client: {
         scroll: async (_collection: string, req: { filter?: unknown }) => {

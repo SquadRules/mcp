@@ -1,9 +1,8 @@
-<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
 # SquadRules MCP Trademark Policy
 
 ## Trademark Notice
 
-"SquadRules MCP™", the SquadRules MCP logo (see [logo/kairos-mcp.svg](logo/kairos-mcp.svg)), and related brand assets are trademarks
+"SquadRules MCP™", the SquadRules MCP logo (see [logo/squadrules-mcp.svg](logo/squadrules-mcp.svg)), and related brand assets are trademarks
 of Jakub Plichcinski and the SquadRules MCP project.
 
 The trademarks and branding are NOT covered by the MIT License.

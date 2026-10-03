@@ -1,4 +1,3 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
@@ -8,7 +7,7 @@ import { buildHeaderMemoryAdapter } from '../services/memory/adapter-builder.js'
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { executeUpdate } from './update.js';
 import { type TuneInput, type TuneOutput } from './tune_schema.js';
-import { assertWireAdapterUri, parseSquadrulesUri, buildLayerUri } from './kairos-uri.js';
+import { assertWireAdapterUri, parseSquadrulesUri, buildLayerUri } from './squadrules-uri.js';
 import { buildTuneResultMessage } from './tune-messages.js';
 import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../utils/protected-space-write-guard.js';
 import { validateAdapterMarkdownSize } from '../services/memory/validate-adapter-markdown-size.js';

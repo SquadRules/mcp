@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Counter, Histogram } from 'prom-client';
 import { register } from './registry.js';
 
@@ -11,28 +10,28 @@ import { register } from './registry.js';
  */
 
 export const agentContributions = new Counter({
-  name: 'kairos_agent_contributions_total',
+  name: 'squadrules_agent_contributions_total',
   help: 'Total number of knowledge contributions by agent',
   labelNames: ['agent_id', 'quality', 'tenant_id'],
   registers: [register]
 });
 
 export const agentImplementationBonus = new Counter({
-  name: 'kairos_agent_implementation_bonus_total',
+  name: 'squadrules_agent_implementation_bonus_total',
   help: 'Total implementation bonus points by agent',
   labelNames: ['agent_id', 'tenant_id'],
   registers: [register]
 });
 
 export const agentRareSuccesses = new Counter({
-  name: 'kairos_agent_rare_successes_total',
+  name: 'squadrules_agent_rare_successes_total',
   help: 'Total rare success events by agent',
   labelNames: ['agent_id', 'tenant_id'],
   registers: [register]
 });
 
 export const agentQualityScore = new Histogram({
-  name: 'kairos_agent_quality_score',
+  name: 'squadrules_agent_quality_score',
   help: 'Distribution of quality scores by agent',
   labelNames: ['agent_id', 'quality_tier', 'tenant_id'],
   buckets: [0, 5, 10, 15, 20, 25, 30, 35, 40],

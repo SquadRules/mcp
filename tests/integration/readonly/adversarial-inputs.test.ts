@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { getAuthHeaders, getTestAuthBaseUrl, hasAuthToken, serverRequiresAuth, isHttpTransport } from '../../utils/auth-headers.js';
 
 const BASE_URL = getTestAuthBaseUrl();
@@ -79,7 +78,7 @@ _d('Adversarial and robustness inputs', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        uri: `kairos://layer/${probeUuid}`,
+        uri: `squadrules://layer/${probeUuid}`,
         format: 'markdown'
       })
     });

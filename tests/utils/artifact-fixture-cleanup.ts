@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { getAuthHeaders, getTestAuthBaseUrl } from './auth-headers.js';
 import type { McpClientConnection } from './mcp-client-utils.js';
 import { parseMcpJson } from './expect-with-raw.js';
@@ -24,10 +23,10 @@ function uniqUris(input: string[]): string[] {
 }
 
 function toLayerUriFromArtifactUri(uri: string): string {
-  if (uri.startsWith('kairos://layer/')) return uri;
-  if (uri.startsWith('kairos://artifact/')) {
-    const id = uri.slice('kairos://artifact/'.length).trim();
-    return UUID_RE.test(id) ? `kairos://layer/${id}` : '';
+  if (uri.startsWith('squadrules://layer/')) return uri;
+  if (uri.startsWith('squadrules://artifact/')) {
+    const id = uri.slice('squadrules://artifact/'.length).trim();
+    return UUID_RE.test(id) ? `squadrules://layer/${id}` : '';
   }
   return uri;
 }

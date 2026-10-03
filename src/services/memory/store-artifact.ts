@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { QdrantClient } from '@qdrant/js-client-rest';
 import crypto from 'node:crypto';
 import { getEmbeddingDimension } from '../embedding/config.js';
@@ -12,7 +11,7 @@ import { getSearchSpaceIds, getSpaceContext } from '../../utils/tenant-context.j
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { redisCacheService } from '../redis-cache.js';
 import { logger } from '../../utils/structured-logger.js';
-import { parseSquadrulesUri, type ParsedSquadrulesUri } from '../../tools/kairos-uri.js';
+import { parseSquadrulesUri, type ParsedSquadrulesUri } from '../../tools/squadrules-uri.js';
 import type { Memory } from '../../types/memory.js';
 import type { StoreArtifactOptions } from './store-adapter.js';
 import { extractArtifactMetadata } from './artifact-metadata.js';
@@ -87,7 +86,7 @@ interface ResolvedArtifactAdapterRef {
 
 /**
  * Export and search index artifacts by `payload.adapter.id` (chain id). Train may pass a slug,
- * a layer point id, or a chain id in `kairos://adapter/...`; normalize to the chain id.
+ * a layer point id, or a chain id in `squadrules://adapter/...`; normalize to the chain id.
  */
 async function resolveChainAdapterIdForArtifacts(
   client: QdrantClient,
@@ -174,7 +173,7 @@ export async function storeArtifact(
 ): Promise<Memory[]> {
   const parsed = parseSquadrulesUri(options.adapterUri);
   if (parsed.kind !== 'adapter') {
-    throw new Error('adapterUri must be a kairos://adapter/{slug|uuid} URI');
+    throw new Error('adapterUri must be a squadrules://adapter/{slug|uuid} URI');
   }
   const { adapterId, adapterName } = await resolveChainAdapterIdForArtifacts(client, collection, parsed);
   const slugSourceInput =

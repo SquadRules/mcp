@@ -1,4 +1,3 @@
-<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
 # SQUADRULES MCP — Cursor plugin (local)
 
 This folder is a **Cursor plugin** bundle: manifest, logo, and MCP server config
@@ -6,7 +5,7 @@ for connecting to the SQUADRULES streamable HTTP endpoint. Use it when you want
 Cursor’s tool row to show the SQUADRULES logo (plugin metadata), not only a manual
 `mcp.json` entry.
 
-Official artwork matches [logo/kairos-mcp.svg](../../../logo/kairos-mcp.svg)
+Official artwork matches [logo/squadrules-mcp.svg](../../../logo/squadrules-mcp.svg)
 in the repository root (copied here as `assets/logo.svg`).
 
 ## Layout

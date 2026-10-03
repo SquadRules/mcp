@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Counter, Histogram } from 'prom-client';
 import { register } from './registry.js';
 
@@ -8,7 +7,7 @@ import { register } from './registry.js';
  */
 
 export const exportDurationSeconds = new Histogram({
-  name: 'kairos_export_duration_seconds',
+  name: 'squadrules_export_duration_seconds',
   help: 'Wall-clock time for executeExport (storage reads, assemble, zip, encode)',
   labelNames: ['format', 'status'],
   buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120],
@@ -16,14 +15,14 @@ export const exportDurationSeconds = new Histogram({
 });
 
 export const exportRequestsTotal = new Counter({
-  name: 'kairos_export_requests_total',
+  name: 'squadrules_export_requests_total',
   help: 'Export invocations by format and outcome',
   labelNames: ['format', 'status'],
   registers: [register]
 });
 
 export const exportAdapterCount = new Histogram({
-  name: 'kairos_export_adapter_count',
+  name: 'squadrules_export_adapter_count',
   help: 'Adapters included in export (skill_tree, skill_zip, or item_count for others)',
   labelNames: ['format'],
   buckets: [1, 2, 3, 5, 10, 25, 50, 100, 256],
@@ -32,7 +31,7 @@ export const exportAdapterCount = new Histogram({
 
 /** Decoded application/zip byte length before base64 (skill_zip only). */
 export const exportSkillZipDecodedBytes = new Histogram({
-  name: 'kairos_export_skill_zip_decoded_bytes',
+  name: 'squadrules_export_skill_zip_decoded_bytes',
   help: 'Decoded ZIP size for skill_zip exports',
   labelNames: [],
   buckets: [

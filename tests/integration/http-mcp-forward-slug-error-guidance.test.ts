@@ -1,11 +1,10 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { getAuthHeaders, getTestAuthBaseUrl, isHttpTransport } from '../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../utils/mock-review-evidence.js';
 
 const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
 const QDRANT_URL = process.env.QDRANT_URL ?? 'http://localhost:6333';
-const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'kairos';
+const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'squadrules';
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY ?? '';
 const _d = isHttpTransport() ? describe : describe.skip;
 
@@ -117,7 +116,7 @@ _d('MCP forward slug error guidance', () => {
       method: 'tools/call',
       params: {
         name: 'forward',
-        arguments: { uri: `kairos://adapter/${targetSlug}` }
+        arguments: { uri: `squadrules://adapter/${targetSlug}` }
       }
     });
 
@@ -147,7 +146,7 @@ _d('MCP forward slug error guidance', () => {
     expect(payload.must_obey).toBe(true);
     expect(typeof payload.slug_disambiguation_note).toBe('string');
     expect(payload.slug_disambiguation_note).toMatch(new RegExp(targetSlug, 'i'));
-    expect(payload.slug_disambiguation_note).toMatch(/kairos:\/\/adapter\//i);
-    expect(payload.current_layer?.uri).toMatch(/^kairos:\/\/layer\//);
+    expect(payload.slug_disambiguation_note).toMatch(/squadrules:\/\/adapter\//i);
+    expect(payload.current_layer?.uri).toMatch(/^squadrules:\/\/layer\//);
   }, 30000);
 });

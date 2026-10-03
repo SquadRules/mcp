@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { afterAll, afterEach, describe, expect, jest, test } from '@jest/globals';
 import { keyValueStore } from '../../src/services/key-value-store-factory.js';
 import type { QdrantService } from '../../src/services/qdrant/service.js';
@@ -16,7 +15,7 @@ describe('executeReward', () => {
 
   test('throws and skips execution trace reward persistence when reward metrics fail', async () => {
     const uri =
-      'kairos://layer/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee?execution_id=11111111-1111-1111-1111-111111111111';
+      'squadrules://layer/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee?execution_id=11111111-1111-1111-1111-111111111111';
     const qdrantService = {
       retrieveById: jest.fn().mockRejectedValue(new Error('qdrant unavailable'))
     } as unknown as QdrantService;

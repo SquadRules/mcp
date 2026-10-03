@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { activateInputSchema, activateOutputSchema } from './activate_schema.js';
 import { deleteInputSchema, deleteOutputSchema } from './delete_schema.js';
 import { exportInputSchema, exportOutputSchema } from './export_schema.js';
@@ -9,10 +8,10 @@ import { trainInputSchema, trainOutputSchema } from './train_schema.js';
 import { tuneInputSchema, tuneOutputSchema } from './tune_schema.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
 import {
-  KAIROS_ACTIVATE_TOOL_UI_META,
-  KAIROS_FORWARD_TOOL_UI_META,
-  KAIROS_SPACES_TOOL_UI_META
-} from '../mcp-apps/kairos-ui-constants.js';
+  SQUADRULES_ACTIVATE_TOOL_UI_META,
+  SQUADRULES_FORWARD_TOOL_UI_META,
+  SQUADRULES_SPACES_TOOL_UI_META
+} from '../mcp-apps/squadrules-ui-constants.js';
 
 /**
  * Canonical SQUADRULES MCP tool registry — the single source of truth for the tool
@@ -23,11 +22,11 @@ import {
  * cross-surface parity gates can import the canonical list without pulling in the
  * full server (no Qdrant/OpenAI side effects at import).
  */
-export const KAIROS_TOOL_REGISTRY = [
+export const SQUADRULES_TOOL_REGISTRY = [
   {
     name: 'activate',
     title: 'Activate the best adapter',
-    uiMeta: KAIROS_ACTIVATE_TOOL_UI_META,
+    uiMeta: SQUADRULES_ACTIVATE_TOOL_UI_META,
     description:
       resolveToolDoc('activate') ||
       'Find the best adapter for the current input and return ranked activation choices.',
@@ -37,7 +36,7 @@ export const KAIROS_TOOL_REGISTRY = [
   {
     name: 'forward',
     title: 'Run adapter forward pass',
-    uiMeta: KAIROS_FORWARD_TOOL_UI_META,
+    uiMeta: SQUADRULES_FORWARD_TOOL_UI_META,
     description:
       resolveToolDoc('forward') ||
       'Run the first or next adapter layer. Omit `solution` on the first call in a run.',
@@ -82,7 +81,7 @@ export const KAIROS_TOOL_REGISTRY = [
   {
     name: 'spaces',
     title: 'List spaces and adapter counts',
-    uiMeta: KAIROS_SPACES_TOOL_UI_META,
+    uiMeta: SQUADRULES_SPACES_TOOL_UI_META,
     description:
       resolveToolDoc('spaces') ??
       "List the agent's available spaces with human-readable names and adapter counts. Optionally include adapter titles and layer counts per space.",
@@ -92,9 +91,9 @@ export const KAIROS_TOOL_REGISTRY = [
 ] as const;
 
 /** Union of the canonical MCP tool names. */
-export type SquadrulesToolName = (typeof KAIROS_TOOL_REGISTRY)[number]['name'];
+export type SquadrulesToolName = (typeof SQUADRULES_TOOL_REGISTRY)[number]['name'];
 
 /** Canonical MCP tool names in registration order. */
-export const KAIROS_TOOL_NAMES: readonly SquadrulesToolName[] = KAIROS_TOOL_REGISTRY.map(
+export const SQUADRULES_TOOL_NAMES: readonly SquadrulesToolName[] = SQUADRULES_TOOL_REGISTRY.map(
   (tool) => tool.name
 );

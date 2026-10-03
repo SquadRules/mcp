@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-accepts canonical kairos:// URIs (squadrules:// alias) so existing stored URIs and clients keep resolving
 import { getAuthHeaders, getTestAuthBaseUrl, isHttpTransport } from '../../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
@@ -45,6 +44,6 @@ Done.`;
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toHaveProperty('status', 'stored');
-    expect(data.items?.[0]?.adapter_uri).toMatch(/^kairos:\/\/adapter\//);
+    expect(data.items?.[0]?.adapter_uri).toMatch(/^squadrules:\/\/adapter\//);
   }, 30000);
 });

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
@@ -8,9 +7,9 @@ import type { SkillExportItem } from './skill-export/types.js';
 
 export function normalizeAdapterUri(raw: string): string {
   const t = raw.trim();
-  // Accept kairos:// (canonical) and squadrules:// (alias); always emit kairos://.
-  if (/^(?:kairos|squadrules):\/\//i.test(t)) return t.replace(/^squadrules:\/\//i, 'kairos://');
-  return `kairos://adapter/${t}`;
+  // Already a canonical squadrules:// URI: keep as-is; otherwise treat as an adapter slug.
+  if (/^squadrules:\/\//i.test(t)) return t;
+  return `squadrules://adapter/${t}`;
 }
 
 export function dedupeSlug(base: string, used: Set<string>): string {

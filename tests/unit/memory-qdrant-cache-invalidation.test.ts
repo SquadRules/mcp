@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Verifies Qdrant memory CUD paths call invalidateAfterUpdate so activate:* Redis entries
  * (executeSearch / MCP activate) are cleared, not only search:* keys.
@@ -27,7 +26,7 @@ import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globa
 import { redisCacheService } from '../../src/services/redis-cache.js';
 import { storeMemory } from '../../src/services/qdrant/memory-store.js';
 import { runWithSpaceContextAsync } from '../../src/utils/tenant-context.js';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 
 /** RFC 4122 shape (version nibble 4, variant nibble 8–b) — required by validateAndConvertId. */
 const TEST_UUID = '12345678-1234-4123-8123-123456789abc';
@@ -37,8 +36,8 @@ function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
     {
       userId: 'test-user',
       groupIds: [],
-      allowedSpaceIds: [KAIROS_APP_SPACE_ID],
-      defaultWriteSpaceId: KAIROS_APP_SPACE_ID,
+      allowedSpaceIds: [SQUADRULES_APP_SPACE_ID],
+      defaultWriteSpaceId: SQUADRULES_APP_SPACE_ID,
       personalSpaceId: ''
     },
     fn
@@ -64,7 +63,7 @@ describe('memory CUD cache invalidation (activate + search)', () => {
       upsert: jest.fn().mockResolvedValue({ status: 'ok' }),
       delete: jest.fn().mockResolvedValue(undefined)
     },
-    collectionName: 'kairos-test-collection'
+    collectionName: 'squadrules-test-collection'
   } as const;
 
   test('storeMemory calls invalidateAfterUpdate after upsert', async () => {

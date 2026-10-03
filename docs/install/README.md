@@ -1,4 +1,3 @@
-<!-- squadrules-compat-surface: references KAIROS_* environment variable names still honored as aliases for existing deployments -->
 # Install SquadRules
 
 `docs/install/` covers the supported installation flow for a local or
@@ -153,8 +152,8 @@ curl -sS "http://localhost:3000/health"
 - Plugin: `integrations/cursor/plugin` often uses `http://localhost:3300/mcp`
 - Widgets: `spaces` and `forward` use MCP Apps on hosts that support them
 - Discovery scopes default to
-  `openid,profile,email,kairos-groups,offline_access`; set
-  `SQUADRULES_OIDC_SCOPES_SUPPORTED` (or its `KAIROS_OIDC_SCOPES_SUPPORTED`
+  `openid,profile,email,squadrules-groups,offline_access`; set
+  `SQUADRULES_OIDC_SCOPES_SUPPORTED` (or its `SQUADRULES_OIDC_SCOPES_SUPPORTED`
   compatibility alias) to override this list for your IdP policy.
 
 If MCP does not connect, verify the health URL first, confirm the host and

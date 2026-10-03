@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Ensure host/dynamic OAuth clients receive group claims and can access group spaces via MCP.
  */
@@ -96,7 +95,7 @@ _d('MCP host client groups', () => {
     const me = (await meRes.json()) as { groups?: string[] };
     if (!Array.isArray(me.groups) || me.groups.length === 0) {
       throw new Error(
-        '[mcp-host-client-groups] /api/me has no groups — baseline session must expose group membership (GitHub #278: Keycloak groups claim + kairos-groups scope)'
+        '[mcp-host-client-groups] /api/me has no groups — baseline session must expose group membership (GitHub #278: Keycloak groups claim + squadrules-groups scope)'
       );
     }
 

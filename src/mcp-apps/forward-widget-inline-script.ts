@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /** Inline boot script for {@link ./forward-widget-html.ts} (MCP Apps HTML bundle). */
 import { minifyInlineWidgetScript } from './widget-inline-minify.js';
 export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
@@ -6,7 +5,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       var el = document.getElementById('out'), headerTitle = document.getElementById('header-title');
       var runFooter = document.getElementById('run-footer'), stepText = document.getElementById('step-text');
       var segHost = document.getElementById('progress-segments'), PROTO = '2026-01-26';
-      var nextId = 1, pending = {}, hostCtxState = {}, PRESENTATION_ONLY = __KAIROS_WIDGET_PRESENTATION_ONLY__;
+      var nextId = 1, pending = {}, hostCtxState = {}, PRESENTATION_ONLY = __SQUADRULES_WIDGET_PRESENTATION_ONLY__;
 
       window.addEventListener('message', function (ev) {
         var d = ev.data;
@@ -92,7 +91,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
           }
         }
         if (st && st.css && st.css.fonts && typeof st.css.fonts === 'string' && st.css.fonts.trim()) {
-          var fid = 'kairos-host-fonts';
+          var fid = 'squadrules-host-fonts';
           var styleEl = document.getElementById(fid);
           if (!styleEl) {
             styleEl = document.createElement('style');
@@ -482,7 +481,7 @@ export const FORWARD_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
             var ph = document.createElement('span');
             ph.className = 'waiting';
             ph.textContent =
-              'Presentation-only: MCP bridge disabled (set KAIROS_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
+              'Presentation-only: MCP bridge disabled (set SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
             el.appendChild(ph);
           }
           return;

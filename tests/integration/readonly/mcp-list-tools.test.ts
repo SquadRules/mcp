@@ -1,8 +1,7 @@
-// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { withRawOnFail } from '../../utils/expect-with-raw.js';
 import { isLikelyToolInputJsonSchema } from '../../utils/mcp-list-tools-schema-helpers.js';
-import { KAIROS_UI_RESOURCE_URI_FLAT_META_KEY } from '../../../src/mcp-apps/kairos-ui-constants.js';
+import { SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY } from '../../../src/mcp-apps/squadrules-ui-constants.js';
 
 describe('MCP Tools Listing', () => {
   let mcpConnection;
@@ -45,22 +44,22 @@ describe('MCP Tools Listing', () => {
       expect(names).toContain('export');
 
       const spaces = tools.find((t) => t.name === 'spaces');
-      expect(spaces?._meta?.ui?.resourceUri).toBe('ui://kairos/spaces-result');
+      expect(spaces?._meta?.ui?.resourceUri).toBe('ui://squadrules/spaces-result');
       expect(
-        (spaces?._meta as Record<string, unknown> | undefined)?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]
-      ).toBe('ui://kairos/spaces-result');
+        (spaces?._meta as Record<string, unknown> | undefined)?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]
+      ).toBe('ui://squadrules/spaces-result');
 
       const forwardTool = tools.find((t) => t.name === 'forward');
-      expect(forwardTool?._meta?.ui?.resourceUri).toBe('ui://kairos/forward-result');
+      expect(forwardTool?._meta?.ui?.resourceUri).toBe('ui://squadrules/forward-result');
       expect(
-        (forwardTool?._meta as Record<string, unknown> | undefined)?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]
-      ).toBe('ui://kairos/forward-result');
+        (forwardTool?._meta as Record<string, unknown> | undefined)?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]
+      ).toBe('ui://squadrules/forward-result');
 
       const activateTool = tools.find((t) => t.name === 'activate');
-      expect(activateTool?._meta?.ui?.resourceUri).toBe('ui://kairos/activate-result');
+      expect(activateTool?._meta?.ui?.resourceUri).toBe('ui://squadrules/activate-result');
       expect(
-        (activateTool?._meta as Record<string, unknown> | undefined)?.[KAIROS_UI_RESOURCE_URI_FLAT_META_KEY]
-      ).toBe('ui://kairos/activate-result');
+        (activateTool?._meta as Record<string, unknown> | undefined)?.[SQUADRULES_UI_RESOURCE_URI_FLAT_META_KEY]
+      ).toBe('ui://squadrules/activate-result');
     }, 'tools/list raw response');
   });
 });

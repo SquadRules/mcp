@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-accepts canonical kairos:// URIs (squadrules:// alias) so existing stored URIs and clients keep resolving
 const CONTRACT_TYPES = new Set(['tensor', 'shell', 'mcp', 'user_input', 'comment']);
 const CHOICE_ROLES = new Set(['match', 'refine', 'create']);
 const GRADER_KINDS = new Set(['human', 'model', 'unknown']);
@@ -6,9 +5,9 @@ const EVALUATION_LABELS = new Set(['gold', 'silver', 'bronze', 'rejected']);
 
 function classifySquadrulesUriKind(uri) {
   if (typeof uri !== 'string' || !uri) return 'missing';
-  if (/^kairos:\/\/adapter\//i.test(uri)) return 'adapter';
-  if (/^kairos:\/\/layer\//i.test(uri)) return 'layer';
-  if (/^kairos:\/\/mem\//i.test(uri)) return 'mem';
+  if (/^squadrules:\/\/adapter\//i.test(uri)) return 'adapter';
+  if (/^squadrules:\/\/layer\//i.test(uri)) return 'layer';
+  if (/^squadrules:\/\/mem\//i.test(uri)) return 'mem';
   return 'other';
 }
 

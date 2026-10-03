@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { describe, expect, it } from '@jest/globals';
 import { getSpaceContext } from '../../src/utils/tenant-context.js';
 
@@ -9,9 +8,9 @@ describe('tenant-context auth-derived spaces', () => {
     const req = {
       auth: {
         sub: 'ae10bea2-12cd-41c2-834c-f06f6607e42e',
-        realm: 'kairos-dev',
-        iss: 'https://kc.example.dev/realms/kairos-dev',
-        groups: ['/kairos-shares/kairos-operator', 'kairos-auditor']
+        realm: 'squadrules-dev',
+        iss: 'https://kc.example.dev/realms/squadrules-dev',
+        groups: ['/squadrules-shares/squadrules-operator', 'squadrules-auditor']
       }
     };
     const a = getSpaceContext(req);
@@ -21,39 +20,39 @@ describe('tenant-context auth-derived spaces', () => {
     expect(a.personalSpaceId).toBe(a.defaultWriteSpaceId);
     expect(a.allowedSpaceIds).toEqual(b.allowedSpaceIds);
     expect(a.allowedSpaceIds).toHaveLength(3);
-    expect(a.defaultWriteSpaceId).toMatch(/^user:kairos-dev:/);
+    expect(a.defaultWriteSpaceId).toMatch(/^user:squadrules-dev:/);
     expect(a.defaultWriteSpaceId.split(':').pop()).toMatch(UUID_V5_RE);
-    const groupIds = a.allowedSpaceIds.filter((id) => id.startsWith('group:kairos-dev:'));
+    const groupIds = a.allowedSpaceIds.filter((id) => id.startsWith('group:squadrules-dev:'));
     expect(groupIds).toHaveLength(2);
     for (const gid of groupIds) {
       expect(gid.split(':').pop()).toMatch(UUID_V5_RE);
     }
-    expect(a.spaceNamesById?.[groupIds[0]!]).toBe('/kairos-shares/kairos-operator');
-    expect(a.spaceNamesById?.[groupIds[1]!]).toBe('/kairos-auditor');
+    expect(a.spaceNamesById?.[groupIds[0]!]).toBe('/squadrules-shares/squadrules-operator');
+    expect(a.spaceNamesById?.[groupIds[1]!]).toBe('/squadrules-auditor');
   });
 
   it('changes derived space ids when issuer changes', () => {
     const base = {
       sub: 'ae10bea2-12cd-41c2-834c-f06f6607e42e',
-      realm: 'kairos-dev',
-      groups: ['/kairos-shares/kairos-operator']
+      realm: 'squadrules-dev',
+      groups: ['/squadrules-shares/squadrules-operator']
     };
     const a = getSpaceContext({
       auth: {
         ...base,
-        iss: 'https://kc-a.example/realms/kairos-dev'
+        iss: 'https://kc-a.example/realms/squadrules-dev'
       }
     });
     const b = getSpaceContext({
       auth: {
         ...base,
-        iss: 'https://kc-b.example/realms/kairos-dev'
+        iss: 'https://kc-b.example/realms/squadrules-dev'
       }
     });
 
     expect(a.defaultWriteSpaceId).not.toBe(b.defaultWriteSpaceId);
-    const aGroup = a.allowedSpaceIds.find((id) => id.startsWith('group:kairos-dev:'));
-    const bGroup = b.allowedSpaceIds.find((id) => id.startsWith('group:kairos-dev:'));
+    const aGroup = a.allowedSpaceIds.find((id) => id.startsWith('group:squadrules-dev:'));
+    const bGroup = b.allowedSpaceIds.find((id) => id.startsWith('group:squadrules-dev:'));
     expect(aGroup).toBeDefined();
     expect(bGroup).toBeDefined();
     expect(aGroup).not.toBe(bGroup);

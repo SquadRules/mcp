@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Shared review_evidence validation for train and tune.
  * Extracted to keep per-file line counts within ESLint max-lines.
@@ -21,7 +20,7 @@ export function assertReviewEvidencePassed(evidence: ReviewEvidence | undefined)
     throw new TrainError(
       'REVIEW_EVIDENCE_REQUIRED',
       'Adapter train requires review_evidence: run phase-critic first and provide the verdict file as proof.',
-      { must_obey: true, next_action: 'call forward with kairos://adapter/phase-critic to run the phase-critic review' }
+      { must_obey: true, next_action: 'call forward with squadrules://adapter/phase-critic to run the phase-critic review' }
     );
   }
   if (evidence.exit_code !== 0) {

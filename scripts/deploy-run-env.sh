@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# squadrules-compat-surface: uses persisted Qdrant collection names (kairos / kairos_memories / kairos_ci / kairos_simple_ci); renaming would orphan existing vectors
-# kairos Environment Management Script
+# squadrules Environment Management Script
 # USAGE: ENV=dev|dev_simple|dev_stdio|prod ./scripts/deploy-run-env.sh [build|start|stop|restart|status|test|logs|health|...]
 #
 # Single base .env plus optional .env.<ENV> profile overrides; prod is not managed from this repo
 # (exception: Keycloak realm setup dev/prod).
-# - dev:        Local app (start, stop, test, build). SERVER_PORT=3300 default. PID/log: .kairos-dev.*
-# - dev_simple: Local app simple mode profile (auth off, isolated ports). PID/log: .kairos-dev_simple.*
-# - dev_stdio: Local app stdio profile (auth off; TRANSPORT_TYPE=stdio; no HTTP app). PID/log: .kairos-dev_stdio.*
+# - dev:        Local app (start, stop, test, build). SERVER_PORT=3300 default. PID/log: .squadrules-dev.*
+# - dev_simple: Local app simple mode profile (auth off, isolated ports). PID/log: .squadrules-dev_simple.*
+# - dev_stdio: Local app stdio profile (auth off; TRANSPORT_TYPE=stdio; no HTTP app). PID/log: .squadrules-dev_stdio.*
 # - prod: Inspect-only when .env points at prod (health, status, qdrant-curl, redis-cli, logs). App managed elsewhere.
 #
 # For AI agents: Use as black box. Reports MCP server URL and service status.
@@ -68,8 +67,8 @@ if [ -f "$PROFILE_ENV_FILE" ]; then
 else
     ENV_FILE="$BASE_ENV_FILE"
 fi
-PID_FILE="${PROJECT_DIR}/.kairos-${ENV}.pid"
-LOG_FILE="${PROJECT_DIR}/.kairos-${ENV}.log"
+PID_FILE="${PROJECT_DIR}/.squadrules-${ENV}.pid"
+LOG_FILE="${PROJECT_DIR}/.squadrules-${ENV}.log"
 
 # In a git worktree, .env* are not shared: copy from main worktree if missing (no-op in main worktree)
 if [ "$FIRST_ARG" != "ensure-coding-rules" ] && [ ! -f "$BASE_ENV_FILE" ]; then
@@ -183,7 +182,7 @@ show_urls() {
     echo "- Qdrant:"
     echo "  · URL:       ${qdrant}"
     echo "  · Health:    ${qdrant}/healthz"
-    echo "  · Collection: ${QDRANT_COLLECTION:-kairos}"
+    echo "  · Collection: ${QDRANT_COLLECTION:-squadrules}"
     echo "  · API key:   ${qkey_msg} (env: \$QDRANT_API_KEY)"
 
     # TEI (only if not using OpenAI embeddings)
@@ -197,7 +196,7 @@ show_urls() {
     if [[ -n "${REDIS_URL:-}" ]]; then
         echo "- Redis:   via redis-cli (no HTTP)"
         echo "  · URL:        $(mask_url "${REDIS_URL}")"
-        echo "  · Key prefix: ${KAIROS_REDIS_PREFIX:-kb:}"
+        echo "  · Key prefix: ${SQUADRULES_REDIS_PREFIX:-kb:}"
     else
         echo "- Redis:   disabled (REDIS_URL not set)"
     fi
@@ -362,7 +361,7 @@ start() {
         
         # Import test snapshot if CI=true (for integration tests)
         if [ "${CI:-}" = "true" ]; then
-            if  [ ! -f ".local/qdrant-snapshot/kairos_ci.snapshot" ]; then
+            if  [ ! -f ".local/qdrant-snapshot/squadrules_ci.snapshot" ]; then
                 # Only auto-seed in dev_simple mode (no auth)
                 # Dev mode requires manual seed with auth: npm run test:seed-snapshot
                 if [ "$ENV" = "dev_simple" ]; then
@@ -385,11 +384,11 @@ start() {
             fi
         fi
     fi
-    # Dev: ensure Keycloak has kairos-dev realm and kairos-cli client so "npm run cli:dev -- login" works
+    # Dev: ensure Keycloak has squadrules-dev realm and squadrules-cli client so "npm run cli:dev -- login" works
     if [ "$ENV" = "dev" ]; then
-        print_info "Ensuring Keycloak realm and kairos-cli client..."
+        print_info "Ensuring Keycloak realm and squadrules-cli client..."
         if ( cd "$PROJECT_DIR" && python3 scripts/deploy-configure-keycloak-realms.py ); then
-            print_success "Keycloak realm configured (kairos-cli client ready for CLI login)"
+            print_success "Keycloak realm configured (squadrules-cli client ready for CLI login)"
         else
             print_warning "Keycloak realm config failed or Keycloak not reachable. If you use auth, run: python3 scripts/deploy-configure-keycloak-realms.py or npm run infra:up"
         fi
@@ -789,7 +788,7 @@ ensure_coding_rules() {
 # }
 
 help() {
-    echo "kairos Environment Script"
+    echo "squadrules Environment Script"
     echo "USAGE: ENV=dev|dev_simple|dev_stdio|prod $0 [build|start|stop|restart|status|test|logs|health|ensure-coding-rules|redis-cli|qdrant-curl] [-- <args>]"
     echo ""
     echo "Single .env; prod is not managed here (exception: Keycloak realm setup)."
@@ -803,10 +802,10 @@ help() {
     echo "  SERVER_PORT        - Main HTTP listener (UI, REST, Streamable HTTP MCP)"
     echo "  QDRANT_URL         - Qdrant base URL (default http://localhost:6333)"
     echo "  \$QDRANT_API_KEY    - Qdrant API key (sent as 'api-key' header)"
-    echo "  QDRANT_COLLECTION  - Qdrant collection name (default kairos)"
+    echo "  QDRANT_COLLECTION  - Qdrant collection name (default squadrules)"
     echo "  TEI_BASE_URL       - TEI base URL (default http://localhost:8080)"
     echo "  REDIS_URL          - Redis connection URL (default redis://localhost:6379)"
-    echo "  KAIROS_REDIS_PREFIX    - Redis key prefix for namespacing (default kb:)"
+    echo "  SQUADRULES_REDIS_PREFIX    - Redis key prefix for namespacing (default kb:)"
     echo "  LOG_TARGET         - Log output target (file|stdout|both, default: file)"
     echo "  LOG_LEVEL          - Log level filter (info|debug|warn|error, default: info)"
     echo "  LOG_FORMAT         - Log output format (text|json, default: text)"

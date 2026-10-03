@@ -1,5 +1,4 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
-import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
+import { SQUADRULES_LOGO_SVG } from './squadrules-logo-embedded.js';
 import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inject.js';
 
 /**
@@ -15,7 +14,7 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  * readable surface.
  */
 export function buildSpacesWidgetHtml(): string {
-  const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
+  const logo = SQUADRULES_LOGO_SVG.replaceAll('`', '&#96;');
   return substituteWidgetPresentationToken(`<div id="squadrules-spaces-root">
   <div class="brand">
     ${logo}
@@ -188,7 +187,7 @@ export function buildSpacesWidgetHtml(): string {
       var nextId = 1;
       var pending = {};
       var hostCtxState = {};
-      var PRESENTATION_ONLY = __KAIROS_WIDGET_PRESENTATION_ONLY__;
+      var PRESENTATION_ONLY = __SQUADRULES_WIDGET_PRESENTATION_ONLY__;
 
       function mergeHostContextDelta(prev, delta) {
         var base = {};
@@ -248,7 +247,7 @@ export function buildSpacesWidgetHtml(): string {
           }
         }
         if (st && st.css && st.css.fonts && typeof st.css.fonts === 'string' && st.css.fonts.trim()) {
-          var fid = 'kairos-host-fonts';
+          var fid = 'squadrules-host-fonts';
           var styleEl = document.getElementById(fid);
           if (!styleEl) {
             styleEl = document.createElement('style');
@@ -382,7 +381,7 @@ export function buildSpacesWidgetHtml(): string {
             var ph = document.createElement('span');
             ph.className = 'waiting';
             ph.textContent =
-              'Presentation-only: MCP bridge disabled (set KAIROS_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
+              'Presentation-only: MCP bridge disabled (set SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
             el.appendChild(ph);
           }
           return;

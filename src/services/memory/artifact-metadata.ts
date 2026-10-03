@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads the stored "# kairos-artifact:" metadata delimiter written into existing artifacts
 const ARTIFACT_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 export interface ArtifactMetadata {
@@ -38,7 +37,7 @@ function parseTopHeader(content: string): { slug?: string; version?: string } {
     index += 1;
   }
 
-  if (!lines[index]?.trim().startsWith('# kairos-artifact:')) {
+  if (!lines[index]?.trim().startsWith('# squadrules-artifact:')) {
     return {};
   }
 

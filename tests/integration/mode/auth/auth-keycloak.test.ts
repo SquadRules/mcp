@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Auth integration tests: when AUTH_ENABLED=true, assert 401 without token and 200 with token.
  * When AUTH_ENABLED=false, assertions relax (any of 200/401).
@@ -27,7 +26,7 @@ const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
 const _d = isHttpTransport() ? describe : describe.skip;
 
-_d('Auth (Keycloak + kairos-tester)', () => {
+_d('Auth (Keycloak + squadrules-tester)', () => {
   test('unauthenticated GET /api returns 401 with login_url (or 200 when auth disabled)', async () => {
     const res = await fetch(`${API_BASE}`, { method: 'GET' });
     if (res.status === 200) {

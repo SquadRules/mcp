@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads the stored "# kairos-artifact:" metadata delimiter written into existing artifacts
 /**
  * Multi-adapter and all_adapters coverage for skill_zip exports.
  *
@@ -40,7 +39,7 @@ _d('skill-export multi-adapter coverage', () => {
     // misleading byte-equality failure. Keeping the body trimmed is the actual contract.
     const artifactBody = [
       '#!/usr/bin/env python3',
-      '# kairos-artifact:',
+      '# squadrules-artifact:',
       `#   slug: ${artifactSlug}`,
       '#   version: 1',
       '',
@@ -121,7 +120,7 @@ _d('skill-export multi-adapter coverage', () => {
     'all_adapters + space_name positive path includes freshly trained adapters',
     async () => {
       expect.hasAssertions();
-    // Use the ci-test group space rather than personal: kairos-tester accumulates adapters in
+    // Use the ci-test group space rather than personal: squadrules-tester accumulates adapters in
     // personal across runs, and at scale it exceeds EXPORT_MAX_ADAPTERS=256 which is a separate
     // contract we test as a unit rejection elsewhere. The ci-test group is purpose-built for
     // integration runs and stays well under cap. The handler still rejects an over-cap space

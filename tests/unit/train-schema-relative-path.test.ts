@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { describe, expect, it } from '@jest/globals';
 import { trainInputSchema } from '../../src/tools/train_schema.js';
 
@@ -7,7 +6,7 @@ const minimalAdapter = {
   content: 'print(1)',
   mime: 'text/x-python' as const,
   artifact_name: 'helper.py',
-  adapter_uri: 'kairos://adapter/helper-adapter' as const
+  adapter_uri: 'squadrules://adapter/helper-adapter' as const
 };
 
 describe('trainInputSchema relative_path', () => {

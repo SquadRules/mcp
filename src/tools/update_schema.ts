@@ -1,18 +1,12 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
 
-const CANONICAL_LAYER_URI = /^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i;
-/** Transitional ingest: older ambiguous surface that still meant a layer row UUID. */
-const OLDER_LAYER_ROW_URI = new RegExp(
-  `^${['kairos', '://', 'me', 'm', '/'].join('')}[0-9a-f-]{36}$`,
-  'i'
-);
+const CANONICAL_LAYER_URI = /^squadrules:\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i;
 
 const layerUriSchema = z
   .string()
-  .refine((s) => CANONICAL_LAYER_URI.test(s) || OLDER_LAYER_ROW_URI.test(s), {
+  .refine((s) => CANONICAL_LAYER_URI.test(s), {
     message:
-      'must be kairos://layer/{layer-uuid} (squadrules:// also accepted) with optional ?execution_id=, or the transitional older layer-row URI form'
+      'must be squadrules://layer/{layer-uuid} with optional ?execution_id='
   });
 
 export const updateInputSchema = z.object({

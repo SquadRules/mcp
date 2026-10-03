@@ -1,10 +1,9 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Run an **adapter** layer by layer.
 
 First call (start a run):
 
 ```json
-{ "uri": "kairos://adapter/<slug>" }
+{ "uri": "squadrules://adapter/<slug>" }
 ```
 
 Copy this from `activate.choices[].forward_first_call.uri`. Adapter URIs are
@@ -14,7 +13,7 @@ Continuation call:
 
 ```json
 {
-  "uri": "kairos://layer/<uuid>?execution_id=<uuid>",
+  "uri": "squadrules://layer/<uuid>?execution_id=<uuid>",
   "solution": {
     "type": "<contract.type>",
     "outcome": "success",

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Static spec-parity gate — the no-infra twin of the runtime api-mcp-parity test.
  *
@@ -20,8 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import {
-  KAIROS_TOOL_REGISTRY,
-  KAIROS_TOOL_NAMES,
+  SQUADRULES_TOOL_REGISTRY,
+  SQUADRULES_TOOL_NAMES,
   type SquadrulesToolName
 } from '../../src/tools/tool-registry.js';
 import { createProgram } from '../../src/cli/program.js';
@@ -92,13 +91,13 @@ function readSrc(relativePath: string): string {
 
 describe('spec parity: MCP tool registry is the single source of truth', () => {
   test('registry exposes exactly the expected tool set', () => {
-    expect([...KAIROS_TOOL_NAMES].sort()).toEqual([...EXPECTED_TOOL_NAMES].sort());
+    expect([...SQUADRULES_TOOL_NAMES].sort()).toEqual([...EXPECTED_TOOL_NAMES].sort());
   });
 
   test.each(EXPECTED_TOOL_NAMES)(
     'MCP "%s" registration reuses the canonical Zod input/output schemas',
     (name) => {
-      const entry = KAIROS_TOOL_REGISTRY.find((tool) => tool.name === name);
+      const entry = SQUADRULES_TOOL_REGISTRY.find((tool) => tool.name === name);
       expect(entry).toBeDefined();
       // Object identity: the registry must reference the same schema instances,
       // not a divergent copy — this is what guarantees MCP === canonical.

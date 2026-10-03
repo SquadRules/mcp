@@ -1,6 +1,5 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
- * Regression: activate/search output schemas include per-choice slug (github.com/jakub-plichcinski/kairos-mcp#306).
+ * Regression: activate/search output schemas include per-choice slug (github.com/jakub-plichcinski/squadrules-mcp#306).
  * Non-null slugs must satisfy {@link AUTHOR_SLUG_RE} (same as protocol frontmatter / train).
  * Valid examples are derived via {@link slugifyFromTitle} / {@link normalizeAuthorSlug} — not string literals.
  */
@@ -15,7 +14,7 @@ import { getAdapterSlugForSearchOutput } from '../../src/services/memory/memory-
 import { activateOutputSchema } from '../../src/tools/activate_schema.js';
 import { searchOutputSchema } from '../../src/tools/search_schema.js';
 
-const SAMPLE_ADAPTER_URI = 'kairos://adapter/sample-adapter';
+const SAMPLE_ADAPTER_URI = 'squadrules://adapter/sample-adapter';
 
 function slugWithUnderscoreBetweenSegments(): string {
   return [slugifyFromTitle('Left'), slugifyFromTitle('Right')].join('_');
@@ -162,7 +161,7 @@ describe('activateOutputSchema slug field', () => {
           space_name: 'Personal',
           slug: matchSlug,
           forward_first_call: {
-            uri: `kairos://adapter/${matchSlug}`
+            uri: `squadrules://adapter/${matchSlug}`
           },
           linked_artifacts: [
             {
@@ -173,12 +172,12 @@ describe('activateOutputSchema slug field', () => {
               sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               content_type: 'text/x-python',
               materialize:
-                'curl -fsSL https://example.test/export/artifact/token -o "$KAIROS_LOCAL_ARTIFACT_DIR/artifacts/helper.py"'
+                'curl -fsSL https://example.test/export/artifact/token -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/helper.py"'
             }
           ]
         },
         {
-          uri: 'kairos://adapter/refine-search',
+          uri: 'squadrules://adapter/refine-search',
           label: 'refine',
           adapter_name: 'refine',
           activation_score: null,
@@ -189,7 +188,7 @@ describe('activateOutputSchema slug field', () => {
           space_name: null,
           slug: null,
           forward_first_call: {
-            uri: 'kairos://adapter/refine-search'
+            uri: 'squadrules://adapter/refine-search'
           }
         }
       ]

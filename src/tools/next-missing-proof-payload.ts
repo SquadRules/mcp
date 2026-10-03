@@ -1,4 +1,3 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 /**
  * Build current_step and challenge for MISSING_PROOF response so the client gets the previous step's
  * challenge (correct nonce and proof_hash) for the next forward call.
@@ -12,7 +11,7 @@ import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { buildChallenge, GENESIS_HASH } from './next-pow-helpers.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import type { PreviousProofBlock } from './next-previous-step.js';
-import { buildLayerUri } from './kairos-uri.js';
+import { buildLayerUri } from './squadrules-uri.js';
 
 function buildCurrentStep(memory: Memory | null, requestedUri: string, executionId?: string) {
   const uri = memory ? buildLayerUri(memory.memory_uuid, executionId) : requestedUri;

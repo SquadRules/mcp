@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ServerCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -9,11 +8,11 @@ import { bootstrapEmptyResourceHandlers } from './resources/resource-bootstrap.j
 import { MemoryQdrantStore } from './services/memory/store.js';
 import { qdrantService } from './services/qdrant/index.js';
 import { getBuildVersion } from './utils/build-version.js';
-import { LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE, getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, QDRANT_RESCORE_STRING, TEI_BASE_URL, TEI_MODEL, KAIROS_SEARCH_OVERFETCH_FACTOR, KAIROS_SEARCH_MAX_FETCH, KAIROS_ENABLE_GROUP_COLLAPSE } from './config.js';
+import { LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE, getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, QDRANT_RESCORE_STRING, TEI_BASE_URL, TEI_MODEL, SQUADRULES_SEARCH_OVERFETCH_FACTOR, SQUADRULES_SEARCH_MAX_FETCH, SQUADRULES_ENABLE_GROUP_COLLAPSE } from './config.js';
 import { getEmbeddingDimension } from './services/embedding/config.js';
 // removed: debug tools (kb_version, kb_cache_stats)
 import { registerDeleteTool } from './tools/delete.js';
-import { kairosServerUiCapabilityBlock } from './mcp-apps/kairos-server-ui-capability.js';
+import { squadrulesServerUiCapabilityBlock } from './mcp-apps/squadrules-server-ui-capability.js';
 import { registerActivateUiResources } from './mcp-apps/register-activate-ui-resources.js';
 import { registerForwardUiResources } from './mcp-apps/register-forward-ui-resources.js';
 import { registerSpacesUiResources } from './mcp-apps/register-spaces-ui-resources.js';
@@ -25,12 +24,12 @@ import { registerRewardTool } from './tools/reward.js';
 import { registerTuneTool } from './tools/tune.js';
 import { registerExportTool } from './tools/export.js';
 import { zodToInputJsonSchema, zodToOutputJsonSchema } from './utils/zod-to-jsonschema.js';
-import { KAIROS_TOOL_REGISTRY } from './tools/tool-registry.js';
+import { SQUADRULES_TOOL_REGISTRY } from './tools/tool-registry.js';
 
 function installStrictToolsListHandler(server: McpServer): void {
   server.server.removeRequestHandler('tools/list');
   server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: KAIROS_TOOL_REGISTRY.map((tool) => ({
+    tools: SQUADRULES_TOOL_REGISTRY.map((tool) => ({
       name: tool.name,
       title: tool.title,
       description: tool.description,
@@ -53,7 +52,7 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
                 tools: {},
                 resources: {},
                 prompts: {},
-                ...kairosServerUiCapabilityBlock
+                ...squadrulesServerUiCapabilityBlock
             } as ServerCapabilities
         }
     );
@@ -102,9 +101,9 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
             dim_env: getEmbeddingDimension(),
         },
         search: {
-            overfetch: KAIROS_SEARCH_OVERFETCH_FACTOR,
-            maxFetch: KAIROS_SEARCH_MAX_FETCH,
-            groupCollapse: KAIROS_ENABLE_GROUP_COLLAPSE
+            overfetch: SQUADRULES_SEARCH_OVERFETCH_FACTOR,
+            maxFetch: SQUADRULES_SEARCH_MAX_FETCH,
+            groupCollapse: SQUADRULES_ENABLE_GROUP_COLLAPSE
         },
     };
     structuredLogger.debug(`runtime config ${JSON.stringify(config)}`);

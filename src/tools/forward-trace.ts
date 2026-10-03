@@ -1,4 +1,3 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import crypto from 'node:crypto';
 import type { Memory, TensorValue } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
@@ -11,7 +10,7 @@ import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import type { ForwardOutput, ForwardSolution } from './forward_schema.js';
-import { buildAdapterUri, buildLayerUri } from './kairos-uri.js';
+import { buildAdapterUri, buildLayerUri } from './squadrules-uri.js';
 import { buildForwardView } from './forward-view.js';
 
 function traceFireAndForget(op: Promise<void>): void {

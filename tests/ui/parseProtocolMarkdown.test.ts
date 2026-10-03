@@ -1,4 +1,3 @@
-// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import { describe, it, expect } from "vitest";
 import {
   parseProtocolMarkdown,
@@ -271,7 +270,7 @@ When.
 Body.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"die unless 1","interpreter":"perl","flags":["-e"],"timeout_seconds":5,"args":["x"],"workdir":"$KAIROS_LOCAL_ARTIFACT_DIR"},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"die unless 1","interpreter":"perl","flags":["-e"],"timeout_seconds":5,"args":["x"],"workdir":"$SQUADRULES_LOCAL_ARTIFACT_DIR"},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -282,7 +281,7 @@ Done.
     expect(form.steps[0]!.shell?.interpreter).toBe("perl");
     expect(form.steps[0]!.shell?.flags).toEqual(["-e"]);
     expect(form.steps[0]!.shell?.args).toEqual(["x"]);
-    expect(form.steps[0]!.shell?.workdir).toBe("$KAIROS_LOCAL_ARTIFACT_DIR");
+    expect(form.steps[0]!.shell?.workdir).toBe("$SQUADRULES_LOCAL_ARTIFACT_DIR");
     const rebuilt = buildMarkdownFromForm(form);
     expect(rebuilt).toContain('"interpreter": "perl"');
     expect(rebuilt).toContain('"flags"');

@@ -1,9 +1,8 @@
-<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # SquadRules MCP
 
-<!-- kairos-lint-allow-protocol-synonyms -->
+<!-- squadrules-lint-allow-protocol-synonyms -->
 
-<img src="logo/kairos-mcp.svg" width="128" alt="SquadRules MCP logo" />
+<img src="logo/squadrules-mcp.svg" width="128" alt="SquadRules MCP logo" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](https://nodejs.org/)
@@ -62,11 +61,6 @@ flowchart LR
 
 The server generates challenge data (`nonce`, `proof_hash`, URIs); agents echo
 those values back exactly.
-
-> **Migrating from SQUADRULES?** This project was formerly named SQUADRULES. See
-> [Migration from SQUADRULES](docs/migration-from-kairos.md) for the old-to-new
-> name mapping and compatibility notes. Older `squadrules` CLI binaries, `KAIROS_*`
-> environment variables, and `kairos://` URIs keep working.
 
 ## Protocol execution
 
@@ -243,7 +237,7 @@ This repository ships its agent skills under
 | `squadrules` | Users | Run SquadRules protocols; install and update guidance; bug reports |
 | `squadrules-dev` | Developers | Docker Compose dev environment and maintainer workflows (internal; not installed by `npx skills add`) |
 
-The former `squadrules` and `kairos-dev` skill directories are retained for
+The former `squadrules` and `squadrules-dev` skill directories are retained for
 compatibility with existing installations; hosts prefer `squadrules` when both
 are present.
 
@@ -282,7 +276,6 @@ installation, values, and chart-testing details.
 - [Install and environment](docs/install/README.md)
 - [Cursor and MCP](docs/install/README.md#cursor-and-mcp)
 - [CLI reference](docs/CLI.md)
-- [Migration from SQUADRULES](docs/migration-from-kairos.md)
 - [Architecture (SquadRules wiki)](https://github.com/SquadRules/mcp/wiki)
 - [Adapter examples](docs/examples/README.md)
 - [Contributing](CONTRIBUTING.md)
@@ -320,7 +313,7 @@ Set one working embedding backend in the host `env`:
 
 The CLI stores tokens per API URL. Confirm that:
 
-- you are using the expected `--url` / `KAIROS_API_URL`
+- you are using the expected `--url` / `SQUADRULES_API_URL`
 - the token is still valid
 - Keycloak and the SquadRules server agree on issuer and audience
 

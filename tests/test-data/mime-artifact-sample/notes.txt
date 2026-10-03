@@ -1,3 +1,2 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 Plain-text artifact for MIME text/plain.
-See conf/app-config.toml (message) and conf/routes.yaml (greeting). Run scripts/hello.* from the skill root, or set KAIROS_MIME_SAMPLE_ROOT to this directory’s absolute path.
+See conf/app-config.toml (message) and conf/routes.yaml (greeting). Run scripts/hello.* from the skill root, or set SQUADRULES_MIME_SAMPLE_ROOT to this directory’s absolute path.

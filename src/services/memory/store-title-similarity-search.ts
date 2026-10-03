@@ -1,8 +1,7 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { QdrantClient } from '@qdrant/js-client-rest';
 import type { Memory } from '../../types/memory.js';
 import { embeddingService } from '../embedding/service.js';
-import { KAIROS_CREATION_PROTOCOL_SLUG, KAIROS_REFINING_PROTOCOL_SLUG, memoryIsBuiltinSearchFooterProtocol } from '../../constants/builtin-search-meta.js';
+import { SQUADRULES_CREATION_PROTOCOL_SLUG, SQUADRULES_REFINING_PROTOCOL_SLUG, memoryIsBuiltinSearchFooterProtocol } from '../../constants/builtin-search-meta.js';
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { getSearchSpaceIds } from '../../utils/tenant-context.js';
 import { getAdapterTitleVectorName } from '../../utils/qdrant-vector-types.js';
@@ -29,7 +28,7 @@ export async function searchAdapterTitlesBySimilarity(params: {
   });
   const filter = {
     ...baseFilter,
-    must_not: [{ key: 'slug', match: { any: [KAIROS_REFINING_PROTOCOL_SLUG, KAIROS_CREATION_PROTOCOL_SLUG] } }]
+    must_not: [{ key: 'slug', match: { any: [SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG] } }]
   };
   const queryResponse = await params.client.query(params.collection, {
     query: queryVector,

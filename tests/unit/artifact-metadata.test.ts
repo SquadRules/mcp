@@ -1,11 +1,10 @@
-// squadrules-compat-surface: reads the stored "# kairos-artifact:" metadata delimiter written into existing artifacts
 import { describe, expect, it } from '@jest/globals';
 import { extractArtifactMetadata } from '../../src/services/memory/artifact-metadata.js';
 
 describe('extractArtifactMetadata', () => {
   it('parses python header after shebang', () => {
     const content = `#!/usr/bin/env python3
-# kairos-artifact:
+# squadrules-artifact:
 #   slug: sort-jira-py
 #   version: 2
 print("ok")`;
@@ -26,7 +25,7 @@ print("ok")`;
   });
 
   it('rejects invalid slug in header', () => {
-    const content = `# kairos-artifact:
+    const content = `# squadrules-artifact:
 #   slug: Invalid_Slug
 #   version: 1
 echo "ok"`;

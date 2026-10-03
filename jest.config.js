@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references retained prior-brand source/test/plugin filenames or rule ids (rename is an explicit non-goal)
 /**
  * Jest Configuration for squadrules MCP Server
  * Fixed for working test discovery
@@ -68,6 +67,6 @@ export default {
     globalTeardown: '<rootDir>/tests/global-teardown-auth.ts',
     // Global test timeout
     testTimeout: 10000,
-    // Run train/update tests before v2-kairos-search (which depends on them)
+    // Run train/update tests before v2-squadrules-search (which depends on them)
     testSequencer: '<rootDir>/tests/jest-sequencer.cjs',
 };

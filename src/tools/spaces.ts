@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * List the agent's available spaces with human-readable names,
  * adapter counts per space, and optionally adapter titles and layer counts.
@@ -10,11 +9,11 @@ import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpTool
 import { getTenantId, getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { buildSpaceFilter } from '../utils/space-filter.js';
 import { spaceIdToDisplayName, spaceKindFromSpaceId } from '../utils/space-display.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
-import { KAIROS_SPACES_TOOL_UI_META } from '../mcp-apps/kairos-ui-constants.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_SPACES_TOOL_UI_META } from '../mcp-apps/squadrules-ui-constants.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { normalizeAuthorSlug, slugifyFromTitle } from '../utils/protocol-slug.js';
-import { buildAdapterUri } from './kairos-uri.js';
+import { buildAdapterUri } from './squadrules-uri.js';
 import { spacesInputSchema, spacesOutputSchema } from './spaces_schema.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
@@ -61,7 +60,7 @@ function dedupeSpaceIds(ids: string[]): string[] {
 function getSpacesToReport(): string[] {
   const ctx = getSpaceContextFromStorage();
   const allowed = ctx.allowedSpaceIds;
-  return dedupeSpaceIds([...allowed, KAIROS_APP_SPACE_ID]);
+  return dedupeSpaceIds([...allowed, SQUADRULES_APP_SPACE_ID]);
 }
 
 async function scrollSpace(
@@ -159,8 +158,8 @@ function buildSpaceInfo(
                   return {
                     name,
                     slug: slugValue,
-                    uri: `kairos://artifact/${slugValue}`,
-                    uuid_uri: `kairos://artifact/${artifactUuid}`,
+                    uri: `squadrules://artifact/${slugValue}`,
+                    uuid_uri: `squadrules://artifact/${artifactUuid}`,
                     content_type: contentType,
                     sha256,
                     relative_path: relativePath
@@ -221,7 +220,7 @@ export function registerSpacesTool(server: any, memoryStore: MemoryQdrantStore, 
       description: resolveToolDoc('spaces') ?? 'List the agent\'s available spaces with human-readable names and adapter counts. Optionally include adapter titles and layer counts per space.',
       inputSchema: mcpLooseToolInput(spacesInputSchema),
       outputSchema: spacesOutputSchema,
-      _meta: KAIROS_SPACES_TOOL_UI_META
+      _meta: SQUADRULES_SPACES_TOOL_UI_META
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

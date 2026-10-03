@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Per-space CRUD (train / tune / delete) and cross-space moves via tune(space).
  * Requires AUTH_ENABLED + token with personal + /shared/ci-test group (deploy-configure-keycloak-realms.py).
@@ -131,7 +130,7 @@ _d('Space CRUD per space (MCP)', () => {
     const { mcp, groupSpaceName, loadSpacesViaMcp } = bundle;
     if (!groupSpaceName?.includes('ci-test')) {
       throw new Error(
-        '[space-crud] expected a group space for /shared/ci-test (kairos-tester); run scripts/deploy-configure-keycloak-realms.py'
+        '[space-crud] expected a group space for /shared/ci-test (squadrules-tester); run scripts/deploy-configure-keycloak-realms.py'
       );
     }
     const title = `SpaceCrudGroup ${Date.now()}`;

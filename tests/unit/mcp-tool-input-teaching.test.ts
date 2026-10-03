@@ -1,11 +1,10 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { describe, expect, test } from '@jest/globals';
 import { forwardInputSchema, forwardMcpWireInputSchema } from '../../src/tools/forward_schema.js';
 import { activateInputSchema } from '../../src/tools/activate_schema.js';
 import { buildMcpInputTeachingPayload } from '../../src/tools/mcp-tool-input-teaching.js';
 
 describe('mcp-tool-input-teaching', () => {
-  const LAYER_WITH_EXEC = 'kairos://layer/00000000-0000-0000-0000-000000000002?execution_id=00000000-0000-0000-0000-000000000003';
+  const LAYER_WITH_EXEC = 'squadrules://layer/00000000-0000-0000-0000-000000000002?execution_id=00000000-0000-0000-0000-000000000003';
 
   test('forward MCP wire schema accepts empty object so handler can teach', () => {
     const wire = forwardMcpWireInputSchema.safeParse({});
@@ -57,7 +56,7 @@ describe('mcp-tool-input-teaching', () => {
   });
 
   test('forward start call with solution teaches omit solution on start', () => {
-    const ADAPTER_URI = 'kairos://adapter/phase-critic';
+    const ADAPTER_URI = 'squadrules://adapter/phase-critic';
     const parsed = forwardInputSchema.safeParse({
       uri: ADAPTER_URI,
       solution: { type: 'comment', comment: { text: 'x' } }
@@ -75,7 +74,7 @@ describe('mcp-tool-input-teaching', () => {
     // UUID adapter URIs are valid after the rebrand dual-scheme support;
     // no teaching payload is needed.
     const parsed = forwardInputSchema.safeParse({
-      uri: 'kairos://adapter/00000000-0000-0000-0000-000000000001'
+      uri: 'squadrules://adapter/00000000-0000-0000-0000-000000000001'
     });
     expect(parsed.success).toBe(true);
   });

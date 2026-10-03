@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Step-engine input/output schemas used by the forward runtime.
  * V2: removed next_step, protocol_status, attest_required, final_challenge.
@@ -10,8 +9,8 @@ import { z } from 'zod';
 const layerUriSchema = z
   .string()
   .regex(
-    /^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
-    'must match kairos://layer/{uuid}[?execution_id={uuid}] (squadrules:// also accepted)'
+    /^squadrules:\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
+    'must match squadrules://layer/{uuid}[?execution_id={uuid}]'
   );
 
 export const solutionSchema = z.object({
@@ -90,7 +89,7 @@ export const nextOutputSchema = z.object({
     mimeType: z.literal('text/markdown')
   }).optional().nullable(),
   challenge: challengeSchema,
-  next_action: z.string().describe('Next tool call with embedded kairos://layer/ URI'),
+  next_action: z.string().describe('Next tool call with embedded squadrules://layer/ URI'),
   proof_hash: z.string().optional().describe('Hash of proof just stored. Use as solution.proof_hash for next step.'),
   message: z.string().optional(),
   error_code: z.string().optional().describe('Machine-readable error code (e.g., NONCE_MISMATCH, MAX_RETRIES_EXCEEDED)'),
@@ -99,11 +98,9 @@ export const nextOutputSchema = z.object({
    * Ordered URI hints (preferred first) for the run's local handoff dir. Resolve **on the client**:
    * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`.
    * Use `project://` when you have exactly one project context; fall through to `user://` when your session
-   * spans multiple projects. Export the resolved absolute path as `KAIROS_LOCAL_ARTIFACT_DIR` for shell
+   * spans multiple projects. Export the resolved absolute path as `SQUADRULES_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.
    */
-  kairos_local_artifact_dir: z.array(z.string()).optional(),
-  /** Compatibility alias for kairos_local_artifact_dir (same value). */
   squadrules_local_artifact_dir: z.array(z.string()).optional()
 });
 

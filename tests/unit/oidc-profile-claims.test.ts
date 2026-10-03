@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 import { describe, expect, test } from "@jest/globals";
 import {
   applyOidcGroupsAllowlist,
@@ -106,26 +105,26 @@ describe("oidc-profile-claims", () => {
   });
 
   test("applyOidcGroupsAllowlist intersects with names and slash paths", () => {
-    expect(applyOidcGroupsAllowlist(["/kairos-auditor", "other"], ["kairos-auditor"])).toEqual([
-      "/kairos-auditor",
+    expect(applyOidcGroupsAllowlist(["/squadrules-auditor", "other"], ["squadrules-auditor"])).toEqual([
+      "/squadrules-auditor",
     ]);
-    expect(applyOidcGroupsAllowlist(["kairos-auditor"], ["/kairos-auditor"])).toEqual(["kairos-auditor"]);
-    expect(applyOidcGroupsAllowlist(["kairos-auditor", "x"], ["kairos-auditor", "y"])).toEqual([
-      "kairos-auditor",
+    expect(applyOidcGroupsAllowlist(["squadrules-auditor"], ["/squadrules-auditor"])).toEqual(["squadrules-auditor"]);
+    expect(applyOidcGroupsAllowlist(["squadrules-auditor", "x"], ["squadrules-auditor", "y"])).toEqual([
+      "squadrules-auditor",
     ]);
   });
 
   test("applyOidcGroupsAllowlist prefix entries match path prefixes", () => {
     expect(
       applyOidcGroupsAllowlist(
-        ["/kairos-auditor", "/kairos-shares/kairos-operator", "/other/root"],
-        ["/kairos-shares/"]
+        ["/squadrules-auditor", "/squadrules-shares/squadrules-operator", "/other/root"],
+        ["/squadrules-shares/"]
       )
-    ).toEqual(["/kairos-shares/kairos-operator"]);
+    ).toEqual(["/squadrules-shares/squadrules-operator"]);
     expect(
-      applyOidcGroupsAllowlist(["/kairos-shares/kairos-operator"], ["kairos-shares/"])
-    ).toEqual(["/kairos-shares/kairos-operator"]);
-    expect(applyOidcGroupsAllowlist(["/kairos-shares"], ["/kairos-shares/"])).toEqual([]);
+      applyOidcGroupsAllowlist(["/squadrules-shares/squadrules-operator"], ["squadrules-shares/"])
+    ).toEqual(["/squadrules-shares/squadrules-operator"]);
+    expect(applyOidcGroupsAllowlist(["/squadrules-shares"], ["/squadrules-shares/"])).toEqual([]);
   });
 
   test("applyOidcGroupsAllowlist matches group paths case-insensitively against allowlist prefix", () => {
@@ -133,7 +132,7 @@ describe("oidc-profile-claims", () => {
   });
 
   test("applyOidcGroupsAllowlist matches exact entries case-insensitively", () => {
-    expect(applyOidcGroupsAllowlist(["/Kairos-Auditor"], ["kairos-auditor"])).toEqual(["/Kairos-Auditor"]);
+    expect(applyOidcGroupsAllowlist(["/Squadrules-Auditor"], ["squadrules-auditor"])).toEqual(["/Squadrules-Auditor"]);
   });
 
   test("extractGroupsFromPayload accepts string and JSON array string", () => {

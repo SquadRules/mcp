@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 version: "4.8.6"
 slug: phase-critic-guide
@@ -88,7 +87,7 @@ pattern is a `mcp` contract that requires calling `forward` with the
 ### After a planning phase
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"kairos://adapter/phase-critic"}},"required":true}}
+{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/phase-critic"}},"required":true}}
 ```
 
 ### After an implementation phase

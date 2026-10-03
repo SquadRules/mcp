@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Unit tests for `validate-protocol-structure.ts`: adapter markdown validation
  * before `train`.
@@ -312,6 +311,6 @@ Done.`;
 
 describe('CREATION_PROTOCOL_URI', () => {
   test('is the creation flow slug URI', () => {
-    expect(CREATION_PROTOCOL_URI).toBe('kairos://adapter/create-new-protocol');
+    expect(CREATION_PROTOCOL_URI).toBe('squadrules://adapter/create-new-protocol');
   });
 });

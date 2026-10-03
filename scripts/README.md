@@ -1,4 +1,3 @@
-// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 # Scripts
 
 This directory holds maintainer and automation helpers. Prefer **`npm run …`** from the repo root `package.json` instead of invoking shell entrypoints directly unless you know you need to.
@@ -54,7 +53,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/deploy-copy-env-from-main.sh` | In a git worktree, copies `.env` from the main worktree when missing | `deploy-run-env.sh` |
 | `scripts/env/create-env.sh` | Thin wrapper: creates `.env` via secrets generator when you use this entrypoint | Invokes `deploy-generate-dev-secrets.py` |
 | `scripts/ci-wait-for-infra.sh` | Polls Redis, Qdrant, Postgres, and Keycloak in Docker Compose (CI) | `.github/workflows/integration.yml` |
-| `scripts/deploy-add-keycloak-demo-user.sh` | Adds `demo` user to `kairos-dev` via `kcadm` inside the Keycloak container | Documented in `scripts/keycloak/import/README.md` |
+| `scripts/deploy-add-keycloak-demo-user.sh` | Adds `demo` user to `squadrules-dev` via `kcadm` inside the Keycloak container | Documented in `scripts/keycloak/import/README.md` |
 | `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/install/README.md` and `compose.yaml` comments |
 | `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `npm run infra:up`, `deploy-run-env.sh`, `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts` |
 | `scripts/deploy-add-keycloak-user` | Adds a realm user with auto-generated password via Admin REST API | `scripts/keycloak/import/README.md` (examples) |
@@ -83,7 +82,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 |------|------|
 | `scripts/env/.env.template` | Template consumed by `deploy-generate-dev-secrets.py` |
 | `scripts/keycloak/import/*.json` | Realm JSON merged by `deploy-configure-keycloak-realms.py` (see `scripts/keycloak/import/README.md`) |
-| `scripts/kairos-db-init/README.md` | Notes for DB init assets |
+| `scripts/squadrules-db-init/README.md` | Notes for DB init assets |
 
 ## Troubleshooting
 

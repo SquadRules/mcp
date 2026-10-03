@@ -1,4 +1,3 @@
-// squadrules-compat-surface: preserves the docker compose project name kairos-mcp used by existing volumes/containers
 import { describe, expect, it } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -7,7 +6,7 @@ import { join } from 'node:path';
 
 describe('compose simple profile interpolation', () => {
   it('resolves config without fullstack-only secret variables', () => {
-    const tempDir = mkdtempSync(join(tmpdir(), 'kairos-compose-simple-'));
+    const tempDir = mkdtempSync(join(tmpdir(), 'squadrules-compose-simple-'));
 
     try {
       copyFileSync(join(process.cwd(), 'compose.yaml'), join(tempDir, 'compose.yaml'));
@@ -16,7 +15,7 @@ describe('compose simple profile interpolation', () => {
         ['OPENAI_API_KEY=test-openai-key', 'QDRANT_API_KEY=test-qdrant-key', 'AUTH_ENABLED=false'].join('\n')
       );
 
-      const result = spawnSync('docker', ['compose', '-p', 'kairos-mcp-test', 'config'], {
+      const result = spawnSync('docker', ['compose', '-p', 'squadrules-mcp-test', 'config'], {
         cwd: tempDir,
         encoding: 'utf8',
         env: {

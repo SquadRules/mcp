@@ -1,4 +1,3 @@
-// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -24,7 +23,7 @@ import {
 } from './next-previous-step.js';
 import { updateStepQuality } from './next.js';
 import { type ForwardInput, type ForwardOutput } from './forward_schema.js';
-import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUriOrThrow } from './kairos-uri.js';
+import { assertWireAdapterUri, buildAdapterUri, buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import {
   buildForwardView,
   buildCurrentLayerView,

@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import {
   appendSha256SumsToSkillExportItem,
   buildSha256SumsContent,
@@ -33,7 +32,7 @@ describe('skill export SHA256SUMS', () => {
       slug: 's',
       name: 'n',
       description: 'd',
-      squadrulesUri: 'kairos://adapter/x',
+      squadrulesUri: 'squadrules://adapter/x',
       files: [
         {
           path: 'SKILL.md',

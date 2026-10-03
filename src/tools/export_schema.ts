@@ -1,22 +1,21 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { z } from 'zod';
 import {
   ADAPTER_SLUG_URI_INPUT_REGEX,
   ARTIFACT_URI_INPUT_REGEX,
   LAYER_URI_INPUT_REGEX
-} from './kairos-uri.js';
+} from './squadrules-uri.js';
 
 const adapterUriSchema = z
   .string()
-  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match kairos://adapter/{slug}');
+  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match squadrules://adapter/{slug}');
 
 const layerUriSchema = z
   .string()
-  .regex(LAYER_URI_INPUT_REGEX, 'must match kairos://layer/{uuid}[?execution_id={uuid}]');
+  .regex(LAYER_URI_INPUT_REGEX, 'must match squadrules://layer/{uuid}[?execution_id={uuid}]');
 
 const artifactUriSchema = z
   .string()
-  .regex(ARTIFACT_URI_INPUT_REGEX, 'must match kairos://artifact/{uuid|slug}');
+  .regex(ARTIFACT_URI_INPUT_REGEX, 'must match squadrules://artifact/{uuid|slug}');
 
 const adapterOrLayerUriSchema = z.union([adapterUriSchema, layerUriSchema, artifactUriSchema]);
 

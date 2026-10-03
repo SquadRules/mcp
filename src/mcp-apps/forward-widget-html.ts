@@ -1,5 +1,4 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
-import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
+import { SQUADRULES_LOGO_SVG } from './squadrules-logo-embedded.js';
 import { FORWARD_WIDGET_INLINE_CSS } from './forward-widget-inline-css.js';
 import { FORWARD_WIDGET_INLINE_SCRIPT } from './forward-widget-inline-script.js';
 import { minifyInlineWidgetHtml } from './widget-inline-minify.js';
@@ -10,7 +9,7 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  * Same lifecycle as {@link ./spaces-mcp-app-widget-html.ts}.
  */
 export function buildForwardWidgetHtml(): string {
-  const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
+  const logo = SQUADRULES_LOGO_SVG.replaceAll('`', '&#96;');
   return minifyInlineWidgetHtml(`<div id="squadrules-forward-root">
   <div class="brand">
     ${logo}

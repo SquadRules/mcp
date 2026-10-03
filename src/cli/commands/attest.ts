@@ -1,4 +1,3 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * reward command
  */
@@ -13,7 +12,7 @@ export function rewardCommand(program: Command): void {
     program
         .command('reward')
         .description('Record a reward signal for a SQUADRULES adapter execution')
-        .argument('<uri>', 'SQUADRULES layer URI (kairos://layer/...)')
+        .argument('<uri>', 'SQUADRULES layer URI (squadrules://layer/...)')
         .argument('<outcome>', 'Outcome: success or failure')
         .argument('<feedback>', 'Reward feedback describing the completion or failure')
         .option('--score <number>', 'Normalized reward score in the 0..1 range')

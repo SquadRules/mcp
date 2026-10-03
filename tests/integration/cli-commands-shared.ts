@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Shared utilities for CLI command tests.
  * CLI uses config under XDG_CONFIG_HOME (set by test runner). Tests run "cli login --token" then run commands; no env overrides.
@@ -12,7 +11,7 @@ import { homedir, platform } from 'os';
 import { getMcpTestBearerToken, getTestAuthBaseUrl } from '../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../utils/mock-review-evidence.js';
 
-const CONFIG_DIR_NAME = 'kairos';
+const CONFIG_DIR_NAME = 'squadrules';
 const CONFIG_FILE_NAME = 'config.json';
 
 /** Same logic as src/cli/config-file.ts so we don't pull in keyring under Jest. */
@@ -52,7 +51,7 @@ export async function execAsync(
   command: string,
   options?: { timeout?: number }
 ): Promise<{ stdout: string; stderr: string }> {
-  const env = { ...process.env, BROWSER: 'true', KAIROS_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
+  const env = { ...process.env, BROWSER: 'true', SQUADRULES_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
   return execPromise(command, { env, ...options }) as Promise<{ stdout: string; stderr: string }>;
 }
 
@@ -61,7 +60,7 @@ export async function execAsyncNoAuth(
   command: string,
   options?: { timeout?: number }
 ): Promise<{ stdout: string; stderr: string }> {
-  const env = { ...process.env, BROWSER: 'true', KAIROS_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
+  const env = { ...process.env, BROWSER: 'true', SQUADRULES_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
   await execFilePromise('node', [CLI_PATH, 'logout', '--url', BASE_URL], { env, timeout: 10000 }).catch(() => {});
   try {
     return await execPromise(command, { env, ...options });
@@ -76,11 +75,11 @@ export async function execAsyncNoAuth(
 /** Write config to the path CLI uses (XDG_CONFIG_HOME from runner), then run command. Clears token first (logout) so keyring does not override the written config. */
 export async function execAsyncWithConfig(
   command: string,
-  config: { KAIROS_API_URL?: string; bearerToken?: string },
+  config: { SQUADRULES_API_URL?: string; bearerToken?: string },
   options?: { timeout?: number }
 ): Promise<{ stdout: string; stderr: string }> {
-  const env = { ...process.env, BROWSER: 'true', KAIROS_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
-  const url = config.KAIROS_API_URL ?? BASE_URL;
+  const env = { ...process.env, BROWSER: 'true', SQUADRULES_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE) };
+  const url = config.SQUADRULES_API_URL ?? BASE_URL;
   await execFilePromise('node', [CLI_PATH, 'logout', '--url', url], { env, timeout: 10000 }).catch(() => {});
   const dir = getConfigDir();
   mkdirSync(dir, { recursive: true });

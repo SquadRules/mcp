@@ -1,8 +1,7 @@
-// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { isRewardEligibleForPreference, isRewardEligibleForSft } from '../services/reward-evals.js';
 import type { TrainingPair } from '../services/execution-trace-store.js';
 import type { RewardRecord, TensorValue } from '../types/memory.js';
-import { parseSquadrulesUri } from './kairos-uri.js';
+import { parseSquadrulesUri } from './squadrules-uri.js';
 
 interface RewardJsonlItem {
   instruction: {
@@ -44,7 +43,7 @@ interface RewardJsonlItem {
 function canonicalLayerUri(uri: string): string {
   try {
     const parsed = parseSquadrulesUri(uri);
-    return parsed.kind === 'layer' ? `kairos://layer/${parsed.id}` : uri;
+    return parsed.kind === 'layer' ? `squadrules://layer/${parsed.id}` : uri;
   } catch {
     return uri;
   }

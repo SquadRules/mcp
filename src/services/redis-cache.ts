@@ -1,10 +1,9 @@
-// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 import type { Memory } from '../types/memory.js';
 import { logger } from '../utils/structured-logger.js';
 import { keyValueStore } from './key-value-store-factory.js';
-import { KAIROS_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX } from '../config.js';
+import { SQUADRULES_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX } from '../config.js';
 import { getSpaceIdFromStorage } from '../utils/tenant-context.js';
-import { buildLayerUri } from '../tools/kairos-uri.js';
+import { buildLayerUri } from '../tools/squadrules-uri.js';
 
 export interface SearchResult {
   memories: Memory[];
@@ -84,7 +83,7 @@ export class RedisCacheService {
         return;
       }
       // Keys returned are full Redis keys (prefix + spaceId + logicalKey); strip to get logicalKey for del()
-      const keyPrefix = `${KAIROS_REDIS_PREFIX}${getSpaceIdFromStorage()}:`;
+      const keyPrefix = `${SQUADRULES_REDIS_PREFIX}${getSpaceIdFromStorage()}:`;
       const stripped: string[] = keys.map(k =>
         k.startsWith(keyPrefix) ? k.slice(keyPrefix.length) : k
       );
@@ -217,7 +216,7 @@ export class RedisCacheService {
       }
       const unique = [...new Set(merged)];
       // Keys returned are full Redis keys (prefix + spaceId + logicalKey); strip to get logicalKey for del()
-      const keyPrefix = `${KAIROS_REDIS_PREFIX}${getSpaceIdFromStorage()}:`;
+      const keyPrefix = `${SQUADRULES_REDIS_PREFIX}${getSpaceIdFromStorage()}:`;
       const stripped: string[] = unique.map(k =>
         k.startsWith(keyPrefix) ? k.slice(keyPrefix.length) : k
       );

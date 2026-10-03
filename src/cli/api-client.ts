@@ -1,4 +1,3 @@
-// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * API Client for SQUADRULES REST API.
  * Returns canonical response shapes (no metadata wrapper).
@@ -75,7 +74,7 @@ export class ApiClient {
         const configUrl = getDefaultApiUrlFromFile();
         const resolvedBaseUrl =
             explicit ||
-            (process.env['KAIROS_API_URL'] || '').trim() ||
+            (process.env['SQUADRULES_API_URL'] || '').trim() ||
             configUrl ||
             getApiUrl();
         this.baseUrl = normalizeAndValidateApiBaseUrl(resolvedBaseUrl);

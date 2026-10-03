@@ -1,7 +1,6 @@
-<!-- squadrules-compat-surface: references the retained logo/kairos-mcp.svg asset filename (filename rename is an explicit non-goal) -->
 # Illustrative case 1: Standardize commits and merge requests across a team
 
-<img src="../../logo/kairos-mcp.svg" width="64" alt="SquadRules logo" />
+<img src="../../logo/squadrules-mcp.svg" width="64" alt="SquadRules logo" />
 
 ## Problem
 

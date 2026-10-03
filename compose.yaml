@@ -1,12 +1,11 @@
-# squadrules-compat-surface: references the docker-compose project/service name kairos-mcp retained for backward compatibility
 # Compose with Docker named volumes (default). No VOLUME_LOCAL_PATH required.
 # Alternative: compose-dir-volumes.yaml uses host dirs (bind mounts).
 #
 # Default (mini): Qdrant + app only. No profile needed.
-#   docker compose -p kairos-mcp up -d
+#   docker compose -p squadrules-mcp up -d
 # Fullstack: add Valkey, Postgres, Keycloak (use with fullstack .env).
-#   docker compose -p kairos-mcp --profile fullstack up -d
-# Optional UI (only with fullstack): docker compose -p kairos-mcp --profile fullstack --profile infra-ui up -d
+#   docker compose -p squadrules-mcp --profile fullstack up -d
+# Optional UI (only with fullstack): docker compose -p squadrules-mcp --profile fullstack --profile infra-ui up -d
 
 services:
   valkey:
