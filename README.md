@@ -270,6 +270,14 @@ The Helm chart for Kubernetes deployment now lives in the
 published to `oci://ghcr.io/squadrules/charts/mcp`. See that repository for
 installation, values, and chart-testing details.
 
+## Container images
+
+Container images are built, scanned, signed and published from the
+[`SquadRules/containers`](https://github.com/SquadRules/containers) repository,
+FROM the published `@squadrules/mcp` npm package, to Docker Hub
+(`docker.io/squadrules/mcp`) and quay.io. This repository publishes npm only;
+see that repository for the image pipeline, base-image OS scanning and signing.
+
 ## Documentation map
 
 - [Documentation index](docs/README.md)
