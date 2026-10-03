@@ -20,7 +20,6 @@ _d('HTTP REST API Activate Endpoint', () => {
       const baseSearchKeys = ['choices', 'message', 'must_obey', 'next_action', 'query'];
       const optionalKeys = [
         ...('execution_id' in data ? ['execution_id'] : []),
-        ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : []),
         ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : [])
       ];
       expect(Object.keys(data).sort()).toEqual([...baseSearchKeys, ...optionalKeys].sort());

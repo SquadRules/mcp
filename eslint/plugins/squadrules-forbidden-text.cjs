@@ -155,7 +155,7 @@ function hasSquadrulesCompatSurfaceMarker(text) {
   const head = text.split('\n').slice(0, 60).join('\n');
   const re = /(?:\/\/|#|<!--|\/\*)\s*squadrules-compat-surface\s*:([^\n]*)/gi;
   for (let m = re.exec(head); m !== null; m = re.exec(head)) {
-    if (m[1].replace(/\s*(?:\*\/|-->)\s*$/, '').trim()) return true;
+    if (m[1].replace(/\s*(?:\*\/|--!?>)\s*$/, '').trim()) return true;
   }
   return false;
 }
