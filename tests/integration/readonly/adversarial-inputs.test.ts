@@ -78,7 +78,7 @@ _d('Adversarial and robustness inputs', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        uri: `kairos://layer/${probeUuid}`,
+        uri: `squadrules://layer/${probeUuid}`,
         format: 'markdown'
       })
     });

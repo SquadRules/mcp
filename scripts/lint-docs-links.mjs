@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Documentation link / DRY linter for KAIROS MCP.
+ * Documentation link / DRY linter for SQUADRULES MCP.
  *
  * Enforces the `documentation-authority` rule (.qoder/rules/) mechanically:
  *   (a) dangling relative links in tracked *.md            -> ERROR
  *   (b) links to retired code-derivable docs (docs/architecture/**) -> ERROR
  *   (c) colocated README shape contract (H1 purpose line,
- *       or an explicit `<!-- kairos-doc-keep: ... -->` marker) -> WARNING
+ *       or an explicit `<!-- squadrules-doc-keep: ... -->` marker) -> WARNING
  *   (d) docs/ file whose H1 duplicates a wiki catalog name  -> WARNING (DRY drift)
  *
  * Rollout is STAGED. By default this runs in report-only mode: it prints every
@@ -166,9 +166,9 @@ for (const file of files) {
   // (c) colocated README shape contract
   if (isColocatedReadme(file)) {
     const h1 = firstHeading(md);
-    const hasMarker = /<!--\s*kairos-doc-keep:/.test(md);
+    const hasMarker = /<!--\s*squadrules-doc-keep:/.test(md);
     if (!h1 && !hasMarker) {
-      warnings.push(`${file}: colocated README should open with an H1 purpose line or carry a \`<!-- kairos-doc-keep: reason -->\` marker`);
+      warnings.push(`${file}: colocated README should open with an H1 purpose line or carry a \`<!-- squadrules-doc-keep: reason -->\` marker`);
     }
   }
 

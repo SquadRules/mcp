@@ -46,7 +46,7 @@ export interface DeriveMetadataInput {
   /** Adapter name from memory. */
   adapterName?: string | null;
   /** Canonical adapter URI for echo. */
-  kairosUri: string;
+  squadrulesUri: string;
 }
 
 export interface DerivedSkillMetadata {

@@ -16,7 +16,12 @@ export function auditResult(raw, status) {
 }
 
 function assess(name) {
-  const result = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' } });
+  // Production scope: the remediation gate (and publishAudit's before/after count
+  // check) covers shipped dependencies only. `npm audit fix --force` "resolves"
+  // wide-ranged dev tooling by downgrading it, which breaks builds/releases and
+  // still leaves advisories open; dev-only advisories are delegated to dependency
+  // tooling instead of being force-downgraded.
+  const result = spawnSync('npm', ['audit', '--omit=dev', '--json'], { encoding: 'utf8', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' } });
   const audit = auditResult(result.stdout, result.status);
   writeFileSync(`${directory}/${name}.json`, result.stdout);
   return audit;
@@ -91,7 +96,7 @@ async function main() {
   if (!before.count) { output({ changed: false }); return report({ state: 'clean', ...before.counts }); }
   const fix = spawnSync('bash', ['scripts/npm-audit-fix.sh'], { stdio: 'inherit', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' } });
   const after = assess('after');
-  if (fix.status !== 0 || after.count !== 0) throw new Error('Unresolved moderate-or-higher advisories; no false success');
+  if (fix.status !== 0 || after.count !== 0) throw new Error('Unresolved production moderate-or-higher advisories; no false success');
   const diff = spawnSync('git', ['diff', '--quiet', '--', 'package.json', 'package-lock.json']);
   if (diff.status !== 1) throw new Error('Audit reported a fix without changed manifests');
   output({ changed: true });

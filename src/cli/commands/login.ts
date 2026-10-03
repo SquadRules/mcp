@@ -1,5 +1,5 @@
 /**
- * kairos login — obtain and store a Bearer token (--token or browser + PKCE).
+ * squadrules login — obtain and store a Bearer token (--token or browser + PKCE).
  */
 
 import { Command } from 'commander';
@@ -18,7 +18,7 @@ function escapeHtml(s: string): string {
 import { openBrowser } from '../auth-error.js';
 import { readConfig, writeConfig, normalizeApiUrl } from '../config-file.js';
 import { getToken, isKeyringAvailable } from '../keyring.js';
-import { fetchOAuthProtectedResourceMetadata, KAIROS_CLI_CLIENT_ID } from '../oauth-refresh.js';
+import { fetchOAuthProtectedResourceMetadata, SQUADRULES_CLI_CLIENT_ID } from '../oauth-refresh.js';
 import { writeError, writeStdout, writeStderr } from '../output.js';
 
 /** Describe where the current token is stored (no path). Used for "Already authenticated. Token …" message. */
@@ -38,7 +38,7 @@ export function getBaseUrl(): string {
 
 /** Check if token is valid (GET /api/me). Used by login to skip relogin and by ApiClient. */
 export async function isTokenValid(baseUrl: string, token: string): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const res = await fetch(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
     });
@@ -46,7 +46,7 @@ export async function isTokenValid(baseUrl: string, token: string): Promise<bool
 }
 
 async function loginWithToken(baseUrl: string, token: string): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const res = await fetch(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
     });
@@ -67,7 +67,7 @@ export interface LoginWithBrowserOptions {
 
 /** Run browser PKCE login and store token. Exported for 401+--open retry from ApiClient. */
 export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrowserOptions): Promise<boolean> {
-    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Kairos requests by design.
+    // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
     const endpoints = await fetchOAuthProtectedResourceMetadata(baseUrl);
     if (!endpoints) {
         const wellKnownUrl = `${baseUrl.replace(/\/$/, '')}/.well-known/oauth-protected-resource`;
@@ -75,7 +75,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
         return false;
     }
     const { authEndpoint, tokenEndpoint } = endpoints;
-    const clientId = KAIROS_CLI_CLIENT_ID;
+    const clientId = SQUADRULES_CLI_CLIENT_ID;
 
     const codeVerifier = randomBytes(32).toString('base64url');
     const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url').replace(/=/g, '');
@@ -84,8 +84,8 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
     const callbackPathToken = randomBytes(16).toString('base64url');
 
     return new Promise((resolve) => {
-        // Bind to an open port, then send that redirect_uri to Keycloak (best practice). Tests can pin port via KAIROS_LOGIN_CALLBACK_PORT.
-        const callbackPortEnv = process.env['KAIROS_LOGIN_CALLBACK_PORT'];
+        // Bind to an open port, then send that redirect_uri to Keycloak (best practice). Tests can pin port via SQUADRULES_LOGIN_CALLBACK_PORT.
+        const callbackPortEnv = process.env['SQUADRULES_LOGIN_CALLBACK_PORT'];
         const requestedPort = callbackPortEnv ? parseInt(callbackPortEnv, 10) : 0;
         const noBrowser = !!options?.noBrowser;
         let listenPort = 0;
@@ -100,7 +100,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
             if (errorParam) {
                 const desc = url.searchParams.get('error_description') || errorParam;
                 res.writeHead(200, { 'Content-Type': 'text/html' }).end(
-                    `<!DOCTYPE html><html><body><p>Login failed: ${escapeHtml(desc)}</p><p>Try again or run <code>kairos login</code> from the terminal.</p></body></html>`
+                    `<!DOCTYPE html><html><body><p>Login failed: ${escapeHtml(desc)}</p><p>Try again or run <code>squadrules login</code> from the terminal.</p></body></html>`
                 );
                 writeError(`Login failed: ${desc}`);
                 server.close();
@@ -176,7 +176,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
         });
         server.on('error', (err: NodeJS.ErrnoException) => {
             if (err.code === 'EADDRINUSE') {
-                writeError(`Port ${requestedPort} in use or inaccessible. Set KAIROS_LOGIN_CALLBACK_PORT to another port.`);
+                writeError(`Port ${requestedPort} in use or inaccessible. Set SQUADRULES_LOGIN_CALLBACK_PORT to another port.`);
             } else {
                 writeError(err.message || String(err));
             }
@@ -200,7 +200,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
                 writeStderr(authUrlStr); // also stderr so tests see it when stdout is pipe-buffered
             } else {
                 openBrowser(authUrlStr);
-                writeStdout('[i] Log in to KAIROS in the browser.');
+                writeStdout('[i] Log in to SQUADRULES in the browser.');
                 writeStdout(`[i] If the browser did not open, open this link:\n${authUrlStr}`);
                 writeStdout('[i] Awaiting authentication in the browser.');
             }
@@ -229,8 +229,8 @@ export function loginCommand(program: Command): void {
                     process.exit(0);
                     return;
                 }
-                // --no-browser can be on program or login command; preAction sets KAIROS_NO_BROWSER when on program
-                const noBrowser = opts.browser === false || process.env['KAIROS_NO_BROWSER'] === '1';
+                // --no-browser can be on program or login command; preAction sets SQUADRULES_NO_BROWSER when on program
+                const noBrowser = opts.browser === false || process.env['SQUADRULES_NO_BROWSER'] === '1';
                 const ok = await loginWithBrowser(baseUrl, noBrowser ? { noBrowser: true } : undefined);
                 process.exit(ok ? 0 : 1);
             } catch (error) {

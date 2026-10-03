@@ -8,7 +8,7 @@ describe('export source format', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('exports artifact content from kairos://artifact URI with content_type', async () => {
+  it('exports artifact content from squadrules://artifact URI with content_type', async () => {
     const memoryStore = {
       getMemory: async (id: string) =>
         id === '11111111-2222-3333-4444-555555555555'
@@ -25,12 +25,12 @@ describe('export source format', () => {
           : null,
       getQdrantAccess: () => ({
         client: { scroll: async () => ({ points: [], next_page_offset: null }) },
-        collection: 'kairos'
+        collection: 'squadrules'
       })
     } as any;
 
     const out = await executeExport(memoryStore, undefined, {
-      uri: 'kairos://artifact/11111111-2222-3333-4444-555555555555',
+      uri: 'squadrules://artifact/11111111-2222-3333-4444-555555555555',
       format: 'source',
       include_reward: true
     });
@@ -40,7 +40,7 @@ describe('export source format', () => {
     expect(out.content).toBe('print("ok")');
   });
 
-  it('exports artifact content from kairos://artifact URI without source format override', async () => {
+  it('exports artifact content from squadrules://artifact URI without source format override', async () => {
     const memoryStore = {
       getMemory: async (id: string) =>
         id === '11111111-2222-3333-4444-555555555555'
@@ -57,12 +57,12 @@ describe('export source format', () => {
           : null,
       getQdrantAccess: () => ({
         client: { scroll: async () => ({ points: [], next_page_offset: null }) },
-        collection: 'kairos'
+        collection: 'squadrules'
       })
     } as any;
 
     const out = await executeExport(memoryStore, undefined, {
-      uri: 'kairos://artifact/11111111-2222-3333-4444-555555555555',
+      uri: 'squadrules://artifact/11111111-2222-3333-4444-555555555555',
       format: 'markdown',
       include_reward: true
     });
@@ -116,12 +116,12 @@ describe('export source format', () => {
             next_page_offset: null
           })
         },
-        collection: 'kairos'
+        collection: 'squadrules'
       })
     } as any;
 
     const out = await executeExport(memoryStore, qdrantService as any, {
-      uri: `kairos://adapter/${adapterSlug}`,
+      uri: `squadrules://adapter/${adapterSlug}`,
       format: 'source',
       include_reward: true
     });
@@ -130,7 +130,7 @@ describe('export source format', () => {
     expect(out.content_type).toBe('application/json');
     const parsed = JSON.parse(out.content) as { artifacts: Array<{ uri: string; content_type: string }> };
     expect(Array.isArray(parsed.artifacts)).toBe(true);
-    expect(parsed.artifacts[0]?.uri).toBe('kairos://artifact/11111111-2222-3333-4444-555555555555');
+    expect(parsed.artifacts[0]?.uri).toBe('squadrules://artifact/11111111-2222-3333-4444-555555555555');
     expect(parsed.artifacts[0]?.content_type).toBe('text/x-python');
   });
 });

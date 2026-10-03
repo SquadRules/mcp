@@ -82,10 +82,16 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Function to check for project vulnerabilities (excluding npm's bundled deps)
+          # Count PRODUCTION project vulnerabilities (excluding npm's bundled deps).
+          # Production scope is deliberate: `npm audit fix --force` "resolves"
+          # wide-ranged dev tooling (markdownlint-cli2, semantic-release, ...) by
+          # installing an older major, which breaks builds/releases and still leaves
+          # advisories open. We gate and force-fix production only, apply safe
+          # semver-compatible fixes to everything, and never downgrade pinned dev
+          # tooling. Residual dev-only advisories are reported (non-blocking).
           check_project_vulns() {
             local audit_output
-            audit_output=$(npm audit --json 2>/dev/null || true)
+            audit_output=$(npm audit --omit=dev --json 2>/dev/null || true)
             
             # Filter out vulnerabilities that ONLY exist in npm's bundled dependencies
             local project_vulns
@@ -107,27 +113,52 @@ jobs:
             fi
           }
           
-          # Try audit first (excluding npm's bundled deps)
+          # Count remaining project advisory nodes. Only called once production is
+          # confirmed clean, so every node counted here is dev-only by definition.
+          count_dev_vulns() {
+            local audit_output
+            audit_output=$(npm audit --json 2>/dev/null || true)
+            echo "$audit_output" | node -e "
+              const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8') || '{}');
+              const vulns = data.vulnerabilities || {};
+              const nodes = Object.values(vulns).filter(v => (v.nodes || []).some(n => !n.includes('node_modules/npm/node_modules/')));
+              console.log(nodes.length);
+            "
+          }
+          
+          # Gate on production dependencies only.
           if check_project_vulns; then
-            echo "✓ No high/critical vulnerabilities in project dependencies"
+            echo "✓ No production vulnerabilities in project dependencies"
+            dev_count=$(count_dev_vulns)
+            if [ "$dev_count" != "0" ]; then
+              echo "::warning::$dev_count dev-only advisory node(s) remain; delegated to dependency tooling (never force-downgraded)."
+            fi
             exit 0
           fi
           
-          echo "::warning::Vulnerabilities detected, attempting auto-remediation..."
+          echo "::warning::Production vulnerabilities detected, attempting auto-remediation..."
           
-          # Try npm audit fix
+          # Safe, semver-compatible fixes across ALL deps first (may bump dev
+          # tooling upward; never a downgrade).
           npm audit fix || true
           
-          # Check if files changed
-          if git diff --quiet package.json package-lock.json; then
-            echo "npm audit fix did not change files, trying --force..."
-            npm audit fix --force || true
+          # Escalate with a PRODUCTION-ONLY force fix when production advisories
+          # remain, then prove it did not rewrite pinned dev tooling.
+          if ! check_project_vulns; then
+            echo "Production advisories remain after the safe fix; trying npm audit fix --omit=dev --force..."
+            dev_deps_before=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
+            npm audit fix --omit=dev --force || true
+            dev_deps_after=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
+            if [ "$dev_deps_before" != "$dev_deps_after" ]; then
+              echo "::error::Refusing to proceed: the production force fix modified devDependencies (pinned tooling downgrade)."
+              git checkout -- package.json package-lock.json
+              exit 1
+            fi
           fi
           
-          # Check again if files changed
           if git diff --quiet package.json package-lock.json; then
-            echo "::error::Could not auto-remediate project vulnerabilities"
-            npm audit --audit-level=high
+            echo "::error::Could not auto-remediate production vulnerabilities without downgrading tooling"
+            npm audit --omit=dev --audit-level=high
             exit 1
           fi
           
@@ -155,10 +186,14 @@ jobs:
             echo "✓ Opened PR with dependency updates (auto-merge enabled)"
           fi
           
-          # Re-run audit to verify
+          # Verify production is clean; report residual dev advisories (non-blocking).
           if ! check_project_vulns; then
-            echo "::error::Vulnerabilities still present after auto-remediation"
+            echo "::error::Production vulnerabilities still present after auto-remediation"
             exit 1
+          fi
+          dev_count=$(count_dev_vulns)
+          if [ "$dev_count" != "0" ]; then
+            echo "::warning::$dev_count dev-only advisory node(s) remain after remediation; delegated to dependency tooling."
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

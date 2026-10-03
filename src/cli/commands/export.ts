@@ -72,8 +72,8 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
 export function exportCommand(program: Command): void {
     program
         .command('export')
-        .description('Export a KAIROS adapter (flat markdown, skill zip/tree, training JSONL, or source)')
-        .argument('[uri]', 'KAIROS adapter or layer URI (single-selection mode)')
+        .description('Export a SQUADRULES adapter (flat markdown, skill zip/tree, training JSONL, or source)')
+        .argument('[uri]', 'SQUADRULES adapter or layer URI (single-selection mode)')
         .option(
             '--adapters <uri-or-slug>',
             'Adapter URI or slug (repeat the flag to select multiple)',

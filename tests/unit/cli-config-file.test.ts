@@ -59,7 +59,7 @@ describe('cli config keychain sentinel behavior', () => {
   });
 
   beforeEach(() => {
-    xdgDir = mkdtempSync(join(tmpdir(), 'kairos-cli-config-test-'));
+    xdgDir = mkdtempSync(join(tmpdir(), 'squadrules-cli-config-test-'));
     process.env['XDG_CONFIG_HOME'] = xdgDir;
     keyringState.available = true;
     keyringState.tokens.clear();

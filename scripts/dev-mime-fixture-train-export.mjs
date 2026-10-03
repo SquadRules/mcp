@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const fixtureRoot = path.join(repoRoot, 'tests/test-data/mime-artifact-sample');
 const contractPath = path.join(fixtureRoot, 'artifact-contract.json');
-const baseUrl = (process.env.KAIROS_BASE_URL || 'http://localhost:3300').replace(/\/$/, '');
+const baseUrl = (process.env.SQUADRULES_BASE_URL || 'http://localhost:3300').replace(/\/$/, '');
 
 function resolveBearerToken() {
   if (process.env.AUTH_BEARER_TOKEN?.trim()) return process.env.AUTH_BEARER_TOKEN.trim();

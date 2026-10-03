@@ -95,7 +95,7 @@ App on **host** (not container): use `OPENAI_API_URL=http://127.0.0.1:11434`.
 ## 4. Start
 
 ```sh
-docker compose -p kairos-mcp up -d
+docker compose -p squadrules-mcp up -d
 curl -sS "http://localhost:${SERVER_PORT:-3000}/health"
 ```
 
@@ -153,7 +153,7 @@ use the CLI for authentication and operational checks.
 |-------|-----|
 | `QDRANT_API_KEY must be set` | Add it to `.env`, then start the stack again |
 | Port in use | Change **`SERVER_PORT`** or `METRICS_PORT`, or stop the conflicting process |
-| App unhealthy | Run `docker compose -p kairos-mcp logs app-prod` |
+| App unhealthy | Run `docker compose -p squadrules-mcp logs app-prod` |
 | Embedding errors | Re-check [embedding backend](prerequisites.md#embedding-backend); check server logs |
 
 ---

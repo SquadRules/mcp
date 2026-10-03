@@ -62,9 +62,9 @@ _d('Protected Resource Metadata (RFC 9728)', () => {
         expect(typeof body.token_endpoint).toBe('string');
         expect(body.authorization_endpoint).toMatch(/\/protocol\/openid-connect\/auth$/);
         expect(body.token_endpoint).toMatch(/\/protocol\/openid-connect\/token$/);
-        expect(body).toHaveProperty('kairos_cli_client_id');
-        expect(typeof body.kairos_cli_client_id).toBe('string');
-        expect(body.kairos_cli_client_id).toBeTruthy();
+        expect(body).toHaveProperty('squadrules_cli_client_id');
+        expect(typeof body.squadrules_cli_client_id).toBe('string');
+        expect(body.squadrules_cli_client_id).toBeTruthy();
       } else {
         expect(Array.isArray(body.authorization_servers)).toBe(true);
         expect(body.authorization_servers).toHaveLength(0);
@@ -73,9 +73,9 @@ _d('Protected Resource Metadata (RFC 9728)', () => {
         // The server may still expose a static CLI client id hint even when auth
         // is disabled; the hard requirement in simple mode is that it does not
         // advertise active authorization server endpoints.
-        if (body.kairos_cli_client_id !== undefined) {
-          expect(typeof body.kairos_cli_client_id).toBe('string');
-          expect(body.kairos_cli_client_id).toBeTruthy();
+        if (body.squadrules_cli_client_id !== undefined) {
+          expect(typeof body.squadrules_cli_client_id).toBe('string');
+          expect(body.squadrules_cli_client_id).toBeTruthy();
         }
       }
     });

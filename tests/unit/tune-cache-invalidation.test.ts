@@ -77,7 +77,7 @@ describe('invalidateTuneCache', () => {
     const md = `---\nslug: ${slug}\nversion: 1.0.2\n---\n\n# ${name}\n\n## Activation Patterns\n\n- run new\n\n\`\`\`json\n{"contract":{"type":"comment","comment":{"min_length":8},"required":true}}\n\`\`\`\n\n## Apply Fix\n\nFresh details.\n\n\`\`\`json\n{"contract":{"type":"comment","comment":{"min_length":12},"required":true}}\n\`\`\`\n\n## Reward Signal\n\nNew reward.\n`;
 
     const result = await runWithSpaceContextAsync(SPACE_CTX, () =>
-      executeTune(fakeQdrant as any, { uris: [`kairos://adapter/${slug}`], content: [md], review_evidence: { verdict_file: '/tmp/v.txt', exit_code: 0, stdout: 'PASS' } })
+      executeTune(fakeQdrant as any, { uris: [`squadrules://adapter/${slug}`], content: [md], review_evidence: { verdict_file: '/tmp/v.txt', exit_code: 0, stdout: 'PASS' } })
     );
     expect(result.total_updated).toBe(1);
     expect(result.total_failed).toBe(0);
@@ -87,7 +87,7 @@ describe('invalidateTuneCache', () => {
   });
 
   test('no-op when tune fails (zero updates)', async () => {
-    const failed = { results: [{ uri: 'kairos://adapter/x', status: 'error' as const, message: 'fail' }], total_updated: 0, total_failed: 1 };
+    const failed = { results: [{ uri: 'squadrules://adapter/x', status: 'error' as const, message: 'fail' }], total_updated: 0, total_failed: 1 };
     // Should return without calling invalidateAfterUpdate
     await expect(invalidateTuneCache(failed)).resolves.toBeUndefined();
   });

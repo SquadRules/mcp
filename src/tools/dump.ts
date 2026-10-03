@@ -8,29 +8,19 @@ import { slugifyFromTitle } from '../utils/protocol-slug.js';
 import { buildChallengeShapeForDisplay } from './next-pow-helpers.js';
 import { resolveAdapterFirstLayer } from '../services/adapter-navigation.js';
 import { redisCacheService } from '../services/redis-cache.js';
-import { buildLayerUri } from './kairos-uri.js';
+import { buildLayerUri } from './squadrules-uri.js';
 
 const LAYER_UUID_RE = /^[0-9a-f-]{36}$/i;
 
-/** Older ambiguous surface that identified a layer row; still accepted on dump input only. */
-const OLDER_LAYER_ROW_PREFIX = ['kairos', '://', 'me', 'm', '/'].join('');
-
 /**
- * Resolve dump input to a layer UUID and canonical `kairos://layer/{uuid}`.
+ * Resolve dump input to a layer UUID and canonical `squadrules://layer/{uuid}`.
  * The UUID is always a **layer** (stored row / head layer), never an adapter id.
  */
 function normalizeUri(value: string): { uuid: string; uri: string } {
   const normalized = (value || '').trim();
-  const layerPrefix = 'kairos://layer/';
+  const layerPrefix = 'squadrules://layer/';
   if (normalized.toLowerCase().startsWith(layerPrefix.toLowerCase())) {
     const rest = normalized.slice(layerPrefix.length).split('?')[0] ?? '';
-    const uuid = rest.split('/')[0] ?? '';
-    if (LAYER_UUID_RE.test(uuid)) {
-      return { uuid, uri: buildLayerUri(uuid) };
-    }
-  }
-  if (normalized.startsWith(OLDER_LAYER_ROW_PREFIX)) {
-    const rest = normalized.slice(OLDER_LAYER_ROW_PREFIX.length).split('?')[0] ?? '';
     const uuid = rest.split('/')[0] ?? '';
     if (LAYER_UUID_RE.test(uuid)) {
       return { uuid, uri: buildLayerUri(uuid) };
@@ -40,7 +30,7 @@ function normalizeUri(value: string): { uuid: string; uri: string } {
   if (last && LAYER_UUID_RE.test(last)) {
     return { uuid: last, uri: buildLayerUri(last) };
   }
-  throw new Error('Invalid dump URI: expected kairos://layer/{layer-uuid}');
+  throw new Error('Invalid dump URI: expected squadrules://layer/{layer-uuid}');
 }
 
 async function loadMemory(memoryStore: MemoryQdrantStore, uuid: string): Promise<Memory | null> {

@@ -1,5 +1,5 @@
 import { MemoryQdrantStore } from '../services/memory/store.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { IDGenerator } from '../services/id-generator.js';
 import { structuredLogger } from '../utils/structured-logger.js';
@@ -44,7 +44,7 @@ export async function deletePreexistingAppSpaceEntries(
     filters.push({
       must: [
         { key: 'slug', match: { value: slug } },
-        { key: 'space_id', match: { value: KAIROS_APP_SPACE_ID } }
+        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
       ]
     });
   }
@@ -53,7 +53,7 @@ export async function deletePreexistingAppSpaceEntries(
     filters.push({
       must: [
         { key: 'adapter.id', match: { value: adapterId } },
-        { key: 'space_id', match: { value: KAIROS_APP_SPACE_ID } }
+        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
       ]
     });
   }

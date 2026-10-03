@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_KAIROS_VERSION: string;
+  readonly VITE_SQUADRULES_VERSION: string;
 }
 
 interface ImportMeta {

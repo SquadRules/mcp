@@ -70,7 +70,7 @@ export async function createStdioSimpleHarness(): Promise<TestHarness> {
     ? [BOOTSTRAP_PATH]
     : ['--loader', 'ts-node/esm', SOURCE_BOOTSTRAP_PATH];
 
-  const client = new Client({ name: 'kairos-integration-stdio-harness', version: '1.0.0' });
+  const client = new Client({ name: 'squadrules-integration-stdio-harness', version: '1.0.0' });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args,

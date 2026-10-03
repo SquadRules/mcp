@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import type { Memory, InferenceContractDefinition } from '../../types/memory.js';
-import { KAIROS_APP_SPACE_ID } from '../../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../config.js';
 
 type QdrantPointLike = {
   id?: string | number | null;
@@ -91,7 +91,7 @@ export function pointToMemory(point: QdrantPointLike): Memory {
   const pointSpaceId =
     typeof payload.space_id === 'string' && payload.space_id.length > 0
       ? payload.space_id
-      : KAIROS_APP_SPACE_ID;
+      : SQUADRULES_APP_SPACE_ID;
   if (!('space_id' in base) && pointSpaceId) {
     base.space_id = pointSpaceId;
   }

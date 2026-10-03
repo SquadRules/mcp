@@ -8,7 +8,7 @@ import { buildSpaceFilter } from '../../utils/space-filter.js';
 const SCROLL_LIMIT = 512;
 
 /**
- * Return `kairos://adapter/{uuid}` for each distinct adapter in the space.
+ * Return `squadrules://adapter/{uuid}` for each distinct adapter in the space.
  *
  * Adapter layer payloads do not carry a `content_type` field (only artifact memories do),
  * so we cannot filter on `content_type === 'text/markdown'` at the Qdrant level — that
@@ -38,7 +38,7 @@ export async function listAdapterUrisInSpace(memoryStore: MemoryQdrantStore, spa
       const id = typeof adapter?.id === 'string' && adapter.id.trim().length > 0 ? adapter.id.trim() : '';
       if (!id || seen.has(id)) continue;
       seen.add(id);
-      uris.push(`kairos://adapter/${id}`);
+      uris.push(`squadrules://adapter/${id}`);
     }
     const nextOffset = page?.next_page_offset;
     offset = typeof nextOffset === 'string' || typeof nextOffset === 'number' ? nextOffset : undefined;

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 export function loadIntegrationBearer(root) {
-  const fromEnv = process.env.KAIROS_INTEGRATION_BEARER?.trim();
+  const fromEnv = process.env.SQUADRULES_INTEGRATION_BEARER?.trim();
   if (fromEnv) return fromEnv;
   const authPath = path.join(root, '.test-auth-env.dev.json');
   try {

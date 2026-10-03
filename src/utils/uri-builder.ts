@@ -1,24 +1,24 @@
 /**
- * URI Builder for KAIROS Resources
+ * URI Builder for SQUADRULES Resources
  *
- * Generates canonical kairos:// URIs for:
- * - Domain/type/task resources: kairos://{domain}/{type}/{task}
- * - Protocol steps: kairos://{domain}/{type}/{task}/step/{n}
- * - Unified UUID resources: kairos://{uuid}
- * - Templates: kairos://templates/{template_type}/{param}
+ * Generates canonical squadrules:// URIs for:
+ * - Domain/type/task resources: squadrules://{domain}/{type}/{task}
+ * - Protocol steps: squadrules://{domain}/{type}/{task}/step/{n}
+ * - Unified UUID resources: squadrules://{uuid}
+ * - Templates: squadrules://templates/{template_type}/{param}
  */
 
 /**
- * Build kairos://{domain}/{type}/{task} URI for domain/type/task format
+ * Build squadrules://{domain}/{type}/{task} URI for domain/type/task format
  *
  * @param domain - Knowledge domain (e.g., 'typescript', 'docker')
  * @param type - Knowledge type (e.g., 'rule', 'pattern', 'context')
  * @param task - Task identifier (e.g., 'error-handling', 'networking')
- * @returns kairos:// domain/type/task URI
+ * @returns squadrules:// domain/type/task URI
  *
  * @example
  * buildDomainTypeTaskURI('docker', 'pattern', 'networking')
- * // Returns: 'kairos://docker/pattern/networking'
+ * // Returns: 'squadrules://docker/pattern/networking'
  */
 export function buildDomainTypeTaskURI(domain: string, type: string, task: string): string {
     if (!domain || !type || !task) {
@@ -31,21 +31,21 @@ export function buildDomainTypeTaskURI(domain: string, type: string, task: strin
         throw new Error('Domain, type, and task must be lowercase alphanumeric with hyphens only');
     }
 
-    return `kairos://${domain}/${type}/${task}`;
+    return `squadrules://${domain}/${type}/${task}`;
 }
 
 /**
- * Build kairos://{domain}/{type}/{task}/step/{step} URI for protocol steps
+ * Build squadrules://{domain}/{type}/{task}/step/{step} URI for protocol steps
  *
  * @param domain - Knowledge domain
  * @param type - Knowledge type
  * @param task - Task identifier
  * @param step - Step number (1-based)
- * @returns kairos:// protocol step URI
+ * @returns squadrules:// protocol step URI
  *
  * @example
  * buildProtocolStepURI('ai', 'rule', 'coding-rules', 3)
- * // Returns: 'kairos://ai/rule/coding-rules/step/3'
+ * // Returns: 'squadrules://ai/rule/coding-rules/step/3'
  */
 export function buildProtocolStepURI(domain: string, type: string, task: string, step: number): string {
     if (!domain || !type || !task || step === undefined || step === null) {
@@ -62,5 +62,5 @@ export function buildProtocolStepURI(domain: string, type: string, task: string,
         throw new Error('Domain, type, and task must be lowercase alphanumeric with hyphens only');
     }
 
-    return `kairos://${domain}/${type}/${task}/step/${step}`;
+    return `squadrules://${domain}/${type}/${task}/step/${step}`;
 }

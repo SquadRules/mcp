@@ -15,7 +15,7 @@ describe('executeReward', () => {
 
   test('throws and skips execution trace reward persistence when reward metrics fail', async () => {
     const uri =
-      'kairos://layer/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee?execution_id=11111111-1111-1111-1111-111111111111';
+      'squadrules://layer/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee?execution_id=11111111-1111-1111-1111-111111111111';
     const qdrantService = {
       retrieveById: jest.fn().mockRejectedValue(new Error('qdrant unavailable'))
     } as unknown as QdrantService;

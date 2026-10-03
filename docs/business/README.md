@@ -1,6 +1,6 @@
 # Illustrative business application cases
 
-<img src="../../logo/kairos-mcp.svg" width="96" alt="SquadRules logo" />
+<img src="../../logo/squadrules-mcp.svg" width="96" alt="SquadRules logo" />
 
 This section contains **illustrative examples** of how SquadRules can be applied in
 organizational workflows. These pages are scenario sketches for managers and

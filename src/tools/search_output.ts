@@ -14,20 +14,20 @@ import {
   getChainRoot,
   getLayerCount
 } from '../services/memory/memory-accessors.js';
-import { buildAdapterUri } from './kairos-uri.js';
+import { buildAdapterUri } from './squadrules-uri.js';
 import { spaceIdToDisplayName } from '../utils/space-display.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import {
-  KAIROS_CREATION_PROTOCOL_SLUG,
-  KAIROS_CREATION_FOOTER_LABEL,
-  KAIROS_REFINING_PROTOCOL_SLUG,
-  KAIROS_REFINING_FOOTER_LABEL
+  SQUADRULES_CREATION_PROTOCOL_SLUG,
+  SQUADRULES_CREATION_FOOTER_LABEL,
+  SQUADRULES_REFINING_PROTOCOL_SLUG,
+  SQUADRULES_REFINING_FOOTER_LABEL
 } from '../constants/builtin-search-meta.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { normalizeAuthorSlug, slugifyFromTitle } from '../utils/protocol-slug.js';
 
-/** Slug-form `kairos://adapter/{slug}` for search/activate wire (never UUID adapter segments). */
+/** Slug-form `squadrules://adapter/{slug}` for search/activate wire (never UUID adapter segments). */
 function adapterWireUriFromMemory(memory: Memory): string {
   const stored = getAdapterSlugForSearchOutput(memory);
   if (stored) return buildAdapterUri(stored);
@@ -132,7 +132,7 @@ export async function generateUnifiedOutput(
 
   for (const result of results) {
     const head = await resolveHead(result.memory, qdrantService);
-    const sid = result.memory.space_id ?? KAIROS_APP_SPACE_ID;
+    const sid = result.memory.space_id ?? SQUADRULES_APP_SPACE_ID;
     const slug = getAdapterSlugForSearchOutput(result.memory);
     const chainRoot = getChainRoot(result.memory);
     let choiceUri = head.uri;
@@ -190,27 +190,27 @@ export async function generateUnifiedOutput(
     choices.push(
       {
         uri: refiningUri,
-        label: KAIROS_REFINING_FOOTER_LABEL,
-        adapter_name: KAIROS_REFINING_FOOTER_LABEL,
+        label: SQUADRULES_REFINING_FOOTER_LABEL,
+        adapter_name: SQUADRULES_REFINING_FOOTER_LABEL,
         score: null,
         role: 'refine',
         tags: ['meta', 'refine'],
         next_action: refiningNextAction,
         adapter_version: refiningProtocolVersion,
         space_name: null,
-        slug: KAIROS_REFINING_PROTOCOL_SLUG
+        slug: SQUADRULES_REFINING_PROTOCOL_SLUG
       },
       {
         uri: createUri,
-        label: KAIROS_CREATION_FOOTER_LABEL,
-        adapter_name: KAIROS_CREATION_FOOTER_LABEL,
+        label: SQUADRULES_CREATION_FOOTER_LABEL,
+        adapter_name: SQUADRULES_CREATION_FOOTER_LABEL,
         score: null,
         role: 'create',
         tags: ['meta', 'creation'],
         next_action: createNextAction,
         adapter_version: createProtocolVersion,
         space_name: null,
-        slug: KAIROS_CREATION_PROTOCOL_SLUG
+        slug: SQUADRULES_CREATION_PROTOCOL_SLUG
       }
     );
   }

@@ -5,7 +5,7 @@ import { getSpaceContextFromStorage, getTenantId } from '../utils/tenant-context
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { executeDump } from './dump.js';
 import { exportInputSchema, exportOutputSchema, type ExportInput, type ExportOutput } from './export_schema.js';
-import { assertWireAdapterUri, parseKairosUri } from './kairos-uri.js';
+import { assertWireAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { spaceIdToDisplayName, spaceKindFromSpaceId } from '../utils/space-display.js';
@@ -66,12 +66,12 @@ async function executeExportImpl(
   options: ExecuteExportOptions
 ): Promise<ExportOutput> {
   if (typeof input.uri === 'string') {
-    const parsedUri = parseKairosUri(input.uri.trim());
+    const parsedUri = parseSquadrulesUri(input.uri.trim());
     if (parsedUri.kind === 'adapter') {
       input.uri = assertWireAdapterUri(input.uri.trim());
     }
   }
-  if (typeof input.uri === 'string' && parseKairosUri(input.uri.trim()).kind === 'artifact') {
+  if (typeof input.uri === 'string' && parseSquadrulesUri(input.uri.trim()).kind === 'artifact') {
     return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter);
   }
 
@@ -87,7 +87,7 @@ async function executeExportImpl(
     }
     const { layerId } = await resolveExportAdapter(memoryStore, qdrantService, input.uri);
     const dump = await executeDump(memoryStore, qdrantService, {
-      uri: `kairos://layer/${layerId}`,
+      uri: `squadrules://layer/${layerId}`,
       protocol: true
     });
     const headMemory = await memoryStore.getMemory(layerId);
@@ -183,7 +183,7 @@ async function executeExportImpl(
         skills: items.map((it) => ({
           slug: it.slug,
           version: it.adapterVersion ?? null,
-          kairos_uri: it.kairosUri,
+          squadrules_uri: it.squadrulesUri,
           files: it.files.map((f) => ({ path: f.path, content: typeof f.content === 'string' ? f.content : f.content.toString('utf8') })),
           diagnostics: it.diagnostics
         }))

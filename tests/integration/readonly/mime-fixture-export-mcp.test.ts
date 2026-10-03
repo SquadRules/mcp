@@ -50,7 +50,7 @@ async function trainStage0Fixture(mcp: Awaited<ReturnType<typeof createMcpConnec
     const artifactParsed = parseMcpJson(trainArtifactRes, `mcp stage0 train artifact ${relPath}`);
     const artifactUuid = String(artifactParsed.items?.[0]?.artifact_uuid ?? '');
     if (!artifactUuid) throw new Error(`missing artifact_uuid for ${relPath}`);
-    artifactUris.push(`kairos://layer/${artifactUuid}`);
+    artifactUris.push(`squadrules://layer/${artifactUuid}`);
   }
   return { adapterUri, artifactUris };
 }
@@ -121,7 +121,7 @@ async function retrainFromBundle(
     const artifactParsed = parseMcpJson(trainArtifactRes, `mcp roundtrip train artifact ${artifact.relative_path}`);
     const artifactUuid = String(artifactParsed.items?.[0]?.artifact_uuid ?? '');
     if (!artifactUuid) throw new Error(`missing artifact_uuid for ${artifact.relative_path}`);
-    artifactUris.push(`kairos://layer/${artifactUuid}`);
+    artifactUris.push(`squadrules://layer/${artifactUuid}`);
   }
   return { adapterUri, artifactUris };
 }

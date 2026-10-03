@@ -10,7 +10,7 @@ import { MemoryQdrantStoreAdapter } from './store-adapter.js';
 import type { StoreArtifactOptions } from './store-adapter.js';
 
 const DEFAULT_QDRANT_URL = getQdrantUrl();
-const DEFAULT_COLLECTION = getQdrantCollection('kairos');
+const DEFAULT_COLLECTION = getQdrantCollection('squadrules');
 
 export interface MemoryQdrantStoreOptions {
   url?: string;

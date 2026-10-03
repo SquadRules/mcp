@@ -31,7 +31,7 @@ export function describeFetchError(err: unknown): string {
 export function networkErrorWithHint(prefix: string, err: unknown): Error {
     const detailed = new Error(
         `${prefix}: ${describeFetchError(err)}. ` +
-        `Verify the server is reachable and the URL/port is correct (--url / KAIROS_API_URL).`,
+        `Verify the server is reachable and the URL/port is correct (--url / SQUADRULES_API_URL).`,
     );
     (detailed as { cause?: unknown }).cause = err;
     return detailed;

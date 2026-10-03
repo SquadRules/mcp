@@ -19,7 +19,7 @@ export function registerDocsResources(server: any) {
       // Flat resource: treat as if in 'doc' subdirectory
       const subdir = 'doc';
       const filename = key;
-      const prefix = `kairos://${subdir}`;
+      const prefix = `squadrules://${subdir}`;
       const uri = `${prefix}/${filename}`;
       const name = toTitle(filename);
       const description = `Documentation for ${name}`;
@@ -36,7 +36,7 @@ export function registerDocsResources(server: any) {
     } else if (typeof value === 'object' && value !== null) {
       // Nested resource: subdirectory structure (doc, mem, etc.)
       const subdir = key;
-      const prefix = `kairos://${subdir}`;
+      const prefix = `squadrules://${subdir}`;
 
       // Iterate through files in this subdirectory
       for (const [filename, content] of Object.entries(value)) {

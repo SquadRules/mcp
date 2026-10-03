@@ -8,7 +8,7 @@ describe('handleDuplicateAdapter protected-space guard', () => {
       scroll: jest.fn(async () => ({
         points: [{
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-          payload: { label: 'Built-in adapter', space_id: 'space:kairos-app' }
+          payload: { label: 'Built-in adapter', space_id: 'space:squadrules-app' }
         }]
       })),
       delete: jest.fn(async () => ({}))
@@ -19,11 +19,11 @@ describe('handleDuplicateAdapter protected-space guard', () => {
         {
           userId: 'u1',
           groupIds: [],
-          allowedSpaceIds: ['space:personal', 'space:kairos-app'],
+          allowedSpaceIds: ['space:personal', 'space:squadrules-app'],
           defaultWriteSpaceId: 'space:personal',
           personalSpaceId: 'space:personal'
         },
-        async () => handleDuplicateAdapter(client as any, 'kairos', 'adapter-uuid', true)
+        async () => handleDuplicateAdapter(client as any, 'squadrules', 'adapter-uuid', true)
       )
     ).rejects.toMatchObject({ code: 'PROTECTED_SPACE_WRITE_FORBIDDEN' });
     expect(client.delete).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe('handleDuplicateAdapter protected-space guard', () => {
         defaultWriteSpaceId: 'user:realm:uuid',
         personalSpaceId: 'user:realm:uuid'
       },
-      async () => handleDuplicateAdapter(client as any, 'kairos', 'adapter-uuid', true)
+      async () => handleDuplicateAdapter(client as any, 'squadrules', 'adapter-uuid', true)
     );
 
     expect(client.delete).toHaveBeenCalledTimes(1);

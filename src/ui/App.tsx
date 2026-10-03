@@ -4,7 +4,7 @@ import { Layout } from "./components/Layout";
 
 /** Route-level code-splitting: each page is loaded on demand to keep initial chunk under 500 kB. */
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
-const KairosPage = lazy(() => import("./pages/KairosPage").then((m) => ({ default: m.KairosPage })));
+const SquadrulesPage = lazy(() => import("./pages/SquadrulesPage").then((m) => ({ default: m.SquadrulesPage })));
 const RunsPage = lazy(() => import("./pages/RunsPage").then((m) => ({ default: m.RunsPage })));
 const ProtocolEditPage = lazy(() =>
   import("./pages/ProtocolEditPage").then((m) => ({ default: m.ProtocolEditPage }))
@@ -47,10 +47,10 @@ export function AppRoutes() {
           }
         />
         <Route
-          path="kairos"
+          path="squadrules"
           element={
             <Suspense fallback={<RouteFallback />}>
-              <KairosPage />
+              <SquadrulesPage />
             </Suspense>
           }
         />

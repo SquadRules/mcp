@@ -2,8 +2,8 @@ Remove adapters or individual layers by URI.
 
 **Input**
 
-- `uris` — non-empty array of `kairos://adapter/{uuid}` or
-  `kairos://layer/{uuid}`.
+- `uris` — non-empty array of `squadrules://adapter/{uuid}` or
+  `squadrules://layer/{uuid}`.
 
 **Behavior**
 

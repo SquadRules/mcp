@@ -2,7 +2,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 /** Override output root (default: `<cwd>/.local/mime-fixture-export`). */
-export const MIME_FIXTURE_EXPORT_DIR_ENV = 'KAIROS_MIME_FIXTURE_EXPORT_DIR';
+export const MIME_FIXTURE_EXPORT_DIR_ENV = 'SQUADRULES_MIME_FIXTURE_EXPORT_DIR';
 
 function resolveExportDumpRoot(cwd: string = process.cwd()): string {
   const override = process.env[MIME_FIXTURE_EXPORT_DIR_ENV]?.trim();
@@ -50,7 +50,7 @@ export interface MimeFixtureExportDumpArgs {
  * **Layout:** `<cwd>/.local/mime-fixture-export/<pid>/<transport>/<format>/stage<N>/`
  * (`<pid>` avoids clashes when Jest runs files in parallel).
  *
- * **Override root:** `KAIROS_MIME_FIXTURE_EXPORT_DIR`
+ * **Override root:** `SQUADRULES_MIME_FIXTURE_EXPORT_DIR`
  */
 export function dumpMimeFixtureExport(args: MimeFixtureExportDumpArgs): void {
   const root = path.join(resolveExportDumpRoot(process.cwd()), String(process.pid), args.transport, args.format, `stage${args.stage}`);

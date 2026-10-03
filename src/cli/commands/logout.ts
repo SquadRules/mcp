@@ -1,5 +1,5 @@
 /**
- * kairos logout — clear stored Bearer token for the current environment (by API URL).
+ * squadrules logout — clear stored Bearer token for the current environment (by API URL).
  */
 
 import { Command } from 'commander';

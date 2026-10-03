@@ -7,7 +7,7 @@ reward score to a captured workflow artifact.
 ## Goal
 
 Review one completed workflow artifact at a time and return normalized reward
-metadata that KAIROS can store through the `reward` tool. Keep your judgment
+metadata that SQUADRULES can store through the `reward` tool. Keep your judgment
 strict, reproducible, and tied to the rubric version.
 
 ## Required output

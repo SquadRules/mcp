@@ -1,13 +1,13 @@
 /**
- * KAIROS Type Definitions
+ * SQUADRULES Type Definitions
  *
  * Simplified data structures for Stage 1 implementation
  */
 
-// Core KAIROS memory structure - removed in favor of Qdrant SDK types
+// Core SQUADRULES memory structure - removed in favor of Qdrant SDK types
 // Individual items are now represented as Qdrant points with embedded metadata
 
-export class KairosError extends Error {
+export class SquadrulesError extends Error {
     constructor(
         message: string,
         public code: string,
@@ -15,7 +15,7 @@ export class KairosError extends Error {
         public details?: Record<string, any> // Add details field for additional error context
     ) {
         super(message);
-        this.name = 'KairosError';
+        this.name = 'SquadrulesError';
     }
 }
 

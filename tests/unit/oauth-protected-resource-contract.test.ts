@@ -9,8 +9,8 @@ beforeAll(async () => {
     process.env['AUTH_CALLBACK_BASE_URL'] = 'http://localhost:3300';
     process.env['KEYCLOAK_URL'] = 'http://keycloak.local:8180';
     process.env['KEYCLOAK_INTERNAL_URL'] = 'http://keycloak:8080';
-    process.env['KEYCLOAK_REALM'] = 'kairos-dev';
-    process.env['KEYCLOAK_CLI_CLIENT_ID'] = 'kairos-cli';
+    process.env['KEYCLOAK_REALM'] = 'squadrules-dev';
+    process.env['KEYCLOAK_CLI_CLIENT_ID'] = 'squadrules-cli';
 
     const mod = await import('../../src/http/http-well-known.js');
     const oidcScopes = await import('../../src/http/oidc-scopes.js');
@@ -21,19 +21,19 @@ beforeAll(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug: authorization_servers points to KAIROS app instead of Keycloak issuer.
+// Bug: authorization_servers points to SQUADRULES app instead of Keycloak issuer.
 // MCP clients fetch /.well-known/oauth-authorization-server from that server,
 // which strips registration_endpoint → "does not support dynamic client registration".
 // ---------------------------------------------------------------------------
 
 describe('Protected Resource Metadata (buildProtectedResourceMetadata)', () => {
-    it('authorization_servers must point to Keycloak issuer, not KAIROS app base', () => {
+    it('authorization_servers must point to Keycloak issuer, not SQUADRULES app base', () => {
         const meta = buildProtectedResourceMetadata();
         const servers = meta['authorization_servers'] as string[];
 
         expect(servers).toHaveLength(1);
-        // Must be the Keycloak realm issuer — NOT the KAIROS app base URL.
-        expect(servers[0]).toBe('http://keycloak.local:8180/realms/kairos-dev');
+        // Must be the Keycloak realm issuer — NOT the SQUADRULES app base URL.
+        expect(servers[0]).toBe('http://keycloak.local:8180/realms/squadrules-dev');
         expect(servers[0]).not.toBe('http://localhost:3300');
     });
 
@@ -60,12 +60,12 @@ describe('Protected Resource Metadata (buildProtectedResourceMetadata)', () => {
 
 describe('Authorization Server Metadata (buildAuthorizationServerMetadata)', () => {
     const UPSTREAM_KEYCLOAK = {
-        issuer: 'http://keycloak.local:8180/realms/kairos-dev',
-        authorization_endpoint: 'http://keycloak.local:8180/realms/kairos-dev/protocol/openid-connect/auth',
-        token_endpoint: 'http://keycloak.local:8180/realms/kairos-dev/protocol/openid-connect/token',
-        registration_endpoint: 'http://keycloak.local:8180/realms/kairos-dev/clients-registrations/openid-connect',
+        issuer: 'http://keycloak.local:8180/realms/squadrules-dev',
+        authorization_endpoint: 'http://keycloak.local:8180/realms/squadrules-dev/protocol/openid-connect/auth',
+        token_endpoint: 'http://keycloak.local:8180/realms/squadrules-dev/protocol/openid-connect/token',
+        registration_endpoint: 'http://keycloak.local:8180/realms/squadrules-dev/clients-registrations/openid-connect',
         mtls_endpoint_aliases: {
-            registration_endpoint: 'http://keycloak.local:8180/realms/kairos-dev/clients-registrations/openid-connect',
+            registration_endpoint: 'http://keycloak.local:8180/realms/squadrules-dev/clients-registrations/openid-connect',
         },
     };
 
@@ -79,27 +79,27 @@ describe('Authorization Server Metadata (buildAuthorizationServerMetadata)', () 
 
     it('must rewrite internal Keycloak URLs back to the public issuer', () => {
         const result = buildAuthorizationServerMetadata({
-            issuer: 'http://keycloak:8080/realms/kairos-dev',
-            authorization_endpoint: 'http://keycloak:8080/realms/kairos-dev/protocol/openid-connect/auth',
-            token_endpoint: 'http://keycloak:8080/realms/kairos-dev/protocol/openid-connect/token',
-            registration_endpoint: 'http://keycloak:8080/realms/kairos-dev/clients-registrations/openid-connect',
+            issuer: 'http://keycloak:8080/realms/squadrules-dev',
+            authorization_endpoint: 'http://keycloak:8080/realms/squadrules-dev/protocol/openid-connect/auth',
+            token_endpoint: 'http://keycloak:8080/realms/squadrules-dev/protocol/openid-connect/token',
+            registration_endpoint: 'http://keycloak:8080/realms/squadrules-dev/clients-registrations/openid-connect',
             mtls_endpoint_aliases: {
-                registration_endpoint: 'http://keycloak:8080/realms/kairos-dev/clients-registrations/openid-connect',
+                registration_endpoint: 'http://keycloak:8080/realms/squadrules-dev/clients-registrations/openid-connect',
             },
         });
 
-        expect(result['issuer']).toBe('http://keycloak.local:8180/realms/kairos-dev');
+        expect(result['issuer']).toBe('http://keycloak.local:8180/realms/squadrules-dev');
         expect(result['authorization_endpoint']).toBe(
-            'http://keycloak.local:8180/realms/kairos-dev/protocol/openid-connect/auth'
+            'http://keycloak.local:8180/realms/squadrules-dev/protocol/openid-connect/auth'
         );
         expect(result['token_endpoint']).toBe(
-            'http://keycloak.local:8180/realms/kairos-dev/protocol/openid-connect/token'
+            'http://keycloak.local:8180/realms/squadrules-dev/protocol/openid-connect/token'
         );
         expect(result['registration_endpoint']).toBe(
             'http://localhost:3300/.well-known/clients-registrations/openid-connect'
         );
         expect((result['mtls_endpoint_aliases'] as Record<string, unknown>)['registration_endpoint']).toBe(
-            'http://keycloak.local:8180/realms/kairos-dev/clients-registrations/openid-connect'
+            'http://keycloak.local:8180/realms/squadrules-dev/clients-registrations/openid-connect'
         );
     });
 
@@ -130,17 +130,17 @@ describe('OIDC scopes parser', () => {
             'openid',
             'profile',
             'email',
-            'kairos-groups',
+            'squadrules-groups',
             'offline_access',
         ]);
     });
 
     it('accepts env override with trimming and dedupe', () => {
-        expect(parseOidcScopesSupported('openid, profile,offline_access,openid,kairos-groups')).toEqual([
+        expect(parseOidcScopesSupported('openid, profile,offline_access,openid,squadrules-groups')).toEqual([
             'openid',
             'profile',
             'offline_access',
-            'kairos-groups',
+            'squadrules-groups',
         ]);
     });
 

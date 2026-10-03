@@ -70,22 +70,22 @@ _d('Metrics Endpoint Integration', () => {
     const metrics = await response.text();
     
     // Check for all metric categories
-    expect(metrics).toMatch(/kairos_mcp_/);
-    expect(metrics).toMatch(/kairos_memory_/);
-    expect(metrics).toMatch(/kairos_qdrant_/);
-    expect(metrics).toMatch(/kairos_agent_/);
-    expect(metrics).toMatch(/kairos_embedding_/);
-    expect(metrics).toMatch(/kairos_http_/);
-    expect(metrics).toMatch(/kairos_system_/);
+    expect(metrics).toMatch(/squadrules_mcp_/);
+    expect(metrics).toMatch(/squadrules_memory_/);
+    expect(metrics).toMatch(/squadrules_qdrant_/);
+    expect(metrics).toMatch(/squadrules_agent_/);
+    expect(metrics).toMatch(/squadrules_embedding_/);
+    expect(metrics).toMatch(/squadrules_http_/);
+    expect(metrics).toMatch(/squadrules_system_/);
   });
 
   test('metrics include default labels', async () => {
     const response = await fetch(METRICS_URL, { dispatcher: fetchAgent });
     const metrics = await response.text();
     
-    expect(metrics).toMatch(/kairos_version=/);
+    expect(metrics).toMatch(/squadrules_version=/);
     expect(metrics).toMatch(/instance=/);
-    expect(metrics).toMatch(/service="kairos"/);
+    expect(metrics).toMatch(/service="squadrules"/);
   });
 
   test('metrics endpoint is on separate port', async () => {

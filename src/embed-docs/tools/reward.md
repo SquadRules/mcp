@@ -4,7 +4,7 @@ Finalize an adapter run with an outcome and optional evaluator metadata.
 
 **Input**
 
-- `uri` — **`kairos://layer/{uuid}`** (final layer; include `?execution_id=...` when the run used it).
+- `uri` — **`squadrules://layer/{uuid}`** (final layer; include `?execution_id=...` when the run used it).
 - `outcome` — `success` or `failure`.
 - Optional: `score` (0–1), `feedback`, `rater`, `rubric_version`, `llm_model_id`.
 

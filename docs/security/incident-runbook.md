@@ -49,15 +49,15 @@ Use this sequence to keep evidence collection consistent and auditable.
 Use commands like these to locate and correlate events quickly.
 
 ```bash
-jq 'select(.request_id == "req-123")' var/log/kairos.log
+jq 'select(.request_id == "req-123")' var/log/squadrules.log
 ```
 
 ```bash
-jq 'select(.category == "audit.embedding" and .tenant_id == "group:kairos-dev:ops")' var/log/kairos.log
+jq 'select(.category == "audit.embedding" and .tenant_id == "group:squadrules-dev:ops")' var/log/squadrules.log
 ```
 
 ```bash
-jq 'select(.category == "audit.anomaly" and .severity == "error")' var/log/kairos.log
+jq 'select(.category == "audit.anomaly" and .severity == "error")' var/log/squadrules.log
 ```
 
 If `AUDIT_LOG_FILE` is configured, run the same filters against that file to

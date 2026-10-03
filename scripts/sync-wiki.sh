@@ -22,7 +22,7 @@
 set -euo pipefail
 
 REPO_OWNER="jakub-plichcinski"
-REPO_NAME="kairos-mcp"
+REPO_NAME="mcp"
 SOURCE_DIR="${SOURCE_DIR:-.qoder/repowiki/en/content}"
 
 # Colors for output

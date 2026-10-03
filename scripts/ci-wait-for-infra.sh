@@ -2,7 +2,7 @@
 # Poll Valkey, Qdrant, Postgres, and Keycloak in parallel (used by integration CI).
 set -euo pipefail
 
-COMPOSE_PROJECT="${COMPOSE_PROJECT:-kairos-mcp}"
+COMPOSE_PROJECT="${COMPOSE_PROJECT:-squadrules-mcp}"
 ENV_FILE="${ENV_FILE:-.env}"
 REDIS_PASSWORD_FROM_ENV="$(awk -F= '/^REDIS_PASSWORD=/{print $2}' "$ENV_FILE" | tail -n1)"
 

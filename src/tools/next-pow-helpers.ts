@@ -3,7 +3,7 @@ import type { Memory, ProofOfWorkDefinition, ProofOfWorkType } from '../types/me
 import { proofOfWorkStore, MAX_RETRIES, type ProofOfWorkResultRecord } from '../services/proof-of-work-store.js';
 import { embeddingService } from '../services/embedding/service.js';
 import { getInferenceContract } from '../services/memory/memory-accessors.js';
-import { COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS, KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS, SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import type {
@@ -14,7 +14,7 @@ import type {
   ProofOfWorkSubmission
 } from './next-proof-types.js';
 import { validateMcpSubmissionAgainstContract } from './mcp-contract-match.js';
-import { buildLayerUri } from './kairos-uri.js';
+import { buildLayerUri } from './squadrules-uri.js';
 import { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 export type {
@@ -26,7 +26,7 @@ export type {
 } from './next-proof-types.js';
 
 export { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
-export { GENESIS_HASH } from './kairos-genesis-proof-hash.js';
+export { GENESIS_HASH } from './squadrules-genesis-proof-hash.js';
 
 const COMMENT_SEMANTIC_THRESHOLD = 0.25;
 
@@ -135,7 +135,7 @@ function buildErrorPayload(
     must_obey: !maxExceeded,
     current_step,
     challenge,
-    ...buildLocalArtifactDirFields(KAIROS_LOCAL_ARTIFACT_DIRS),
+    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
     message: maxExceeded
       ? `Step failed ${retryCount} times. Use your judgment to recover.`
       : message,

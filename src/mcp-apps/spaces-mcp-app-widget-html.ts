@@ -1,4 +1,4 @@
-import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
+import { SQUADRULES_LOGO_SVG } from './squadrules-logo-embedded.js';
 import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inject.js';
 
 /**
@@ -14,11 +14,11 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  * readable surface.
  */
 export function buildSpacesWidgetHtml(): string {
-  const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
-  return substituteWidgetPresentationToken(`<div id="kairos-spaces-root">
+  const logo = SQUADRULES_LOGO_SVG.replaceAll('`', '&#96;');
+  return substituteWidgetPresentationToken(`<div id="squadrules-spaces-root">
   <div class="brand">
     ${logo}
-    <h1>KAIROS · Your spaces</h1>
+    <h1>SQUADRULES · Your spaces</h1>
   </div>
   <div id="out"><span class="waiting">Loading your spaces...</span></div>
   <p class="hint">From the <code>spaces</code> tool: where your adapters live, and how many adapters each space holds. Use the space <strong>name</strong> in other tools when asked for a space, not a raw id.</p>
@@ -187,7 +187,7 @@ export function buildSpacesWidgetHtml(): string {
       var nextId = 1;
       var pending = {};
       var hostCtxState = {};
-      var PRESENTATION_ONLY = __KAIROS_WIDGET_PRESENTATION_ONLY__;
+      var PRESENTATION_ONLY = __SQUADRULES_WIDGET_PRESENTATION_ONLY__;
 
       function mergeHostContextDelta(prev, delta) {
         var base = {};
@@ -247,7 +247,7 @@ export function buildSpacesWidgetHtml(): string {
           }
         }
         if (st && st.css && st.css.fonts && typeof st.css.fonts === 'string' && st.css.fonts.trim()) {
-          var fid = 'kairos-host-fonts';
+          var fid = 'squadrules-host-fonts';
           var styleEl = document.getElementById(fid);
           if (!styleEl) {
             styleEl = document.createElement('style');
@@ -381,13 +381,13 @@ export function buildSpacesWidgetHtml(): string {
             var ph = document.createElement('span');
             ph.className = 'waiting';
             ph.textContent =
-              'Presentation-only: MCP bridge disabled (set KAIROS_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
+              'Presentation-only: MCP bridge disabled (set SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY=false for live data).';
             el.appendChild(ph);
           }
           return;
         }
         sendRequest('ui/initialize', {
-          appInfo: { name: 'kairos-spaces-view', version: '1.0.0' },
+          appInfo: { name: 'squadrules-spaces-view', version: '1.0.0' },
           appCapabilities: {},
           protocolVersion: PROTO
         }).then(function (result) {

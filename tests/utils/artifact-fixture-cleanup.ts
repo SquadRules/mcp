@@ -23,10 +23,10 @@ function uniqUris(input: string[]): string[] {
 }
 
 function toLayerUriFromArtifactUri(uri: string): string {
-  if (uri.startsWith('kairos://layer/')) return uri;
-  if (uri.startsWith('kairos://artifact/')) {
-    const id = uri.slice('kairos://artifact/'.length).trim();
-    return UUID_RE.test(id) ? `kairos://layer/${id}` : '';
+  if (uri.startsWith('squadrules://layer/')) return uri;
+  if (uri.startsWith('squadrules://artifact/')) {
+    const id = uri.slice('squadrules://artifact/'.length).trim();
+    return UUID_RE.test(id) ? `squadrules://layer/${id}` : '';
   }
   return uri;
 }
