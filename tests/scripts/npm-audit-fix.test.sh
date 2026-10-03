@@ -25,11 +25,11 @@ case "$*" in
     fi
     echo "standard audit fix completed"
     ;;
-  "audit fix --force")
+  "audit fix --omit=dev --force")
     echo force > "$MOCK_STATE"
     echo "force audit fix completed"
     ;;
-  "audit --audit-level=moderate")
+  "audit --omit=dev --audit-level=moderate")
     state=""
     [ ! -f "$MOCK_STATE" ] || state=$(<"$MOCK_STATE")
     if [ "$MOCK_SCENARIO" = "needs-force" ] && [ "$state" != "force" ]; then
@@ -69,15 +69,15 @@ run_case needs-force
 grep -Fxq 'mode=force' "${test_root}/needs-force/output"
 diff -u <(printf '%s\n' \
   'audit fix' \
-  'audit --audit-level=moderate' \
-  'audit fix --force' \
-  'audit --audit-level=moderate') "${test_root}/needs-force/calls"
+  'audit --omit=dev --audit-level=moderate' \
+  'audit fix --omit=dev --force' \
+  'audit --omit=dev --audit-level=moderate') "${test_root}/needs-force/calls"
 
 run_case standard
 grep -Fxq 'mode=standard' "${test_root}/standard/output"
 diff -u <(printf '%s\n' \
   'audit fix' \
-  'audit --audit-level=moderate') "${test_root}/standard/calls"
+  'audit --omit=dev --audit-level=moderate') "${test_root}/standard/calls"
 
 default_log_dir="${test_root}/default-log-dir"
 mkdir -p "$default_log_dir"
@@ -102,8 +102,8 @@ run_case eresolve
 grep -Fxq 'mode=force' "${test_root}/eresolve/output"
 diff -u <(printf '%s\n' \
   'audit fix' \
-  'audit fix --force' \
-  'audit --audit-level=moderate') "${test_root}/eresolve/calls"
+  'audit fix --omit=dev --force' \
+  'audit --omit=dev --audit-level=moderate') "${test_root}/eresolve/calls"
 
 unfixable_dir="${test_root}/unfixable"
 mkdir -p "$unfixable_dir"
@@ -119,7 +119,7 @@ if MOCK_SCENARIO=unfixable \
   echo "unfixable advisories unexpectedly succeeded" >&2
   exit 1
 fi
-if grep -Fxq 'audit fix --force' "${unfixable_dir}/calls"; then
+if grep -Fxq 'audit fix --omit=dev --force' "${unfixable_dir}/calls"; then
   echo "force fix ran without npm offering it" >&2
   exit 1
 fi
