@@ -28,7 +28,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const REPO_OWNER = 'jakub-plichcinski';
-const REPO_NAME = 'kairos-mcp';
+const REPO_NAME = 'mcp';
 const REPO_BRANCH = 'main';
 const BLOB_BASE = `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/`;
 
@@ -255,14 +255,14 @@ function renderRoot(root, maxDepth) {
 }
 
 function buildSidebar(root) {
-  return ['### KAIROS MCP', '', `- ${link('Home', 'Home')}`, '', renderRoot(root, Infinity), ''].join('\n');
+  return ['### SQUADRULES MCP', '', `- ${link('Home', 'Home')}`, '', renderRoot(root, Infinity), ''].join('\n');
 }
 
 function buildHome(root) {
   return [
-    '# KAIROS MCP Wiki',
+    '# SQUADRULES MCP Wiki',
     '',
-    'KAIROS MCP is a Model Context Protocol server for persistent memory and',
+    'SQUADRULES MCP is a Model Context Protocol server for persistent memory and',
     'deterministic adapter execution. It stores workflows as linked adapters',
     'whose layers can carry proof-of-work challenges.',
     '',

@@ -31,7 +31,7 @@ jest.unstable_mockModule('../../src/cli/oauth-refresh.js', () => ({
         authEndpoint: 'http://idp/realms/test/protocol/openid-connect/auth',
         tokenEndpoint: FAKE_TOKEN_ENDPOINT,
     })),
-    KAIROS_CLI_CLIENT_ID: 'kairos-cli',
+    SQUADRULES_CLI_CLIENT_ID: 'squadrules-cli',
 }));
 
 jest.unstable_mockModule('../../src/cli/config-file.js', () => ({
@@ -171,7 +171,7 @@ function extractCallbackInfo(): { callbackPathToken: string; state: string } {
 describe('browser PKCE login flow (unit)', () => {
     it('exchanges code → stores token → isTokenValid confirms it', async () => {
         const callbackPort = 40001 + Math.floor(Math.random() * 1000);
-        process.env['KAIROS_LOGIN_CALLBACK_PORT'] = String(callbackPort);
+        process.env['SQUADRULES_LOGIN_CALLBACK_PORT'] = String(callbackPort);
 
         try {
             // 1. Start browser login
@@ -195,7 +195,7 @@ describe('browser PKCE login flow (unit)', () => {
             expect(fetchTokenExchangeCalls).toBe(1);
             expect(lastTokenExchangeBody?.get('grant_type')).toBe('authorization_code');
             expect(lastTokenExchangeBody?.get('code')).toBe('fake-auth-code-123');
-            expect(lastTokenExchangeBody?.get('client_id')).toBe('kairos-cli');
+            expect(lastTokenExchangeBody?.get('client_id')).toBe('squadrules-cli');
             expect(lastTokenExchangeBody?.get('code_verifier')).toBeTruthy();
 
             // 6. Verify config stored the random token
@@ -211,7 +211,7 @@ describe('browser PKCE login flow (unit)', () => {
             const invalid = await isTokenValid(FAKE_BASE_URL, 'bogus-token');
             expect(invalid).toBe(false);
         } finally {
-            delete process.env['KAIROS_LOGIN_CALLBACK_PORT'];
+            delete process.env['SQUADRULES_LOGIN_CALLBACK_PORT'];
         }
     }, 15000);
 });

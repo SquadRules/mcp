@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const sampleRoot =
-    process.env.KAIROS_MIME_SAMPLE_ROOT || path.join(path.dirname(__filename), '..');
+    process.env.SQUADRULES_MIME_SAMPLE_ROOT || path.join(path.dirname(__filename), '..');
 const yamlPath = path.join(sampleRoot, 'conf', 'routes.yaml');
 const text = fs.readFileSync(yamlPath, 'utf8');
 const m = text.match(/greeting:\s*"([^"]*)"/);

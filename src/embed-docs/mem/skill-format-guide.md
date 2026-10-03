@@ -9,9 +9,9 @@ title: Skill Format and Local Authoring Guide
 # Skill Format and Local Authoring Guide
 
 Decision rules for authoring SKILL.md files, choosing between local (git) and
-server (KAIROS) storage, and quality gates for skill content. Fetches the
+server (SQUADRULES) storage, and quality gates for skill content. Fetches the
 current Agent Skills format spec (Context7 or agentskills.io) as the
-authoritative generic format, then layers KAIROS customizations on top. Loaded
+authoritative generic format, then layers SQUADRULES customizations on top. Loaded
 by protocol-authoring agents during drafting and review when the output format
 is `skill`.
 
@@ -23,7 +23,7 @@ is `skill`.
 **Can be invoked directly when agent needs:**
 - "SKILL.md format reference" / "how to write a skill"
 - "latest SKILL.md spec" / "current agentskills format"
-- "skill vs adapter" / "local skill or KAIROS adapter"
+- "skill vs adapter" / "local skill or SQUADRULES adapter"
 - "skill quality gates" / "SKILL.md structure"
 - "project-level skill" / "where to put a skill"
 
@@ -31,7 +31,7 @@ is `skill`.
 
 **Must Never:**
 - Be used as an execution protocol.
-- Recommend storing a skill in both git AND KAIROS server simultaneously.
+- Recommend storing a skill in both git AND SQUADRULES server simultaneously.
 - Confuse SKILL.md (agent instruction file) with protocol markdown (adapter).
 - Hardcode the generic SKILL.md format from memory when the current spec is
   reachable via Context7 or agentskills.io.
@@ -39,7 +39,7 @@ is `skill`.
 **Must Always:**
 - Be consulted before writing any SKILL.md file.
 - Fetch the current Agent Skills spec before authoring or reviewing generic
-  format, and apply KAIROS customizations after it.
+  format, and apply SQUADRULES customizations after it.
 - Enforce single source of truth: each skill lives in exactly one place.
 - Match storage location to the skill's scope and discoverability needs.
 
@@ -59,8 +59,8 @@ Every skill has ONE home. Choose at authoring time. Never both.
 | Scope | Storage | Discovery | Source of Truth |
 |---|---|---|---|
 | Project-specific (deploy, test, release) | Git: `.agents/skills/{name}/` or `.cursor/skills/{name}/` | IDE host scans description field | Git repo |
-| Personal cross-project (universal) | KAIROS server via `train` | `activate` embedding search | KAIROS server |
-| Team/group shared | KAIROS server (group space) | `activate` | KAIROS server |
+| Personal cross-project (universal) | SQUADRULES server via `train` | `activate` embedding search | SQUADRULES server |
+| Team/group shared | SQUADRULES server (group space) | `activate` | SQUADRULES server |
 
 ### Decision Tree
 
@@ -69,9 +69,9 @@ Is this skill specific to ONE project's codebase?
  ├─ YES → Does it reference repo files, paths, or project-specific tools?
  │         ├─ YES → LOCAL (git)
  │         └─ NO  → Could it help in other projects?
- │                   ├─ YES → SERVER (KAIROS)
+ │                   ├─ YES → SERVER (SQUADRULES)
  │                   └─ NO  → LOCAL (git)
- └─ NO → SERVER (KAIROS)
+ └─ NO → SERVER (SQUADRULES)
 ```
 
 ### Local Storage Paths
@@ -90,7 +90,7 @@ Is this skill specific to ONE project's codebase?
 **Local → Server (skill graduates to universal):**
 1. Read existing SKILL.md
 2. Optionally wrap in protocol structure (Activation Patterns, contracts)
-3. `train` to KAIROS server
+3. `train` to SQUADRULES server
 4. Delete local copy or mark deprecated
 5. Git commit the deletion
 
@@ -108,7 +108,7 @@ Is this skill specific to ONE project's codebase?
 Do NOT rely on a frozen copy of the SKILL.md format. The Agent Skills format
 evolves (new frontmatter fields, directory conventions, size guidance). Before
 authoring or reviewing a SKILL.md, fetch the **current** specification and treat
-it as authoritative for the generic format. The KAIROS customizations in the
+it as authoritative for the generic format. The SQUADRULES customizations in the
 sections *after* this one layer on top of that generic spec.
 
 **Authoritative source (fetch fresh — do not guess):**
@@ -145,19 +145,19 @@ sections *after* this one layer on top of that generic spec.
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```
 
-## KAIROS Customizations (apply after the generic spec)
+## SQUADRULES Customizations (apply after the generic spec)
 
-Everything below is KAIROS-specific and layers on top of the fetched Agent
+Everything below is SQUADRULES-specific and layers on top of the fetched Agent
 Skills spec. When the generic spec and these rules disagree on generic format,
-follow the spec; these rules add KAIROS storage, integrity, and routing
+follow the spec; these rules add SQUADRULES storage, integrity, and routing
 behavior the generic spec does not cover.
 
-### KAIROS additions to structure
+### SQUADRULES additions to structure
 
-- **`SHA256SUMS`** — required for KAIROS-exported skill bundles (GNU
-  `sha256sum` format, paths relative to the skill dir). This is a KAIROS
+- **`SHA256SUMS`** — required for SQUADRULES-exported skill bundles (GNU
+  `sha256sum` format, paths relative to the skill dir). This is a SQUADRULES
   integrity requirement, not part of the generic Agent Skills spec.
-- **`disable-model-invocation`** — when the host supports it, KAIROS-authored
+- **`disable-model-invocation`** — when the host supports it, SQUADRULES-authored
   skills default this to `true` (explicit load only) unless the skill is meant
   to auto-trigger. Only add fields the fetched spec actually recognizes.
 - **Reference depth** — keep references one level deep (SKILL.md → reference
@@ -236,7 +236,7 @@ When `{target}=local`:
 
 Do NOT call `train`. The skill lives only in git.
 
-### Path B: Server Train (KAIROS-routable adapter)
+### Path B: Server Train (SQUADRULES-routable adapter)
 
 When `{target}=server`:
 
@@ -248,17 +248,17 @@ When `{target}=server`:
 3. Verify adapter URI returned
 4. Report URI and slug to user
 
-Do NOT write to local disk. The adapter lives only in KAIROS.
+Do NOT write to local disk. The adapter lives only in SQUADRULES.
 
 ### Path C: Hybrid Authoring (skill that is also an adapter)
 
 When `{target}=hybrid` (rare — use only when explicitly requested):
 
-1. Author as a KAIROS protocol (Activation Patterns, contracts, Reward Signal)
+1. Author as a SQUADRULES protocol (Activation Patterns, contracts, Reward Signal)
 2. `train` to server
 3. `export` with `format: skill_zip` to produce local SKILL.md bundle
 4. The exported SKILL.md is a **read-only derived artifact**, not a source of truth
-5. Document in the SKILL.md header that it was exported from KAIROS
+5. Document in the SKILL.md header that it was exported from SQUADRULES
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
@@ -271,7 +271,7 @@ Only reachable after all prior steps are solved.
 The agent can now:
 1. Fetch the current Agent Skills spec (Context7 or agentskills.io) instead of
    relying on a frozen copy, and apply it as the authoritative generic format
-2. Layer the KAIROS customizations (storage, `SHA256SUMS`, routing) on top of
+2. Layer the SQUADRULES customizations (storage, `SHA256SUMS`, routing) on top of
    that fetched spec
 3. Choose the correct storage location for a skill
 4. Author SKILL.md with valid frontmatter and structure per the current spec

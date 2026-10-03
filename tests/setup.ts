@@ -1,4 +1,4 @@
-// Global Jest setup for KAIROS MCP integration tests
+// Global Jest setup for SQUADRULES MCP integration tests
 // Set required env vars before any test file imports config (config throws if missing).
 // REDIS_URL set (non-empty) → Redis; unset or empty → in-memory. tests/env-loader already
 // normalizes a bare REDIS_URL with REDIS_PASSWORD when available; do not invent a default here.

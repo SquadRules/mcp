@@ -22,7 +22,7 @@ export interface SkillExportItem {
   slug: string;
   name: string;
   description: string;
-  kairosUri: string;
+  squadrulesUri: string;
   adapterVersion?: string | null;
   files: SkillExportFile[];
   diagnostics: SkillExportDiagnostic[];

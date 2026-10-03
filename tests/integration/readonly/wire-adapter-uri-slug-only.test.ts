@@ -2,8 +2,8 @@ import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-const UUID_ADAPTER_URI = 'kairos://adapter/00000000-0000-0000-0000-000000000001';
-const SLUG_ADAPTER_URI = 'kairos://adapter/phase-critic';
+const UUID_ADAPTER_URI = 'squadrules://adapter/00000000-0000-0000-0000-000000000001';
+const SLUG_ADAPTER_URI = 'squadrules://adapter/phase-critic';
 
 describe('wire adapter URI contract (slug and UUID accepted)', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;

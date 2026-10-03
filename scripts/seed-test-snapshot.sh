@@ -3,13 +3,13 @@
 # Usage: npm run test:seed-snapshot
 #
 # This script:
-# 1. Starts KAIROS with kairos_ci collection (fresh Qdrant)
+# 1. Starts SQUADRULES with squadrules_ci collection (fresh Qdrant)
 # 2. Trains all adapters needed for integration tests
 # 3. Stops the app
 # 4. Creates Qdrant snapshot
 # 5. Caches snapshot:
 #    - CI: GitHub Actions cache (workflow handles this)
-#    - Local: .local/qdrant-snapshot/kairos_ci.snapshot
+#    - Local: .local/qdrant-snapshot/squadrules_ci.snapshot
 #
 # Snapshot is restored before tests to skip expensive train() calls.
 
@@ -17,8 +17,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCAL_CACHE_DIR="${ROOT_DIR}/.local/qdrant-snapshot"
-SNAPSHOT_FILE="${LOCAL_CACHE_DIR}/kairos_ci.snapshot"
-COLLECTION_NAME="${QDRANT_COLLECTION:-kairos_ci}"
+SNAPSHOT_FILE="${LOCAL_CACHE_DIR}/squadrules_ci.snapshot"
+COLLECTION_NAME="${QDRANT_COLLECTION:-squadrules_ci}"
 
 # Load environment from correct .env file
 ENV="${ENV:-dev}"
@@ -78,7 +78,7 @@ mkdir -p "${LOCAL_CACHE_DIR}"
 
 # Use ALREADY RUNNING Qdrant and app from deploy-run-env.sh
 log_info "Using Qdrant at: ${QDRANT_URL}"
-log_info "Using KAIROS app at: ${APP_URL}"
+log_info "Using SQUADRULES app at: ${APP_URL}"
 
 # Verify Qdrant is running
 if ! curl -sSf "${QDRANT_URL}/healthz" >/dev/null 2>&1; then
@@ -87,9 +87,9 @@ if ! curl -sSf "${QDRANT_URL}/healthz" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Verify KAIROS app is running
+# Verify SQUADRULES app is running
 if ! curl -sSf "${APP_URL}/health" >/dev/null 2>&1; then
-  log_error "KAIROS app not running at ${APP_URL}"
+  log_error "SQUADRULES app not running at ${APP_URL}"
   log_error "Run: npm run dev:deploy (or npm run dev_simple:deploy)"
   exit 1
 fi
@@ -121,7 +121,7 @@ call_mcp_tool() {
   echo "${response}"
 }
 
-# Train AI_CODING_RULES adapter using KAIROS CLI (handles auth automatically)
+# Train AI_CODING_RULES adapter using SQUADRULES CLI (handles auth automatically)
 log_info "Training AI_CODING_RULES adapter via CLI..."
 
 # Create temporary directory with test adapter markdown
@@ -131,7 +131,7 @@ cp "${ROOT_DIR}/tests/test-data/AI_CODING_RULES.md" "${TEMP_DIR}/"
 log_info "Training from: ${TEMP_DIR}"
 log_info "Base URL: ${APP_URL}"
 
-# Train using KAIROS CLI (uses stored auth from kairos login)
+# Train using SQUADRULES CLI (uses stored auth from squadrules login)
 TRAIN_OUTPUT=$(node "${ROOT_DIR}/dist/cli/index.js" train --url "${APP_URL}" --force "${TEMP_DIR}" 2>&1)
 TRAIN_EXIT=$?
 
@@ -211,7 +211,7 @@ print(result.get("name", ""))
 ' 2>/dev/null)
   
   if [ -n "${TRACES_SNAPSHOT_NAME}" ]; then
-    TRACES_SNAPSHOT_FILE="${LOCAL_CACHE_DIR}/kairos_ci_traces.snapshot"
+    TRACES_SNAPSHOT_FILE="${LOCAL_CACHE_DIR}/squadrules_ci_traces.snapshot"
     curl -sSf -o "${TRACES_SNAPSHOT_FILE}" \
       "${QDRANT_URL}/collections/${TRACES_COLLECTION}/snapshots/${TRACES_SNAPSHOT_NAME}" \
       "${QDRANT_HEADERS[@]}"

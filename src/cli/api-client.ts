@@ -1,5 +1,5 @@
 /**
- * API Client for KAIROS REST API.
+ * API Client for SQUADRULES REST API.
  * Returns canonical response shapes (no metadata wrapper).
  */
 
@@ -74,7 +74,7 @@ export class ApiClient {
         const configUrl = getDefaultApiUrlFromFile();
         const resolvedBaseUrl =
             explicit ||
-            (process.env['KAIROS_API_URL'] || '').trim() ||
+            (process.env['SQUADRULES_API_URL'] || '').trim() ||
             configUrl ||
             getApiUrl();
         this.baseUrl = normalizeAndValidateApiBaseUrl(resolvedBaseUrl);
@@ -164,7 +164,7 @@ export class ApiClient {
                         ? `timed out after ${requestTimeoutMs / 1000}s`
                         : describeFetchError(err);
                     process.stderr.write(
-                        `[kairos] retry ${attempt}/${this.maxRetries}: ${label} — waiting ${(delayMs / 1000).toFixed(1)}s\n`
+                        `[squadrules] retry ${attempt}/${this.maxRetries}: ${label} — waiting ${(delayMs / 1000).toFixed(1)}s\n`
                     );
                     await this.sleep(delayMs);
                     lastErr = err;

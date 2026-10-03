@@ -1,4 +1,4 @@
-# kairos MCP Server - Git Ignore Rules
+# squadrules MCP Server - Git Ignore Rules
 
 # Dependencies
 node_modules/
@@ -146,7 +146,7 @@ test-*.js
 
 # Test files that might be created during development
 *.test.js
-!tests/unit/kairos-codeql-line-comments.rule.test.js
+!tests/unit/squadrules-codeql-line-comments.rule.test.js
 *.test.cjs
 *.spec.js
 *.spec.cjs
@@ -172,7 +172,7 @@ data/**/qdrant/snapshots/*.snapshot
 
 # Test snapshots (generated, cached in CI via GitHub Actions)
 tests/test-data/*.snapshot
-tests/test-data/kairos_ci.snapshot
+tests/test-data/squadrules_ci.snapshot
 
 # Docker
 docker-compose.override.yml
@@ -180,8 +180,8 @@ docker-compose.override.yml
 # Kubernetes
 *.kubeconfig
 
-# Helm chart dependencies (run: helm dependency update in helm/kairos-mcp)
-helm/kairos-mcp/charts/*.tgz
+# Helm chart dependencies (run: helm dependency update in helm/squadrules-mcp)
+helm/squadrules-mcp/charts/*.tgz
 
 # Terraform
 *.tfstate
@@ -190,7 +190,7 @@ helm/kairos-mcp/charts/*.tgz
 
 # Local configuration and runtime overrides (canonical local root)
 .local/
-.kairos/
+.squadrules/
 # Legacy local roots kept for backward compatibility
 local/
 var/
@@ -241,6 +241,6 @@ cache/
 data/
 snapshots/
 .cursor/TODO.md
-.kairos-work/
+.squadrules-work/
 .qoder/plans/
 .trae/

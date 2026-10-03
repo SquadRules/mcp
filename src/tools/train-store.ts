@@ -7,8 +7,8 @@ import {
   validateArtifactContentSize
 } from '../services/memory/validate-adapter-markdown-size.js';
 import type { TrainStoreInput, TrainStoreOutput } from './train_schema.js';
-import { buildAdapterUri, buildLayerUri } from './kairos-uri.js';
-import { KAIROS_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
+import { buildAdapterUri, buildLayerUri } from './squadrules-uri.js';
+import { SQUADRULES_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
 import {
   ALLOWED_ARTIFACT_MIMES,
   inferArtifactMimeFromName,
@@ -86,7 +86,7 @@ export async function executeTrainStore(
     );
     return {
       items: memories.map((memory) => ({
-        uri: `kairos://artifact/${memory.memory_uuid}`,
+        uri: `squadrules://artifact/${memory.memory_uuid}`,
         artifact_uuid: memory.memory_uuid,
         adapter_uri: input.adapter_uri!,
         label: memory.label,
@@ -107,7 +107,7 @@ export async function executeTrainStore(
     throw new TrainError('PROTOCOL_STRUCTURE_INVALID', validation.message, {
       missing: validation.missing,
       must_obey: true,
-      next_action: `call forward with ${buildAdapterUri(KAIROS_CREATION_PROTOCOL_SLUG)} for guided adapter creation`
+      next_action: `call forward with ${buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG)} for guided adapter creation`
     });
   }
   const memories = await runStore(() =>

@@ -10,10 +10,10 @@ import { AsyncLocalStorage } from 'async_hooks';
 import { v5 as uuidv5 } from 'uuid';
 import {
   AUTH_ENABLED,
-  KAIROS_APP_SPACE_ID,
-  KAIROS_SIMPLE_PERSONAL_REALM,
-  KAIROS_SIMPLE_PERSONAL_SPACE_ID,
-  KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED
+  SQUADRULES_APP_SPACE_ID,
+  SQUADRULES_SIMPLE_PERSONAL_REALM,
+  SQUADRULES_SIMPLE_PERSONAL_SPACE_ID,
+  SQUADRULES_SIMPLE_PERSONAL_UUIDV5_SEED
 } from '../config.js';
 import { resolveSpaceParamForContext } from './resolve-space-param.js';
 
@@ -35,7 +35,7 @@ export interface SpaceContext {
   spaceNamesById?: Record<string, string>;
   requestId?: string;
   /**
-   * When set (e.g. activate/search space parameter), vector search uses exactly these IDs — no implicit merge of Kairos app.
+   * When set (e.g. activate/search space parameter), vector search uses exactly these IDs — no implicit merge of Squadrules app.
    * Writes should still use defaultWriteSpaceId when the scope is read-only (app space).
    */
   activateSpaceScope?: string[];
@@ -56,14 +56,14 @@ const spaceStorage = new AsyncLocalStorage<SpaceContext>();
 
 function defaultSpaceContext(): SpaceContext {
   const personalSpaceId = defaultPersonalSpaceIdForNoAuth();
-  const appSpaceId = KAIROS_APP_SPACE_ID;
+  const appSpaceId = SQUADRULES_APP_SPACE_ID;
   return {
     userId: '',
     groupIds: [],
     allowedSpaceIds: [personalSpaceId, appSpaceId],
     defaultWriteSpaceId: personalSpaceId,
     personalSpaceId: personalSpaceId,
-    spaceNamesById: { [personalSpaceId]: 'Personal', [appSpaceId]: 'Kairos app' },
+    spaceNamesById: { [personalSpaceId]: 'Personal', [appSpaceId]: 'Squadrules app' },
     requestId: ''
   };
 }
@@ -118,7 +118,7 @@ export function getSpaceContextFromStorage(): SpaceContext {
   return AUTH_ENABLED ? noDefaultSpaceContext() : defaultSpaceContext();
 }
 
-/** Current space id for Redis key prefix and similar; uses storage or KAIROS_APP_SPACE_ID when auth off. */
+/** Current space id for Redis key prefix and similar; uses storage or SQUADRULES_APP_SPACE_ID when auth off. */
 export function getSpaceIdFromStorage(): string {
   return getSpaceContextFromStorage().defaultWriteSpaceId;
 }
@@ -130,7 +130,7 @@ export function getRequestIdFromStorage(): string {
 }
 
 /**
- * Space IDs to use for search only: allowedSpaceIds plus Kairos app space (deduped).
+ * Space IDs to use for search only: allowedSpaceIds plus Squadrules app space (deduped).
  * Writes (train, tune, delete) continue to use allowedSpaceIds only.
  */
 export function getSearchSpaceIds(): string[] {
@@ -140,8 +140,8 @@ export function getSearchSpaceIds(): string[] {
     return [...scope];
   }
   const allowed = ctx.allowedSpaceIds;
-  if (allowed.includes(KAIROS_APP_SPACE_ID)) return [...allowed];
-  return [...allowed, KAIROS_APP_SPACE_ID];
+  if (allowed.includes(SQUADRULES_APP_SPACE_ID)) return [...allowed];
+  return [...allowed, SQUADRULES_APP_SPACE_ID];
 }
 
 /**
@@ -162,7 +162,7 @@ export async function runWithOptionalSpaceAsync<T>(spaceParam: string | undefine
   if (!searchableBeforeNarrow.includes(spaceId)) {
     throw new Error('Requested space is not in your allowed spaces');
   }
-  const readOnlyAppScope = spaceId === KAIROS_APP_SPACE_ID;
+  const readOnlyAppScope = spaceId === SQUADRULES_APP_SPACE_ID;
   const narrowed: SpaceContext = {
     ...ctx,
     allowedSpaceIds: [spaceId],
@@ -194,12 +194,12 @@ function normalizeIssuer(iss: string, realm: string): string {
 }
 
 function defaultPersonalSpaceIdForNoAuth(): string {
-  if (KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED.length > 0) {
-    const realmSlug = normalizeRealmSlug(KAIROS_SIMPLE_PERSONAL_REALM);
-    const personalUuid = uuidv5(KAIROS_SIMPLE_PERSONAL_UUIDV5_SEED, SPACE_ID_NAMESPACE);
+  if (SQUADRULES_SIMPLE_PERSONAL_UUIDV5_SEED.length > 0) {
+    const realmSlug = normalizeRealmSlug(SQUADRULES_SIMPLE_PERSONAL_REALM);
+    const personalUuid = uuidv5(SQUADRULES_SIMPLE_PERSONAL_UUIDV5_SEED, SPACE_ID_NAMESPACE);
     return `user:${realmSlug}:${personalUuid}`;
   }
-  return KAIROS_SIMPLE_PERSONAL_SPACE_ID;
+  return SQUADRULES_SIMPLE_PERSONAL_SPACE_ID;
 }
 
 function normalizeGroupFullPath(value: string): string {

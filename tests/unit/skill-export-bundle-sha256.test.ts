@@ -30,7 +30,7 @@ function makeItem(slug: string, files: SkillExportFile[]): SkillExportItem {
     slug,
     name: slug,
     description: `desc-${slug}`,
-    kairosUri: `kairos://adapter/${slug}`,
+    squadrulesUri: `squadrules://adapter/${slug}`,
     files,
     diagnostics: []
   };

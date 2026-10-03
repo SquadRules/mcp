@@ -1,5 +1,5 @@
 /**
- * KAIROS MCP Server
+ * SQUADRULES MCP Server
  *
  * Supports HTTP and stdio transports.
  */
@@ -16,7 +16,7 @@ import {
   METRICS_PORT,
   QDRANT_SNAPSHOT_ON_START,
   QDRANT_SNAPSHOT_DIR,
-  KAIROS_LOCAL_ARTIFACT_DIRS,
+  SQUADRULES_LOCAL_ARTIFACT_DIRS,
   TRANSPORT_TYPE
 } from './config.js';
 import { qdrantService } from './services/qdrant/index.js';
@@ -90,7 +90,7 @@ function installSignalHandlers(): void {
  * Invoked when `node dist/index.js` is the process entrypoint, or after `dist/bootstrap.js` loads this module
  * (bootstrap is not `index.js`, so `isDirectRun()` is false there and bootstrap must call this explicitly).
  */
-export async function runKairosServer(): Promise<void> {
+export async function runSquadrulesServer(): Promise<void> {
     try {
         installQdrantFetchCompatibility();
         // Install once at startup to capture any background errors/warnings
@@ -98,7 +98,7 @@ export async function runKairosServer(): Promise<void> {
         installSignalHandlers();
 
         structuredLogger.info(
-          `KAIROS_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${KAIROS_LOCAL_ARTIFACT_DIRS.join(', ')}`
+          `SQUADRULES_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
         );
 
         const memoryStore = new MemoryQdrantStore();
@@ -136,7 +136,7 @@ export async function runKairosServer(): Promise<void> {
             startMetricsServer();
         }
 
-        const transportSource = process.env['KAIROS_CLI_TRANSPORT_SOURCE']?.trim();
+        const transportSource = process.env['SQUADRULES_CLI_TRANSPORT_SOURCE']?.trim();
         if (transportSource === 'cli' || transportSource === 'env') {
             structuredLogger.info(
                 `Resolved MCP transport: ${TRANSPORT_TYPE} (source: ${transportSource === 'cli' ? '--transport' : 'TRANSPORT_TYPE'})`
@@ -168,7 +168,7 @@ export async function runKairosServer(): Promise<void> {
         if (error.stack) process.stderr.write(`${error.stack}\n`);
 
         try {
-            structuredLogger.error('Fatal error during KAIROS MCP startup', error);
+            structuredLogger.error('Fatal error during SQUADRULES MCP startup', error);
         } catch {
             // Ignore logging failures
         }
@@ -179,5 +179,5 @@ export async function runKairosServer(): Promise<void> {
 }
 
 if (isDirectRun()) {
-    await runKairosServer();
+    await runSquadrulesServer();
 }

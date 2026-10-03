@@ -1,13 +1,13 @@
 /**
  * CLI config file: token and API URL storage (XDG-compliant, user-only readable).
- * Supports multiple environments keyed by KAIROS_API_URL (normalized, no trailing slash).
+ * Supports multiple environments keyed by SQUADRULES_API_URL (normalized, no trailing slash).
  * When keyring is available, bearer and refresh tokens are stored in the OS keyring; the config file
  * holds only defaultUrl and environment keys. When keyring is unavailable, secrets are
  * stored in the file (with a one-time warning).
  *
  * New format:
  *   { "defaultUrl": "http://localhost:<SERVER_PORT>", "environments": { "http://localhost:<SERVER_PORT>": { "bearerToken": "..." }, ... } }
- * Older single-env shape: { "KAIROS_API_URL": "...", "bearerToken": "..." } — migrated on first write.
+ * Older single-env shape: { "SQUADRULES_API_URL": "...", "bearerToken": "..." } — migrated on first write.
  */
 
 import {
@@ -51,7 +51,7 @@ let keychainUnreachableWarned = false;
 function warnKeychainUnreachableOnce(): void {
   if (keychainUnreachableWarned) return;
   keychainUnreachableWarned = true;
-  writeStderr('Token was saved to the OS keychain but the keyring is now unavailable — run `kairos login` to re-authenticate.');
+  writeStderr('Token was saved to the OS keychain but the keyring is now unavailable — run `squadrules login` to re-authenticate.');
 }
 
 function persistEnvironmentSentinel(path: string, url: string, opts: { bearer?: boolean; refresh?: boolean }): void {
@@ -73,8 +73,8 @@ export function getDefaultApiUrlFromFile(): string | undefined {
     const path = getConfigPath();
     const parsed = parseConfigFile(path);
     if (!parsed) return undefined;
-    if (isSingleEnvFlatConfig(parsed) && typeof parsed.KAIROS_API_URL === 'string') {
-        return normalizeApiUrl(parsed.KAIROS_API_URL);
+    if (isSingleEnvFlatConfig(parsed) && typeof parsed.SQUADRULES_API_URL === 'string') {
+        return normalizeApiUrl(parsed.SQUADRULES_API_URL);
     }
     if (typeof parsed.defaultUrl === 'string') return normalizeApiUrl(parsed.defaultUrl);
     const envs = parsed.environments ?? {};
@@ -101,7 +101,7 @@ export async function readConfig(baseUrl?: string): Promise<CliConfig> {
   let apiUrlOut: string | undefined;
 
   if (isSingleEnvFlatConfig(parsed)) {
-    const storedSingleUrlRaw = typeof parsed.KAIROS_API_URL === 'string' ? parsed.KAIROS_API_URL : undefined;
+    const storedSingleUrlRaw = typeof parsed.SQUADRULES_API_URL === 'string' ? parsed.SQUADRULES_API_URL : undefined;
     const normalizedStoredSingleUrl = storedSingleUrlRaw ? normalizeApiUrl(storedSingleUrlRaw) : undefined;
     const normalizedBase = baseUrl ? normalizeApiUrl(baseUrl) : undefined;
     const isMatchingStoredSingle = !!(

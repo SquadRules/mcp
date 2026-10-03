@@ -26,7 +26,7 @@ const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
 const _d = isHttpTransport() ? describe : describe.skip;
 
-_d('Auth (Keycloak + kairos-tester)', () => {
+_d('Auth (Keycloak + squadrules-tester)', () => {
   test('unauthenticated GET /api returns 401 with login_url (or 200 when auth disabled)', async () => {
     const res = await fetch(`${API_BASE}`, { method: 'GET' });
     if (res.status === 200) {

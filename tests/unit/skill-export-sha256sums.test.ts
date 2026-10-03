@@ -32,7 +32,7 @@ describe('skill export SHA256SUMS', () => {
       slug: 's',
       name: 'n',
       description: 'd',
-      kairosUri: 'kairos://adapter/x',
+      squadrulesUri: 'squadrules://adapter/x',
       files: [
         {
           path: 'SKILL.md',

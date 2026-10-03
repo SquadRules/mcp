@@ -4,7 +4,7 @@ import { rewriteLoginUrlRedirectToApiBase } from '../../src/cli/rewrite-login-ur
 describe('rewriteLoginUrlRedirectToApiBase', () => {
   it('rewrites redirect_uri to api base /auth/callback', () => {
     const login =
-      'http://keycloak/realms/dev/protocol/openid-connect/auth?client_id=kairos-mcp&redirect_uri=http%3A%2F%2Flocalhost%3A3300%2Fauth%2Fcallback&response_type=code';
+      'http://keycloak/realms/dev/protocol/openid-connect/auth?client_id=squadrules-mcp&redirect_uri=http%3A%2F%2Flocalhost%3A3300%2Fauth%2Fcallback&response_type=code';
     const out = rewriteLoginUrlRedirectToApiBase(login, 'http://localhost:3301');
     expect(out).toContain('redirect_uri=');
     const u = new URL(out);

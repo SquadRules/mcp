@@ -1,6 +1,6 @@
 /**
  * CLI auth E2E. Default path is non-interactive: tests/setup.ts refreshes the
- * dev test bearer token and this file exercises `kairos login --token`.
+ * dev test bearer token and this file exercises `squadrules login --token`.
  *
  * Requires: dev server + Keycloak (npm run dev:deploy). Test credentials come
  * from tests/global-setup-auth.ts and tests/utils/auth-headers.ts.

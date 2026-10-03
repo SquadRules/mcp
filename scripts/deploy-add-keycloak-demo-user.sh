@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Add a demo user to Keycloak realm kairos-dev using the Admin CLI (kcadm.sh) inside the container.
-# Requires: Keycloak running (docker compose -p kairos-mcp --env-file .env --profile fullstack up -d).
+# Add a demo user to Keycloak realm squadrules-dev using the Admin CLI (kcadm.sh) inside the container.
+# Requires: Keycloak running (docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d).
 #
 # Usage:
 #   ./scripts/deploy-add-keycloak-demo-user.sh
 #   DEMO_PASSWORD=mysecret ./scripts/deploy-add-keycloak-demo-user.sh
 #
-# Reads KEYCLOAK_ADMIN_PASSWORD from .env. Creates user "demo" in kairos-dev
+# Reads KEYCLOAK_ADMIN_PASSWORD from .env. Creates user "demo" in squadrules-dev
 # with password from DEMO_PASSWORD (default: demo).
 
 set -e
@@ -30,12 +30,12 @@ fi
 
 DEMO_USER="${DEMO_USER:-demo}"
 DEMO_PASSWORD="${DEMO_PASSWORD:-demo}"
-REALM="${REALM:-kairos-dev}"
+REALM="${REALM:-squadrules-dev}"
 
 # Resolve Keycloak container (compose project from ROOT_DIR)
-CONTAINER=$(docker compose -p kairos-mcp --env-file .env -f compose.yaml ps -q keycloak 2>/dev/null || true)
+CONTAINER=$(docker compose -p squadrules-mcp --env-file .env -f compose.yaml ps -q keycloak 2>/dev/null || true)
 if [ -z "$CONTAINER" ]; then
-  echo "ERROR: Keycloak container not running. Start with: docker compose -p kairos-mcp --env-file .env --profile fullstack up -d" >&2
+  echo "ERROR: Keycloak container not running. Start with: docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d" >&2
   exit 1
 fi
 

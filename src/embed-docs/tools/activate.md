@@ -2,7 +2,7 @@ Rank stored **adapters** for the user’s intent and return the literal next
 `forward` call arguments.
 
 **When to call:** Whenever the message describes an action, task, or workflow —
-even if the user never says "KAIROS". Always pass a short `query` summary.
+even if the user never says "SQUADRULES". Always pass a short `query` summary.
 
 Happy-path flow:
 
@@ -23,9 +23,9 @@ Response row (match/refine):
 ```json
 {
   "role": "match",
-  "uri": "kairos://adapter/phase-critic",
+  "uri": "squadrules://adapter/phase-critic",
   "forward_first_call": {
-    "uri": "kairos://adapter/phase-critic"
+    "uri": "squadrules://adapter/phase-critic"
   }
 }
 ```
@@ -33,7 +33,7 @@ Response row (match/refine):
 Next call:
 
 ```json
-{ "uri": "kairos://adapter/phase-critic" }
+{ "uri": "squadrules://adapter/phase-critic" }
 ```
 
 **Input**
@@ -53,7 +53,7 @@ Next call:
 `forward_first_call` is required on `match` and `refine`, and `null` on
 `create`.
 
-**`kairos_local_artifact_dir`** — ordered URI hints (preferred first) for the run's local handoff dir (drafts, review outputs, generated files, checksums shared between layers and subagents). Two schemes, both resolved **on your machine**: `project://<rel>` → `<your project root>/<rel>`; `user://<rel>` → `<your home or $XDG_CONFIG_HOME>/<rel>`. Pick `project://` when you have exactly one project context; fall through to `user://` when your session spans multiple projects so artifacts from different projects don't collide. After resolving, `export KAIROS_LOCAL_ARTIFACT_DIR="<absolute>"` for shell challenges (skip if your shell already defines it). The server never resolves these to a path on its own filesystem; the value carries no server paths and is identical for stdio and HTTP transports. Not a shell cwd, not a Docker `WORKDIR`.
+**`squadrules_local_artifact_dir`** — ordered URI hints (preferred first) for the run's local handoff dir (drafts, review outputs, generated files, checksums shared between layers and subagents). Two schemes, both resolved **on your machine**: `project://<rel>` → `<your project root>/<rel>`; `user://<rel>` → `<your home or $XDG_CONFIG_HOME>/<rel>`. Pick `project://` when you have exactly one project context; fall through to `user://` when your session spans multiple projects so artifacts from different projects don't collide. After resolving, `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` for shell challenges (skip if your shell already defines it). The server never resolves these to a path on its own filesystem; the value carries no server paths and is identical for stdio and HTTP transports. Not a shell cwd, not a Docker `WORKDIR`.
 
 When several spaces contain similar adapters, the server prefers your **default write space** (usually **Personal**) on ties so a personal copy can override a group template.
 

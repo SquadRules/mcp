@@ -4,8 +4,8 @@
  */
 
 import type { SpaceContext } from './tenant-context.js';
-import { KAIROS_APP_SPACE_DISPLAY_NAME, spaceIdToDisplayName } from './space-display.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_DISPLAY_NAME, spaceIdToDisplayName } from './space-display.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 
 export type ResolveSpaceParamResult =
   | { ok: true; spaceId: string }
@@ -13,7 +13,7 @@ export type ResolveSpaceParamResult =
 
 export type ResolveSpaceParamOptions = {
   /**
-   * When true, the Kairos app space (built-in adapters) may be resolved for activate/search scoping only.
+   * When true, the Squadrules app space (built-in adapters) may be resolved for activate/search scoping only.
    * Train/tune omit this so the app space stays a read-only target for writes.
    */
   allowReadOnlyAppSearchScope?: boolean;
@@ -53,22 +53,22 @@ export function resolveSpaceParamForContext(
     return { ok: true, spaceId };
   }
 
-  const isKairosAppLabel = trimmed.toLowerCase() === KAIROS_APP_SPACE_DISPLAY_NAME.toLowerCase();
-  const isKairosAppRaw = trimmed === KAIROS_APP_SPACE_ID;
-  if (isKairosAppLabel || isKairosAppRaw) {
+  const isSquadrulesAppLabel = trimmed.toLowerCase() === SQUADRULES_APP_SPACE_DISPLAY_NAME.toLowerCase();
+  const isSquadrulesAppRaw = trimmed === SQUADRULES_APP_SPACE_ID;
+  if (isSquadrulesAppLabel || isSquadrulesAppRaw) {
     if (options?.allowReadOnlyAppSearchScope) {
-      return { ok: true, spaceId: KAIROS_APP_SPACE_ID };
+      return { ok: true, spaceId: SQUADRULES_APP_SPACE_ID };
     }
     return {
       ok: false,
       code: 'SPACE_READ_ONLY',
-      message: `Cannot use "${KAIROS_APP_SPACE_DISPLAY_NAME}" as a writable target; it is read-only. Use "personal" or a group name.`
+      message: `Cannot use "${SQUADRULES_APP_SPACE_DISPLAY_NAME}" as a writable target; it is read-only. Use "personal" or a group name.`
     };
   }
 
   const idsForDisplayMatch = [
     ...ctx.allowedSpaceIds,
-    ...(options?.allowReadOnlyAppSearchScope ? [KAIROS_APP_SPACE_ID] : [])
+    ...(options?.allowReadOnlyAppSearchScope ? [SQUADRULES_APP_SPACE_ID] : [])
   ];
   const tl = trimmed.toLowerCase();
   for (const id of idsForDisplayMatch) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 import crypto from 'node:crypto';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 import { activateRefinementStore } from '../../src/services/activate-refinement-store.js';
 import { runWithSpaceContext } from '../../src/utils/tenant-context.js';
 
@@ -9,8 +9,8 @@ function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
     {
       userId: '',
       groupIds: [],
-      allowedSpaceIds: [KAIROS_APP_SPACE_ID],
-      defaultWriteSpaceId: KAIROS_APP_SPACE_ID,
+      allowedSpaceIds: [SQUADRULES_APP_SPACE_ID],
+      defaultWriteSpaceId: SQUADRULES_APP_SPACE_ID,
       personalSpaceId: ''
     },
     fn

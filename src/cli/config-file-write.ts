@@ -50,7 +50,7 @@ export async function writeConfig(partial: WriteConfigInput): Promise<void> {
   let environments: Record<string, EnvironmentEntry>;
 
   if (!parsed || isSingleEnvFlatConfig(parsed)) {
-    defaultUrl = typeof parsed?.KAIROS_API_URL === 'string' ? normalizeApiUrl(parsed.KAIROS_API_URL) : undefined;
+    defaultUrl = typeof parsed?.SQUADRULES_API_URL === 'string' ? normalizeApiUrl(parsed.SQUADRULES_API_URL) : undefined;
     environments = {};
     if (defaultUrl) {
       const entry: EnvironmentEntry = {};

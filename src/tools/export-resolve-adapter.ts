@@ -1,14 +1,14 @@
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getAdapterId } from '../services/memory/memory-accessors.js';
-import { parseKairosUri } from './kairos-uri.js';
+import { parseSquadrulesUri } from './squadrules-uri.js';
 
 export async function resolveExportAdapter(
   memoryStore: MemoryQdrantStore,
   qdrantService: QdrantService | undefined,
   uri: string
 ): Promise<{ adapterId: string; layerId: string }> {
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter') {
     if (parsed.idKind === 'slug') {
       if (!qdrantService) {

@@ -13,7 +13,7 @@ import type { RunSolutionSubmission } from "@/lib/runToolTypes";
 
 function extractFirstMemUri(text: string | undefined): string | undefined {
   if (!text) return undefined;
-  const m = text.match(/(?:kairos|squadrules):\/\/layer\/[0-9a-fA-F-]{36}(?:\?execution_id=[0-9a-fA-F-]{36})?/);
+  const m = text.match(/squadrules:\/\/layer\/[0-9a-fA-F-]{36}(?:\?execution_id=[0-9a-fA-F-]{36})?/);
   return m?.[0];
 }
 

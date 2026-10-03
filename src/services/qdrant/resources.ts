@@ -10,7 +10,7 @@ import { getEmbeddingDimension } from '../embedding/config.js';
 import { getSpaceContext } from '../../utils/tenant-context.js';
 import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { retrievePointAccessById } from './memory-retrieval.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 
 /**
  * upsertResources - bulk upsert of knowledge resources
@@ -61,7 +61,7 @@ export async function upsertResources(conn: QdrantConnection, items: UpsertResou
 
       const existingPointAccess = await retrievePointAccessById(conn, qdrantId);
       if (existingPointAccess.status === 'forbidden') {
-        throw new KairosError(`Memory with ID ${qdrantId} not found`, 'MEMORY_NOT_FOUND', 404);
+        throw new SquadrulesError(`Memory with ID ${qdrantId} not found`, 'MEMORY_NOT_FOUND', 404);
       }
       const existingPoint = existingPointAccess.status === 'allowed' ? existingPointAccess.point : null;
       const existingPayload = existingPoint?.payload as Record<string, unknown> | undefined;

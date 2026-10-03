@@ -130,7 +130,7 @@ _d('Space CRUD per space (MCP)', () => {
     const { mcp, groupSpaceName, loadSpacesViaMcp } = bundle;
     if (!groupSpaceName?.includes('ci-test')) {
       throw new Error(
-        '[space-crud] expected a group space for /shared/ci-test (kairos-tester); run scripts/deploy-configure-keycloak-realms.py'
+        '[space-crud] expected a group space for /shared/ci-test (squadrules-tester); run scripts/deploy-configure-keycloak-realms.py'
       );
     }
     const title = `SpaceCrudGroup ${Date.now()}`;
@@ -181,7 +181,7 @@ _d('Space CRUD per space (MCP)', () => {
     });
   }, 120000);
 
-  test('Kairos app: train rejects SPACE_READ_ONLY', async () => {
+  test('Squadrules app: train rejects SPACE_READ_ONLY', async () => {
     if (!serverOk) {
       console.warn('[space-crud] skip app read-only: server unavailable');
       return;
@@ -202,7 +202,7 @@ _d('Space CRUD per space (MCP)', () => {
       arguments: {
         content: mdWithTitle(`SpaceCrudAppRO ${Date.now()}`),
         llm_model_id: 'test-space-crud-app-ro',
-        space: 'Kairos app',
+        space: 'Squadrules app',
         force_update: true,
         review_evidence: MOCK_REVIEW_EVIDENCE
       }

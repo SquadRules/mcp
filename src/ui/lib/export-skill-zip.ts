@@ -65,11 +65,11 @@ export function suggestedSkillZipFilename(
     if (manifestJson) {
       const m = JSON.parse(manifestJson) as { skills?: Array<{ slug?: string }> };
       const s = m.skills?.[0]?.slug;
-      if (s && s.length > 0) return `${s}-kairos-skill.zip`;
+      if (s && s.length > 0) return `${s}-squadrules-skill.zip`;
     }
   } catch {
     /* ignore */
   }
-  const safe = fallbackBase.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "") || "kairos-skill";
-  return `${safe}-kairos-skill.zip`;
+  const safe = fallbackBase.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "") || "squadrules-skill";
+  return `${safe}-squadrules-skill.zip`;
 }

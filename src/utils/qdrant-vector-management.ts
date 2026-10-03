@@ -2,7 +2,7 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { logger } from './structured-logger.js';
 import { VectorDescriptorMap } from './qdrant-vector-types.js';
 import { createQdrantCollection } from './qdrant-collection-utils.js';
-import { KAIROS_APP_SPACE_ID } from '../config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { getSpaceContext } from '../utils/tenant-context.js';
 import { buildSpaceFilter } from '../utils/space-filter.js';
 
@@ -95,7 +95,7 @@ export async function addVectorsToCollection(client: QdrantClient, collectionNam
         const batch = allPoints.slice(i, i + BATCH_SIZE).map(pt => ({
           id: pt.id,
           vector: pt.vector,
-          payload: { ...pt.payload, space_id: pt.payload?.space_id ?? KAIROS_APP_SPACE_ID }
+          payload: { ...pt.payload, space_id: pt.payload?.space_id ?? SQUADRULES_APP_SPACE_ID }
         }));
         try {
           await client.upsert(collectionName, { points: batch } as any);
@@ -283,7 +283,7 @@ export async function removeVectorFromCollection(client: QdrantClient, collectio
       const batch = allPoints.slice(i, i + BATCH_SIZE).map(p => ({
         id: p.id,
         vector: p.vector,
-        payload: { ...p.payload, space_id: p.payload?.space_id ?? KAIROS_APP_SPACE_ID }
+        payload: { ...p.payload, space_id: p.payload?.space_id ?? SQUADRULES_APP_SPACE_ID }
       }));
       try {
         await client.upsert(collectionName, { points: batch } as any);

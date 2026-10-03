@@ -9,7 +9,7 @@ description: MIME artifact sample
 
 Minimal fixture for MIME coverage. Skill root = this directory (`SKILL.md`, `notes.txt`, `conf/`, `scripts/`).
 
-The next four layers each run **one** bundled script via a **`shell`** contract: **`interpreter`**, **`flags`** / **`args`** where useful, **`cmd`**, **`timeout_seconds`**. Success is **exit code 0** only (no `grep`). Run **`forward`** from the skill root as cwd (or set `KAIROS_MIME_SAMPLE_ROOT` to this directory).
+The next four layers each run **one** bundled script via a **`shell`** contract: **`interpreter`**, **`flags`** / **`args`** where useful, **`cmd`**, **`timeout_seconds`**. Success is **exit code 0** only (no `grep`). Run **`forward`** from the skill root as cwd (or set `SQUADRULES_MIME_SAMPLE_ROOT` to this directory).
 
 **Must Never**
 

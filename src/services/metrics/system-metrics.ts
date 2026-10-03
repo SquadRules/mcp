@@ -8,20 +8,20 @@ import { register } from './registry.js';
  */
 
 export const systemUptime = new Gauge({
-  name: 'kairos_system_uptime_seconds',
+  name: 'squadrules_system_uptime_seconds',
   help: 'Application uptime in seconds',
   registers: [register]
 });
 
 export const systemMemoryUsage = new Gauge({
-  name: 'kairos_system_memory_usage_bytes',
+  name: 'squadrules_system_memory_usage_bytes',
   help: 'System memory usage in bytes',
   labelNames: ['type'],
   registers: [register]
 });
 
 export const systemProcessStartTime = new Gauge({
-  name: 'kairos_system_process_start_time_seconds',
+  name: 'squadrules_system_process_start_time_seconds',
   help: 'Process start timestamp (Unix epoch)',
   registers: [register]
 });

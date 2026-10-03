@@ -59,7 +59,7 @@ function getAuthStateFile(root: string): string {
  */
 async function assertOidcUserinfoHasGroups(bearerToken: string): Promise<void> {
   const keycloakUrl = process.env.KEYCLOAK_URL?.replace(/\/$/, '');
-  const realm = process.env.KEYCLOAK_REALM?.trim() || 'kairos-dev';
+  const realm = process.env.KEYCLOAK_REALM?.trim() || 'squadrules-dev';
   if (!keycloakUrl) return;
   const url = `${keycloakUrl}/realms/${realm}/protocol/openid-connect/userinfo`;
   let body: Record<string, unknown>;
@@ -84,7 +84,7 @@ async function assertOidcUserinfoHasGroups(bearerToken: string): Promise<void> {
   if (!ok) {
     throw new Error(
       'globalSetup: OIDC userinfo has no non-empty `groups` for the test user. ' +
-        'Assign kairos-tester to at least one realm group (e.g. /shared/ci-test) and run ' +
+        'Assign squadrules-tester to at least one realm group (e.g. /shared/ci-test) and run ' +
         '`python3 scripts/deploy-configure-keycloak-realms.py` against this Keycloak.'
     );
   }
@@ -183,7 +183,7 @@ function loadEnv(): void {
   }
 }
 
-/** Run scripts/deploy-configure-keycloak-realms.py so realm and kairos-cli client exist (required for CLI auth E2E). */
+/** Run scripts/deploy-configure-keycloak-realms.py so realm and squadrules-cli client exist (required for CLI auth E2E). */
 function configureKeycloakRealms(root: string): void {
   const script = join(root, 'scripts', 'deploy-configure-keycloak-realms.py');
   if (!existsSync(script)) return;

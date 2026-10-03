@@ -141,7 +141,7 @@ export function ProtocolEditPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             content: markdown,
-            llm_model_id: "kairos-ui",
+            llm_model_id: "squadrules-ui",
             force_update: false,
             space: spaceParam,
             ...(fork ? { source_adapter_uri: fork } : {}),

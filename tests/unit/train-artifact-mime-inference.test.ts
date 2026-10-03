@@ -7,7 +7,7 @@ describe('trainInputSchema artifact MIME inference', () => {
       llm_model_id: 'm',
       content: 'print("ok")',
       artifact_name: 'helper.py',
-      adapter_uri: 'kairos://adapter/helper-adapter'
+      adapter_uri: 'squadrules://adapter/helper-adapter'
     });
     expect(parsed.success).toBe(true);
   });
@@ -17,7 +17,7 @@ describe('trainInputSchema artifact MIME inference', () => {
       llm_model_id: 'm',
       content: 'not markdown',
       artifact_name: 'helper.rs',
-      adapter_uri: 'kairos://adapter/helper-adapter'
+      adapter_uri: 'squadrules://adapter/helper-adapter'
     });
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
@@ -31,7 +31,7 @@ describe('trainInputSchema artifact MIME inference', () => {
       llm_model_id: 'm',
       content: 'print("ok")',
       artifact_name: 'helper.py',
-      adapter_uri: 'kairos://adapter/helper-adapter',
+      adapter_uri: 'squadrules://adapter/helper-adapter',
       relative_path: 'scripts/helper.py'
     });
     expect(parsed.success).toBe(true);

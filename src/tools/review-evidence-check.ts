@@ -20,7 +20,7 @@ export function assertReviewEvidencePassed(evidence: ReviewEvidence | undefined)
     throw new TrainError(
       'REVIEW_EVIDENCE_REQUIRED',
       'Adapter train requires review_evidence: run phase-critic first and provide the verdict file as proof.',
-      { must_obey: true, next_action: 'call forward with kairos://adapter/phase-critic to run the phase-critic review' }
+      { must_obey: true, next_action: 'call forward with squadrules://adapter/phase-critic to run the phase-critic review' }
     );
   }
   if (evidence.exit_code !== 0) {

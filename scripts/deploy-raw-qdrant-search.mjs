@@ -5,13 +5,13 @@
  *
  * Usage (from repo root, .env with QDRANT_* and OPENAI_*):
  *   node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs "get help refining your search"
- *   npm run prod:raw-qdrant-search -- "create new KAIROS adapter"
+ *   npm run prod:raw-qdrant-search -- "create new SQUADRULES adapter"
  */
 import 'dotenv/config';
 
 const QDRANT_URL = (process.env.QDRANT_URL || '').replace(/\/$/, '');
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY || '';
-const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION || 'kairos_live';
+const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION || 'squadrules_live';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY?.trim() || '';
 const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
 const OPENAI_API_URL = (process.env.OPENAI_API_URL || 'https://api.openai.com').replace(/\/$/, '');

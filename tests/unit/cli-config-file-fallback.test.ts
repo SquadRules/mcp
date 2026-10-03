@@ -73,7 +73,7 @@ describe('cli config-file fallback (keyring unavailable)', () => {
     readConfig = mod.readConfig;
     getConfigPath = mod.getConfigPath;
 
-    xdgDir = mkdtempSync(join(tmpdir(), 'kairos-cli-fallback-test-'));
+    xdgDir = mkdtempSync(join(tmpdir(), 'squadrules-cli-fallback-test-'));
     process.env['XDG_CONFIG_HOME'] = xdgDir;
     keyringState.available = true;
     keyringState.tokens.clear();
@@ -124,6 +124,6 @@ describe('cli config-file fallback (keyring unavailable)', () => {
     const cfg = await readConfig(baseUrl);
     expect(cfg.bearerToken).toBeUndefined();
     expect(cfg.refreshToken).toBeUndefined();
-    expect(stderrLines.some((l) => l.includes('run `kairos login`'))).toBe(true);
+    expect(stderrLines.some((l) => l.includes('run `squadrules login`'))).toBe(true);
   });
 });

@@ -6,9 +6,9 @@ Uses Keycloak Admin REST API. Requires Keycloak running and KEYCLOAK_ADMIN_PASSW
 in environment or in .env (in repo root).
 
 Usage:
-  python scripts/deploy-add-keycloak-user --realm kairos-dev --user demo
-  python scripts/deploy-add-keycloak-user -r kairos-prod -u myuser
-  KEYCLOAK_URL=http://keycloak:8080 python scripts/deploy-add-keycloak-user -r kairos-dev -u demo
+  python scripts/deploy-add-keycloak-user --realm squadrules-dev --user demo
+  python scripts/deploy-add-keycloak-user -r squadrules-prod -u myuser
+  KEYCLOAK_URL=http://keycloak:8080 python scripts/deploy-add-keycloak-user -r squadrules-dev -u demo
 
 Prints the generated password once. If the user already exists, only the password is updated.
 """
@@ -157,7 +157,7 @@ def main() -> int:
     parser.add_argument(
         "-r", "--realm",
         required=True,
-        help="Realm name (e.g. kairos-dev, kairos-prod)",
+        help="Realm name (e.g. squadrules-dev, squadrules-prod)",
     )
     parser.add_argument(
         "-u", "--user",

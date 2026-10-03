@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
 import { getExportZipCompressionLevel } from '../../src/config/export-zip-settings.js';
 
 describe('getExportZipCompressionLevel', () => {
-  const key = 'KAIROS_EXPORT_ZIP_COMPRESSION_LEVEL';
+  const key = 'SQUADRULES_EXPORT_ZIP_COMPRESSION_LEVEL';
   let prev: string | undefined;
 
   beforeEach(() => {

@@ -3,7 +3,7 @@ import { Outlet, NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 
 /** Emitted as `/ui/assets/*.svg` — `build.assetsInlineLimit: 0` so Helmet `img-src 'self'` allows it. */
-import logoSvg from "../../../logo/kairos-mcp.svg";
+import logoSvg from "../../../logo/squadrules-mcp.svg";
 
 const isWideContentRoute = (path: string) =>
   path.startsWith("/protocols") || path.startsWith("/runs");
@@ -24,7 +24,7 @@ export function Layout() {
     ? "min(100%, var(--layout-main-max), var(--layout-main-wide))"
     : "min(100%, var(--layout-main-max), var(--layout-main-narrow))";
 
-  const kairosVersion = import.meta.env.VITE_KAIROS_VERSION ?? "";
+  const squadrulesVersion = import.meta.env.VITE_SQUADRULES_VERSION ?? "";
 
   return (
     <>
@@ -50,7 +50,7 @@ export function Layout() {
                 height="40"
               />
               <span className="flex flex-col leading-tight">
-                <span className="font-bold text-[var(--color-text-heading)] text-lg">Kairos</span>
+                <span className="font-bold text-[var(--color-text-heading)] text-lg">Squadrules</span>
                 <span className="font-bold text-[var(--color-text-muted)] text-xs uppercase tracking-wide">MCP</span>
               </span>
             </NavLink>
@@ -60,11 +60,11 @@ export function Layout() {
               {t("nav.home")}
             </NavLink>
             <NavLink
-              to="/kairos"
-              aria-current={path === "/kairos" ? "page" : undefined}
+              to="/squadrules"
+              aria-current={path === "/squadrules" ? "page" : undefined}
               className={navLinkClass}
             >
-              {t("nav.kairos")}
+              {t("nav.squadrules")}
             </NavLink>
             <NavLink
               to="/protocols/new"
@@ -90,7 +90,7 @@ export function Layout() {
           </nav>
           <div className="mt-auto border-t border-[var(--color-border)] px-4 pt-3">
             <p className="m-0 text-xs text-[var(--color-text-muted)]">
-              {t("layout.kairosVersion", { version: kairosVersion || "—" })}
+              {t("layout.squadrulesVersion", { version: squadrulesVersion || "—" })}
             </p>
           </div>
         </aside>

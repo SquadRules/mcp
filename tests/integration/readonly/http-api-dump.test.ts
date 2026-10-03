@@ -26,7 +26,7 @@ _d('POST /api/export', () => {
     const response = await fetch(`${API_BASE}/export`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ uri: 'kairos://layer/00000000-0000-0000-0000-000000000099' })
+      body: JSON.stringify({ uri: 'squadrules://layer/00000000-0000-0000-0000-000000000099' })
     });
     expect(response.status).toBe(404);
     const data = await response.json();
@@ -98,7 +98,7 @@ Done.`;
     expect(trainRes.status).toBe(200);
     const trainData = await trainRes.json();
     const adapterUri = trainData.items?.[0]?.adapter_uri as string;
-    expect(adapterUri).toMatch(/^kairos:\/\/adapter\//);
+    expect(adapterUri).toMatch(/^squadrules:\/\/adapter\//);
 
     const response = await fetch(`${API_BASE}/export`, {
       method: 'POST',

@@ -1,7 +1,7 @@
 /**
  * Static spec-parity gate — the no-infra twin of the runtime api-mcp-parity test.
  *
- * `src/tools/*_schema.ts` (Zod) is the single source of truth for the KAIROS tool
+ * `src/tools/*_schema.ts` (Zod) is the single source of truth for the SQUADRULES tool
  * surface. This test asserts that every transport exposes that same surface
  * identically, WITHOUT starting a server or touching Qdrant/OpenAI, so cross-surface
  * spec drift fails the pipeline in seconds during the fast static phase:
@@ -19,9 +19,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import {
-  KAIROS_TOOL_REGISTRY,
-  KAIROS_TOOL_NAMES,
-  type KairosToolName
+  SQUADRULES_TOOL_REGISTRY,
+  SQUADRULES_TOOL_NAMES,
+  type SquadrulesToolName
 } from '../../src/tools/tool-registry.js';
 import { createProgram } from '../../src/cli/program.js';
 
@@ -49,13 +49,13 @@ const EXPECTED_TOOL_NAMES = [
   'delete',
   'export',
   'spaces'
-] as const satisfies readonly KairosToolName[];
+] as const satisfies readonly SquadrulesToolName[];
 
 /** CLI-only commands that intentionally have no MCP/HTTP tool counterpart. */
 const CLI_ONLY_COMMANDS = ['serve', 'login', 'logout', 'token'] as const;
 
 /** The canonical Zod schema objects, imported directly from src/tools/*_schema.ts. */
-const CANONICAL_SCHEMAS: Record<KairosToolName, { input: unknown; output: unknown }> = {
+const CANONICAL_SCHEMAS: Record<SquadrulesToolName, { input: unknown; output: unknown }> = {
   activate: { input: activateInputSchema, output: activateOutputSchema },
   forward: { input: forwardInputSchema, output: forwardOutputSchema },
   train: { input: trainInputSchema, output: trainOutputSchema },
@@ -72,7 +72,7 @@ const CANONICAL_SCHEMAS: Record<KairosToolName, { input: unknown; output: unknow
  * so it only asserts the route path + wiring.
  */
 const HTTP_ROUTES: Record<
-  KairosToolName,
+  SquadrulesToolName,
   { file: string; path: string; setup: string; boundSchema: string | null }
 > = {
   activate: { file: 'http-api-begin.ts', path: '/api/activate', setup: 'setupActivateRoute', boundSchema: 'activateInputSchema' },
@@ -91,13 +91,13 @@ function readSrc(relativePath: string): string {
 
 describe('spec parity: MCP tool registry is the single source of truth', () => {
   test('registry exposes exactly the expected tool set', () => {
-    expect([...KAIROS_TOOL_NAMES].sort()).toEqual([...EXPECTED_TOOL_NAMES].sort());
+    expect([...SQUADRULES_TOOL_NAMES].sort()).toEqual([...EXPECTED_TOOL_NAMES].sort());
   });
 
   test.each(EXPECTED_TOOL_NAMES)(
     'MCP "%s" registration reuses the canonical Zod input/output schemas',
     (name) => {
-      const entry = KAIROS_TOOL_REGISTRY.find((tool) => tool.name === name);
+      const entry = SQUADRULES_TOOL_REGISTRY.find((tool) => tool.name === name);
       expect(entry).toBeDefined();
       // Object identity: the registry must reference the same schema instances,
       // not a divergent copy — this is what guarantees MCP === canonical.

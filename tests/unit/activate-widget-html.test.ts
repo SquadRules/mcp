@@ -7,7 +7,7 @@ describe('buildActivateWidgetHtml', () => {
     expect(html).toContain('ui/notifications/initialized');
     expect(html).toContain('ui/notifications/tool-result');
     expect(html).toContain('isActivateStructured');
-    expect(html).toContain('kairos-activate-view');
+    expect(html).toContain('squadrules-activate-view');
     expect(html).toContain('ui/notifications/host-context-changed');
     expect(html).toContain('paintHostContext');
     expect(html).toContain('renderActivate');
@@ -22,12 +22,12 @@ describe('buildActivateWidgetHtml', () => {
     expect(html).toContain('query: ');
     expect(html).toContain('id="header-top-match"');
     expect(html).toContain('paintTopMatch');
-    expect(html).toContain('kairos-activate-root');
+    expect(html).toContain('squadrules-activate-root');
     expect(html).toContain('tierFromScore');
     expect(html).toContain('choice-row-top');
     expect(html).toContain('choice-space');
     expect(html).toContain('choice-slug');
-    expect(html).toContain('#kairos-activate-root #out');
+    expect(html).toContain('#squadrules-activate-root #out');
     expect(html).toContain('summaryLineFromPayload');
     expect(html).toContain('activate-json-details');
     expect(html).toContain('Technical details');

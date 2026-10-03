@@ -10,7 +10,6 @@ the single source of truth for those topics.
 - Product overview and quick start: root [README](../README.md)
 - Code-derivable reference (architecture, auth, workflows, search, logging,
   deployment, testing): **[project Wiki](https://github.com/SquadRules/mcp/wiki)**
-- Migrating from the former KAIROS name: [Migration from KAIROS](migration-from-kairos.md)
 
 > Rule of one: a fact has exactly one home. Pages here link to the Wiki for
 > code-derivable topics instead of restating them. See the
@@ -40,7 +39,7 @@ build and tests; keep them build-accurate.
 ## Examples and adapter authoring (test fixtures)
 
 Files under `examples/` are read by
-`tests/integration/write/kairos-train-docs-examples.test.ts`; treat them as fixtures.
+`tests/integration/write/squadrules-train-docs-examples.test.ts`; treat them as fixtures.
 
 - [Adapter examples](examples/README.md) — trainable example adapters
 - [Challenge types](examples/challenge-types.md) — challenge/solution shapes

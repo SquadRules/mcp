@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
-import { ADAPTER_SLUG_URI_INPUT_REGEX } from './kairos-uri.js';
+import { ADAPTER_SLUG_URI_INPUT_REGEX } from './squadrules-uri.js';
 import { inferArtifactMimeFromName } from './artifact-mime.js';
 
 function refineTrainRelativePath(
@@ -44,11 +44,11 @@ function refineTrainRelativePath(
 
 const adapterUriSchema = z
   .string()
-  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match kairos://adapter/{slug}');
+  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match squadrules://adapter/{slug}');
 
 const sourceAdapterUriSchema = z
   .string()
-  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match kairos://adapter/{slug}')
+  .regex(ADAPTER_SLUG_URI_INPUT_REGEX, 'must match squadrules://adapter/{slug}')
   .describe('Optional fork source: export markdown from this adapter, then train into target space');
 
 export const trainInputSchema = z
@@ -192,7 +192,7 @@ export type TrainOutput = z.infer<typeof trainOutputSchema>;
 /** Internal: validated markdown + model for the low-level store step (after fork resolution). */
 const memoryUriSchema = z
   .string()
-  .regex(/^(?:kairos|squadrules):\/\/(layer|artifact)\/[0-9a-f-]{36}$/i, 'must match kairos://layer/{uuid} or kairos://artifact/{uuid} (squadrules:// also accepted)');
+  .regex(/^squadrules:\/\/(layer|artifact)\/[0-9a-f-]{36}$/i, 'must match squadrules://layer/{uuid} or squadrules://artifact/{uuid}');
 
 export const trainStoreInputSchema = z.object({
   content: z.string().min(1).describe('Content to store'),

@@ -2,7 +2,7 @@
 /**
  * Capture the UI at multiple viewport sizes. Agent tool for design review at real-world dimensions.
  *
- * Prereq: App running at baseUrl (default from .env: KAIROS_BASE_URL / KAIROS_API_URL / SERVER_PORT).
+ * Prereq: App running at baseUrl (default from .env: SQUADRULES_BASE_URL / SQUADRULES_API_URL / SERVER_PORT).
  * Usage: npm run design:viewports [baseUrl]
  * Output: .cursor/viewports/{mobile,tablet,desktop,wide}.png
  */
@@ -11,7 +11,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveKairosAppBaseUrl } from "./test-integration-app-base-url.mjs";
+import { resolveSquadrulesAppBaseUrl } from "./test-integration-app-base-url.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -24,7 +24,7 @@ const VIEWPORTS = [
   { name: "wide", width: 1920, height: 1080 },
 ];
 
-const baseUrl = process.argv[2] ?? `${resolveKairosAppBaseUrl()}/ui/`;
+const baseUrl = process.argv[2] ?? `${resolveSquadrulesAppBaseUrl()}/ui/`;
 
 async function main() {
   await mkdir(outDir, { recursive: true });

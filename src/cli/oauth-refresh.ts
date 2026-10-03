@@ -6,7 +6,7 @@
 import { tryNormalizeHttpUrlForFetch } from './safe-http-url.js';
 
 /** Hardcoded OIDC client_id for CLI (same as login command). */
-export const KAIROS_CLI_CLIENT_ID = 'kairos-cli';
+export const SQUADRULES_CLI_CLIENT_ID = 'squadrules-cli';
 
 export interface OAuthProtectedResourceMeta {
     authorization_servers?: string[];
@@ -20,7 +20,7 @@ export interface OAuthEndpoints {
 }
 
 /**
- * Fetch auth and token endpoints from the KAIROS well-known metadata.
+ * Fetch auth and token endpoints from the SQUADRULES well-known metadata.
  * Shared by browser PKCE login and refresh_token grant.
  */
 export async function fetchOAuthProtectedResourceMetadata(
@@ -76,7 +76,7 @@ export async function refreshAccessToken(
             body: new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: refreshToken,
-                client_id: KAIROS_CLI_CLIENT_ID,
+                client_id: SQUADRULES_CLI_CLIENT_ID,
             }),
             signal: ac.signal,
         });

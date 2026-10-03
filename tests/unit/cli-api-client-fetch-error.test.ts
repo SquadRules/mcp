@@ -68,7 +68,7 @@ describe('ApiClient fetch-error diagnostics', () => {
 
     // Retry behavior unchanged: 1 initial + 1 retry = 2 fetch attempts.
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(writes.join('')).toMatch(/\[kairos\] retry 1\/1:.*fetch failed \(ECONNREFUSED/);
+    expect(writes.join('')).toMatch(/\[squadrules\] retry 1\/1:.*fetch failed \(ECONNREFUSED/);
     expect(err.message).toMatch(/ECONNREFUSED/);
   });
 });
