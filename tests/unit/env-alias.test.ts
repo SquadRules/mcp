@@ -1,5 +1,6 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
- * Env-var alias infrastructure tests (KAIROS → SquadRules rebrand compat layer).
+ * Env-var alias infrastructure tests (SQUADRULES → SquadRules rebrand compat layer).
  *
  * Covers:
  *  - SQUADRULES_* takes precedence over KAIROS_* when BOTH are defined

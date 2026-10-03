@@ -1,13 +1,14 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import {
-  parseKairosUri,
+  parseSquadrulesUri,
   buildAdapterUri,
   buildLayerUri,
   assertWireAdapterUri
 } from '../../src/tools/kairos-uri.js';
 
-describe('parseKairosUri', () => {
+describe('parseSquadrulesUri', () => {
   test('parses adapter slug URIs', () => {
-    expect(parseKairosUri('kairos://adapter/create-merge-request')).toEqual({
+    expect(parseSquadrulesUri('kairos://adapter/create-merge-request')).toEqual({
       kind: 'adapter',
       id: 'create-merge-request',
       idKind: 'slug',
@@ -16,7 +17,7 @@ describe('parseKairosUri', () => {
   });
 
   test('parses artifact slug URIs', () => {
-    expect(parseKairosUri('kairos://artifact/sort-jira-py')).toEqual({
+    expect(parseSquadrulesUri('kairos://artifact/sort-jira-py')).toEqual({
       kind: 'artifact',
       id: 'sort-jira-py',
       idKind: 'slug',
@@ -25,7 +26,7 @@ describe('parseKairosUri', () => {
   });
 
   test('parses artifact uuid URIs', () => {
-    expect(parseKairosUri('kairos://artifact/00000000-0000-0000-0000-000000000001')).toEqual({
+    expect(parseSquadrulesUri('kairos://artifact/00000000-0000-0000-0000-000000000001')).toEqual({
       kind: 'artifact',
       id: '00000000-0000-0000-0000-000000000001',
       idKind: 'uuid',
@@ -34,7 +35,7 @@ describe('parseKairosUri', () => {
   });
 
   test('parses canonical layer URIs', () => {
-    expect(parseKairosUri('kairos://layer/00000000-0000-0000-0000-000000000099')).toEqual({
+    expect(parseSquadrulesUri('kairos://layer/00000000-0000-0000-0000-000000000099')).toEqual({
       kind: 'layer',
       id: '00000000-0000-0000-0000-000000000099',
       raw: 'kairos://layer/00000000-0000-0000-0000-000000000099'
@@ -44,7 +45,7 @@ describe('parseKairosUri', () => {
   test('parses transitional older layer-row URIs as layer kind', () => {
     const id = '00000000-0000-0000-0000-000000000088';
     const raw = `${['kairos', '://', 'me', 'm', '/'].join('')}${id}`;
-    expect(parseKairosUri(raw)).toEqual({
+    expect(parseSquadrulesUri(raw)).toEqual({
       kind: 'layer',
       id,
       raw
@@ -52,9 +53,9 @@ describe('parseKairosUri', () => {
   });
 });
 
-describe('parseKairosUri squadrules:// alias (dual-accept input)', () => {
+describe('parseSquadrulesUri squadrules:// alias (dual-accept input)', () => {
   test('parses squadrules adapter slug URIs and preserves raw scheme', () => {
-    expect(parseKairosUri('squadrules://adapter/create-merge-request')).toEqual({
+    expect(parseSquadrulesUri('squadrules://adapter/create-merge-request')).toEqual({
       kind: 'adapter',
       id: 'create-merge-request',
       idKind: 'slug',
@@ -63,7 +64,7 @@ describe('parseKairosUri squadrules:// alias (dual-accept input)', () => {
   });
 
   test('parses squadrules adapter uuid URIs', () => {
-    expect(parseKairosUri('squadrules://adapter/00000000-0000-0000-0000-000000000001')).toEqual({
+    expect(parseSquadrulesUri('squadrules://adapter/00000000-0000-0000-0000-000000000001')).toEqual({
       kind: 'adapter',
       id: '00000000-0000-0000-0000-000000000001',
       idKind: 'uuid',
@@ -72,7 +73,7 @@ describe('parseKairosUri squadrules:// alias (dual-accept input)', () => {
   });
 
   test('parses squadrules artifact slug URIs', () => {
-    expect(parseKairosUri('squadrules://artifact/sort-jira-py')).toEqual({
+    expect(parseSquadrulesUri('squadrules://artifact/sort-jira-py')).toEqual({
       kind: 'artifact',
       id: 'sort-jira-py',
       idKind: 'slug',
@@ -82,7 +83,7 @@ describe('parseKairosUri squadrules:// alias (dual-accept input)', () => {
 
   test('parses squadrules layer URIs with execution_id', () => {
     expect(
-      parseKairosUri(
+      parseSquadrulesUri(
         'squadrules://layer/00000000-0000-0000-0000-000000000099?execution_id=00000000-0000-0000-0000-0000000000aa'
       )
     ).toEqual({
@@ -94,7 +95,7 @@ describe('parseKairosUri squadrules:// alias (dual-accept input)', () => {
   });
 
   test('rejects unknown schemes', () => {
-    expect(() => parseKairosUri('othrscheme://adapter/foo')).toThrow(/Invalid KAIROS URI/);
+    expect(() => parseSquadrulesUri('othrscheme://adapter/foo')).toThrow(/Invalid SQUADRULES URI/);
   });
 });
 
@@ -124,7 +125,7 @@ describe('build/emit functions produce canonical kairos:// only', () => {
   });
 
   test('round trip: parse squadrules:// then rebuild as kairos://', () => {
-    const parsed = parseKairosUri('squadrules://adapter/create-merge-request');
+    const parsed = parseSquadrulesUri('squadrules://adapter/create-merge-request');
     expect(parsed.kind).toBe('adapter');
     expect(buildAdapterUri(parsed.id)).toBe('kairos://adapter/create-merge-request');
   });

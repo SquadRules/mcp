@@ -1,3 +1,4 @@
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 /**
  * MCP Apps discovery: `listOfferingsForUI` is handled in http-mcp-handler (not SDK).
  */

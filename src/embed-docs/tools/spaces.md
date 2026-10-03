@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 List **spaces** available to the caller (human-readable names) and how many
 adapters each contains.
 
@@ -11,7 +12,7 @@ adapters each contains.
 
 **Output:** `spaces` array with `name`, `space_id`, `type` (`personal` | `group` | `app` | `other`), `adapter_count`, and optionally `adapters` (`adapter_id`, `title`, `layer_count`).
 
-When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a writable **Personal** space and the read-only **Kairos app** space.
+When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a writable **Personal** space and the read-only **Squadrules app** space.
 
 **Collaboration patterns**
 
@@ -21,4 +22,4 @@ When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a wri
 4. **Move** — use **`tune`** with `space` (and optional content edits) to reassign an existing adapter’s layers to another allowed space.
 5. **Visibility** — `activate` **match** choices include **`space_name`** so you can see whether a hit is personal, group, or app-level.
 
-**KAIROS tool order** for runs: **`activate`** → **`forward`** (per layer until `next_action` → **`reward`**) → **`reward`**. Use this tool first when you need valid **`space`** values or an inventory before activation.
+**SQUADRULES tool order** for runs: **`activate`** → **`forward`** (per layer until `next_action` → **`reward`**) → **`reward`**. Use this tool first when you need valid **`space`** values or an inventory before activation.

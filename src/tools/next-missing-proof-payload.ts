@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 /**
  * Build current_step and challenge for MISSING_PROOF response so the client gets the previous step's
  * challenge (correct nonce and proof_hash) for the next forward call.

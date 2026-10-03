@@ -13,7 +13,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../../utils/mock-review-evidence.js';
  * - Do not say "I can't" — always offer creation
  */
 
-describe('Kairos Search - FORBIDDEN BEHAVIOUR', () => {
+describe('Squadrules Search - FORBIDDEN BEHAVIOUR', () => {
   let mcpConnection;
 
   beforeAll(async () => {

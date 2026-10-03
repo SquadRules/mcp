@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # Contributing to SquadRules MCP
 
 SquadRules MCP is an MCP server for persistent memory and deterministic

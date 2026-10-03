@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads the stored "# kairos-artifact:" metadata delimiter written into existing artifacts
 /**
  * Multi-adapter and all_adapters coverage for skill_zip exports.
  *

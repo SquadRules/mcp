@@ -1,6 +1,6 @@
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 
-export function formatForwardToolError(error: KairosError): Record<string, unknown> {
+export function formatForwardToolError(error: SquadrulesError): Record<string, unknown> {
   return {
     error: error.code,
     error_code: error.code,

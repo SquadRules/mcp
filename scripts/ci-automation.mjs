@@ -1,3 +1,4 @@
+// squadrules-compat-surface: preserves the docker compose project name kairos-mcp used by existing volumes/containers
 import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';

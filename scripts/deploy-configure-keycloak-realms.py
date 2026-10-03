@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# squadrules-compat-surface: uses persisted Qdrant collection names (kairos / kairos_memories / kairos_ci / kairos_simple_ci); renaming would orphan existing vectors
 """
 Idempotent Keycloak realm setup: apply config from scripts/keycloak/import via Admin API.
 
@@ -20,7 +21,7 @@ from scripts/keycloak/import relative to repo root (works regardless of CWD).
 3. OIDC scope `openid` for dynamic registration: ensure a realm Client Scope named `openid`
    exists and is a **default** (not optional) client scope. Without `openid` in every token,
    Keycloak's Userinfo endpoint returns 403 "Missing openid scope", which breaks the
-   Bearer-auth groups fallback in KAIROS (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
+   Bearer-auth groups fallback in SQUADRULES (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
    The scope is also linked to **kairos-mcp** and **kairos-cli** for backwards compatibility
    (named clients created before `openid` became a realm default don't inherit it automatically).
 4. Allowed client scopes (policies): whitelist client-scope templates for anonymous/authenticated
@@ -30,7 +31,7 @@ from scripts/keycloak/import relative to repo root (works regardless of CWD).
    client scope so new OAuth clients (including dynamically registered MCP hosts) inherit it, and
    it is linked to **kairos-mcp** and **kairos-cli** for backwards compatibility. Mapper
    **`full.path` is always enabled** (full Keycloak paths, e.g. `/kairos-auditor`,
-   `/shared/team-platform`) — not configurable here so running systems stay consistent with KAIROS
+   `/shared/team-platform`) — not configurable here so running systems stay consistent with SQUADRULES
    allowlists and space ids.
 5. Test user: ensure TEST_USERNAME/TEST_PASSWORD exists in **kairos-dev** with profile fields and
    no required actions so **direct access grants** (password) do not return `invalid_grant` /
@@ -46,9 +47,9 @@ Identity providers (e.g. Google) are not in realm JSON; configure via deploy-con
 Env: KEYCLOAK_URL (default http://localhost:8080), KEYCLOAK_ADMIN_PASSWORD,
 TEST_USERNAME (default kairos-tester), TEST_PASSWORD (default kairos-tester-secret),
 KAIROS_CI_TEST_USERNAME / KAIROS_CI_TEST_PASSWORD (optional second dev user for `/shared/ci-test` only).
-KAIROS app: set OIDC_GROUPS_ALLOWLIST (comma-separated; use a trailing `/` on an entry for path-prefix match)
-to intersect JWT groups with what KAIROS stores.
-If unset or empty, KAIROS keeps all JWT groups (no allowlist filtering).
+SQUADRULES app: set OIDC_GROUPS_ALLOWLIST (comma-separated; use a trailing `/` on an entry for path-prefix match)
+to intersect JWT groups with what SQUADRULES stores.
+If unset or empty, SQUADRULES keeps all JWT groups (no allowlist filtering).
 (Keycloak's mapper still lists all memberships the user has in the realm).
 AUTH_CALLBACK_BASE_URL (optional) — for **kairos-dev** **kairos-mcp**, adds that origin/callback
 if not already covered by the port range (Keycloak has no native port-range wildcard).
@@ -802,7 +803,7 @@ def ensure_openid_client_scope(base_url: str, realm_name: str, token: str) -> st
     The scope is added as a **default** (not optional) client scope so every token — including
     those issued to dynamically registered MCP clients — carries the `openid` scope. Without it,
     the OIDC Userinfo endpoint returns 403 "Missing openid scope", which breaks the Bearer-auth
-    groups fallback path in KAIROS (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
+    groups fallback path in SQUADRULES (bearer-validate.ts → fetchGroupsFromOidcUserinfo).
 
     Returns the scope id so callers can link it to named clients.
     """
@@ -1098,7 +1099,7 @@ def create_user(base_url: str, realm: str, username: str, token: str) -> str | N
         {
             "username": username,
             "enabled": True,
-            "firstName": "Kairos",
+            "firstName": "Squadrules",
             "lastName": "Tester",
             "email": email,
             "emailVerified": True,
@@ -1160,7 +1161,7 @@ def finalize_test_user_for_direct_grant(
     rest = {k: v for k, v in user.items() if k != "credentials"}
     fn = (rest.get("firstName") or "").strip()
     ln = (rest.get("lastName") or "").strip()
-    rest["firstName"] = fn or "Kairos"
+    rest["firstName"] = fn or "Squadrules"
     rest["lastName"] = ln or "Tester"
     if not (rest.get("email") or "").strip():
         rest["email"] = username if "@" in username else f"{username}@localhost"

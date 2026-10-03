@@ -1,5 +1,5 @@
 /**
- * Global process-level error handlers for KAIROS MCP
+ * Global process-level error handlers for SQUADRULES MCP
  * Captures uncaught exceptions, unhandled rejections, and Node warnings
  * and forwards them to the structured logger.
  */

@@ -12,7 +12,7 @@ title: Get help refining your search
 / ambiguous matches. This adapter helps you turn a vague request into a better
 query so the next `activate` can find the right adapter.
 
-KAIROS principle: before acting, understand the user better. The goal is not to
+SQUADRULES principle: before acting, understand the user better. The goal is not to
 repeat the failed phrase with minor edits. The goal is to recover the user's
 real intent.
 
@@ -49,7 +49,7 @@ From the user's original message, identify:
 - the real goal
 - relevant context
 - missing constraints
-- likely wording that would help KAIROS find the right adapter
+- likely wording that would help SQUADRULES find the right adapter
 
 Write your analysis as the solution.
 

@@ -1,6 +1,7 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
-import { parseKairosUri } from './kairos-uri.js';
+import { parseSquadrulesUri } from './kairos-uri.js';
 import type { ExportOutput } from './export_schema.js';
 import { listAdapterArtifacts } from './artifact-catalog.js';
 
@@ -11,7 +12,7 @@ interface ArtifactUriResolution {
 }
 
 async function resolveArtifactUri(qdrantService: QdrantService | undefined, uri: string): Promise<ArtifactUriResolution | null> {
-  const parsed = parseKairosUri((uri || '').trim());
+  const parsed = parseSquadrulesUri((uri || '').trim());
   if (parsed.kind !== 'artifact') return null;
   if (parsed.idKind === 'uuid') {
     return { requestedUri: uri, artifactUuid: parsed.id, uri };
@@ -102,7 +103,7 @@ export async function executeExportSource(
     return sourceFromMemory(memoryStore, parsedArtifact.uri, parsedArtifact.artifactUuid);
   }
 
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter') {
     const { adapterId } = await resolveAdapter(memoryStore, qdrantService, uri);
     return sourceListForAdapter(memoryStore, uri, adapterId);

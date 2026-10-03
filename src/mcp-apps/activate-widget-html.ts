@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
 import { ACTIVATE_WIDGET_INLINE_CSS } from './activate-widget-inline-css.js';
 import { ACTIVATE_WIDGET_INLINE_SCRIPT } from './activate-widget-inline-script.js';
@@ -10,11 +11,11 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  */
 export function buildActivateWidgetHtml(): string {
   const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
-  return minifyInlineWidgetHtml(`<div id="kairos-activate-root">
+  return minifyInlineWidgetHtml(`<div id="squadrules-activate-root">
   <div class="brand activate-brand-row">
     <div class="activate-brand-left">
       ${logo}
-      <h1 id="header-title" class="header-title"><span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span></h1>
+      <h1 id="header-title" class="header-title"><span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span></h1>
     </div>
     <div id="header-top-match" class="header-top-match" role="status" aria-live="polite" hidden></div>
   </div>

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import type { ZodError } from 'zod';
 import { FORWARD_SOLUTION_FORBIDDEN_ON_START_MESSAGE } from './forward_schema.js';
 
@@ -6,7 +7,7 @@ const MAX_INPUT_RETRIES = 3;
 const RETRY_TTL_MS = 60_000;
 const retryCounters = new Map<string, { count: number; expiresAt: number }>();
 
-export type KairosToolNameForInputTeaching =
+export type SquadrulesToolNameForInputTeaching =
   | 'activate'
   | 'forward'
   | 'reward'
@@ -41,7 +42,7 @@ function uriExecutionId(raw: unknown): string | null {
   return match?.[1] ?? null;
 }
 
-function retryCounter(tool: KairosToolNameForInputTeaching, raw: unknown): { retry_count: number; max_retries: number } {
+function retryCounter(tool: SquadrulesToolNameForInputTeaching, raw: unknown): { retry_count: number; max_retries: number } {
   const executionId = uriExecutionId(raw);
   const scope =
     executionId ??
@@ -57,7 +58,7 @@ function retryCounter(tool: KairosToolNameForInputTeaching, raw: unknown): { ret
   return { retry_count: count, max_retries: MAX_INPUT_RETRIES };
 }
 
-function withRetry(tool: KairosToolNameForInputTeaching, raw: unknown, payload: Record<string, unknown>): Record<string, unknown> {
+function withRetry(tool: SquadrulesToolNameForInputTeaching, raw: unknown, payload: Record<string, unknown>): Record<string, unknown> {
   const retry = retryCounter(tool, raw);
   const mustObey = retry.retry_count <= retry.max_retries;
   return {
@@ -282,7 +283,7 @@ function teachingSpaces(error: ZodError, raw: unknown): Record<string, unknown> 
 }
 
 export function buildMcpInputTeachingPayload(
-  tool: KairosToolNameForInputTeaching,
+  tool: SquadrulesToolNameForInputTeaching,
   error: ZodError,
   _raw: unknown
 ): Record<string, unknown> {
@@ -307,7 +308,7 @@ export function buildMcpInputTeachingPayload(
 }
 
 export function mcpToolInputValidationErrorResult(
-  tool: KairosToolNameForInputTeaching,
+  tool: SquadrulesToolNameForInputTeaching,
   error: ZodError,
   raw: unknown
 ): { isError: true; content: [{ type: 'text'; text: string }] } {

@@ -6,6 +6,7 @@ description: >-
   PR, watch CI, iterate until green, merge-ready summary. Use with
   reports/mcp-bug-*.md or user-requested KAIROS defect work.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Bug fix: dev reproduce → test → PR → CI (kairos-mcp)
 

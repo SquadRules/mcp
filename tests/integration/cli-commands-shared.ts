@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Shared utilities for CLI command tests.
  * CLI uses config under XDG_CONFIG_HOME (set by test runner). Tests run "cli login --token" then run commands; no env overrides.

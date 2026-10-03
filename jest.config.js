@@ -1,5 +1,6 @@
+// squadrules-compat-surface: references retained prior-brand source/test/plugin filenames or rule ids (rename is an explicit non-goal)
 /**
- * Jest Configuration for kairos MCP Server
+ * Jest Configuration for squadrules MCP Server
  * Fixed for working test discovery
  */
 

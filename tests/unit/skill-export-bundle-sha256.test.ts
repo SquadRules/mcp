@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Bundle hash and SHA256SUMS end-to-end correctness:
  *  - The decoded ZIP bytes hash matches the manifest `bundle_sha256` value at the lib level.
@@ -30,7 +31,7 @@ function makeItem(slug: string, files: SkillExportFile[]): SkillExportItem {
     slug,
     name: slug,
     description: `desc-${slug}`,
-    kairosUri: `kairos://adapter/${slug}`,
+    squadrulesUri: `kairos://adapter/${slug}`,
     files,
     diagnostics: []
   };

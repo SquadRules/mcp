@@ -1,11 +1,12 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { join } from 'node:path';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import {
-  getKairosConfigDir,
-  getKairosSkillInstallDirForSlug,
-  getKairosSkillsInstallBaseDir,
+  getSquadrulesConfigDir,
+  getSquadrulesSkillInstallDirForSlug,
+  getSquadrulesSkillsInstallBaseDir,
   resolveConfigDir,
   migrateConfigDir,
   getSquadRulesConfigDirPath,
@@ -22,19 +23,19 @@ describe('kairos-user-dirs', () => {
   it('places skills install base under the new (squadrules) config dir on a fresh env', () => {
     // Neither dir exists -> resolve creates/returns the new squadrules dir.
     process.env['XDG_CONFIG_HOME'] = '/xdg';
-    expect(getKairosSkillsInstallBaseDir()).toBe(join('/xdg', 'squadrules', 'skills'));
-    expect(getKairosSkillInstallDirForSlug('my-skill')).toBe(join('/xdg', 'squadrules', 'skills', 'my-skill'));
+    expect(getSquadrulesSkillsInstallBaseDir()).toBe(join('/xdg', 'squadrules', 'skills'));
+    expect(getSquadrulesSkillInstallDirForSlug('my-skill')).toBe(join('/xdg', 'squadrules', 'skills', 'my-skill'));
   });
 
   it('sanitizes slug path segments for install dir', () => {
     process.env['XDG_CONFIG_HOME'] = '/x';
-    expect(getKairosSkillInstallDirForSlug('a/b')).toBe(join('/x', 'squadrules', 'skills', 'a_b'));
+    expect(getSquadrulesSkillInstallDirForSlug('a/b')).toBe(join('/x', 'squadrules', 'skills', 'a_b'));
   });
 
-  it('getKairosConfigDir matches skills base parent', () => {
+  it('getSquadrulesConfigDir matches skills base parent', () => {
     process.env['XDG_CONFIG_HOME'] = '/cfg';
-    const base = getKairosSkillsInstallBaseDir();
-    expect(base.startsWith(getKairosConfigDir())).toBe(true);
+    const base = getSquadrulesSkillsInstallBaseDir();
+    expect(base.startsWith(getSquadrulesConfigDir())).toBe(true);
     expect(base.endsWith(join('squadrules', 'skills'))).toBe(true);
   });
 });
@@ -82,8 +83,8 @@ describe('kairos-user-dirs resolution + migration', () => {
     const resolved = resolveConfigDir(process.env);
     expect(resolved.path).toBe(priorPath());
     expect(resolved.isPrior).toBe(true);
-    // getKairosConfigDir mirrors the resolution.
-    expect(getKairosConfigDir(process.env)).toBe(priorPath());
+    // getSquadrulesConfigDir mirrors the resolution.
+    expect(getSquadrulesConfigDir(process.env)).toBe(priorPath());
   });
 
   it('does not select an empty new dir over valid prior settings', () => {

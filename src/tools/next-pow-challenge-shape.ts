@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import type { ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
 import { GENESIS_HASH } from './kairos-genesis-proof-hash.js';
 

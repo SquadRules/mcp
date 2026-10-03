@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 import { qdrantService as globalQdrantService } from './qdrant/index.js';
 import type { Memory } from '../types/memory.js';
 import { getAdapterInfo, getAdapterId } from './memory/memory-accessors.js';

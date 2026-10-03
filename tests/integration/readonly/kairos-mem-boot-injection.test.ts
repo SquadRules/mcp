@@ -1,7 +1,8 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Integration tests for mem boot injection.
  * Injection runs at server start (injectMemResourcesAtBoot). This test confirms adapters loaded at boot
- * by calling spaces and asserting the Kairos app space (kairos_dev) has at least 2 adapters
+ * by calling spaces and asserting the Squadrules app space (kairos_dev) has at least 2 adapters
  * (the two mem files in src/embed-docs/mem/). Uses normal MCP connection (auth when enabled).
  * Requires dev server (npm run dev:deploy).
  */
@@ -9,7 +10,7 @@
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 
-const KAIROS_APP_SPACE_NAME = 'Kairos app';
+const KAIROS_APP_SPACE_NAME = 'Squadrules app';
 const EXPECTED_BOOT_ADAPTER_COUNT = 6;
 const STATIC_SYSTEM_ADAPTERS: Array<{ slug: string }> = [
   { slug: 'create-new-protocol' },
@@ -30,7 +31,7 @@ describe('Mem boot injection', () => {
     if (mcpConnection) await mcpConnection.close();
   });
 
-  test('spaces shows Kairos app space with static system adapters (boot-injected mem)', async () => {
+  test('spaces shows Squadrules app space with static system adapters (boot-injected mem)', async () => {
     const result = await mcpConnection.client.callTool({
       name: 'spaces',
       arguments: { include_adapter_titles: true }
@@ -50,7 +51,7 @@ describe('Mem boot injection', () => {
     expect(appSpace).toBeDefined();
     expect(appSpace!.adapter_count).toBeGreaterThanOrEqual(
       EXPECTED_BOOT_ADAPTER_COUNT,
-      `Kairos app space should have at least ${EXPECTED_BOOT_ADAPTER_COUNT} adapters from mem boot (mem/ dir)`
+      `Squadrules app space should have at least ${EXPECTED_BOOT_ADAPTER_COUNT} adapters from mem boot (mem/ dir)`
     );
 
   }, 30000);

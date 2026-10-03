@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 export const DEFAULT_OIDC_SCOPES_SUPPORTED: readonly string[] = Object.freeze([
   'openid',
   'profile',

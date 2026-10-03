@@ -1,5 +1,6 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
- * kairos serve — run the KAIROS MCP server (same bootstrap as `node dist/bootstrap.js`).
+ * kairos serve — run the SQUADRULES MCP server (same bootstrap as `node dist/bootstrap.js`).
  * Transport: `--transport` overrides `TRANSPORT_TYPE`; default for this command is stdio.
  * Main HTTP listener: `--server-port` wins over `SERVER_PORT` (same resolution as server config).
  * Other CLI commands do not read `--transport` or `--server-port` unless those env vars are set in the shell.
@@ -93,7 +94,7 @@ export function serveCommand(program: Command): void {
   program
     .command('serve')
     .description(
-      'Run the KAIROS MCP server (HTTP or stdio). Same stack as Docker Compose / dev:start when using HTTP. Root --url does not set the listen address; use SERVER_PORT / --server-port.'
+      'Run the SQUADRULES MCP server (HTTP or stdio). Same stack as Docker Compose / dev:start when using HTTP. Root --url does not set the listen address; use SERVER_PORT / --server-port.'
     )
     .option('--env-file <path>', 'Path to dotenv file', '.env')
     .option('--metrics-port <n>', 'Metrics listen port (sets METRICS_PORT)')

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * CLI config file: token and API URL storage (XDG-compliant, user-only readable).
  * Supports multiple environments keyed by KAIROS_API_URL (normalized, no trailing slash).

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import type { Memory } from '../types/memory.js';
 import { getMetaDoc } from '../resources/embedded-mcp-resources.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
@@ -35,7 +36,7 @@ export const KAIROS_REFINING_FOOTER_LABEL = getMetaDocTitle(
 );
 export const KAIROS_CREATION_FOOTER_LABEL = getMetaDocTitle(
   KAIROS_CREATION_PROTOCOL_SLUG,
-  'Create New KAIROS Protocol'
+  'Create New SQUADRULES Protocol'
 );
 export const KAIROS_CREATION_FOOTER_NEXT_ACTION =
   'call train with adapter markdown to register a new adapter/protocol/workflow';

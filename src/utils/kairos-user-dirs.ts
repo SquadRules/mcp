@@ -1,3 +1,4 @@
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 /**
  * Cross-OS SquadRules user directory layout (shared by CLI config and runtime defaults).
  *
@@ -183,7 +184,7 @@ export function migrateConfigDir(env: NodeJS.ProcessEnv = process.env): Migratio
  * Resolution includes a prior-dir fallback: if the new dir is empty/missing and
  * the prior dir has content, the prior path is returned (no auto-migration).
  */
-export function getKairosConfigDir(env: NodeJS.ProcessEnv = process.env): string {
+export function getSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.env): string {
   return resolveConfigDir(env).path;
 }
 
@@ -191,12 +192,12 @@ export function getKairosConfigDir(env: NodeJS.ProcessEnv = process.env): string
  * Base directory for locally installed skill mirrors (flat Markdown or unzipped bundles),
  * under the same tree as CLI config (`config.json`). Not created automatically.
  */
-export function getKairosSkillsInstallBaseDir(env: NodeJS.ProcessEnv = process.env): string {
-  return join(getKairosConfigDir(env), 'skills');
+export function getSquadrulesSkillsInstallBaseDir(env: NodeJS.ProcessEnv = process.env): string {
+  return join(getSquadrulesConfigDir(env), 'skills');
 }
 
 /** Suggested install path for one skill slug (e.g. after `export` + unzip). */
-export function getKairosSkillInstallDirForSlug(slug: string, env: NodeJS.ProcessEnv = process.env): string {
+export function getSquadrulesSkillInstallDirForSlug(slug: string, env: NodeJS.ProcessEnv = process.env): string {
   const safe = slug.replace(/[/\\]/g, '_');
-  return join(getKairosSkillsInstallBaseDir(env), safe);
+  return join(getSquadrulesSkillsInstallBaseDir(env), safe);
 }

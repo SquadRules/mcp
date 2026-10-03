@@ -1,3 +1,4 @@
+// squadrules-compat-surface: falls back to the existing on-disk config-dir path segment "kairos"
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
 import { readFileSync } from 'fs';

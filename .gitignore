@@ -1,4 +1,5 @@
-# kairos MCP Server - Git Ignore Rules
+# squadrules-compat-surface: references Qdrant collection names (kairos_ci/kairos_memories/kairos_simple_ci) provisioned in existing deployments
+# squadrules MCP Server - Git Ignore Rules
 
 # Dependencies
 node_modules/

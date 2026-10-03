@@ -6,6 +6,7 @@ description: >-
   rebase --continue, interactive rebase todo, or commit advice. Prefix
   GIT_EDITOR=true and GIT_SEQUENCE_EDITOR=true as needed.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Git: editor-safe commands (agent terminal)
 

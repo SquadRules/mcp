@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Ensure host/dynamic OAuth clients receive group claims and can access group spaces via MCP.
  */

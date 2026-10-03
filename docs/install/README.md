@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references KAIROS_* environment variable names still honored as aliases for existing deployments -->
 # Install SquadRules
 
 `docs/install/` covers the supported installation flow for a local or

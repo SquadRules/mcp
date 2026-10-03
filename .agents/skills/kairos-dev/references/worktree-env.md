@@ -7,6 +7,7 @@ description: >-
   Use when .env is missing, ports clash, after secrets change in main, 401/auth
   in tests, or user says copy/sync .env or worktree env.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Worktree `.env` (kairos-mcp)
 

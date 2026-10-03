@@ -1,3 +1,4 @@
+# squadrules-compat-surface: CI uses retained compat identifiers: docker-compose project kairos-mcp and Qdrant collections kairos_ci/kairos_ci_traces; workflow step/artifact names are explicit non-goals
 # Integration workflow: build npm tgz, then verify in parallel (UI/static, npm+infra tests, Docker+Trivy).
 # Secrets: OPENAI_API_KEY (from GitHub secrets). Infra/dev secrets are generated in verify-integration-primary each run.
 # See .github/workflows/README.md for gh secret/variable setup.

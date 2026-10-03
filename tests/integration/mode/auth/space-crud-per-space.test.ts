@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Per-space CRUD (train / tune / delete) and cross-space moves via tune(space).
  * Requires AUTH_ENABLED + token with personal + /shared/ci-test group (deploy-configure-keycloak-realms.py).
@@ -181,7 +182,7 @@ _d('Space CRUD per space (MCP)', () => {
     });
   }, 120000);
 
-  test('Kairos app: train rejects SPACE_READ_ONLY', async () => {
+  test('Squadrules app: train rejects SPACE_READ_ONLY', async () => {
     if (!serverOk) {
       console.warn('[space-crud] skip app read-only: server unavailable');
       return;
@@ -202,7 +203,7 @@ _d('Space CRUD per space (MCP)', () => {
       arguments: {
         content: mdWithTitle(`SpaceCrudAppRO ${Date.now()}`),
         llm_model_id: 'test-space-crud-app-ro',
-        space: 'Kairos app',
+        space: 'Squadrules app',
         force_update: true,
         review_evidence: MOCK_REVIEW_EVIDENCE
       }

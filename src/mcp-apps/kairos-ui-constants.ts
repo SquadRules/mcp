@@ -1,5 +1,6 @@
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 /**
- * MCP Apps (SEP-1865) identifiers for KAIROS / SquadRules.
+ * MCP Apps (SEP-1865) identifiers for SQUADRULES / SquadRules.
  *
  * Host-owned chrome (tool row icon, connector tile) is outside MCP; branding
  * here applies to server-delivered HTML inside the chat widget iframe only.
@@ -96,7 +97,7 @@ export const SKYBRIDGE_HTML_MIME_TYPE = 'text/html+skybridge' as const;
 /**
  * `forward` tool: SquadRules-branded widget binding.
  *
- * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ * @public Retained for the planned SQUADRULES -> SquadRules URI switch-over; not yet imported.
  */
 export const SQUADRULES_FORWARD_TOOL_UI_META = {
   ui: {
@@ -109,7 +110,7 @@ export const SQUADRULES_FORWARD_TOOL_UI_META = {
 /**
  * `activate` tool: SquadRules-branded widget binding.
  *
- * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ * @public Retained for the planned SQUADRULES -> SquadRules URI switch-over; not yet imported.
  */
 export const SQUADRULES_ACTIVATE_TOOL_UI_META = {
   ui: {
@@ -122,7 +123,7 @@ export const SQUADRULES_ACTIVATE_TOOL_UI_META = {
 /**
  * `spaces` tool: SquadRules-branded widget binding.
  *
- * @public Retained for the planned KAIROS -> SquadRules URI switch-over; not yet imported.
+ * @public Retained for the planned SQUADRULES -> SquadRules URI switch-over; not yet imported.
  */
 export const SQUADRULES_SPACES_TOOL_UI_META = {
   ui: {

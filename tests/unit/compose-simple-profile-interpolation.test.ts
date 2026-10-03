@@ -1,3 +1,4 @@
+// squadrules-compat-surface: preserves the docker compose project name kairos-mcp used by existing volumes/containers
 import { describe, expect, it } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,13 +22,13 @@ function defaultUiDir(): string {
  * Set `KAIROS_UI_DIR` to an absolute path (or path relative to `process.cwd()`) when the server
  * resolves the wrong tree (e.g. global install, symlinked package, or mismatched worktree).
  */
-function resolveKairosUiDir(): string {
+function resolveSquadrulesUiDir(): string {
   const override = process.env["KAIROS_UI_DIR"]?.trim();
   if (!override) return defaultUiDir();
   return path.isAbsolute(override) ? override : path.resolve(process.cwd(), override);
 }
 
-/** True if the built Kairos page chunk includes browse-by-letter (post–letter-blocks UI). */
+/** True if the built Squadrules page chunk includes browse-by-letter (post–letter-blocks UI). */
 function builtUiHasLetterBrowse(uiDir: string): boolean {
   const assetsDir = path.join(uiDir, "assets");
   try {
@@ -52,7 +53,7 @@ const isProductionUiCache = process.env["NODE_ENV"] === "production";
  * - SPA fallback: GET /ui/* that don't match a file -> index.html
  */
 export function setupUiStatic(app: express.Express): void {
-  const UI_DIR = resolveKairosUiDir();
+  const UI_DIR = resolveSquadrulesUiDir();
   const indexPath = path.join(UI_DIR, "index.html");
   const hasIndex = fs.existsSync(indexPath);
   const letterBrowse = builtUiHasLetterBrowse(UI_DIR);

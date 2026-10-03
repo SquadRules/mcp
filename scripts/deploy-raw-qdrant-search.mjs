@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Run a single query against Qdrant and print raw similarity scores (no quality boost).
  * Use to compare Qdrant raw scores vs. app-reported scores.
  *
  * Usage (from repo root, .env with QDRANT_* and OPENAI_*):
  *   node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs "get help refining your search"
- *   npm run prod:raw-qdrant-search -- "create new KAIROS adapter"
+ *   npm run prod:raw-qdrant-search -- "create new SQUADRULES adapter"
  */
 import 'dotenv/config';
 

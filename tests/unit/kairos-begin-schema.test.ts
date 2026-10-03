@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { forwardInputSchema } from '../../src/tools/forward_schema.js';
 
 const ADAPTER_URI = 'kairos://adapter/sample-adapter';

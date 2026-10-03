@@ -1,5 +1,6 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 /**
- * KAIROS MCP Server
+ * SQUADRULES MCP Server
  *
  * Supports HTTP and stdio transports.
  */
@@ -90,7 +91,7 @@ function installSignalHandlers(): void {
  * Invoked when `node dist/index.js` is the process entrypoint, or after `dist/bootstrap.js` loads this module
  * (bootstrap is not `index.js`, so `isDirectRun()` is false there and bootstrap must call this explicitly).
  */
-export async function runKairosServer(): Promise<void> {
+export async function runSquadrulesServer(): Promise<void> {
     try {
         installQdrantFetchCompatibility();
         // Install once at startup to capture any background errors/warnings
@@ -168,7 +169,7 @@ export async function runKairosServer(): Promise<void> {
         if (error.stack) process.stderr.write(`${error.stack}\n`);
 
         try {
-            structuredLogger.error('Fatal error during KAIROS MCP startup', error);
+            structuredLogger.error('Fatal error during SQUADRULES MCP startup', error);
         } catch {
             // Ignore logging failures
         }
@@ -179,5 +180,5 @@ export async function runKairosServer(): Promise<void> {
 }
 
 if (isDirectRun()) {
-    await runKairosServer();
+    await runSquadrulesServer();
 }

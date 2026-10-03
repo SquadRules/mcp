@@ -197,7 +197,7 @@ _d('CLI Commands Basic --url Tests', () => {
       expect(result.spaces[0]).toHaveProperty('name');
       expect(result.spaces[0]).toHaveProperty('space_id');
       const names = (result.spaces as Array<{ name: string }>).map((s) => s.name);
-      expect(names).toContain('Kairos app');
+      expect(names).toContain('Squadrules app');
       expect(names).toContain('Personal');
     }, 30000);
   });

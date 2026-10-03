@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Unit tests for MemoryStore (in-memory key-value store).
  * Run with REDIS_URL unset or empty to use the memory backend without Redis.

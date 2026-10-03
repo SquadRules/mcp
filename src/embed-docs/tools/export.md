@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Export an **adapter**, a single **layer**, an **artifact** (`source`), or a **skill-shaped bundle** for backup, inspection, training pipelines, or portable skill distribution.
 
 **Input**
@@ -26,4 +27,4 @@ Export an **adapter**, a single **layer**, an **artifact** (`source`), or a **sk
 
 **Use with `tune`:** Edit **flat** exported Markdown, then **`tune`** with matching `uris` / `content`. Obtain flat Markdown via **`format: markdown`** (single adapter or layer **`uri`**).
 
-**Local install (agents):** **`export`** is also used to **mirror** stored content for execution (scripts under **`artifacts/`**, **`SHA256SUMS`** checks). For a **full** tree, use **`skill_zip`** and unzip; a **canonical** install root on the same machine as the CLI config is **`$XDG_CONFIG_HOME/kairos/skills/<slug>/`** (Unix; see `getKairosSkillInstallDirForSlug` in server sources / the Artifact Management topic in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)). For **only** the adapter document, **`format: markdown`** and write **`content`** to your chosen path under that tree or the workspace.
+**Local install (agents):** **`export`** is also used to **mirror** stored content for execution (scripts under **`artifacts/`**, **`SHA256SUMS`** checks). For a **full** tree, use **`skill_zip`** and unzip; a **canonical** install root on the same machine as the CLI config is **`$XDG_CONFIG_HOME/kairos/skills/<slug>/`** (Unix; see `getSquadrulesSkillInstallDirForSlug` in server sources / the Artifact Management topic in the [project Wiki](https://github.com/jakub-plichcinski/kairos-mcp/wiki)). For **only** the adapter document, **`format: markdown`** and write **`content`** to your chosen path under that tree or the workspace.

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * API-MCP parity tests: same operation via MCP and HTTP must return identical response shapes.
  * No stripping of metadata; if HTTP adds fields (e.g. metadata) that MCP does not have, tests fail.

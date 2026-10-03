@@ -34,7 +34,7 @@ const REQUIRED_HTML_FULL_DOCUMENT = ['<!DOCTYPE html>', 'lang="en"', 'viewport']
  * MCP Apps HTML resource fragment (same shape as Confluence widgets: mount root + assets).
  * Host wraps this in a document; omit DOCTYPE/head/body here.
  */
-const MCP_APP_FRAGMENT_ROOT_RE = /<div\s+id="kairos-[a-z0-9-]+-root"/i;
+const MCP_APP_FRAGMENT_ROOT_RE = /<div\s+id="(?:squadrules|kairos)-[a-z0-9-]+-root"/i;
 
 const REQUIRED_HTML_FRAGMENT = ['<style', '<script'];
 

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references the existing on-disk config-dir path segment "kairos" (fallback location for stored work/artifacts)
 import { describe, expect, it } from '@jest/globals';
 import { parseLocalArtifactDirHints } from '../../src/config.js';
 
@@ -59,7 +60,7 @@ describe('parseLocalArtifactDirHints', () => {
     // Regression guard for the original bug: server emitted /app/node_modules/... in Docker.
     // Hints must always be relative under a known scheme; absolute filesystem paths must be rejected.
     expect(() =>
-      parseLocalArtifactDirHints('project:///app/node_modules/@jakub-plichcinski/kairos-mcp/.local/kairos/work')
+      parseLocalArtifactDirHints('project:///app/node_modules/@squadrules/mcp/.local/kairos/work')
     ).toThrow(/safe relative path/);
   });
 });

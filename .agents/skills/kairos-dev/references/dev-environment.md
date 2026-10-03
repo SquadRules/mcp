@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 # Development environment — Docker Compose full stack
 
 How to run kairos-mcp the way maintainers and CI do: the Docker Compose full

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 """
 Add a user to a Keycloak realm with an auto-generated password.
 

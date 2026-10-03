@@ -5,6 +5,7 @@ description: >-
   always dev:deploy before dev:test; never use bare npx jest/jest as default.
   Invoke for CI parity, integration tests, handoff, or any "run tests" request.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Build, deploy, and test (kairos-mcp)
 

@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # SquadRules CLI
 
 The `squadrules` CLI talks to a running SquadRules server over HTTP.
@@ -12,7 +13,7 @@ squadrules --help
 ```
 
 The package also installs the **`squadrules-mcp`** command (same binary as
-**`squadrules`**), and retains the former **`kairos`** and **`kairos-mcp`**
+**`squadrules`**), and retains the former **`squadrules`** and **`squadrules-mcp`**
 command names as compatibility aliases that behave identically.
 
 ## Run the MCP server (`serve`)
@@ -82,7 +83,7 @@ squadrules search "release checklist"
 
 > **Environment-variable naming.** Server configuration variables accept a
 > `SQUADRULES_*` name (preferred) with the `KAIROS_*` name as a compatibility
-> fallback — see [Migration from KAIROS](migration-from-kairos.md). A few
+> fallback — see [Migration from SQUADRULES](migration-from-kairos.md). A few
 > CLI-only connection variables (`KAIROS_API_URL`, `KAIROS_TIMEOUT_MS`,
 > `KAIROS_RETRIES`, `KAIROS_LOGIN_CALLBACK_PORT`) currently use the `KAIROS_*`
 > prefix only; keep using those exact names for the CLI.
@@ -120,7 +121,7 @@ The CLI and MCP hosts share the same local config path:
 - fallback Unix: `~/.config/squadrules/config.json`
 - Windows: `%APPDATA%\squadrules\config.json`
 
-A former `kairos` config directory is still read as a fallback and copied into
+A former `squadrules` config directory is still read as a fallback and copied into
 the `squadrules` directory on first use; the older directory is never deleted.
 
 **Token read:** The CLI reads the token from the keyring when available,
@@ -414,6 +415,6 @@ one host/port pair (for example `http://localhost:3300`) is different from a tok
 - [Install index](install/README.md)
 - [Environment variables and secrets](install/prerequisites.md)
 - [Cursor and MCP](install/README.md#cursor-and-mcp)
-- [Migration from KAIROS](migration-from-kairos.md)
+- [Migration from SQUADRULES](migration-from-kairos.md)
 - [Architecture (project Wiki)](https://github.com/SquadRules/mcp/wiki)
 - [Adapter examples](examples/README.md)

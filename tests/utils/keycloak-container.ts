@@ -1,9 +1,9 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * Testcontainers-based Keycloak for auth integration tests.
  * Starts Keycloak, creates realm kairos-dev, client kairos-mcp, user kairos-tester.
  * User is created with credentials and requiredActions: [] in one POST to avoid "Account is not fully set up".
  */
-
 import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 
 export const REALM = 'kairos-dev';
@@ -161,7 +161,7 @@ export async function createUser(
   const body = {
     username: TEST_USERNAME,
     email: 'kairos-tester@localhost',
-    firstName: 'Kairos',
+    firstName: 'Squadrules',
     lastName: 'Tester',
     enabled: true,
     emailVerified: true,

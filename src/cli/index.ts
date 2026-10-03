@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * KAIROS CLI - Command-line interface for interacting with KAIROS REST API
+ * SQUADRULES CLI - Command-line interface for interacting with SQUADRULES REST API
  */
 
 import { createProgram } from './program.js';

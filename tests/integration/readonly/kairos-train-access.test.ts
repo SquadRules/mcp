@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-describe('Kairos train accessibility', () => {
+describe('Squadrules train accessibility', () => {
   let mcpConnection;
   const QUERY = 'AI CODING RULES';
 

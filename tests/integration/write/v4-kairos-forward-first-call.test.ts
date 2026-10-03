@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Forward tool response shape tests (entry pass without solution).
  */
@@ -144,7 +145,7 @@ describe('v4-forward first-call response schema', () => {
         uri: layerUri,
         solution: {
           type: 'comment',
-          comment: { text: 'Extracted goal: refine search; context: KAIROS; gaps: none. Genuine summary for step 1.' },
+          comment: { text: 'Extracted goal: refine search; context: SQUADRULES; gaps: none. Genuine summary for step 1.' },
           nonce,
           proof_hash: proofHash
         }

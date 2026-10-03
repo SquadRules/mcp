@@ -1,8 +1,9 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 Rank stored **adapters** for the user’s intent and return the literal next
 `forward` call arguments.
 
 **When to call:** Whenever the message describes an action, task, or workflow —
-even if the user never says "KAIROS". Always pass a short `query` summary.
+even if the user never says "SQUADRULES". Always pass a short `query` summary.
 
 Happy-path flow:
 

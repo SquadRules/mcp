@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { describe, expect, it } from '@jest/globals';
 import { getSpaceContext } from '../../src/utils/tenant-context.js';
 

@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: documents Keycloak broker setup for the retained realm kairos and OAuth client_id kairos-mcp provisioned in existing deployments -->
 # Appendix: Google sign-in for Keycloak (dev)
 
 **Not part of `docs/install/`.** For operators who already run Keycloak (or an

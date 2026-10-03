@@ -1,6 +1,7 @@
+// squadrules-compat-surface: honors the kairos-doc-keep doc marker present in existing colocated README files
 # Workflow eval harness
 
-This directory defines the repeatable workflow eval harness for KAIROS.
+This directory defines the repeatable workflow eval harness for SQUADRULES.
 Use it to verify code-graded behavior for `activate`, `forward`, `reward`,
 `train`, `tune`, and `export` before you change reward semantics, retrieval,
 or training exports.
@@ -57,7 +58,7 @@ surface that clients use.
 
 If you validate via an IDE chat session, paste [PROMPT.md](PROMPT.md) (or inject
 equivalent constraints), then have the agent run the four scenarios (imports;
-activate + run; update layer; update adapter) using only KAIROS MCP tools and
+activate + run; update layer; update adapter) using only SQUADRULES MCP tools and
 writing output to `reports/<run-id>/`. Inspect `report.md` and `calls/*.json`
 under that directory.
 

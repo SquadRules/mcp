@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Hello world using conf/routes.yaml (MIME: text/javascript).
  * Parses `greeting:` without a YAML dependency.

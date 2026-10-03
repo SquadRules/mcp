@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 """
 Doc wording pass: reduce kairos-forbidden-text/review-protocol-wording hits.
 Skip lines with URL path /protocol/ (Keycloak OIDC). The `.agents/skills/**`
@@ -21,7 +22,7 @@ SUBS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bprotocol workflow\b", re.I), "adapter workflow"),
     (re.compile(r"\bthe protocol runs\b", re.I), "the adapter run"),
     (re.compile(r"\bprotocol authoring\b", re.I), "adapter authoring"),
-    (re.compile(r"\bKAIROS protocols\b", re.I), "KAIROS adapters"),
+    (re.compile(r"\bKAIROS protocols\b", re.I), "SQUADRULES adapters"),
     (re.compile(r"\bbundle a protocol\b", re.I), "bundle an adapter"),
     (re.compile(r"\bprotocol markdown\b", re.I), "adapter markdown"),
     (re.compile(r"\bprotocol files\b", re.I), "adapter markdown files"),
@@ -50,7 +51,7 @@ SUBS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bpublic protocol\b", re.I), "public adapter"),
     (re.compile(r"\bprotocol UI\b", re.I), "adapter UI"),
     (re.compile(r"\bprotocol store\b", re.I), "adapter store"),
-    (re.compile(r"# KAIROS protocol bundles\b", re.I), "# KAIROS adapter bundles"),
+    (re.compile(r"# SQUADRULES protocol bundles\b", re.I), "# SQUADRULES adapter bundles"),
     (re.compile(r"\bprotocol bundles\b", re.I), "adapter bundles"),
     (re.compile(r"\bprotocol bundle\b", re.I), "adapter bundle"),
     (re.compile(r"\bprotocol version\b", re.I), "adapter version"),

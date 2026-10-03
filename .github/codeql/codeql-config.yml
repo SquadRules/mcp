@@ -1,13 +1,13 @@
 # CodeQL config for JavaScript/TypeScript (security-extended).
 # Exclude test code from analysis to avoid alerts on intentional patterns
 # (e.g. integration tests sending file-derived auth tokens in requests).
-name: "KAIROS CodeQL config"
+name: "SQUADRULES CodeQL config"
 
 # js/file-access-to-http: CLI persists the API base URL in config and uses it for OAuth/metadata fetch.
 # That is intentional (not exfiltration of arbitrary file bytes). URLs are validated in
 # src/cli/safe-http-url.ts (http/https only, no credentials, no query or fragment) before fetch.
 #
-# js/http-to-file-access: `kairos export --format skill_zip` writes the authenticated export ZIP
+# js/http-to-file-access: `squadrules export --format skill_zip` writes the authenticated export ZIP
 # from download_ref (or decodes inline base64) to --zip-out or a cwd-local name — same product as
 # piping markdown export to a file. Path hints are basename-sanitized in src/cli/skill-zip-local-write.ts.
 query-filters:

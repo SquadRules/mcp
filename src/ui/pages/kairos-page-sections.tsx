@@ -10,7 +10,7 @@ import type { ActivateOutput } from "../../tools/activate_schema.js";
 type Choice = ActivateOutput["choices"][number];
 
 /** Default Browse view: A–Z letter blocks with counts; expand to list protocols for that letter. */
-export function KairosBrowseByLabelSection(props: {
+export function SquadrulesBrowseByLabelSection(props: {
   t: TFunction;
   spacesLoading: boolean;
   browseAdapters: AdapterBrowseRow[];
@@ -34,14 +34,14 @@ export function KairosBrowseByLabelSection(props: {
   return (
     <section aria-labelledby="browse-by-label-heading">
       <h2 id="browse-by-label-heading" className="text-lg font-semibold text-[var(--color-text-heading)] mb-3">
-        {t("kairos.browseByLabel")}
+        {t("squadrules.browseByLabel")}
       </h2>
-      <p className="text-sm text-[var(--color-text-muted)] mb-4">{t("kairos.browseByLetterHint")}</p>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">{t("squadrules.browseByLetterHint")}</p>
       {!spacesLoading && !hasAnyAdapter ? (
-        <p className="text-sm text-[var(--color-text-muted)]">{t("kairos.browseEmpty")}</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("squadrules.browseEmpty")}</p>
       ) : null}
       {!spacesLoading && hasAnyAdapter ? (
-        <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label={t("kairos.browseByLabel")}>
+        <div className="flex flex-wrap gap-2 mb-4" role="group" aria-label={t("squadrules.browseByLabel")}>
           {BROWSE_LETTERS.map((letter) => {
             const count = countsByLetter[letter] ?? 0;
             return (
@@ -52,7 +52,7 @@ export function KairosBrowseByLabelSection(props: {
                 aria-expanded={expandedLetter === letter}
                 aria-controls={`browse-letter-panel-${letter}`}
                 aria-pressed={expandedLetter === letter}
-                aria-label={t("kairos.letterCount", { letter, count })}
+                aria-label={t("squadrules.letterCount", { letter, count })}
                 className={`min-h-[var(--layout-touch-target)] min-w-[var(--layout-touch-target)] inline-flex items-center justify-center rounded-[var(--radius-md)] border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2 ${
                   expandedLetter === letter
                     ? "border-[var(--color-primary)] bg-[var(--color-surface-elevated)] text-[var(--color-primary)]"
@@ -74,15 +74,15 @@ export function KairosBrowseByLabelSection(props: {
           className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5"
         >
           <h3 id="browse-letter-panel-heading" className="text-base font-semibold text-[var(--color-text-heading)] mb-3">
-            {t("kairos.labelsStartingWith", { letter: expandedLetter })}
+            {t("squadrules.labelsStartingWith", { letter: expandedLetter })}
           </h3>
           {adaptersForLetter.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">{t("kairos.noLabelsForLetter")}</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("squadrules.noLabelsForLetter")}</p>
           ) : (
             <ul
               className="m-0 list-none space-y-2 p-0"
               role="list"
-              aria-label={t("kairos.labelsStartingWith", { letter: expandedLetter })}
+              aria-label={t("squadrules.labelsStartingWith", { letter: expandedLetter })}
             >
               {adaptersForLetter.map((adapter) => {
                 return (
@@ -100,10 +100,10 @@ export function KairosBrowseByLabelSection(props: {
                     <div className="flex-shrink-0">
                       <Link
                         to={`/protocols/${encodeURIComponent(adapter.uri)}`}
-                        aria-label={t("kairos.viewProtocol", { title: adapter.title })}
+                        aria-label={t("squadrules.viewProtocol", { title: adapter.title })}
                         className="min-h-[var(--layout-touch-target)] min-w-[var(--layout-touch-target)] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white no-underline hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
                       >
-                        {t("kairos.view")}
+                        {t("squadrules.view")}
                       </Link>
                     </div>
                   </li>
@@ -117,7 +117,7 @@ export function KairosBrowseByLabelSection(props: {
   );
 }
 
-export function KairosActivateResultsSection(props: {
+export function SquadrulesActivateResultsSection(props: {
   t: TFunction;
   choices: Choice[];
   topScore: number | null;
@@ -129,18 +129,18 @@ export function KairosActivateResultsSection(props: {
     <>
       {choices.length > 0 && (
         <p
-          id="kairos-results-summary"
+          id="squadrules-results-summary"
           className="text-sm text-[var(--color-text-muted)] mb-4"
           aria-live="polite"
           role="status"
         >
-          {t("kairos.foundMatches", {
+          {t("squadrules.foundMatches", {
             count: choices.length,
             top: topScore != null ? Math.round(topScore) : 0,
           })}
         </p>
       )}
-      <ul className="list-none p-0 m-0 space-y-2" role="list" aria-label={t("kairos.resultsLabel")}>
+      <ul className="list-none p-0 m-0 space-y-2" role="list" aria-label={t("squadrules.resultsLabel")}>
         {choices.map((choice) => (
           <li
             key={choice.uri}
@@ -151,18 +151,18 @@ export function KairosActivateResultsSection(props: {
               <div className="text-sm text-[var(--color-text-muted)] mt-1">
                 {choice.adapter_name ??
                   (choice.role === "refine"
-                    ? t("kairos.refineMeta")
+                    ? t("squadrules.refineMeta")
                     : choice.role === "create"
-                      ? t("kairos.createMeta")
+                      ? t("squadrules.createMeta")
                       : "")}
                 {choice.role === "match" && choice.space_name != null && choice.space_name.length > 0 && (
                   <>
                     {" "}
-                    · {t("kairos.spaceLabel")}: {choice.space_name}
+                    · {t("squadrules.spaceLabel")}: {choice.space_name}
                   </>
                 )}
-                {choice.activation_score != null && ` · ${t("kairos.score")}: ${toConfidencePercent(choice.activation_score)}%`}
-                {choice.adapter_version && ` · ${t("kairos.version")}: ${choice.adapter_version}`}
+                {choice.activation_score != null && ` · ${t("squadrules.score")}: ${toConfidencePercent(choice.activation_score)}%`}
+                {choice.adapter_version && ` · ${t("squadrules.version")}: ${choice.adapter_version}`}
               </div>
               <span
                 className={`inline-block mt-1 text-xs uppercase tracking-wide px-2 py-0.5 rounded ${roleBadgeClass[choice.role] ?? "bg-[var(--color-surface)] text-[var(--color-text-muted)]"}`}
@@ -171,7 +171,7 @@ export function KairosActivateResultsSection(props: {
                 {choice.role}
               </span>
               {choice.tags?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2" aria-label={t("kairos.tagsLabel")}>
+                <div className="flex flex-wrap gap-1 mt-2" aria-label={t("squadrules.tagsLabel")}>
                   {choice.tags.slice(0, 8).map((tag) => (
                     <span
                       key={tag}
@@ -187,10 +187,10 @@ export function KairosActivateResultsSection(props: {
               {choice.role === "match" && (
                 <Link
                   to={`/protocols/${encodeURIComponent(choice.uri)}`}
-                  aria-label={t("kairos.viewProtocol", { title: choice.label })}
+                  aria-label={t("squadrules.viewProtocol", { title: choice.label })}
                   className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white no-underline hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
                 >
-                  {t("kairos.view")}
+                  {t("squadrules.view")}
                 </Link>
               )}
               {choice.role === "refine" && (
@@ -198,7 +198,7 @@ export function KairosActivateResultsSection(props: {
                   to={`/protocols/${encodeURIComponent(choice.uri)}`}
                   className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white no-underline hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
                 >
-                  {t("kairos.refineSearch")}
+                  {t("squadrules.refineSearch")}
                 </Link>
               )}
               {choice.role === "create" && (
@@ -206,7 +206,7 @@ export function KairosActivateResultsSection(props: {
                   to="/protocols/new"
                   className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white no-underline hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
                 >
-                  {t("kairos.createNew")}
+                  {t("squadrules.createNew")}
                 </Link>
               )}
             </div>

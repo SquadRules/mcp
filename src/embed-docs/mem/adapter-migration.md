@@ -12,7 +12,7 @@ per adapter, and re-trains only after user approval.
 
 This protocol handles structural migrations only — it preserves semantic content
 (steps, intent, examples) while updating format, headings, and contract shapes
-to match the latest KAIROS requirements.
+to match the latest SQUADRULES requirements.
 
 ## Activation Patterns
 

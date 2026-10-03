@@ -1,3 +1,4 @@
+// squadrules-compat-surface: asserts OAuth login-URL rewriting for the provisioned Keycloak client_id kairos-mcp
 import { describe, expect, it } from '@jest/globals';
 import { rewriteLoginUrlRedirectToApiBase } from '../../src/cli/rewrite-login-url.js';
 

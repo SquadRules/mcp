@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * OAuth 2.0 well-known metadata endpoints for MCP authorization discovery.
  *
