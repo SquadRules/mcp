@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Shared helpers for skill_zip / skill_tree integration tests.
  * Keeps each test file focused on assertions and under the repo line cap.

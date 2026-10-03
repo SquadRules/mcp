@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Build one SkillExportItem from resolved adapter markdown (normalized).
  */
@@ -16,7 +17,7 @@ function toCurrentMarkdown(markdownDoc: string): string {
 }
 
 /** True when the value already carries a supported URI scheme (kairos:// or squadrules://). */
-function hasKairosScheme(value: string): boolean {
+function hasSquadrulesScheme(value: string): boolean {
   return /^(?:kairos|squadrules):\/\//i.test(value);
 }
 
@@ -57,7 +58,7 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
     label,
     memorySlug,
     adapterName,
-    kairosUri: canonicalRequestUri
+    squadrulesUri: canonicalRequestUri
   });
 
   const adapterVersion = typeof dump['adapter_version'] === 'string' ? dump['adapter_version'] : null;
@@ -66,9 +67,9 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
   const hash = sha256Hex(skillBody);
 
   const dumpUri = typeof dump['uri'] === 'string' ? dump['uri'] : '';
-  const kairosUri = hasKairosScheme(dumpUri)
+  const squadrulesUri = hasSquadrulesScheme(dumpUri)
     ? toCanonicalScheme(dumpUri)
-    : hasKairosScheme(canonicalRequestUri)
+    : hasSquadrulesScheme(canonicalRequestUri)
       ? canonicalRequestUri
       : `kairos://adapter/${params.adapterId}`;
 
@@ -76,7 +77,7 @@ export async function assembleSkillExportItem(params: AssembleSkillItemParams): 
     slug: meta.slug,
     name: meta.name,
     description: meta.description,
-    kairosUri,
+    squadrulesUri,
     adapterVersion,
     files: [
       {

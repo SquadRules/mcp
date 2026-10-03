@@ -16,7 +16,7 @@ export function HomePage() {
     e.preventDefault();
     const form = e.currentTarget;
     const q = (form.querySelector('input[name="q"]') as HTMLInputElement)?.value?.trim() ?? "";
-    navigate(q ? `/kairos?q=${encodeURIComponent(q)}` : "/kairos");
+    navigate(q ? `/squadrules?q=${encodeURIComponent(q)}` : "/squadrules");
   };
 
   const spaces = data?.spaces ?? [];
@@ -51,10 +51,10 @@ export function HomePage() {
               type="submit"
               className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white border-0 cursor-pointer hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
             >
-              {t("kairos.search")}
+              {t("squadrules.search")}
             </button>
             <Link
-              to="/kairos"
+              to="/squadrules"
               className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] no-underline hover:bg-[var(--color-surface-elevated)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
             >
               {t("home.goToBrowse")}
@@ -66,7 +66,7 @@ export function HomePage() {
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <SurfaceCard title={t("home.cardBrowseTitle")} subtitle={t("home.cardBrowseSubtitle")}>
           <Link
-            to="/kairos"
+            to="/squadrules"
             className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-4 py-2 rounded-[var(--radius-md)] font-medium bg-[var(--color-primary)] text-white no-underline hover:bg-[var(--color-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2"
           >
             {t("home.cardBrowseCta")}

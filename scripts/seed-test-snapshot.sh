@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
+# squadrules-compat-surface: uses persisted Qdrant collection names (kairos / kairos_memories / kairos_ci / kairos_simple_ci); renaming would orphan existing vectors
 # Seed test adapters and create Qdrant snapshot for CI/local test caching.
 # Usage: npm run test:seed-snapshot
 #
 # This script:
-# 1. Starts KAIROS with kairos_ci collection (fresh Qdrant)
+# 1. Starts SQUADRULES with kairos_ci collection (fresh Qdrant)
 # 2. Trains all adapters needed for integration tests
 # 3. Stops the app
 # 4. Creates Qdrant snapshot
@@ -78,7 +79,7 @@ mkdir -p "${LOCAL_CACHE_DIR}"
 
 # Use ALREADY RUNNING Qdrant and app from deploy-run-env.sh
 log_info "Using Qdrant at: ${QDRANT_URL}"
-log_info "Using KAIROS app at: ${APP_URL}"
+log_info "Using SQUADRULES app at: ${APP_URL}"
 
 # Verify Qdrant is running
 if ! curl -sSf "${QDRANT_URL}/healthz" >/dev/null 2>&1; then
@@ -87,9 +88,9 @@ if ! curl -sSf "${QDRANT_URL}/healthz" >/dev/null 2>&1; then
   exit 1
 fi
 
-# Verify KAIROS app is running
+# Verify SQUADRULES app is running
 if ! curl -sSf "${APP_URL}/health" >/dev/null 2>&1; then
-  log_error "KAIROS app not running at ${APP_URL}"
+  log_error "SQUADRULES app not running at ${APP_URL}"
   log_error "Run: npm run dev:deploy (or npm run dev_simple:deploy)"
   exit 1
 fi
@@ -121,7 +122,7 @@ call_mcp_tool() {
   echo "${response}"
 }
 
-# Train AI_CODING_RULES adapter using KAIROS CLI (handles auth automatically)
+# Train AI_CODING_RULES adapter using SQUADRULES CLI (handles auth automatically)
 log_info "Training AI_CODING_RULES adapter via CLI..."
 
 # Create temporary directory with test adapter markdown
@@ -131,7 +132,7 @@ cp "${ROOT_DIR}/tests/test-data/AI_CODING_RULES.md" "${TEMP_DIR}/"
 log_info "Training from: ${TEMP_DIR}"
 log_info "Base URL: ${APP_URL}"
 
-# Train using KAIROS CLI (uses stored auth from kairos login)
+# Train using SQUADRULES CLI (uses stored auth from kairos login)
 TRAIN_OUTPUT=$(node "${ROOT_DIR}/dist/cli/index.js" train --url "${APP_URL}" --force "${TEMP_DIR}" 2>&1)
 TRAIN_EXIT=$?
 

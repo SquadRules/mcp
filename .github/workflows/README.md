@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references Keycloak realm/client names (kairos-dev/kairos-prod/kairos-mcp) provisioned in existing deployments -->
 # GitHub Actions – workflow design
 
 <!-- kairos-lint-allow-protocol-synonyms -->

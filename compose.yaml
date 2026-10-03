@@ -1,3 +1,4 @@
+# squadrules-compat-surface: references the docker-compose project/service name kairos-mcp retained for backward compatibility
 # Compose with Docker named volumes (default). No VOLUME_LOCAL_PATH required.
 # Alternative: compose-dir-volumes.yaml uses host dirs (bind mounts).
 #

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 ---
 name: mime-artifact-sample
 description: Sample adapter with one artifact per allowed non-markdown MIME type

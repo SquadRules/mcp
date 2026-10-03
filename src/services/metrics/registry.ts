@@ -1,9 +1,10 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { Registry } from 'prom-client';
 import { getBuildVersion } from '../../utils/build-version.js';
 import os from 'os';
 
 /**
- * Prometheus metrics registry for KAIROS.
+ * Prometheus metrics registry for SQUADRULES.
  * 
  * All metrics are registered here and exposed via /metrics endpoint.
  * Default labels are automatically applied to all metrics.

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import { createHash } from 'node:crypto';
 

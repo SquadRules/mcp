@@ -1,3 +1,4 @@
+// squadrules-compat-surface: sets X-KAIROS-* HTTP response headers consumed by existing clients
 import type { Response } from 'express';
 import { PassThrough } from 'node:stream';
 import { finished } from 'node:stream/promises';

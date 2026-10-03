@@ -6,6 +6,7 @@ description: >-
   bisection, fs_usage on macOS, read-tree repair, and .husky/pre-commit cleanup
   behavior — read the hook file as authority, not a stale copy of this skill.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # Git worktree index and commit repair
 

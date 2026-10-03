@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-emits the kairos_local_artifact_dir JSON field expected by existing clients
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { z } from 'zod';
 import { nextInputSchema, nextOutputSchema } from './next_schema.js';
@@ -17,7 +18,7 @@ import { tryApplySolutionToPreviousStep, tryApplySolutionToPreviousStepWhenSolut
 import { buildMissingProofPayload } from './next-missing-proof-payload.js';
 import { modelStats } from '../services/stats/model-stats.js';
 import { kairosQualityUpdateErrors } from '../services/metrics/mcp-metrics.js';
-import { buildLayerUri, parseKairosUri } from './kairos-uri.js';
+import { buildLayerUri, parseSquadrulesUri } from './kairos-uri.js';
 import { KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 
@@ -34,9 +35,9 @@ async function loadMemoryWithCache(memoryStore: MemoryQdrantStore, uuid: string)
 }
 
 function normalizeLayerUri(value: string): { uuid: string; uri: string; executionId?: string } {
-  const parsed = parseKairosUri(value);
+  const parsed = parseSquadrulesUri(value);
   if (parsed.kind !== 'layer') {
-    throw new Error('Invalid KAIROS URI. next expects a layer URI.');
+    throw new Error('Invalid SQUADRULES URI. next expects a layer URI.');
   }
   return {
     uuid: parsed.id,

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';

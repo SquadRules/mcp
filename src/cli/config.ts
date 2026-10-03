@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * CLI Configuration
  */
@@ -17,7 +18,7 @@ export function getCliApiUrlDefault(): string {
 }
 
 /**
- * Get the KAIROS API base URL (same as getCliApiUrlDefault).
+ * Get the SQUADRULES API base URL (same as getCliApiUrlDefault).
  */
 export function getApiUrl(): string {
     return getCliApiUrlDefault();

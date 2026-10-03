@@ -1,7 +1,8 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 # Bundled meta-protocols
 
 This directory contains the bundled KAIROS-internal adapters and policy
-documents that are injected into the Kairos app space at boot.
+documents that are injected into the Squadrules app space at boot.
 
 <!-- kairos-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
 
@@ -9,7 +10,7 @@ Version: **4.2.0**
 
 ## Philosophy
 
-KAIROS exists for AI agents and for human–AI harmony.
+SQUADRULES exists for AI agents and for human–AI harmony.
 
 The bundle is designed to help agents recognise the right mode at the right
 time: discovery, clarification, ideation, planning, execution, validation,
@@ -23,7 +24,7 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 
 | File | Slug | Purpose |
 |------|------|---------|
-| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor KAIROS protocols |
+| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
 | [phase-critic.md](phase-critic.md) | `phase-critic` | Phase-boundary adversarial review — verify claims against evidence |
 | [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |

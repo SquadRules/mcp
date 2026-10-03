@@ -1,3 +1,4 @@
+// squadrules-compat-surface: accepts the older kairos-release marker on existing published GitHub releases/drafts
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 

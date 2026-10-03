@@ -1,5 +1,6 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
- * URI Builder for KAIROS Resources
+ * URI Builder for SQUADRULES Resources
  *
  * Generates canonical kairos:// URIs for:
  * - Domain/type/task resources: kairos://{domain}/{type}/{task}

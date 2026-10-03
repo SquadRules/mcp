@@ -7,6 +7,7 @@ description: >-
   public UI critique, or layout/accessibility review. Implementation phase:
   follow kmcp-dev-build-test.
 ---
+<!-- squadrules-compat-surface: skill directory + name: frontmatter (kairos / kairos-dev) are retained invocation identifiers; path/filename rename is an explicit non-goal and body prose references these names plus the retained kairos CLI alias -->
 
 # KAIROS UI/UX Designer — System Prompt
 

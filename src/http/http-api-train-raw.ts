@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import getRawBody from 'raw-body';
 import express from 'express';
 import { kairosTrainSimilarAdapterFound } from '../services/metrics/mcp-metrics.js';
@@ -10,7 +11,7 @@ import { trainInputSchema } from '../tools/train_schema.js';
 import { HTTP_TRAIN_RAW_BODY_LIMIT } from '../config.js';
 import { buildAdapterUri } from '../tools/kairos-uri.js';
 import { KAIROS_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 import { getSpaceContext, runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { listWritableSpaceDisplayNames, resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
 
@@ -169,10 +170,10 @@ export function setupTrainRawRoute(
         });
         return;
       }
-      if (error instanceof KairosError) {
+      if (error instanceof SquadrulesError) {
         const status =
           error.statusCode >= 400 && error.statusCode < 600 ? error.statusCode : 500;
-        structuredLogger.warn(`✗ Train raw KairosError ${error.code}: ${error.message}`);
+        structuredLogger.warn(`✗ Train raw SquadrulesError ${error.code}: ${error.message}`);
         res.status(status).json({
           error: error.code,
           message: error.message,

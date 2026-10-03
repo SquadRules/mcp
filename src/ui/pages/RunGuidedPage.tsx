@@ -1,3 +1,4 @@
+// squadrules-compat-surface: dual-accepts canonical kairos:// URIs alongside squadrules:// so existing stored URIs keep resolving
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router";

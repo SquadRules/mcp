@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 /**
  * CLI keyring: OS-native credential storage for bearer tokens.
  * Uses @napi-rs/keyring (keytar-compatible API). When keyring is unavailable or

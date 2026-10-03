@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { KAIROS_MCP_WIDGET_PRESENTATION_ONLY } from '../config.js';
 
 /** Token replaced in inline widget scripts when HTML is assembled (see widget HTML builders). */

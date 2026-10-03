@@ -1,15 +1,15 @@
 ---
 slug: bulk-insert-adapters-via-cli
 version: "4.8.6"
-title: Bulk Insert Adapters via KAIROS CLI
+title: Bulk Insert Adapters via SQUADRULES CLI
 ---
 
-# Bulk Insert Adapters via KAIROS CLI
+# Bulk Insert Adapters via SQUADRULES CLI
 
 ## Activation Patterns
 
-Batch-register multiple KAIROS adapters from a local directory tree using the
-`kairos train` CLI. Handles directory scanning, validation, space targeting,
+Batch-register multiple SQUADRULES adapters from a local directory tree using the
+`squadrules train` CLI. Handles directory scanning, validation, space targeting,
 and error recovery for bulk operations.
 
 **Run this protocol when the user says ANY of:**
@@ -17,8 +17,8 @@ and error recovery for bulk operations.
 - "bulk insert adapters" / "bulk train adapters"
 - "train all protocols in a directory"
 - "batch register adapters from folder"
-- "upload all .md files to KAIROS"
-- "sync local protocols to KAIROS" / "push protocols to KAIROS"
+- "upload all .md files to SQUADRULES"
+- "sync local protocols to SQUADRULES" / "push protocols to SQUADRULES"
 - "train directory recursively" / "train --recursive"
 
 **Trigger pattern:** **bulk** / **batch** / **all** / **directory** / **recursive** +
@@ -40,29 +40,29 @@ and error recovery for bulk operations.
 
 **Good trigger examples:**
 
-- "Train all adapters in kairos-v4/_personal/" → run this protocol
+- "Train all adapters in squadrules-v4/_personal/" → run this protocol
 - "Bulk insert the protocols from my export folder" → run this protocol
 - "Push all .md files in this directory to my personal space" → run this protocol
 
 **Bad trigger examples:**
 
-- "Train this one protocol" → use `kairos train <file>` directly
+- "Train this one protocol" → use `squadrules train <file>` directly
 - "Create a new protocol" → use `create-new-protocol`
-- "Export my adapters" → use `kairos export`
+- "Export my adapters" → use `squadrules export`
 
 ## Preflight Dependencies
 
 Verify before execution:
 
-1. `kairos` CLI is installed and callable (`kairos --version`).
-2. Authentication is valid (`kairos token` returns a token without error).
+1. `squadrules` CLI is installed and callable (`squadrules --version`).
+2. Authentication is valid (`squadrules token` returns a token without error).
 3. Target directory path exists and contains at least one `.md` file.
-4. If a space is specified, confirm it exists via `kairos spaces`.
+4. If a space is specified, confirm it exists via `squadrules spaces`.
 
 If any check fails, stop and report the issue with remediation guidance.
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"kairos --version && kairos token > /dev/null 2>&1 && echo 'auth: ok'","timeout_seconds":15},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"squadrules --version && squadrules token > /dev/null 2>&1 && echo 'auth: ok'","timeout_seconds":15},"required":true}}
 ```
 
 ## Confirm Scope
@@ -83,7 +83,7 @@ List the files that will be trained and ask for confirmation.
 
 ## Validate Structure
 
-Before training, validate each `.md` file against KAIROS adapter requirements:
+Before training, validate each `.md` file against SQUADRULES adapter requirements:
 
 - Has an H1 title.
 - First H2 is "Activation Patterns".
@@ -101,10 +101,10 @@ Report any files that fail validation. Ask user whether to:
 
 ## Execute Bulk Train
 
-Run the batch train operation using the KAIROS CLI:
+Run the batch train operation using the SQUADRULES CLI:
 
 ```
-kairos train <directory> --recursive --model <model> --space <space> [--force]
+squadrules train <directory> --recursive --model <model> --space <space> [--force]
 ```
 
 If the directory contains files that should NOT be trained (README, reference
@@ -115,7 +115,7 @@ docs), either:
 Capture stdout and stderr. The CLI reports per-file status.
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"kairos train <directory> --recursive --model <model_id> --space <space>","timeout_seconds":120},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"squadrules train <directory> --recursive --model <model_id> --space <space>","timeout_seconds":120},"required":true}}
 ```
 
 ## Report Results
@@ -134,7 +134,7 @@ For each failure, report:
 - Error message
 - Suggested fix
 
-If all succeeded, confirm adapter URIs are accessible via `kairos spaces`.
+If all succeeded, confirm adapter URIs are accessible via `squadrules spaces`.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
@@ -149,4 +149,4 @@ Protocol complete when:
 - Any failures have been documented with remediation guidance.
 
 A successful bulk insert means the user's local protocol library is now
-registered in KAIROS and available for activation by AI agents.
+registered in SQUADRULES and available for activation by AI agents.

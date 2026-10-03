@@ -4,7 +4,7 @@ import { embeddingService } from '../embedding/service.js';
 import { sanitizeAndUpsert, validateAndConvertId } from './utils.js';
 import { redisCacheService } from '../redis-cache.js';
 import { logger } from '../../utils/structured-logger.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import { qdrantOperations, qdrantOperationDuration, qdrantUpsertDuration } from '../metrics/qdrant-metrics.js';
 import { getTenantId, getSpaceContext } from '../../utils/tenant-context.js';
 
@@ -20,7 +20,7 @@ export async function updateMemoryByUUID(conn: QdrantConnection, uuid: string, u
     try {
       const existingPoint = await retrieveAccessiblePointById(conn, uuid, { withVector: true });
       if (!existingPoint) {
-        throw new KairosError(`Memory with UUID ${uuid} not found`, 'MEMORY_NOT_FOUND', 404);
+        throw new SquadrulesError(`Memory with UUID ${uuid} not found`, 'MEMORY_NOT_FOUND', 404);
       }
 
       const existingPayload = existingPoint.payload as any;
@@ -104,7 +104,7 @@ export async function updateMemory(conn: QdrantConnection, id: string, updates: 
       const validatedId = validateAndConvertId(id);
       const existingPoint = await retrieveAccessiblePointById(conn, validatedId, { withVector: true });
       if (!existingPoint) {
-        throw new KairosError(`Memory with ID ${id} not found`, 'MEMORY_NOT_FOUND', 404);
+        throw new SquadrulesError(`Memory with ID ${id} not found`, 'MEMORY_NOT_FOUND', 404);
       }
       const existingPayload = existingPoint.payload as any;
       const actorId = getSpaceContext().userId || 'system';
@@ -205,7 +205,7 @@ export async function deleteMemory(conn: QdrantConnection, id: string): Promise<
       const validatedId = validateAndConvertId(id);
       const existing = await retrieveById(conn, validatedId);
       if (!existing) {
-        throw new KairosError(`Memory with ID ${id} not found`, 'MEMORY_NOT_FOUND', 404);
+        throw new SquadrulesError(`Memory with ID ${id} not found`, 'MEMORY_NOT_FOUND', 404);
       }
       await conn.client.delete(conn.collectionName, { points: [validatedId] });
       

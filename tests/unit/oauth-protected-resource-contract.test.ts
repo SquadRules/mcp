@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 import { beforeAll, describe, expect, it } from '@jest/globals';
 
 let buildProtectedResourceMetadata: () => Record<string, unknown>;
@@ -21,18 +22,18 @@ beforeAll(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug: authorization_servers points to KAIROS app instead of Keycloak issuer.
+// Bug: authorization_servers points to SQUADRULES app instead of Keycloak issuer.
 // MCP clients fetch /.well-known/oauth-authorization-server from that server,
 // which strips registration_endpoint → "does not support dynamic client registration".
 // ---------------------------------------------------------------------------
 
 describe('Protected Resource Metadata (buildProtectedResourceMetadata)', () => {
-    it('authorization_servers must point to Keycloak issuer, not KAIROS app base', () => {
+    it('authorization_servers must point to Keycloak issuer, not SQUADRULES app base', () => {
         const meta = buildProtectedResourceMetadata();
         const servers = meta['authorization_servers'] as string[];
 
         expect(servers).toHaveLength(1);
-        // Must be the Keycloak realm issuer — NOT the KAIROS app base URL.
+        // Must be the Keycloak realm issuer — NOT the SQUADRULES app base URL.
         expect(servers[0]).toBe('http://keycloak.local:8180/realms/kairos-dev');
         expect(servers[0]).not.toBe('http://localhost:3300');
     });

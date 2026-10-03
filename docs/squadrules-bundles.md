@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: emits/dual-accepts canonical kairos:// and ui://kairos/* URIs so existing stored URIs and clients keep resolving -->
 # SquadRules adapter bundles
 
 A bundle is a directory of adapter markdown files stored outside the SquadRules

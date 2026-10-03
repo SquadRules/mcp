@@ -1,3 +1,4 @@
+// squadrules-compat-surface: serves ui://kairos/* MCP resource URIs that are a stable client contract
 /**
  * MCP Apps: resources/read for ui://kairos/spaces-result returns HTML profile mcp-app.
  */
@@ -25,7 +26,7 @@ describe('MCP UI resource read (spaces widget)', () => {
     }
   });
 
-  test('resources/read ui://kairos/spaces-result returns HTML with Kairos branding', async () => {
+  test('resources/read ui://kairos/spaces-result returns HTML with Squadrules branding', async () => {
     const result = await mcpConnection.client.readResource({ uri: 'ui://kairos/spaces-result' });
     withRawOnFail(result, () => {
       expect(result.contents?.length).toBeGreaterThan(0);
@@ -34,7 +35,7 @@ describe('MCP UI resource read (spaces widget)', () => {
       expect(c.mimeType).toBe(MCP_APP_HTML_MIME_TYPE);
       expect(typeof c.text).toBe('string');
       expect(c.text).toContain('kairos-spaces-root');
-      expect(c.text).toContain('KAIROS');
+      expect(c.text).toContain('SQUADRULES');
       expect(c.text).toContain('ui/notifications/tool-result');
       expect(c.text).toContain('ui/initialize');
       expect(c.text).toContain('ui/notifications/initialized');
@@ -51,7 +52,7 @@ describe('MCP UI resource read (spaces widget)', () => {
       expect(c.mimeType).toBe(SKYBRIDGE_HTML_MIME_TYPE);
       expect(typeof c.text).toBe('string');
       expect(c.text).toContain('ui/initialize');
-      expect(c.text).toContain('KAIROS');
+      expect(c.text).toContain('SQUADRULES');
     }, 'resources/read skybridge widget');
   });
 

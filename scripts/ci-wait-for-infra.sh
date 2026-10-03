@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# squadrules-compat-surface: preserves the docker compose project name kairos-mcp used by existing volumes/containers
 # Poll Valkey, Qdrant, Postgres, and Keycloak in parallel (used by integration CI).
 set -euo pipefail
 

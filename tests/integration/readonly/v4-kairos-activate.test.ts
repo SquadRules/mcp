@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * Integration: `activate` MCP tool — response shape, meta footers, and slug contract.
  *
@@ -244,7 +245,7 @@ ${buildMinimalProtocolBody(title)}`;
   });
 
   test('create footer choice remains discoverable for authoring-style query', async () => {
-    const { call, result, parsed } = await activateQuery('Register personal KAIROS adapter');
+    const { call, result, parsed } = await activateQuery('Register personal SQUADRULES adapter');
 
     withRawOnFail({ call, result }, () => {
       const createChoice = parsed.choices.find(

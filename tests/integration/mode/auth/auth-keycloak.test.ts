@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm identities/groups (kairos-tester / kairos-auditor / kairos-groups / kairos-shares) provisioned in existing deployments
 /**
  * Auth integration tests: when AUTH_ENABLED=true, assert 401 without token and 200 with token.
  * When AUTH_ENABLED=false, assertions relax (any of 200/401).

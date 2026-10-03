@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /** Inline boot script for {@link ./activate-widget-html.ts} (MCP Apps HTML bundle). */
 import { minifyInlineWidgetScript } from './widget-inline-minify.js';
 
@@ -140,13 +141,13 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       }
 
       function headerHtmlIdle() {
-        return '<span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span>';
+        return '<span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-name muted">…</span>';
       }
 
       function headerHtmlWithQuery(q) {
         var safe = escapeHtml(q && String(q).trim() ? String(q).trim() : '—');
         return (
-          '<span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-label">query: </span><span class="ht-protocol-name">' +
+          '<span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Activate • </span><span class="ht-protocol-label">query: </span><span class="ht-protocol-name">' +
           safe +
           '</span>'
         );
@@ -217,7 +218,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
       function showRawJson(obj) {
         clearTopMatch();
         if (headerTitle) headerTitle.innerHTML = headerHtmlIdle();
-        document.title = 'Activate — KAIROS';
+        document.title = 'Activate — SQUADRULES';
         if (el) {
           var pre = document.createElement('pre');
           pre.className = 'raw';
@@ -235,7 +236,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         }
         clearTopMatch();
         if (headerTitle) headerTitle.innerHTML = headerHtmlIdle();
-        document.title = 'Activate — KAIROS';
+        document.title = 'Activate — SQUADRULES';
         if (!el) return;
         var wrap = document.createElement('div');
         var msgEl = document.createElement('p');
@@ -355,7 +356,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
         if (headerTitle) headerTitle.innerHTML = headerHtmlWithQuery(sc.query != null ? sc.query : '');
         paintTopMatch(all);
         var qt = sc.query != null && String(sc.query).trim() ? String(sc.query).trim() : 'Activate';
-        document.title = qt.length > 48 ? qt.slice(0, 45) + '… — KAIROS' : qt + ' — KAIROS';
+        document.title = qt.length > 48 ? qt.slice(0, 45) + '… — SQUADRULES' : qt + ' — SQUADRULES';
         if (!el) return;
         el.replaceChildren();
         var ul = document.createElement('ul');
@@ -423,7 +424,7 @@ export const ACTIVATE_WIDGET_INLINE_SCRIPT = minifyInlineWidgetScript(`
           return;
         }
         sendRequest('ui/initialize', {
-          appInfo: { name: 'kairos-activate-view', version: '1.0.0' },
+          appInfo: { name: 'squadrules-activate-view', version: '1.0.0' },
           appCapabilities: {},
           protocolVersion: PROTO
         }).then(function (result) {

@@ -5,7 +5,7 @@
  * workspace and re-runs this script there; git tags are NOT a target because
  * they advance past the in-repo baseline after every semantic-release run.
  * - src/embed-docs/mem/*.md frontmatter = package.json version.
- * - .agents/skills/** (SKILL.md metadata.version + references/KAIROS.md frontmatter)
+ * - .agents/skills/** (SKILL.md metadata.version + references/SQUADRULES.md frontmatter)
  *   = package.json version.
  * - Default: update files to the target.
  * - --check: compare; exit 1 if any version differs from the target.
@@ -45,7 +45,7 @@ function replaceSkillVersionLine(content, newVersion) {
 }
 
 /** Extract version from frontmatter at the start of content only (line "version: 1.0.0" or version: "1.0.0"). Ignores --- mid-document (horizontal rules). */
-function getKairosVersionFromContent(content) {
+function getSquadrulesVersionFromContent(content) {
   const trimmed = content.trimStart();
   if (!trimmed.startsWith('---')) return null;
   const afterFirst = trimmed.slice(3);
@@ -57,7 +57,7 @@ function getKairosVersionFromContent(content) {
 }
 
 /** Replace version line in frontmatter at the start of content only. Ignores --- mid-document. */
-function replaceKairosVersionLine(content, newVersion) {
+function replaceSquadrulesVersionLine(content, newVersion) {
   const trimmed = content.trimStart();
   const leadingWhitespace = content.slice(0, content.length - trimmed.length);
   if (!trimmed.startsWith('---')) return content;
@@ -82,7 +82,7 @@ async function main() {
 
   for (const dir of skillDirs) {
     const skillMdPath = path.join(SKILLS_DIR, dir, 'SKILL.md');
-    const kairosPath = path.join(SKILLS_DIR, dir, 'references', 'KAIROS.md');
+    const squadrulesPath = path.join(SKILLS_DIR, dir, 'references', 'SQUADRULES.md');
 
     // SKILL.md metadata.version -> package.json version
     try {
@@ -103,18 +103,18 @@ async function main() {
       if (err.code !== 'ENOENT') throw err;
     }
 
-    // references/KAIROS.md frontmatter version -> package.json version
+    // references/SQUADRULES.md frontmatter version -> package.json version
     try {
-      const kairosContent = await fs.readFile(kairosPath, 'utf8');
-      const current = getKairosVersionFromContent(kairosContent);
+      const squadrulesContent = await fs.readFile(squadrulesPath, 'utf8');
+      const current = getSquadrulesVersionFromContent(squadrulesContent);
       if (current !== null) {
         if (CHECK) {
-          if (current !== target) mismatches.push(`${dir}/references/KAIROS.md: ${current} (expected ${target}, skills=package.json)`);
+          if (current !== target) mismatches.push(`${dir}/references/SQUADRULES.md: ${current} (expected ${target}, skills=package.json)`);
         } else {
-          const newContent = replaceKairosVersionLine(kairosContent, target);
-          if (newContent !== kairosContent) {
-            await fs.writeFile(kairosPath, newContent, 'utf8');
-            updated.push(`${dir}/references/KAIROS.md`);
+          const newContent = replaceSquadrulesVersionLine(squadrulesContent, target);
+          if (newContent !== squadrulesContent) {
+            await fs.writeFile(squadrulesPath, newContent, 'utf8');
+            updated.push(`${dir}/references/SQUADRULES.md`);
           }
         }
       }
@@ -129,12 +129,12 @@ async function main() {
     for (const name of memFiles) {
       const memPath = path.join(MEM_DIR, name);
       const content = await fs.readFile(memPath, 'utf8');
-      const current = getKairosVersionFromContent(content);
+      const current = getSquadrulesVersionFromContent(content);
       if (current !== null) {
         if (CHECK) {
           if (current !== target) mismatches.push(`src/embed-docs/mem/${name}: ${current} (expected ${target}, mem=package.json)`);
         } else {
-          const newContent = replaceKairosVersionLine(content, target);
+          const newContent = replaceSquadrulesVersionLine(content, target);
           if (newContent !== content) {
             await fs.writeFile(memPath, newContent, 'utf8');
             updated.push(`src/embed-docs/mem/${name}`);

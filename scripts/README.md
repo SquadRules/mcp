@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references Keycloak realm/client or keyring service names (kairos-dev / kairos-prod / kairos-cli) provisioned in existing deployments
 # Scripts
 
 This directory holds maintainer and automation helpers. Prefer **`npm run …`** from the repo root `package.json` instead of invoking shell entrypoints directly unless you know you need to.
@@ -69,7 +70,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/ci-parallel-checks.mjs` | Runs `tsc --noEmit`, `knip`, and `test:ui` in parallel; appends summaries | `.github/workflows/integration.yml` |
 | `scripts/test-embedding-key.mjs` | Quick check that `OPENAI_API_KEY` can call the configured embedding model | `npm run dev:test-embedding-key` |
 | `scripts/test-capture-viewports.mjs` | Playwright capture of UI viewports for design review | `npm run design:viewports` |
-| `scripts/test-integration-app-base-url.mjs` | Resolves local KAIROS base URL from env (shared helper) | `test-ai-mcp-integration.mjs`, `test-capture-viewports.mjs` |
+| `scripts/test-integration-app-base-url.mjs` | Resolves local SQUADRULES base URL from env (shared helper) | `test-ai-mcp-integration.mjs`, `test-capture-viewports.mjs` |
 | `scripts/deploy-raw-qdrant-search.mjs` | Runs a raw scroll/search against Qdrant using env config | `npm run prod:raw-qdrant-search` |
 | `scripts/test-ai-mcp-integration.mjs` | End-to-end AI MCP integration driver (reports, proof flow) | `npm run dev:ai-mcp-integration`; listed in `.github/codeql/codeql-config.yml` |
 | `scripts/test-ai-mcp-integration-auth-utils.mjs` | Bearer/auth header helpers for integration scripts | `test-ai-mcp-integration.mjs` |

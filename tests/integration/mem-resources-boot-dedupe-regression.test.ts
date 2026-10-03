@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import crypto from 'node:crypto';
 import { isHttpTransport } from '../utils/auth-headers.js';
 

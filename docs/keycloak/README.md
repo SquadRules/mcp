@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: documents retained Keycloak realm/client names (kairos / kairos-mcp) provisioned in existing deployments -->
 # Keycloak
 
 Operator-facing notes only — **not** the [install](../install/README.md) path.

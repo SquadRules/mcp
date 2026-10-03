@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 /**
  * CLI export selection tests — exercises the --adapters / --all-adapters parity with HTTP/MCP.
  * Trains adapters via /api/train/raw, then runs the compiled CLI to export them and asserts

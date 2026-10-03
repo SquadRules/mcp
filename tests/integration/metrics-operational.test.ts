@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { getSharedMcpConnection } from '../utils/mcp-client-utils.js';
 import { getMetricValue } from '../utils/prometheus-parser.js';
 import { isHttpTransport } from '../utils/auth-headers.js';

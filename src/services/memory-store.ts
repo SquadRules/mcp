@@ -1,3 +1,4 @@
+// squadrules-compat-surface: uses the persisted KAIROS_REDIS_PREFIX Redis key prefix shared with existing deployments
 /**
  * In-memory key-value store for setups without a shared Redis backend.
  * Same key prefix and space namespacing as RedisService; keys(pattern) uses simple glob.

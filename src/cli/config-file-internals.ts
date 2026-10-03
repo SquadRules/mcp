@@ -1,10 +1,11 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 /**
  * Shared JSON shape and path helpers for CLI config (used by config-file read and write).
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { getKairosConfigDir } from '../utils/kairos-user-dirs.js';
+import { getSquadrulesConfigDir } from '../utils/kairos-user-dirs.js';
 
 const CONFIG_FILE_NAME = 'config.json';
 export const KEYCHAIN_TOKEN_PLACEHOLDER = '__KEYCHAIN__';
@@ -59,7 +60,7 @@ export function writeConfigShape(shape: ConfigFileShape): void {
 }
 
 export function getConfigDir(): string {
-    return getKairosConfigDir();
+    return getSquadrulesConfigDir();
 }
 
 export function getConfigPath(): string {

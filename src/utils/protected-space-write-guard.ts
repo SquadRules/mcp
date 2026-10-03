@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { KAIROS_APP_SPACE_ID } from '../config.js';
 
 const SYSTEM_SPACE_IDS = new Set(['space:system', 'space:kairos-system']);

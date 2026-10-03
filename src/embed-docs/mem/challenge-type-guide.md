@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 ---
 version: "4.8.6"
 slug: challenge-type-guide
@@ -9,7 +10,7 @@ title: Challenge Type Selection Guide
 # Challenge Type Selection Guide
 
 Decision rules, JSON formats, interpreter selection, and anti-patterns for
-choosing KAIROS challenge types. Loaded by protocol-authoring agents during
+choosing SQUADRULES challenge types. Loaded by protocol-authoring agents during
 drafting and review.
 
 ## Activation Patterns
@@ -49,7 +50,7 @@ code — use `shell` or `mcp` instead.
 
 **Mode before challenge type:**
 - **clarify / approve** → `user_input`
-- **call a KAIROS / MCP tool** → `mcp`
+- **call a SQUADRULES / MCP tool** → `mcp`
 - **execute or verify local state** → `shell`
 - **pure reasoning with no observable artifact** → `comment`
 
@@ -199,7 +200,7 @@ to avoid collisions between parallel sessions.
   `$VERDICT_FILE`) set by the parent agent — never hardcode filenames
 - the parent agent constructs collision-free paths under
   `$KAIROS_LOCAL_ARTIFACT_DIR` (e.g., with a session ID or random suffix)
-- when using KAIROS MCP, the latest `activate` / `forward` / `next` response field `kairos_local_artifact_dir` is an ordered array of URI hints (`project://<rel>`, `user://<rel>`); pick one (`project://` when you have exactly one project context, otherwise `user://`), resolve on your machine, and `export KAIROS_LOCAL_ARTIFACT_DIR="<absolute>"` if your shell does not already define it
+- when using SQUADRULES MCP, the latest `activate` / `forward` / `next` response field `kairos_local_artifact_dir` is an ordered array of URI hints (`project://<rel>`, `user://<rel>`); pick one (`project://` when you have exactly one project context, otherwise `user://`), resolve on your machine, and `export KAIROS_LOCAL_ARTIFACT_DIR="<absolute>"` if your shell does not already define it
 - if the server-returned path is not usable on your local filesystem, resolve
   locally to `$PROJECT_DIR/.local/kairos/work` and keep it stable for the run
 - prerequisites create the directory

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { randomBytes } from 'crypto';
 import { resolveAliasedRaw, logDeprecations } from './env-alias.js';
 

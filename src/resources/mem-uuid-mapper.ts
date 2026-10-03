@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { KAIROS_APP_SPACE_ID } from '../config.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';

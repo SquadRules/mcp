@@ -1,3 +1,4 @@
+// squadrules-compat-surface: reads or aliases KAIROS_* environment variable names still honored for existing deployments
 import { describe, expect, test } from '@jest/globals';
 import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
 import { findFirstStepMemoryUuidBySlug } from '../../src/services/qdrant/memory-retrieval.js';

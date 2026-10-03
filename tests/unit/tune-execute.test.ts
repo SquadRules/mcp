@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { describe, expect, test } from '@jest/globals';
 import { executeTune } from '../../src/tools/tune-execute.js';
 import { IDGenerator } from '../../src/services/id-generator.js';

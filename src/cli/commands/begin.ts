@@ -11,8 +11,8 @@ import { createClientFromProgram } from '../client-factory.js';
 export function forwardCommand(program: Command): void {
     program
         .command('forward')
-        .description('Run the first or next KAIROS adapter layer')
-        .argument('<uri>', 'KAIROS adapter or layer URI')
+        .description('Run the first or next SQUADRULES adapter layer')
+        .argument('<uri>', 'SQUADRULES adapter or layer URI')
         .option('--solution <json>', 'Forward solution as JSON string')
         .action(async (uri: string, options: { solution?: string }) => {
             try {

@@ -1,3 +1,4 @@
+<!-- squadrules-compat-surface: references Keycloak realm/client names (kairos-dev/kairos-prod/kairos-mcp) provisioned in existing deployments -->
 # SquadRules
 
 Repository-specific agent guidance for this codebase. This file is a **thin
@@ -85,7 +86,7 @@ same reference under **Cursor-specific**.
 
 ## Legacy skill paths
 
-The former `kairos` and `kairos-dev` skill directories are retained under
+The former `squadrules` and `kairos-dev` skill directories are retained under
 `.agents/skills/` for backward compatibility with existing installations. If
 `.agents/skills/squadrules/` is present, hosts should prefer it over the legacy
 `kairos/` directory to avoid duplicate routing registration.

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: references the persisted app-space id space:kairos-app stored in existing Qdrant points
 import { describe, expect, test, jest } from '@jest/globals';
 import { handleDuplicateAdapter } from '../../src/services/memory/store-adapter-helpers.js';
 import { runWithSpaceContextAsync } from '../../src/utils/tenant-context.js';

@@ -1,3 +1,4 @@
+// squadrules-compat-surface: asserts canonical kairos:// URI emission in exported bundles (compat behavior under test)
 import { isDeepStrictEqual } from 'node:util';
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { withRawOnFail } from '../../utils/expect-with-raw.js';
@@ -37,7 +38,7 @@ describe('tools/list strict schema parity', () => {
     await mcpConnection.close();
   });
 
-  test('every KAIROS tool inputSchema equals strict Zod JSON Schema', async () => {
+  test('every SQUADRULES tool inputSchema equals strict Zod JSON Schema', async () => {
     const listResponse = await mcpConnection.client.listTools({});
     withRawOnFail(listResponse, () => {
       for (const [toolName, schema] of Object.entries(TOOL_SCHEMAS)) {

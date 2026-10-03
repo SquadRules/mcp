@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# squadrules-compat-surface: uses persisted Qdrant collection names (kairos / kairos_memories / kairos_ci / kairos_simple_ci); renaming would orphan existing vectors
 # kairos Environment Management Script
 # USAGE: ENV=dev|dev_simple|dev_stdio|prod ./scripts/deploy-run-env.sh [build|start|stop|restart|status|test|logs|health|...]
 #

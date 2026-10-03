@@ -1,3 +1,4 @@
+// squadrules-compat-surface: emits canonical kairos:// adapter/layer/artifact URIs that stored data and existing clients depend on (squadrules:// is dual-accepted on input only)
 import { IDGenerator } from '../../src/services/id-generator.js';
 
 const UUID = '700468c5-2c80-4502-b60b-9a8c74044a35';

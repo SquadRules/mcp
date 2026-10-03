@@ -1,3 +1,4 @@
+// squadrules-compat-surface: imports/references a retained prior-brand-named module or path (source filenames are an explicit non-goal)
 /**
  * Baseline and verification tests for activate (activation_score) vs. recorded baseline.
  * Per plan: (a) RECORD_BASELINE=1 runs fixed queries and writes tests/test-data/kairos-search-score-baseline.json.
