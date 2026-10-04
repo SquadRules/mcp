@@ -42,7 +42,9 @@ assert.ok(integration.jobs['verify-ui-primary'].steps.some(s => /npm run lint\b/
 assert.match(integration.jobs.changes.steps.find(s => s.id === 'combine').run, /\[ "\$EVENT_NAME" = "push" \]/);
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
-assert.ok(release.on.workflow_run && release.on.schedule);
+assert.ok(release.on.workflow_dispatch);
+assert.ok(!release.on.workflow_run && !release.on.schedule, 'Release must be manual-only (workflow_dispatch)');
+assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, false, 'dry-run must default to false for manual publishes');
 assert.deepEqual(release.jobs.publish.needs, ['resolve', 'prepare']);
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
