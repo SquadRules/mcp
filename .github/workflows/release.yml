@@ -3,18 +3,12 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows: [Integration, Security, Automation policy]
-    branches: [main]
-    types: [completed]
-  schedule:
-    - cron: '53 * * * *'
   workflow_dispatch:
     inputs:
       dry-run:
         description: Preview the semantic version without publishing
         type: boolean
-        default: true
+        default: false
       validate-artifacts:
         description: Also prepare and validate all artifacts during a dry run
         type: boolean
