@@ -1,0 +1,59 @@
+{
+  "id": "squadrules-prod",
+  "realm": "squadrules-prod",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "ssoSessionIdleTimeout": 604800,
+  "ssoSessionMaxLifespan": 604800,
+  "accessTokenLifespan": 28800,
+  "groups": [
+    { "name": "squadrules-admin" },
+    { "name": "squadrules-auditor" },
+    {
+      "name": "shared",
+      "subGroups": [
+        { "name": "pe-team" },
+        { "name": "ci-test" }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "squadrules-mcp",
+      "name": "SQUADRULES MCP (prod)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/auth/callback",
+        "http://127.0.0.1:3000/auth/callback",
+        "http://localhost:3000/auth/continue-signin",
+        "http://127.0.0.1:3000/auth/continue-signin"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/auth/continue-signin##http://127.0.0.1:3000/auth/continue-signin",
+        "logout.confirmation.enabled": "false"
+      }
+    },
+    {
+      "clientId": "squadrules-cli",
+      "name": "SQUADRULES CLI / MCP host (public PKCE)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:*", "http://localhost:*/callback", "http://localhost:*/callback/*", "http://localhost:*/*"],
+      "webOrigins": ["http://localhost"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ]
+}

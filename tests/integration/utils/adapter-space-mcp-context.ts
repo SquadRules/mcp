@@ -59,7 +59,7 @@ export async function openAdapterSpaceMcpBundle(): Promise<AdapterSpaceMcpBundle
     if (mode === 'personal') return null;
     if (!groupSpaceName) {
       return (
-        'spaces returned no type:group row — JWT must include groups (Keycloak Group Membership + kairos-groups scope); ' +
+        'spaces returned no type:group row — JWT must include groups (Keycloak Group Membership + squadrules-groups scope); ' +
         'empty OIDC_GROUPS_ALLOWLIST keeps all token groups (see GitHub #278)'
       );
     }

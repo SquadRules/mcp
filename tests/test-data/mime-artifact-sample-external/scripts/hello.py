@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 _SAMPLE_ROOT = Path(__file__).resolve().parent.parent
-ROOT = Path(os.environ.get("KAIROS_MIME_SAMPLE_ROOT", _SAMPLE_ROOT))
+ROOT = Path(os.environ.get("SQUADRULES_MIME_SAMPLE_ROOT", _SAMPLE_ROOT))
 
 
 def read_toml_message(text: str) -> str:

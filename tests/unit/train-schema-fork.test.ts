@@ -13,7 +13,7 @@ describe('trainInputSchema fork fields', () => {
   it('accepts source_adapter_uri without content', () => {
     const ok = trainInputSchema.safeParse({
       llm_model_id: 'm',
-      source_adapter_uri: 'kairos://adapter/source-adapter'
+      source_adapter_uri: 'squadrules://adapter/source-adapter'
     });
     expect(ok.success).toBe(true);
   });
@@ -32,7 +32,7 @@ describe('trainInputSchema fork fields', () => {
       llm_model_id: 'm',
       content: 'print("ok")',
       mime: 'text/x-python',
-      adapter_uri: 'kairos://adapter/source-adapter'
+      adapter_uri: 'squadrules://adapter/source-adapter'
     });
     expect(bad.success).toBe(false);
   });
@@ -53,7 +53,7 @@ describe('trainInputSchema fork fields', () => {
       content: 'print("ok")',
       mime: 'text/x-python',
       artifact_name: 'artifact.py',
-      adapter_uri: 'kairos://adapter/daily-briefing-generation-multi-source-work-dashboard'
+      adapter_uri: 'squadrules://adapter/daily-briefing-generation-multi-source-work-dashboard'
     });
     expect(ok.success).toBe(true);
   });
@@ -72,7 +72,7 @@ describe('trainInputSchema fork fields', () => {
           llm_model_id: 'm',
           mime: 'text/html',
           artifact_name: 'bad.html',
-          adapter_uri: 'kairos://adapter/source-adapter'
+          adapter_uri: 'squadrules://adapter/source-adapter'
         } as any,
         async (fn) => fn()
       )

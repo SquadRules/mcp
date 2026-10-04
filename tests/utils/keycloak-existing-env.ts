@@ -1,6 +1,6 @@
 /**
  * Use existing Keycloak from .env (KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID) for auth tests.
- * Provisions hardcoded test user kairos-tester via Admin API; no container.
+ * Provisions hardcoded test user squadrules-tester via Admin API; no container.
  */
 
 import type { KeycloakTestEnv } from './keycloak-container';
@@ -44,7 +44,7 @@ async function provisionTestUserOnExistingKeycloak(
 }
 
 /**
- * Use existing Keycloak from .env. Provisions test user (kairos-tester / kairos-tester-secret).
+ * Use existing Keycloak from .env. Provisions test user (squadrules-tester / squadrules-tester-secret).
  */
 export async function useExistingKeycloakFromEnv(): Promise<KeycloakTestEnv> {
   const keycloakUrl = process.env.KEYCLOAK_URL?.replace(/\/$/, '') ?? '';

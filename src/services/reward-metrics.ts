@@ -3,7 +3,7 @@ import { redisCacheService } from './redis-cache.js';
 import { IDGenerator } from './id-generator.js';
 import { modelStats } from './stats/model-stats.js';
 import { logger } from '../utils/structured-logger.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 
 export interface RewardMetricsResult {
   results: Array<{
@@ -105,7 +105,7 @@ export async function applyRewardMetrics(
       logger.success('reward', `rated ${currentUri} with ${outcome} (${totalQualityBonus} bonus)`);
     } catch (error) {
       logger.error(`reward failed for ${currentUri}`, error);
-      if (error instanceof KairosError) {
+      if (error instanceof SquadrulesError) {
         throw error;
       }
       throw new Error(

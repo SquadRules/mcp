@@ -10,7 +10,7 @@ import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import type { ForwardOutput, ForwardSolution } from './forward_schema.js';
-import { buildAdapterUri, buildLayerUri } from './kairos-uri.js';
+import { buildAdapterUri, buildLayerUri } from './squadrules-uri.js';
 import { buildForwardView } from './forward-view.js';
 
 function traceFireAndForget(op: Promise<void>): void {

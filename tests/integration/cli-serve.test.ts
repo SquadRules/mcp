@@ -1,5 +1,5 @@
 /**
- * kairos serve — help and flag validation (no full server boot; requires dist/cli).
+ * squadrules serve — help and flag validation (no full server boot; requires dist/cli).
  */
 
 import { execAsync, CLI_PATH } from './cli-commands-shared.js';
@@ -13,7 +13,7 @@ _d('CLI serve', () => {
       timeout: 15000
     });
     expect(stderr).toBe('');
-    expect(stdout).toContain('Usage: kairos serve');
+    expect(stdout).toContain('Usage: squadrules serve');
     expect(stdout).toContain('--env-file');
     expect(stdout).toContain('--server-port');
     expect(stdout).toContain('--metrics-port');
@@ -40,6 +40,6 @@ _d('CLI serve', () => {
       { timeout: 15000 }
     );
     expect(stderr).toBe('');
-    expect(stdout).toContain('Usage: kairos serve');
+    expect(stdout).toContain('Usage: squadrules serve');
   });
 });

@@ -1,5 +1,5 @@
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
-import { buildAdapterUri, parseKairosUri } from './kairos-uri.js';
+import { buildAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 
 export function resolveTrainOutputAdapterUri(args: {
   memorySlug: string | undefined;
@@ -14,7 +14,7 @@ export function resolveTrainOutputAdapterUri(args: {
   const parseSlug = (value?: string): string | undefined => {
     if (typeof value !== 'string' || value.trim().length === 0) return undefined;
     try {
-      const parsed = parseKairosUri(value.trim());
+      const parsed = parseSquadrulesUri(value.trim());
       return parsed.kind === 'adapter' && parsed.idKind === 'slug' ? parsed.id : undefined;
     } catch {
       return undefined;

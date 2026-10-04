@@ -13,7 +13,7 @@ if (!validate) {
   await verifyIdentity(api);
 }
 const env = { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' };
-const directory = mkdtempSync(join(tmpdir(), 'kairos-renovate-'));
+const directory = mkdtempSync(join(tmpdir(), 'squadrules-renovate-'));
 if (!validate) {
   const config = JSON.parse(readFileSync('renovate.json', 'utf8'));
   writeFileSync(join(directory, 'config.json'), JSON.stringify({ ...config, enabled: true }));
@@ -44,12 +44,6 @@ try {
   const result = spawnSync('npm', args, { stdio: 'inherit', env });
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
-  if (validate && process.exitCode === 0) {
-    const roundtrip = spawnSync('npm', ['exec', '--yes', `--package=renovate@${version}`, '--',
-      'node', '--test', 'tests/scripts/renovate-roundtrip.mjs'], { stdio: 'inherit', env });
-    if (roundtrip.error) throw roundtrip.error;
-    process.exitCode = roundtrip.status ?? 1;
-  }
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

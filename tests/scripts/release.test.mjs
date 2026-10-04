@@ -6,12 +6,12 @@ import { join } from 'node:path';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 import { generateNotes } from '@semantic-release/release-notes-generator';
 import { parserOpts, releaseRules, prereleaseChannel } from '../../release.config.mjs';
-import { ARTIFACTS, assertManifest, digest, channelTags, requireSame, retry, releaseRecord, recordBody, ensurePublished, publishStages, recordChannel } from '../../scripts/ci-release-state.mjs';
+import { ARTIFACTS, assertManifest, digest, requireSame, retry, releaseRecord, recordBody, ensurePublished, publishStages, recordChannel } from '../../scripts/ci-release-state.mjs';
 import { verifyFiles, runToFile } from '../../scripts/ci-release.mjs';
 import { auditResult, nativeProgressing } from '../../scripts/ci-audit.mjs';
 
 const manifest = (overrides = {}) => ({ schema: 1, sourceSha: 'a'.repeat(40), branch: 'main', version: '5.1.2',
-  channel: 'latest', validated: true, imageDigest: `sha256:${'b'.repeat(64)}`, npmIntegrity: 'sha512-YWJjZA==',
+  channel: 'latest', validated: true, npmIntegrity: 'sha512-YWJjZA==',
   files: Object.fromEntries(ARTIFACTS.map(file => [file, digest(file)])), ...overrides });
 const analyze = messages => analyzeCommits({ parserOpts, releaseRules }, {
   cwd: process.cwd(), commits: messages.map(message => ({ message, hash: 'a'.repeat(40) })), logger: { log() {} },
@@ -38,9 +38,7 @@ test('release notes preserve the same breaking-header semantics as version analy
   assert.match(notes, /remove obsolete API/);
 });
 
-test('prereleases never promote stable aliases', () => {
-  assert.deepEqual(channelTags(manifest()), ['latest', '5', '5.1']);
-  assert.deepEqual(channelTags(manifest({ version: '5.2.0-beta.1', branch: 'beta', channel: 'beta' })), ['beta']);
+test('prereleases never claim the stable channel', () => {
   assert.throws(() => assertManifest(manifest({ version: '5.2.0-beta.1' })), /Invalid/);
   assert.throws(() => assertManifest(manifest({ version: '5.2.0-beta.1', branch: '5', channel: '5' })), /Invalid/);
   assert.equal(prereleaseChannel('latest'), 'pre-latest');
@@ -80,7 +78,7 @@ test('semantic-release channel notes are preserved for subsequent prerelease num
 
 test('publication requires a complete validated source/version/checksum manifest', () => {
   for (const change of [{ validated: false }, { sourceSha: 'main' }, { version: 'latest' }, { files: {} },
-    { imageDigest: 'latest' }, { npmIntegrity: null }]) assert.throws(() => assertManifest(manifest(change)));
+    { npmIntegrity: null }]) assert.throws(() => assertManifest(manifest(change)));
 });
 
 test('partial recovery preserves the original source, version and hashes', () => {
@@ -137,7 +135,7 @@ test('artifact recovery validates actual bytes, not names or version strings', a
 });
 
 test('publication has no public effects before validation and persistence; every stage is recoverable', async () => {
-  const stages = ['validate', 'recover', 'tag', 'npm', 'images', 'promoted', 'complete'];
+  const stages = ['validate', 'recover', 'tag', 'npm', 'complete'];
   for (const failure of stages) {
     const record = { manifest: manifest(), stages: {} };
     const calls = [];
@@ -161,7 +159,7 @@ test('publication has no public effects before validation and persistence; every
 });
 
 test('all immutable destinations recover uncertain successful writes without overwriting', async () => {
-  for (const destination of ['npm', 'Docker Hub', 'Quay', 'Helm', 'GitHub asset']) {
+  for (const destination of ['npm', 'GitHub asset']) {
     let remote;
     let writes = 0;
     const operation = {

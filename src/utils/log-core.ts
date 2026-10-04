@@ -1,5 +1,5 @@
 /**
- * Shared Pino-based logging core for KAIROS MCP.
+ * Shared Pino-based logging core for SQUADRULES MCP.
  * Single source of truth for LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE.
  * Used by both logger.ts and structured-logger.ts so JSON shape is identical.
  */

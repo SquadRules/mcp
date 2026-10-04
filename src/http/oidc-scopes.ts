@@ -2,7 +2,7 @@ export const DEFAULT_OIDC_SCOPES_SUPPORTED: readonly string[] = Object.freeze([
   'openid',
   'profile',
   'email',
-  'kairos-groups',
+  'squadrules-groups',
   'offline_access'
 ]);
 
@@ -20,8 +20,8 @@ export function parseOidcScopesSupported(raw: string | undefined): readonly stri
 
   if (parsed.length === 0) {
     process.emitWarning(
-      'KAIROS_OIDC_SCOPES_SUPPORTED resolved to an empty list; falling back to default scopes.',
-      { code: 'KAIROS_OIDC_SCOPES_SUPPORTED_EMPTY' }
+      'SQUADRULES_OIDC_SCOPES_SUPPORTED resolved to an empty list; falling back to default scopes.',
+      { code: 'SQUADRULES_OIDC_SCOPES_SUPPORTED_EMPTY' }
     );
     return DEFAULT_OIDC_SCOPES_SUPPORTED;
   }

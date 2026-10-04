@@ -1,5 +1,5 @@
 /**
- * Simple build version helper for KAIROS MCP.
+ * Simple build version helper for SQUADRULES MCP.
  *
  * Format (semantic build version):
  *   v1.0.0+20251129.204700

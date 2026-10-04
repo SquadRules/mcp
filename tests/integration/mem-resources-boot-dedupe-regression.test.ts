@@ -5,7 +5,7 @@ const _d = isHttpTransport() ? describe : describe.skip;
 
 _d('Mem resources boot injection dedupe regression', () => {
   test('boot injection recovers when app-space already contains duplicate slug entries', async () => {
-    const testCollection = `kairos-test-mem-boot-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    const testCollection = `squadrules-test-mem-boot-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     let keyValueStoreForThisTest: { disconnect(): Promise<void> } | undefined;
     let collectionToDelete: string | undefined;
     let qdrantClient: any;
@@ -16,7 +16,7 @@ _d('Mem resources boot injection dedupe regression', () => {
         { installQdrantFetchCompatibility },
         { MemoryQdrantStore },
         { injectMemResourcesAtBoot },
-        { KAIROS_APP_SPACE_ID },
+        { SQUADRULES_APP_SPACE_ID },
         { keyValueStore }
       ] = await Promise.all([
           import('../../src/services/embedding/service.js'),
@@ -44,7 +44,7 @@ _d('Mem resources boot injection dedupe regression', () => {
       const slugFilter = {
         must: [
           { key: 'slug', match: { value: 'create-new-protocol' } },
-          { key: 'space_id', match: { value: KAIROS_APP_SPACE_ID } },
+          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
           { key: 'adapter.layer_index', match: { value: 1 } }
         ]
       };
@@ -84,7 +84,7 @@ _d('Mem resources boot injection dedupe regression', () => {
       } as any);
 
       expect(restored?.points?.length).toBeGreaterThan(0);
-      expect((restored.points[0] as any)?.payload?.space_id).toBe(KAIROS_APP_SPACE_ID);
+      expect((restored.points[0] as any)?.payload?.space_id).toBe(SQUADRULES_APP_SPACE_ID);
 
       // Cleanup the conflict point if it still exists
       try { await client.delete(collection, { points: [conflictId] } as any); } catch { /* ignore */ }

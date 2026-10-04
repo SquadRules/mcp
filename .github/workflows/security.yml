@@ -1,7 +1,6 @@
-# Security scans: dependency review (PRs), npm audit, CodeQL (SAST), base-image Trivy (OS only).
-# Trivy scans Alpine OS only (vuln-type=os). We use the same FROM ref as Dockerfile plus the same
-# apk upgrade line — scanning the raw digest alone would miss that layer (upstream image can still
-# trail Alpine security fixes). No npm / app install. Full image+library scan: release.yml.
+# Security scans for the npm package: dependency review (PRs), npm audit and CodeQL (SAST).
+# Container base-image OS scanning and .trivyignore expiry live in SquadRules/containers, which
+# builds, scans and signs the images FROM this published package.
 name: Security
 
 on:
@@ -20,25 +19,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  trivyignore-expiry:
-    name: Trivy ignore expiry guard
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      TRIVYIGNORE_EXPIRY_WARNING_DAYS: "45"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Validate .trivyignore expiry dates
-        run: |
-          python3 scripts/ci-check-trivyignore-expiry.py \
-            --file .trivyignore \
-            --warning-days "$TRIVYIGNORE_EXPIRY_WARNING_DAYS"
-
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'
@@ -82,10 +62,16 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Function to check for project vulnerabilities (excluding npm's bundled deps)
+          # Count PRODUCTION project vulnerabilities (excluding npm's bundled deps).
+          # Production scope is deliberate: `npm audit fix --force` "resolves"
+          # wide-ranged dev tooling (markdownlint-cli2, semantic-release, ...) by
+          # installing an older major, which breaks builds/releases and still leaves
+          # advisories open. We gate and force-fix production only, apply safe
+          # semver-compatible fixes to everything, and never downgrade pinned dev
+          # tooling. Residual dev-only advisories are reported (non-blocking).
           check_project_vulns() {
             local audit_output
-            audit_output=$(npm audit --json 2>/dev/null || true)
+            audit_output=$(npm audit --omit=dev --json 2>/dev/null || true)
             
             # Filter out vulnerabilities that ONLY exist in npm's bundled dependencies
             local project_vulns
@@ -107,27 +93,52 @@ jobs:
             fi
           }
           
-          # Try audit first (excluding npm's bundled deps)
+          # Count remaining project advisory nodes. Only called once production is
+          # confirmed clean, so every node counted here is dev-only by definition.
+          count_dev_vulns() {
+            local audit_output
+            audit_output=$(npm audit --json 2>/dev/null || true)
+            echo "$audit_output" | node -e "
+              const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8') || '{}');
+              const vulns = data.vulnerabilities || {};
+              const nodes = Object.values(vulns).filter(v => (v.nodes || []).some(n => !n.includes('node_modules/npm/node_modules/')));
+              console.log(nodes.length);
+            "
+          }
+          
+          # Gate on production dependencies only.
           if check_project_vulns; then
-            echo "✓ No high/critical vulnerabilities in project dependencies"
+            echo "✓ No production vulnerabilities in project dependencies"
+            dev_count=$(count_dev_vulns)
+            if [ "$dev_count" != "0" ]; then
+              echo "::warning::$dev_count dev-only advisory node(s) remain; delegated to dependency tooling (never force-downgraded)."
+            fi
             exit 0
           fi
           
-          echo "::warning::Vulnerabilities detected, attempting auto-remediation..."
+          echo "::warning::Production vulnerabilities detected, attempting auto-remediation..."
           
-          # Try npm audit fix
+          # Safe, semver-compatible fixes across ALL deps first (may bump dev
+          # tooling upward; never a downgrade).
           npm audit fix || true
           
-          # Check if files changed
-          if git diff --quiet package.json package-lock.json; then
-            echo "npm audit fix did not change files, trying --force..."
-            npm audit fix --force || true
+          # Escalate with a PRODUCTION-ONLY force fix when production advisories
+          # remain, then prove it did not rewrite pinned dev tooling.
+          if ! check_project_vulns; then
+            echo "Production advisories remain after the safe fix; trying npm audit fix --omit=dev --force..."
+            dev_deps_before=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
+            npm audit fix --omit=dev --force || true
+            dev_deps_after=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
+            if [ "$dev_deps_before" != "$dev_deps_after" ]; then
+              echo "::error::Refusing to proceed: the production force fix modified devDependencies (pinned tooling downgrade)."
+              git checkout -- package.json package-lock.json
+              exit 1
+            fi
           fi
           
-          # Check again if files changed
           if git diff --quiet package.json package-lock.json; then
-            echo "::error::Could not auto-remediate project vulnerabilities"
-            npm audit --audit-level=high
+            echo "::error::Could not auto-remediate production vulnerabilities without downgrading tooling"
+            npm audit --omit=dev --audit-level=high
             exit 1
           fi
           
@@ -155,127 +166,18 @@ jobs:
             echo "✓ Opened PR with dependency updates (auto-merge enabled)"
           fi
           
-          # Re-run audit to verify
+          # Verify production is clean; report residual dev advisories (non-blocking).
           if ! check_project_vulns; then
-            echo "::error::Vulnerabilities still present after auto-remediation"
+            echo "::error::Production vulnerabilities still present after auto-remediation"
             exit 1
+          fi
+          dev_count=$(count_dev_vulns)
+          if [ "$dev_count" != "0" ]; then
+            echo "::warning::$dev_count dev-only advisory node(s) remain after remediation; delegated to dependency tooling."
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
-          HEAD_REF: ${{ github.head_ref }}
-
-  container-base-os-trivy:
-    name: Base image OS (Trivy)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: ${{ github.event_name == 'pull_request' }}
-          fetch-depth: 0
-
-      - name: Base image ref from Dockerfile
-        id: base
-        run: |
-          line=$(grep -m1 '^FROM ' Dockerfile)
-          ref="${line#FROM }"
-          ref="${ref%% AS *}"
-          echo "image_ref=$(echo "$ref" | xargs)" >> "$GITHUB_OUTPUT"
-          # Extract image name and current digest
-          img="${ref%%@*}"
-          digest="${ref##*@}"
-          echo "image_name=$img" >> "$GITHUB_OUTPUT"
-          echo "current_digest=$digest" >> "$GITHUB_OUTPUT"
-
-      - name: One-layer image (FROM + apk upgrade RUN from Dockerfile)
-        run: |
-          img="${{ steps.base.outputs.image_ref }}"
-          run_cmd=$(grep -E '^RUN apk update && apk upgrade --no-cache$' Dockerfile | sed 's/^RUN //' | head -1)
-          if [ -z "$run_cmd" ]; then echo "::error::Expected \"RUN apk update && apk upgrade --no-cache\" line in Dockerfile"; exit 1; fi
-          printf 'FROM %s\nRUN %s\n' "$img" "$run_cmd" | docker build -t squadrules-os:ci -
-
-      - name: Trivy scan (attempt)
-        id: trivy-scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        continue-on-error: true
-        with:
-          image-ref: squadrules-os:ci
-          format: table
-          exit-code: "1"
-          severity: CRITICAL,HIGH
-          vuln-type: os
-
-      - name: Auto-remediate base image
-        if: steps.trivy-scan.outcome == 'failure'
-        id: remediate
-        run: |
-          set -euo pipefail
-          img_name="${{ steps.base.outputs.image_name }}"
-          
-          echo "::warning::Trivy found vulnerabilities, attempting base image update..."
-          
-          # Pull the latest tag to get the new digest
-          docker pull "$img_name" --quiet
-          new_digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$img_name" | sed 's/.*@//')
-          old_digest="${{ steps.base.outputs.current_digest }}"
-          
-          if [ "$new_digest" = "$old_digest" ]; then
-            echo "::error::Base image is already at latest digest but still has vulnerabilities"
-            exit 1
-          fi
-          
-          echo "Updating Dockerfile: $old_digest -> $new_digest"
-          sed -i "s|$old_digest|$new_digest|g" Dockerfile
-          
-          # Rebuild with new base image
-          run_cmd=$(grep -E '^RUN apk update && apk upgrade --no-cache$' Dockerfile | sed 's/^RUN //' | head -1)
-          printf 'FROM %s\nRUN %s\n' "$img_name@$new_digest" "$run_cmd" | docker build -t squadrules-os:ci -
-          
-          echo "new_digest=$new_digest" >> "$GITHUB_OUTPUT"
-
-      - name: Trivy rescan (verify remediation)
-        if: steps.trivy-scan.outcome == 'failure'
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: squadrules-os:ci
-          format: table
-          exit-code: "1"
-          severity: CRITICAL,HIGH
-          vuln-type: os
-
-      - name: Commit base image update
-        if: steps.trivy-scan.outcome == 'failure' && success()
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR flow: commit to the PR branch (detached HEAD, push to head_ref)
-            git add Dockerfile
-            git commit -m "fix(docker): auto-update base image to remediate Trivy vulnerabilities"
-            git push origin HEAD:"$HEAD_REF"
-            echo "✓ Committed base image update to PR branch"
-          else
-            # Scheduled/push flow: open a PR
-            BRANCH="auto/trivy-base-image-$(date +%Y%m%d-%H%M%S)"
-            git checkout -b "$BRANCH"
-            git add Dockerfile
-            git commit -m "fix(docker): auto-update base image to remediate Trivy vulnerabilities"
-            git push -u origin "$BRANCH"
-            PR_URL=$(gh pr create --title "fix(docker): auto-update base image to remediate Trivy vulnerabilities" \
-                         --body "Automated base image update from scheduled security scan." \
-                         --label "dependencies")
-            gh pr merge --auto --squash "$PR_URL"
-            echo "✓ Opened PR with base image update (auto-merge enabled)"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_REF: ${{ github.head_ref }}
 
   codeql:
@@ -307,25 +209,21 @@ jobs:
   # Merge gate: all security jobs must pass.
   security-pass:
     name: Security workflow passed
-    needs: [dependency-review, trivyignore-expiry, npm-audit, container-base-os-trivy, codeql]
+    needs: [dependency-review, npm-audit, codeql]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require all jobs
         env:
-          TRIVYIGNORE_EXPIRY: ${{ needs.trivyignore-expiry.result }}
           NPM_AUDIT: ${{ needs.npm-audit.result }}
-          CONTAINER_TRIVY: ${{ needs.container-base-os-trivy.result }}
           CODEQL: ${{ needs.codeql.result }}
           DEPENDENCY_REVIEW: ${{ needs.dependency-review.result }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          echo "trivyignore-expiry=$TRIVYIGNORE_EXPIRY npm-audit=$NPM_AUDIT container-base-os-trivy=$CONTAINER_TRIVY codeql=$CODEQL"
+          echo "npm-audit=$NPM_AUDIT codeql=$CODEQL"
 
-          test "$TRIVYIGNORE_EXPIRY" = "success"
           test "$NPM_AUDIT" = "success"
-          test "$CONTAINER_TRIVY" = "success"
           test "$CODEQL" = "success"
           if [ "$EVENT_NAME" = "pull_request" ]; then
             test "$DEPENDENCY_REVIEW" = "success"

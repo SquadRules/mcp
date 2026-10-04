@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 import { keyValueStore } from '../../src/services/key-value-store-factory.js';
 import { RedisCacheService, redisCacheService } from '../../src/services/redis-cache.js';
-import { KAIROS_REDIS_PREFIX, KAIROS_APP_SPACE_ID, REDIS_URL, MEMORY_CACHE_KEY_PREFIX } from '../../src/config.js';
+import { SQUADRULES_REDIS_PREFIX, SQUADRULES_APP_SPACE_ID, REDIS_URL, MEMORY_CACHE_KEY_PREFIX } from '../../src/config.js';
 import { runWithSpaceContextAsync } from '../../src/utils/tenant-context.js';
 import type { Memory } from '../../src/types/memory.js';
 import { isHttpTransport } from '../utils/auth-headers.js';
@@ -13,7 +13,7 @@ import { isHttpTransport } from '../utils/auth-headers.js';
  * Use runWithSpaceContextAsync so context persists across await (required for cache ops).
  */
 async function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
-  const spaceId = KAIROS_APP_SPACE_ID;
+  const spaceId = SQUADRULES_APP_SPACE_ID;
   return runWithSpaceContextAsync(
     {
       userId: '',
@@ -28,12 +28,12 @@ async function withDefaultSpace<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Build full Redis key for space-scoped keys: prefix + spaceId + ':' + suffix */
 function redisKey(suffix: string): string {
-  return `${KAIROS_REDIS_PREFIX}${KAIROS_APP_SPACE_ID}:${suffix}`;
+  return `${SQUADRULES_REDIS_PREFIX}${SQUADRULES_APP_SPACE_ID}:${suffix}`;
 }
 
 /** Build full Redis key for memory cache (global, no space): prefix + mem: + uuid */
 function memoryRedisKey(uuid: string): string {
-  return `${KAIROS_REDIS_PREFIX}${MEMORY_CACHE_KEY_PREFIX}${uuid}`;
+  return `${SQUADRULES_REDIS_PREFIX}${MEMORY_CACHE_KEY_PREFIX}${uuid}`;
 }
 
 const describeRedis = REDIS_URL && isHttpTransport() ? describe : describe.skip;
@@ -41,7 +41,7 @@ const describeRedis = REDIS_URL && isHttpTransport() ? describe : describe.skip;
 describeRedis('Redis Pub/Sub Integration Tests', () => {
   let testClient: RedisClientType;
   let subscriberClient: RedisClientType;
-  const testPrefix = `${KAIROS_REDIS_PREFIX}test:`;
+  const testPrefix = `${SQUADRULES_REDIS_PREFIX}test:`;
 
   beforeAll(async () => {
     await keyValueStore.connect();

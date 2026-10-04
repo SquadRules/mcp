@@ -2,7 +2,7 @@
 
 ## Trademark Notice
 
-"SquadRules MCP™", the SquadRules MCP logo (see [logo/kairos-mcp.svg](logo/kairos-mcp.svg)), and related brand assets are trademarks
+"SquadRules MCP™", the SquadRules MCP logo (see [logo/squadrules-mcp.svg](logo/squadrules-mcp.svg)), and related brand assets are trademarks
 of Jakub Plichcinski and the SquadRules MCP project.
 
 The trademarks and branding are NOT covered by the MIT License.
@@ -49,7 +49,7 @@ However forks must:
 ## CLI Naming Policy
 
 The shipped CLI binary name `squadrules` is part of the SquadRules MCP
-trademark. The former `kairos` and `kairos-mcp` binary names are retained only
+trademark. The former `squadrules` and `squadrules-mcp` binary names are retained only
 as compatibility aliases for the prior product name.
 
 Forks and redistributions must rename the CLI binary.

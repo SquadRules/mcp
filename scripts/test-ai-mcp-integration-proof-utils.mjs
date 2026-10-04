@@ -3,11 +3,11 @@ const CHOICE_ROLES = new Set(['match', 'refine', 'create']);
 const GRADER_KINDS = new Set(['human', 'model', 'unknown']);
 const EVALUATION_LABELS = new Set(['gold', 'silver', 'bronze', 'rejected']);
 
-function classifyKairosUriKind(uri) {
+function classifySquadrulesUriKind(uri) {
   if (typeof uri !== 'string' || !uri) return 'missing';
-  if (/^kairos:\/\/adapter\//i.test(uri)) return 'adapter';
-  if (/^kairos:\/\/layer\//i.test(uri)) return 'layer';
-  if (/^kairos:\/\/mem\//i.test(uri)) return 'mem';
+  if (/^squadrules:\/\/adapter\//i.test(uri)) return 'adapter';
+  if (/^squadrules:\/\/layer\//i.test(uri)) return 'layer';
+  if (/^squadrules:\/\/mem\//i.test(uri)) return 'mem';
   return 'other';
 }
 
@@ -49,8 +49,8 @@ export function buildTrainResponseProof(status, data) {
             ? 'error'
             : 'unknown',
     items_count: items.length,
-    first_item_uri_kind: classifyKairosUriKind(items[0]?.uri),
-    first_adapter_uri_kind: classifyKairosUriKind(items[0]?.adapter_uri),
+    first_item_uri_kind: classifySquadrulesUriKind(items[0]?.uri),
+    first_adapter_uri_kind: classifySquadrulesUriKind(items[0]?.adapter_uri),
     has_login_url: typeof data?.login_url === 'string',
     has_message: typeof data?.message === 'string'
   };
@@ -71,7 +71,7 @@ export function buildActivateResponseProof(status, data) {
     choice_count: choices.length,
     match_choice_count: choices.filter((choice) => choice?.role === 'match').length,
     first_choice_role: classifyChoiceRole(choices[0]?.role),
-    first_choice_uri_kind: classifyKairosUriKind(choices[0]?.uri),
+    first_choice_uri_kind: classifySquadrulesUriKind(choices[0]?.uri),
     next_action_kind: classifyNextActionKind(data?.next_action)
   };
 }
@@ -88,7 +88,7 @@ export function buildForwardResponseProof(status, data) {
           : data?.current_layer?.uri
             ? 'layer_prompt'
             : 'unknown',
-    current_layer_uri_kind: classifyKairosUriKind(data?.current_layer?.uri),
+    current_layer_uri_kind: classifySquadrulesUriKind(data?.current_layer?.uri),
     contract_type: classifyContractType(data?.contract?.type),
     next_action_kind: nextActionKind,
     has_proof_hash: typeof data?.proof_hash === 'string',
@@ -123,5 +123,5 @@ export function classifySolutionType(type) {
 }
 
 export function classifyUriKind(uri) {
-  return classifyKairosUriKind(uri);
+  return classifySquadrulesUriKind(uri);
 }

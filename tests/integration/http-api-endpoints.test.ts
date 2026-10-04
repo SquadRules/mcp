@@ -34,7 +34,7 @@ Protocol is complete when this step is done.`;
       expect(Array.isArray(data.items)).toBe(true);
       expect(data.items.length).toBeGreaterThan(0);
       expect(data.items[0]).toHaveProperty('uri');
-      expect(data.items[0].uri).toMatch(/^kairos:\/\/layer\//);
+      expect(data.items[0].uri).toMatch(/^squadrules:\/\/layer\//);
     }, 30000);
 
     test('rejects empty markdown', async () => {
@@ -148,7 +148,7 @@ Done.`;
       expect(trainRes.status).toBe(200);
       const trainData = await trainRes.json();
       const adapterUri = trainData.items?.[0]?.adapter_uri as string | undefined;
-      expect(adapterUri).toMatch(/^kairos:\/\/adapter\//);
+      expect(adapterUri).toMatch(/^squadrules:\/\/adapter\//);
 
       const response = await apiFetch(`${API_BASE}/forward`, {
         method: 'POST',
@@ -189,7 +189,7 @@ Done.`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uri: 'kairos://layer/00000000-0000-0000-0000-000000000000',
+          uri: 'squadrules://layer/00000000-0000-0000-0000-000000000000',
           outcome: 'invalid',
           feedback: 'test'
         })
@@ -225,8 +225,8 @@ Done.`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           uris: [
-            'kairos://layer/00000000-0000-0000-0000-000000000001',
-            'kairos://layer/00000000-0000-0000-0000-000000000002'
+            'squadrules://layer/00000000-0000-0000-0000-000000000001',
+            'squadrules://layer/00000000-0000-0000-0000-000000000002'
           ],
           content: ['# Only one doc']
         })
@@ -260,7 +260,7 @@ Done.`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uris: ['kairos://layer/00000000-0000-0000-0000-000000000000']
+          uris: ['squadrules://layer/00000000-0000-0000-0000-000000000000']
         })
       });
 
@@ -275,7 +275,7 @@ Done.`;
       expect(data.total_failed).toBe(1);
       expect((data.results as Array<{ status: string; uri: string }>)[0]).toMatchObject({
         status: 'error',
-        uri: 'kairos://layer/00000000-0000-0000-0000-000000000000'
+        uri: 'squadrules://layer/00000000-0000-0000-0000-000000000000'
       });
     }, 30000);
   });

@@ -41,7 +41,7 @@ _d('skill-export single-adapter coverage', () => {
       skills: Array<{
         slug: string;
         version?: string | null;
-        kairos_uri: string;
+        squadrules_uri: string;
         files: Array<{ path: string; content: string }>;
         diagnostics: Array<unknown>;
       }>;
@@ -53,9 +53,9 @@ _d('skill-export single-adapter coverage', () => {
     expect(skill.slug).toBe(slug);
     // version field must be present in the per-skill object (null when adapter has no version)
     expect(skill).toHaveProperty('version');
-    // skill_tree may carry the adapter slug (`kairos://adapter/<slug>`) or the head layer row (`kairos://layer/<uuid>`).
-    expect(skill.kairos_uri).toMatch(
-      /^kairos:\/\/(?:adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|layer\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12})/i
+    // skill_tree may carry the adapter slug (`squadrules://adapter/<slug>`) or the head layer row (`squadrules://layer/<uuid>`).
+    expect(skill.squadrules_uri).toMatch(
+      /^squadrules:\/\/(?:adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|layer\/[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12})/i
     );
 
     const paths = skill.files.map((f) => f.path);

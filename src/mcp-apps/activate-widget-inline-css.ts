@@ -90,7 +90,7 @@ const ACTIVATE_WIDGET_SPECIFIC_INLINE_CSS = `
       margin-bottom: 6px;
       background: var(--color-surface);
     }
-    #kairos-activate-root #out {
+    #squadrules-activate-root #out {
       max-height: none;
       overflow: visible;
       flex: 0 1 auto;

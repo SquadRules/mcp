@@ -11,8 +11,8 @@ import { createClientFromProgram } from '../client-factory.js';
 export function updateCommand(program: Command): void {
     program
         .command('tune')
-        .description('Update one or more KAIROS adapter layers')
-        .argument('<uris...>', 'KAIROS adapter or layer URIs')
+        .description('Update one or more SQUADRULES adapter layers')
+        .argument('<uris...>', 'SQUADRULES adapter or layer URIs')
         .option('--file <file>', 'Path to markdown file to apply to all specified URIs')
         .option('--files <files...>', 'Paths to markdown files, one per URI (must match number of URIs)')
         .option('--updates <json>', 'Updates object as JSON string (alternative to --file/--files)')
@@ -85,7 +85,7 @@ export function updateCommand(program: Command): void {
                 if (updates) tuneOpts.updates = updates;
                 if (rawSpace.length > 0) tuneOpts.space = rawSpace;
                 // Auto-inject review_evidence from env (used by integration tests)
-                const envReviewEvidence = process.env['KAIROS_REVIEW_EVIDENCE'];
+                const envReviewEvidence = process.env['SQUADRULES_REVIEW_EVIDENCE'];
                 if (envReviewEvidence) {
                     try {
                         const parsed = JSON.parse(envReviewEvidence);

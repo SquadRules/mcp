@@ -9,7 +9,7 @@ import { resolveAdapterPreviousLayer } from '../services/adapter-navigation.js';
 import { getInferenceContract } from '../services/memory/memory-accessors.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { handleProofSubmission, GENESIS_HASH, type ProofOfWorkSubmission, type HandleProofResult } from './next-pow-helpers.js';
-import { buildLayerUri } from './kairos-uri.js';
+import { buildLayerUri } from './squadrules-uri.js';
 
 export type PreviousProofBlock = {
   message: string;

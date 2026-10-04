@@ -18,22 +18,22 @@ function defaultUiDir(): string {
 
 /**
  * Root directory of the Vite build (`vite build` → `dist/ui`).
- * Set `KAIROS_UI_DIR` to an absolute path (or path relative to `process.cwd()`) when the server
+ * Set `SQUADRULES_UI_DIR` to an absolute path (or path relative to `process.cwd()`) when the server
  * resolves the wrong tree (e.g. global install, symlinked package, or mismatched worktree).
  */
-function resolveKairosUiDir(): string {
-  const override = process.env["KAIROS_UI_DIR"]?.trim();
+function resolveSquadrulesUiDir(): string {
+  const override = process.env["SQUADRULES_UI_DIR"]?.trim();
   if (!override) return defaultUiDir();
   return path.isAbsolute(override) ? override : path.resolve(process.cwd(), override);
 }
 
-/** True if the built Kairos page chunk includes browse-by-letter (post–letter-blocks UI). */
+/** True if the built Squadrules page chunk includes browse-by-letter (post–letter-blocks UI). */
 function builtUiHasLetterBrowse(uiDir: string): boolean {
   const assetsDir = path.join(uiDir, "assets");
   try {
     if (!fs.existsSync(assetsDir)) return false;
     for (const name of fs.readdirSync(assetsDir)) {
-      if (!name.startsWith("KairosPage-") || !name.endsWith(".js")) continue;
+      if (!name.startsWith("SquadrulesPage-") || !name.endsWith(".js")) continue;
       const text = fs.readFileSync(path.join(assetsDir, name), "utf8");
       return text.includes("browseByLetterHint") || text.includes("BROWSE_LETTERS");
     }
@@ -52,17 +52,17 @@ const isProductionUiCache = process.env["NODE_ENV"] === "production";
  * - SPA fallback: GET /ui/* that don't match a file -> index.html
  */
 export function setupUiStatic(app: express.Express): void {
-  const UI_DIR = resolveKairosUiDir();
+  const UI_DIR = resolveSquadrulesUiDir();
   const indexPath = path.join(UI_DIR, "index.html");
   const hasIndex = fs.existsSync(indexPath);
   const letterBrowse = builtUiHasLetterBrowse(UI_DIR);
   structuredLogger.info(
     `HTTP static UI: dir=${UI_DIR} index_html=${hasIndex} browse_by_letter_bundle=${letterBrowse}` +
-      (process.env["KAIROS_UI_DIR"]?.trim() ? " (KAIROS_UI_DIR override)" : "")
+      (process.env["SQUADRULES_UI_DIR"]?.trim() ? " (SQUADRULES_UI_DIR override)" : "")
   );
   if (hasIndex && !letterBrowse) {
     structuredLogger.warn(
-      "Built UI under this path does not contain browse-by-letter code; run npm run ui:build in the same tree or set KAIROS_UI_DIR to that repo's dist/ui."
+      "Built UI under this path does not contain browse-by-letter code; run npm run ui:build in the same tree or set SQUADRULES_UI_DIR to that repo's dist/ui."
     );
   }
 

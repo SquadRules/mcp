@@ -13,8 +13,8 @@ const release = workflow('release');
 for (const config of [integration, security, policy]) {
   assert.ok(Object.hasOwn(config.on, 'pull_request') && Object.hasOwn(config.on, 'push') && Object.hasOwn(config.on, 'merge_group'));
   for (const [jobName, job] of Object.entries(config.jobs)) {
-    // Security workflow's auto-remediation jobs (npm-audit, container-base-os-trivy) are allowed to write
-    const isSecurityAutoRemediation = config === security && ['npm-audit', 'container-base-os-trivy'].includes(jobName);
+    // Security workflow's npm-audit auto-remediation job is allowed to write
+    const isSecurityAutoRemediation = config === security && jobName === 'npm-audit';
     
     if (!isSecurityAutoRemediation) {
       assert.notEqual(job.permissions?.contents, 'write', 'PR tests must not write repository contents');
@@ -42,7 +42,9 @@ assert.ok(integration.jobs['verify-ui-primary'].steps.some(s => /npm run lint\b/
 assert.match(integration.jobs.changes.steps.find(s => s.id === 'combine').run, /\[ "\$EVENT_NAME" = "push" \]/);
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
-assert.ok(release.on.workflow_run && release.on.schedule);
+assert.ok(release.on.workflow_dispatch);
+assert.ok(!release.on.workflow_run && !release.on.schedule, 'Release must be manual-only (workflow_dispatch)');
+assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, false, 'dry-run must default to false for manual publishes');
 assert.deepEqual(release.jobs.publish.needs, ['resolve', 'prepare']);
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
@@ -55,7 +57,7 @@ assert.equal(release.concurrency['cancel-in-progress'], false);
 const source = readFileSync('scripts/ci-release.mjs', 'utf8');
 assert.doesNotMatch(source, /git describe|already published versions|already exist/);
 assert.match(source, /await publishStages\(record/);
-for (const stage of ['validate', 'recover', 'tag', 'npm', 'images', 'promoted', 'complete']) {
+for (const stage of ['validate', 'recover', 'tag', 'npm', 'complete']) {
   assert.match(source, new RegExp(`\\b${stage}:`), `Release must wire the tested ${stage} stage`);
 }
 const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));

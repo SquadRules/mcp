@@ -188,32 +188,10 @@ for (const status of [403, 409, 422]) {
   });
 }
 
-test('Helm extraction covers short and fully qualified hook/operator images', () => {
-  const config = JSON.parse(readFileSync('renovate.json', 'utf8'));
-  const pattern = new RegExp(config.customManagers[0].matchStrings[0], 'g');
-  const text = 'image: "python:3.12-alpine"\npgBackRestImage: "docker.io/percona/percona-pgbackrest:2.57.0-1"\nkubectlImage: "bitnami/kubectl:1.32"';
-  assert.deepEqual([...text.matchAll(pattern)].map(m => m.groups.depName), ['python', 'docker.io/percona/percona-pgbackrest', 'bitnami/kubectl']);
+test('renovate runner does not force-enable and ignores require-config', () => {
   const runner = readFileSync('scripts/ci-renovate.mjs', 'utf8');
   assert.doesNotMatch(runner, /RENOVATE_FORCE: JSON.stringify\(\{ enabled:/, 'Forced enabled would override release-managed image exclusions');
   assert.match(runner, /RENOVATE_REQUIRE_CONFIG: 'ignored'/);
-});
-
-test('inline Helm image digest pins remain extractable for subsequent updates', () => {
-  const manager = JSON.parse(readFileSync('renovate.json', 'utf8')).customManagers[0];
-  const pattern = new RegExp(manager.matchStrings[0]);
-  const depName = 'docker.io/percona/percona-distribution-postgresql';
-  const currentValue = '17.6';
-  const currentDigest = `sha256:${'a'.repeat(64)}`;
-  for (const prefix of ['image: "', 'pgBackRestImage:   "', 'kubectlImage: "']) {
-    for (const pinned of [false, true]) {
-      const text = `${prefix}${depName}:${currentValue}${pinned ? `@${currentDigest}` : ''}"`;
-      const match = pattern.exec(text);
-      assert.equal(match[0], text);
-      assert.deepEqual({ ...match.groups }, { depType: prefix, depName, currentValue, currentDigest: pinned ? currentDigest : undefined });
-    }
-  }
-  assert.equal(manager.autoReplaceStringTemplate,
-    '{{{depType}}}{{{depName}}}:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}"');
 });
 
 function auditFixture({ existing = false, orphan = false } = {}) {

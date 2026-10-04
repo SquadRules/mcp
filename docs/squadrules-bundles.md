@@ -54,8 +54,8 @@ Use `squadrules export` or the MCP `export` tool to save current server
 content before curating a bundle in Git.
 
 ```bash
-squadrules export kairos://adapter/<uuid>
-squadrules export kairos://layer/<uuid> --format reward_jsonl --output json
+squadrules export squadrules://adapter/<uuid>
+squadrules export squadrules://layer/<uuid> --format reward_jsonl --output json
 ```
 
 `export` works one adapter or layer URI at a time. If you want a

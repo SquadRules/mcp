@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { KAIROS_APP_SPACE_ID } from '../../src/config.js';
+import { SQUADRULES_APP_SPACE_ID } from '../../src/config.js';
 import { resolveSpaceParamForContext } from '../../src/utils/resolve-space-param.js';
 import type { SpaceContext } from '../../src/utils/tenant-context.js';
 
@@ -52,13 +52,13 @@ describe('resolveSpaceParamForContext', () => {
     const c = ctx({
       allowedSpaceIds: ['user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a', 'group:r:7d75dbf1-07e1-5182-b95c-89e4ea7d89cc'],
       defaultWriteSpaceId: 'user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a',
-      spaceNamesById: { 'group:r:7d75dbf1-07e1-5182-b95c-89e4ea7d89cc': '/kairos-shares/kairos-operator' }
+      spaceNamesById: { 'group:r:7d75dbf1-07e1-5182-b95c-89e4ea7d89cc': '/squadrules-shares/squadrules-operator' }
     });
-    expect(resolveSpaceParamForContext(c, '/kairos-shares/kairos-operator')).toEqual({
+    expect(resolveSpaceParamForContext(c, '/squadrules-shares/squadrules-operator')).toEqual({
       ok: true,
       spaceId: 'group:r:7d75dbf1-07e1-5182-b95c-89e4ea7d89cc'
     });
-    expect(resolveSpaceParamForContext(c, 'Group: /kairos-shares/kairos-operator')).toEqual({
+    expect(resolveSpaceParamForContext(c, 'Group: /squadrules-shares/squadrules-operator')).toEqual({
       ok: true,
       spaceId: 'group:r:7d75dbf1-07e1-5182-b95c-89e4ea7d89cc'
     });
@@ -86,28 +86,28 @@ describe('resolveSpaceParamForContext', () => {
     if (!r.ok) expect(r.code).toBe('SPACE_NOT_FOUND');
   });
 
-  it('rejects Kairos app as writable target by default', () => {
+  it('rejects Squadrules app as writable target by default', () => {
     const c = ctx({
       allowedSpaceIds: ['user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'],
       defaultWriteSpaceId: 'user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'
     });
-    const r = resolveSpaceParamForContext(c, 'Kairos app');
+    const r = resolveSpaceParamForContext(c, 'Squadrules app');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe('SPACE_READ_ONLY');
   });
 
-  it('resolves Kairos app for activate/search when flag is set', () => {
+  it('resolves Squadrules app for activate/search when flag is set', () => {
     const c = ctx({
       allowedSpaceIds: ['user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'],
       defaultWriteSpaceId: 'user:r:6a4a7375-e6a6-5f7e-b972-f4fbf31a5e0a'
     });
-    expect(resolveSpaceParamForContext(c, 'Kairos app', { allowReadOnlyAppSearchScope: true })).toEqual({
+    expect(resolveSpaceParamForContext(c, 'Squadrules app', { allowReadOnlyAppSearchScope: true })).toEqual({
       ok: true,
-      spaceId: KAIROS_APP_SPACE_ID
+      spaceId: SQUADRULES_APP_SPACE_ID
     });
-    expect(resolveSpaceParamForContext(c, KAIROS_APP_SPACE_ID, { allowReadOnlyAppSearchScope: true })).toEqual({
+    expect(resolveSpaceParamForContext(c, SQUADRULES_APP_SPACE_ID, { allowReadOnlyAppSearchScope: true })).toEqual({
       ok: true,
-      spaceId: KAIROS_APP_SPACE_ID
+      spaceId: SQUADRULES_APP_SPACE_ID
     });
   });
 });

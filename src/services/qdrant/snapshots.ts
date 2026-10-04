@@ -58,7 +58,7 @@ function buildHeaders(apiKey?: string): Record<string, string> {
 }
 
 function createSnapshotFilename(reason: SnapshotReason, collection: string): string {
-  return `kairos-${reason}-${collection}-${sanitizeTimestamp()}.snapshot`;
+  return `squadrules-${reason}-${collection}-${sanitizeTimestamp()}.snapshot`;
 }
 
 function normalizeBaseUrl(url: string): string {

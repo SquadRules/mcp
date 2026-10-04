@@ -64,7 +64,7 @@ export function decodeJwtPayloadSegment(jwt: string): Record<string, unknown> | 
   }
 }
 
-/** Extract realm segment from issuer URL (e.g. …/realms/kairos-dev → kairos-dev). */
+/** Extract realm segment from issuer URL (e.g. …/realms/squadrules-dev → squadrules-dev). */
 export function realmFromIssuer(iss: string): string {
   const match = /\/realms\/([^/]+)/.exec(iss);
   const segment = match?.[1] ?? iss.split("/").filter(Boolean).pop();
@@ -109,11 +109,11 @@ function groupPathForm(g: string): string {
 
 /**
  * Keep only token groups that match an allowlist entry:
- * - **Exact:** plain name or path (`kairos-auditor`, `/kairos-auditor`) — slash optional on either side.
- * - **Prefix:** entry ends with `/` (e.g. `/kairos-shares/`) — keep any JWT group whose path form starts with that prefix (after normalizing a leading slash on the entry).
+ * - **Exact:** plain name or path (`squadrules-auditor`, `/squadrules-auditor`) — slash optional on either side.
+ * - **Prefix:** entry ends with `/` (e.g. `/squadrules-shares/`) — keep any JWT group whose path form starts with that prefix (after normalizing a leading slash on the entry).
  * - **Default (no filter):** empty allowlist keeps **all** JWT groups (same membership the IdP issued).
- *   Set a non-empty allowlist to restrict which paths become KAIROS spaces.
- * Keycloak's Group Membership mapper lists every group the user belongs to; use this on KAIROS
+ *   Set a non-empty allowlist to restrict which paths become SQUADRULES spaces.
+ * Keycloak's Group Membership mapper lists every group the user belongs to; use this on SQUADRULES
  * to restrict which entries become session/API groups when you configure an allowlist.
  */
 export function applyOidcGroupsAllowlist(groups: string[], allowlist: readonly string[]): string[] {

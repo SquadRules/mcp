@@ -1,6 +1,6 @@
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
-import { parseKairosUri } from './kairos-uri.js';
+import { parseSquadrulesUri } from './squadrules-uri.js';
 import type { ExportOutput } from './export_schema.js';
 import { listAdapterArtifacts } from './artifact-catalog.js';
 
@@ -11,7 +11,7 @@ interface ArtifactUriResolution {
 }
 
 async function resolveArtifactUri(qdrantService: QdrantService | undefined, uri: string): Promise<ArtifactUriResolution | null> {
-  const parsed = parseKairosUri((uri || '').trim());
+  const parsed = parseSquadrulesUri((uri || '').trim());
   if (parsed.kind !== 'artifact') return null;
   if (parsed.idKind === 'uuid') {
     return { requestedUri: uri, artifactUuid: parsed.id, uri };
@@ -66,8 +66,8 @@ async function sourceListForAdapter(memoryStore: MemoryQdrantStore, uri: string,
   const rows = await listAdapterArtifacts(memoryStore, adapterId);
   for (const row of rows) {
     artifacts.push({
-      uri: `kairos://artifact/${row.slug}`,
-      uuid_uri: `kairos://artifact/${row.artifact_uuid}`,
+      uri: `squadrules://artifact/${row.slug}`,
+      uuid_uri: `squadrules://artifact/${row.artifact_uuid}`,
       artifact_uuid: row.artifact_uuid,
       label: row.label,
       slug: row.slug,
@@ -102,7 +102,7 @@ export async function executeExportSource(
     return sourceFromMemory(memoryStore, parsedArtifact.uri, parsedArtifact.artifactUuid);
   }
 
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter') {
     const { adapterId } = await resolveAdapter(memoryStore, qdrantService, uri);
     return sourceListForAdapter(memoryStore, uri, adapterId);

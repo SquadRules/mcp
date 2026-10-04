@@ -2,7 +2,7 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { readFileSync } from 'fs';
 import { logger } from '../../utils/structured-logger.js';
 import { parseBooleanEnv } from './utils.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 
 /**
  * QdrantConnection encapsulates client initialization and resilient execution.
@@ -24,7 +24,7 @@ export class QdrantConnection {
   constructor(
     qdrantUrl: string = process.env['QDRANT_URL'] || 'http://localhost:6333',
     apiKey: string = process.env['QDRANT_API_KEY'] || '',
-    collectionAlias: string = process.env['QDRANT_COLLECTION'] || 'kairos',
+    collectionAlias: string = process.env['QDRANT_COLLECTION'] || 'squadrules',
     caCertPath?: string
   ) {
     this.qdrantUrl = qdrantUrl;
@@ -100,7 +100,7 @@ export class QdrantConnection {
       if (!this.isHealthy) await this.checkHealth();
       return await operation();
     } catch (error) {
-      if (error instanceof KairosError) throw error;
+      if (error instanceof SquadrulesError) throw error;
 
       const errorDetails = error instanceof Error ? {
         name: error.name,
@@ -120,12 +120,12 @@ export class QdrantConnection {
         try {
           return await operation();
         } catch (retryError) {
-          if (retryError instanceof KairosError) throw retryError;
+          if (retryError instanceof SquadrulesError) throw retryError;
           const retryDetails = retryError instanceof Error ? { message: retryError.message, stack: retryError.stack } : retryError;
-          throw new KairosError(`Operation failed after reconnection: ${JSON.stringify(retryDetails, null, 2)}`, 'QDRANT_OPERATION_ERROR', 500);
+          throw new SquadrulesError(`Operation failed after reconnection: ${JSON.stringify(retryDetails, null, 2)}`, 'QDRANT_OPERATION_ERROR', 500);
         }
       }
-      throw new KairosError(`Qdrant is unavailable after ${this.maxReconnectAttempts} attempts`, 'QDRANT_UNAVAILABLE', 503);
+      throw new SquadrulesError(`Qdrant is unavailable after ${this.maxReconnectAttempts} attempts`, 'QDRANT_UNAVAILABLE', 503);
     }
   }
 }

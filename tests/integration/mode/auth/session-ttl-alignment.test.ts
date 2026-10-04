@@ -10,7 +10,8 @@ function parseJwtPayload(token: string): Record<string, unknown> {
 
 function readRealmAccessTokenLifespanSec(): number {
   const root = process.cwd();
-  const realmPath = path.join(root, 'helm', 'kairos-mcp', 'files', 'kairos-realm.json');
+  const realm = process.env.KEYCLOAK_REALM?.trim() || 'squadrules-dev';
+  const realmPath = path.join(root, 'scripts', 'keycloak', 'import', `${realm}-realm.json`);
   const raw = readFileSync(realmPath, 'utf-8');
   const parsed = JSON.parse(raw) as { accessTokenLifespan?: unknown };
   const v = parsed.accessTokenLifespan;

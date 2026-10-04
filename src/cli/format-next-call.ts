@@ -17,10 +17,10 @@ function buildForwardSnippet(nextCall: JsonObject): string | null {
       uri: args['uri'],
       solution: isObject(args['solution_template']) ? args['solution_template'] : {}
     };
-    return `kairos forward '${payload.uri}' --solution '${JSON.stringify(payload.solution)}'`;
+    return `squadrules forward '${payload.uri}' --solution '${JSON.stringify(payload.solution)}'`;
   }
   if (kind === 'reward') {
-    return `kairos reward '${args['uri']}' success 'completed'`;
+    return `squadrules reward '${args['uri']}' success 'completed'`;
   }
   return null;
 }
@@ -56,7 +56,7 @@ export function formatNextCallBlock(response: unknown): string | null {
         : null;
     const lines = ['next_call_candidates:', toJson(candidates)];
     if (uri) {
-      lines.push('shell_snippet:', `kairos forward '${uri}'`);
+      lines.push('shell_snippet:', `squadrules forward '${uri}'`);
     }
     return lines.join('\n');
   }

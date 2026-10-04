@@ -112,7 +112,7 @@ OPENAI_API_KEY=sk-...
 app:
   embedding:
     openai:
-      existingSecret: kairos-mcp-embedding
+      existingSecret: squadrules-mcp-embedding
       secretKey: OPENAI_API_KEY
       model: text-embedding-3-small
 ```

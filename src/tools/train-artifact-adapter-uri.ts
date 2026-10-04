@@ -1,5 +1,5 @@
 import type { QdrantService } from '../services/qdrant/service.js';
-import { assertWireAdapterUri, buildAdapterUri, parseKairosUri } from './kairos-uri.js';
+import { assertWireAdapterUri, buildAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { TrainError } from './train-store.js';
 
 export async function resolveCanonicalAdapterUriForArtifact(
@@ -9,11 +9,11 @@ export async function resolveCanonicalAdapterUriForArtifact(
   const raw = typeof inputAdapterUri === 'string' ? inputAdapterUri.trim() : '';
   if (!raw) return undefined;
 
-  let parsed: ReturnType<typeof parseKairosUri>;
+  let parsed: ReturnType<typeof parseSquadrulesUri>;
   try {
-    parsed = parseKairosUri(assertWireAdapterUri(raw));
+    parsed = parseSquadrulesUri(assertWireAdapterUri(raw));
   } catch {
-    throw new TrainError('INVALID_ADAPTER_URI', 'adapter_uri must be kairos://adapter/{slug}', {
+    throw new TrainError('INVALID_ADAPTER_URI', 'adapter_uri must be squadrules://adapter/{slug}', {
       must_obey: true
     });
   }

@@ -21,12 +21,12 @@ export interface TrainArtifactResult {
   artifactUuid?: string;
 }
 
-/** Layer URI for delete cleanup (`kairos://layer/{uuid}`) from a train-artifact response. */
+/** Layer URI for delete cleanup (`squadrules://layer/{uuid}`) from a train-artifact response. */
 export function trainArtifactCleanupUri(result: TrainArtifactResult): string {
   if (result.artifactUuid && /^[0-9a-f-]{36}$/i.test(result.artifactUuid)) {
-    return `kairos://layer/${result.artifactUuid}`;
+    return `squadrules://layer/${result.artifactUuid}`;
   }
-  if (result.layerUri.startsWith('kairos://layer/')) {
+  if (result.layerUri.startsWith('squadrules://layer/')) {
     return result.layerUri;
   }
   throw new Error(`train artifact response missing usable layer id: ${JSON.stringify(result)}`);

@@ -93,7 +93,7 @@ export function setupAuthCallback(app: express.Express): void {
   });
 
   /**
-   * Clear Kairos session, end Keycloak SSO (RP-initiated logout), then continue at continue-signin → OIDC login.
+   * Clear Squadrules session, end Keycloak SSO (RP-initiated logout), then continue at continue-signin → OIDC login.
    * id_token_hint (when present in session) avoids Keycloak static logged-out confirmation where supported.
    */
   app.get('/auth/logout', (req: Request, res: Response) => {

@@ -6,7 +6,7 @@ const minimalAdapter = {
   content: 'print(1)',
   mime: 'text/x-python' as const,
   artifact_name: 'helper.py',
-  adapter_uri: 'kairos://adapter/helper-adapter' as const
+  adapter_uri: 'squadrules://adapter/helper-adapter' as const
 };
 
 describe('trainInputSchema relative_path', () => {

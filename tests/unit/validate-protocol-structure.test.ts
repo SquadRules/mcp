@@ -311,6 +311,6 @@ Done.`;
 
 describe('CREATION_PROTOCOL_URI', () => {
   test('is the creation flow slug URI', () => {
-    expect(CREATION_PROTOCOL_URI).toBe('kairos://adapter/create-new-protocol');
+    expect(CREATION_PROTOCOL_URI).toBe('squadrules://adapter/create-new-protocol');
   });
 });

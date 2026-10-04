@@ -35,7 +35,7 @@ const adapterInfoSchema = z.object({
   title: z.string(),
   layer_count: z.number(),
   slug: z.string().nullable(),
-  uri: z.string().describe('Ready-to-use kairos://adapter/{slug} URI for export, forward, etc.'),
+  uri: z.string().describe('Ready-to-use squadrules://adapter/{slug} URI for export, forward, etc.'),
   artifacts: z.array(artifactInfoSchema).optional()
 });
 

@@ -1,14 +1,14 @@
 /**
- * Redis Service for KAIROS persistence
+ * Redis Service for SQUADRULES persistence
  *
  * Provides Redis-based persistence for game data and other shared state.
- * Uses configurable key prefix (default: 'kb:') via KAIROS_REDIS_PREFIX env var for isolation.
+ * Uses configurable key prefix (default: 'kb:') via SQUADRULES_REDIS_PREFIX env var for isolation.
  * Use keyValueStore from key-value-store-factory.js unless you need Redis-specific behavior.
  */
 
 import { createClient, RedisClientType } from 'redis';
 import { logger } from '../utils/structured-logger.js';
-import { REDIS_URL, KAIROS_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX, OIDC_STATE_KEY_PREFIX } from '../config.js';
+import { REDIS_URL, SQUADRULES_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX, OIDC_STATE_KEY_PREFIX } from '../config.js';
 import { getSpaceIdFromStorage } from '../utils/tenant-context.js';
 import type { IKeyValueStore } from './key-value-store.js';
 
@@ -34,10 +34,10 @@ export class RedisService implements IKeyValueStore {
         const redisUrl = REDIS_URL;
         this.redisUrl = redisUrl;
         this.maskedRedisUrl = maskRedisUrl(redisUrl);
-        this.prefix = KAIROS_REDIS_PREFIX;
+        this.prefix = SQUADRULES_REDIS_PREFIX;
 
         logger.debug(
-            `[RedisService] Initializing with REDIS_URL="${this.maskedRedisUrl}" and KAIROS_REDIS_PREFIX="${this.prefix}"`
+            `[RedisService] Initializing with REDIS_URL="${this.maskedRedisUrl}" and SQUADRULES_REDIS_PREFIX="${this.prefix}"`
         );
 
         this.client = createClient({

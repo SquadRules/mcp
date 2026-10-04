@@ -69,7 +69,7 @@ function readUtf8RegularFile(absPath: string): string {
 export function trainCliCommand(program: Command): void {
   program
     .command('train')
-    .description('Register a new KAIROS adapter from markdown, or attach a text artifact to an adapter')
+    .description('Register a new SQUADRULES adapter from markdown, or attach a text artifact to an adapter')
     .argument(
       '[path]',
       'Path to a markdown/artifact file, or a directory of .md files (omit when using --source-adapter-uri)'
@@ -82,7 +82,7 @@ export function trainCliCommand(program: Command): void {
       'Fork from an existing adapter via POST /api/train (requires --model); optional --space for target space'
     )
     .option('--space <space>', 'Target space for train or fork (personal or group display name)')
-    .option('--adapter <uri>', 'Artifact mode: parent adapter URI (kairos://adapter/{slug})')
+    .option('--adapter <uri>', 'Artifact mode: parent adapter URI (squadrules://adapter/{slug})')
     .option('--artifact-name <name>', 'Artifact mode: artifact filename override (defaults to input basename)')
     .option('--mime <mime>', 'Artifact mode: MIME override (otherwise inferred from filename extension)')
     .option('--relative-path <path>', 'Artifact mode: optional skill-root-relative path for export bundles')
@@ -149,7 +149,7 @@ export function trainCliCommand(program: Command): void {
             trainOptions.space = options.space.trim();
           }
           // Auto-inject review_evidence from env (used by integration tests; production users pass via MCP)
-          const envReviewEvidence = process.env['KAIROS_REVIEW_EVIDENCE'];
+          const envReviewEvidence = process.env['SQUADRULES_REVIEW_EVIDENCE'];
           if (envReviewEvidence) {
             try {
               const parsed = JSON.parse(envReviewEvidence);
@@ -266,7 +266,7 @@ export function trainCliCommand(program: Command): void {
           if (isArtifactMode) {
             const adapterUri = typeof options.adapter === 'string' ? options.adapter.trim() : '';
             if (!adapterUri) {
-              writeError('Artifact mode requires --adapter kairos://adapter/{slug}');
+              writeError('Artifact mode requires --adapter squadrules://adapter/{slug}');
               process.exit(1);
               return;
             }

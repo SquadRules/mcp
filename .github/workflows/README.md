@@ -1,6 +1,6 @@
 # GitHub Actions – workflow design
 
-<!-- kairos-lint-allow-protocol-synonyms -->
+<!-- squadrules-lint-allow-protocol-synonyms -->
 
 ## Overview
 
@@ -13,24 +13,24 @@ flowchart LR
   CI --> MAIN[Protected squash merge to main]
   MAIN --> FULL[Full exact-SHA validation]
   FULL --> REL[Prepare and validate release artifacts]
-  REL --> PUB[Persist, publish versions, verify, promote]
+  REL --> PUB[Persist, publish npm version, verify, GitHub Release]
   HEALTH[Automation health] -.-> REN
   HEALTH -.-> PUB
 ```
 
-[Release and dependency automation](../../.agents/skills/kairos-dev/references/release-semver.md) is the authoritative runbook for schedules, credentials, rollout, semantic versioning, prereleases, artifact identity and recovery. Automation is disabled until its rollout prerequisites are verified. Copilot auto-fix is outside the release path and remains disabled.
+[Release and dependency automation](../../.agents/skills/squadrules-dev/references/release-semver.md) is the authoritative runbook for schedules, credentials, rollout, semantic versioning, prereleases, artifact identity and recovery. Automation is disabled until its rollout prerequisites are verified. Copilot auto-fix is outside the release path and remains disabled.
 
 ## Workflows
 
 | Workflow | File | Responsibility |
 |----------|------|----------------|
-| Integration | [integration.yml](integration.yml) | Node 24 build, packed-consumer install, AUTH integration, HTTP/STDIO smoke, UI/static, container/Trivy and Helm validation. Publishes nothing. |
-| Security | [security.yml](security.yml) | Blocking dependency review on PRs, npm audit, CodeQL, base-image scan and exception expiry checks. |
+| Integration | [integration.yml](integration.yml) | Node 24 build, packed-consumer install, AUTH integration, HTTP/STDIO smoke and UI/static validation. Publishes nothing. |
+| Security | [security.yml](security.yml) | Blocking dependency review on PRs, npm audit and CodeQL. |
 | Automation policy | [automation-policy.yml](automation-policy.yml) | Conventional PR titles, deterministic automation regressions, workflow validation and strict Renovate config validation. |
 | Renovate | [renovate.yml](renovate.yml) | Hourly routine dependency updates; no independent auto-merge. |
 | Dependabot | [../dependabot.yml](../dependabot.yml) | Native security updates; version-PR limit zero. |
 | npm audit fix | [npm-audit-fix.yml](npm-audit-fix.yml) | Hourly assessment and one refreshable fallback PR, respecting progressing native fixes. |
-| Release | [release.yml](release.yml) | Single automatic npm OIDC, dual image registry, Helm, tag and GitHub Release path. |
+| Release | [release.yml](release.yml) | Single automatic npm OIDC publish, tag and GitHub Release path; best-effort signals SquadRules/containers to build the image. |
 | Automation health | [automation-health.yml](automation-health.yml) | Detect stale producers and incomplete releases; deduplicate incidents. |
 | Sync Qoder repowiki | [sync-qoder-repowiki-to-github-wiki.yml](sync-qoder-repowiki-to-github-wiki.yml) | Publish generated wiki content. |
 | Verify OpenAI key | [verify-openai-key.yml](verify-openai-key.yml) | Manual validation of the restricted embedding-test credential. |
@@ -55,23 +55,21 @@ Node 24 is the merge-gating runtime. One Node Current lane is advisory and exclu
 - `verify-ui-primary` runs static checks, Knip and UI tests alongside the build.
 - `verify-integration-primary` installs the tested tgz and runs the full AUTH suite after infrastructure startup.
 - `verify-integration-simple-smoke` and `verify-integration-stdio-smoke` consume the same tgz for transport coverage without repeating the full embedding-intensive suite.
-- `verify-docker` consumes that tgz through Docker's `runtime-ci` target and runs Trivy.
-- `verify-helm` validates dependencies, strict Helm lint, unit tests, chart-testing and rendered Kubernetes schemas.
 - `integration-pass` requires all applicable primary jobs; advisory failures never hide a primary failure.
 
 Generated embedded resources may change in the build workspace. They are included in the tested package, never committed back during CI. Every checkout in a run uses the same immutable event revision.
 
 ### Path filters and release eligibility
 
-PR path filters may skip expensive application work for docs-only changes. Workflow files, dependency configuration, release configuration and automation scripts are validation inputs, so workflow-only changes run the relevant tests. Update the code/image/Helm filters whenever adding build inputs.
+PR path filters may skip expensive application work for docs-only changes. Workflow files, dependency configuration, release configuration and automation scripts are validation inputs, so workflow-only changes run the relevant tests. Update the code filter whenever adding build inputs.
 
-Every main push, manual validation and merge group forces `code=image=helm=true`. A docs-only PR success is therefore never used as proof that a release artifact works: Release requires successful full main-push validation at its resolved source SHA.
+Every main push, manual validation and merge group forces `code=true`. A docs-only PR success is therefore never used as proof that a release artifact works: Release requires successful full main-push validation at its resolved source SHA.
 
 ### Integration test matrix
 
 Transport-neutral assertions live in `tests/integration/contracts/`; scenario bootstrap is in `tests/integration/harness/`; wrappers are in `tests/integration/scenarios/`. The npm dev scripts select wrappers for the matching AUTH, HTTP-simple or STDIO stack.
 
-Follow [build and test](../../.agents/skills/kairos-dev/references/build-test.md), including deployment before integration tests. After deploying the matching stack, individual contract entry points are:
+Follow [build and test](../../.agents/skills/squadrules-dev/references/build-test.md), including deployment before integration tests. After deploying the matching stack, individual contract entry points are:
 
 - `npm run test:integration:contracts:http-auth`
 - `npm run test:integration:contracts:http-simple`
@@ -79,11 +77,11 @@ Follow [build and test](../../.agents/skills/kairos-dev/references/build-test.md
 
 ## Release stages
 
-`resolve` chooses one fully validated source or the oldest incomplete draft. `prepare` computes the semantic version and builds, consumer-tests, scans and seals artifacts. `publish` persists recovery bytes, verifies immutable registry identities, then promotes aliases and publishes the GitHub Release. All downstream checkouts use the resolved SHA, not a mutable branch or the completion event's SHA.
+`resolve` chooses one fully validated source or the oldest incomplete draft. `prepare` computes the semantic version, then builds, consumer-tests and seals the npm artifacts. `publish` persists recovery bytes, verifies the immutable npm identity, then publishes the GitHub Release and best-effort signals SquadRules/containers. All downstream checkouts use the resolved SHA, not a mutable branch or the completion event's SHA.
 
-There is no old-tag republishing fallback. No releasable history is a true no-op. Incomplete releases recover the original source/version/checksums and block newer publication. See the [release runbook](../../.agents/skills/kairos-dev/references/release-semver.md#artifact-identity-and-recovery) for recovery and registry verification, including the separate `kairos-mcp-chart` Quay repository.
+There is no old-tag republishing fallback. No releasable history is a true no-op. Incomplete releases recover the original source/version/checksums and block newer publication. See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md#artifact-identity-and-recovery) for recovery and npm registry verification.
 
-Release images use the validated local npm package through Docker's `runtime-ci` target. The standalone `runtime` target installs an already-published version; `Dockerfile.dev` builds local source. The Dockerfiles' pinned `FROM` declarations determine container Node versions independently of the Node 24 CI gate.
+Container images are built, scanned, signed and published by [SquadRules/containers](https://github.com/SquadRules/containers) FROM the published npm package. This repository keeps only `Dockerfile.dev`/`Dockerfile.stdio` for local compose/dev flows (never published); their pinned `FROM` declarations determine local container Node versions independently of the Node 24 CI gate.
 
 ## Automation regression entry points
 

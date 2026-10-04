@@ -4,10 +4,10 @@ import { getTenantId, getSpaceContextFromStorage } from '../utils/tenant-context
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { applyRewardMetrics, type RewardMetricsResult } from '../services/reward-metrics.js';
 import { rewardInputSchema, rewardOutputSchema, type RewardInput, type RewardOutput } from './reward_schema.js';
-import { buildLayerUri, parseKairosUriOrThrow } from './kairos-uri.js';
+import { buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { evaluateReward } from '../services/reward-evals.js';
-import { KairosError } from '../types/index.js';
+import { SquadrulesError } from '../types/index.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 
@@ -15,8 +15,8 @@ interface RegisterRewardOptions {
   toolName?: string;
 }
 
-function buildRewardPersistenceError(uri: string, error: unknown): KairosError {
-  return new KairosError(
+function buildRewardPersistenceError(uri: string, error: unknown): SquadrulesError {
+  return new SquadrulesError(
     `Failed to record reward for ${uri}. No reward was stored. Retry the same reward call once reward storage is healthy.`,
     'REWARD_FAILED',
     503,
@@ -28,9 +28,9 @@ export async function executeReward(
   qdrantService: QdrantService,
   input: RewardInput
 ): Promise<RewardOutput> {
-  const parsed = parseKairosUriOrThrow(input.uri);
+  const parsed = parseSquadrulesUriOrThrow(input.uri);
   if (parsed.kind !== 'layer') {
-    throw new KairosError('reward requires a layer URI', 'INVALID_URI', 400);
+    throw new SquadrulesError('reward requires a layer URI', 'INVALID_URI', 400);
   }
 
   const evaluation = evaluateReward({
@@ -55,7 +55,7 @@ export async function executeReward(
   try {
     rewardMetricsResult = await applyRewardMetrics(qdrantService, rewardMetricsInput);
   } catch (error) {
-    if (error instanceof KairosError) {
+    if (error instanceof SquadrulesError) {
       throw error;
     }
     throw buildRewardPersistenceError(input.uri, error);

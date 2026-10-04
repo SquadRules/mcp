@@ -35,8 +35,8 @@ export function createProgram(): Command {
     .description('CLI tool for interacting with SquadRules REST API')
     .version(version)
     .option('-u, --url <url>', 'SquadRules API base URL', getCliApiUrlDefault())
-    .option('--timeout <seconds>', 'request timeout in seconds (env: KAIROS_TIMEOUT_MS, default: 15)')
-    .option('--retries <n>', 'max retries on network errors (env: KAIROS_RETRIES, default: 2)')
+    .option('--timeout <seconds>', 'request timeout in seconds (env: SQUADRULES_TIMEOUT_MS, default: 15)')
+    .option('--retries <n>', 'max retries on network errors (env: SQUADRULES_RETRIES, default: 2)')
     .option('--no-browser', 'do not open browser when auth is required (e.g. in tests or scripts)')
     .hook('preAction', (_thisCommand, actionCommand) => {
       // optsWithGlobals merges root --url / --no-browser for nested commands (e.g. squadrules --url … train …).
@@ -45,10 +45,10 @@ export function createProgram(): Command {
       }
       const opts = actionCommand.optsWithGlobals() as { url?: string; browser?: boolean };
       if (opts.url) {
-        process.env['KAIROS_API_URL'] = opts.url;
+        process.env['SQUADRULES_API_URL'] = opts.url;
       }
       if (opts.browser === false) {
-        process.env['KAIROS_NO_BROWSER'] = '1';
+        process.env['SQUADRULES_NO_BROWSER'] = '1';
       }
     });
 

@@ -1,4 +1,4 @@
-# Integration workflow: build npm tgz, then verify in parallel (UI/static, npm+infra tests, Docker+Trivy).
+# Integration workflow: build npm tgz, then verify in parallel (UI/static, npm+infra tests).
 # Secrets: OPENAI_API_KEY (from GitHub secrets). Infra/dev secrets are generated in verify-integration-primary each run.
 # See .github/workflows/README.md for gh secret/variable setup.
 #
@@ -7,8 +7,8 @@
 # verify-ui-primary — static + UI tests, Node 24 only; parallel with build jobs (no tgz); merge gate.
 # verify-ui-advisory — same steps on Node 26; continue-on-error; not in integration-pass needs.
 # verify-integration-primary — Node 24 only; needs build-primary; scenario contracts (e.g. http-auth) follow scripts/deploy-run-env.sh and the workflows README matrix.
-# verify-docker — release-equivalent image + Trivy; needs build-primary.
-# integration-pass — gates only on Node-24 primary jobs + verify-docker (no advisory UI/build/integration).
+# integration-pass — gates only on Node-24 primary jobs (no advisory UI/build/integration).
+# Container image build/scan/publish is decoupled into SquadRules/containers (not a gate here).
 name: Integration
 
 on:
@@ -27,7 +27,7 @@ permissions:
 # so docs-only / wiki-only PRs skip the expensive work while `integration-pass`
 # still reports a successful status (required-check compatible).
 #
-# Main pushes, workflow_dispatch and merge_group force full code/image validation.
+# Main pushes, workflow_dispatch and merge_group force full code validation.
 
 jobs:
   changes:
@@ -38,7 +38,6 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.combine.outputs.code }}
-      image: ${{ steps.combine.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -53,7 +52,6 @@ jobs:
         with:
           # Files that can affect build, lint, or integration outcomes (auth full + simple/stdio smoke).
           # `code` is the master switch for build + UI/static + integration jobs.
-          # `image` narrows the Docker/Trivy job so non-image code changes skip the image build.
           filters: |
             code:
               - 'src/**'
@@ -72,23 +70,12 @@ jobs:
               - 'knip.config.ts'
               - 'Dockerfile*'
               - 'compose.yaml'
-              - '.trivyignore'
               - '.env.dev_simple'
               - '.env.dev_stdio'
               - '.github/**'
               - 'renovate.json'
               - 'release.config.mjs'
               - '.agents/skills/**'
-            image:
-              - 'Dockerfile*'
-              - 'compose.yaml'
-              - '.trivyignore'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.github/workflows/**'
-              - 'renovate.json'
-              - 'release.config.mjs'
-              - 'scripts/ci-*.mjs'
 
       - name: Combine with forced-run events
         id: combine
@@ -96,24 +83,17 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REF: ${{ github.ref }}
           FILTER_CODE: ${{ steps.filter.outputs.code }}
-          FILTER_IMAGE: ${{ steps.filter.outputs.image }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = "workflow_dispatch" ] \
              || [ "$EVENT_NAME" = "merge_group" ] \
              || [ "$EVENT_NAME" = "push" ] \
              || [[ "$REF" == refs/heads/ci/* ]]; then
-            echo "Forcing code=true image=true for event=$EVENT_NAME ref=$REF"
-            {
-              echo "code=true"
-              echo "image=true"
-            } >> "$GITHUB_OUTPUT"
+            echo "Forcing code=true for event=$EVENT_NAME ref=$REF"
+            echo "code=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Filter result: code=$FILTER_CODE image=$FILTER_IMAGE"
-            {
-              echo "code=$FILTER_CODE"
-              echo "image=$FILTER_IMAGE"
-            } >> "$GITHUB_OUTPUT"
+            echo "Filter result: code=$FILTER_CODE"
+            echo "code=$FILTER_CODE" >> "$GITHUB_OUTPUT"
           fi
 
   build-primary:
@@ -369,7 +349,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          docker compose -p kairos-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
+          docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
           node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci &
           pid_npm=$!
@@ -382,7 +362,7 @@ jobs:
         run: |
           mkdir -p .cache/docker-infra
           # Only save images for services we start (valkey, qdrant, postgres, keycloak); config --images includes app image which is not pulled
-          mapfile -t images < <(docker compose -p kairos-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
+          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
           docker save -o .cache/docker-infra/images.tar "${images[@]}"
 
       - name: Cache infra Docker images
@@ -446,8 +426,8 @@ jobs:
         id: qdrant-snapshot-cache
         with:
           path: |
-            .local/qdrant-snapshot/kairos_ci.snapshot
-            .local/qdrant-snapshot/kairos_ci_traces.snapshot
+            .local/qdrant-snapshot/squadrules_ci.snapshot
+            .local/qdrant-snapshot/squadrules_ci_traces.snapshot
           key: ${{ runner.os }}-qdrant-snapshot-${{ hashFiles('scripts/seed-test-snapshot.sh', 'scripts/import-test-snapshot.sh', 'tests/test-data/AI_CODING_RULES.md') }}
           restore-keys: |
             ${{ runner.os }}-qdrant-snapshot-
@@ -459,7 +439,7 @@ jobs:
           QDRANT_SNAPSHOT_DIR: var/snapshots
         run: |
           mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/kairos.log 2>&1 &
+          npm run dev:start:installed > var/log/squadrules.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:3300/health >/dev/null && break
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
@@ -485,19 +465,19 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos log - check
+      - name: Upload squadrules log - check
         if: always() && failure()
         run: |
           pwd
           ls -la var/log 2>/dev/null || true
-          if [ -f var/log/kairos.log ]; then ls -la var/log/kairos.log; cat var/log/kairos.log; else echo "No var/log/kairos.log"; fi
+          if [ -f var/log/squadrules.log ]; then ls -la var/log/squadrules.log; cat var/log/squadrules.log; else echo "No var/log/squadrules.log"; fi
 
-      - name: Upload kairos log
+      - name: Upload squadrules log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-log-node24
-          path: var/log/kairos.log
+          name: squadrules-log-node24
+          path: var/log/squadrules.log
           if-no-files-found: ignore
 
   verify-integration-simple-smoke:
@@ -597,10 +577,10 @@ jobs:
           HEALTH_CHECK_ATTEMPTS: 15
           ENV: dev_simple
           QDRANT_SNAPSHOT_DIR: var/snapshots
-          QDRANT_COLLECTION: kairos_ci
+          QDRANT_COLLECTION: squadrules_ci
         run: |
           mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/kairos-simple.log 2>&1 &
+          npm run dev:start:installed > var/log/squadrules-simple.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:4300/health >/dev/null && break
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
@@ -610,7 +590,7 @@ jobs:
       - name: Run SIMPLE transport smoke tests
         env:
           ENV: dev_simple
-          QDRANT_COLLECTION: kairos_ci
+          QDRANT_COLLECTION: squadrules_ci
         run: |
           npm run dev_simple:test -- \
             tests/integration/scenarios/spaces-tool.http-simple.test.ts \
@@ -633,12 +613,12 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos simple log
+      - name: Upload squadrules simple log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-simple-log-node24
-          path: var/log/kairos-simple.log
+          name: squadrules-simple-log-node24
+          path: var/log/squadrules-simple.log
           if-no-files-found: ignore
 
       - name: Stop Qdrant (binary)
@@ -726,7 +706,7 @@ jobs:
       - name: Run STDIO transport smoke tests
         env:
           ENV: dev_stdio
-          QDRANT_COLLECTION: kairos_simple_ci
+          QDRANT_COLLECTION: squadrules_simple_ci
           CI: "true"
         run: |
           npm run dev_stdio:test -- \
@@ -749,82 +729,44 @@ jobs:
             echo "No reports/tests/*.log found"
           fi
 
-      - name: Upload kairos stdio log
+      - name: Upload squadrules stdio log
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: kairos-stdio-log-node24
-          path: var/log/kairos-stdio.log
+          name: squadrules-stdio-log-node24
+          path: var/log/squadrules-stdio.log
           if-no-files-found: ignore
 
       - name: Stop Qdrant (binary)
         if: always()
         run: npm run qdrant:binary:stop
 
-  verify-docker:
-    # The Dockerfile pins the container runtime independently; this job uses the Node 24 tgz.
-    name: Release-equivalent Docker image + Trivy
-    needs: [changes, build-primary]
-    if: needs.changes.outputs.image == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Download npm package artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: npm-package-node24
-          path: dist
-
-      - name: Stage package.tgz and build release-equivalent image
-        run: |
-          set -euo pipefail
-          VERSION=$(jq -r .version package.json)
-          mkdir -p .ci/docker
-          cp "dist/squadrules-mcp-${VERSION}.tgz" .ci/docker/package.tgz
-          node scripts/ci-github-step-summary.mjs "Docker build (release-equivalent)" -- \
-            docker build --target runtime-ci --build-arg "PACKAGE_VERSION=${VERSION}" -t squadrules-mcp:release-ci .
-
-      - name: Trivy container scan (same policy as Release)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: squadrules-mcp:release-ci
-          format: table
-          exit-code: "1"
-          severity: CRITICAL,HIGH
-          trivyignores: .trivyignore
-
-  # Merge gate: Node 24 primary jobs only (build, UI/static, integration, Docker). Node 26
-  # advisory jobs (build-advisory, verify-ui-advisory, verify-integration-advisory) are omitted
-  # from needs: so they cannot fail this check or block PR merge.
+  # Merge gate: Node 24 primary jobs only (build, UI/static, integration). Node 26 advisory
+  # jobs (build-advisory, verify-ui-advisory, verify-integration-advisory) are omitted from
+  # needs: so they cannot fail this check or block PR merge. Container image build/scan is
+  # decoupled into SquadRules/containers and is intentionally not a merge gate here.
   # When `changes.code == 'false'` (docs-only / wiki PR), the heavy jobs are skipped
   # and this gate passes immediately so required status checks still report success.
   integration-pass:
     name: Integration workflow passed
-    needs: [changes, build-primary, verify-ui-primary, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke, verify-docker]
+    needs: [changes, build-primary, verify-ui-primary, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require all jobs
         env:
           CHANGES_CODE: ${{ needs.changes.outputs.code }}
-          CHANGES_IMAGE: ${{ needs.changes.outputs.image }}
           CHANGES_RESULT: ${{ needs.changes.result }}
           BUILD_PRIMARY: ${{ needs.build-primary.result }}
           VERIFY_UI: ${{ needs.verify-ui-primary.result }}
           VERIFY_INTEGRATION: ${{ needs.verify-integration-primary.result }}
           VERIFY_SIMPLE_SMOKE: ${{ needs.verify-integration-simple-smoke.result }}
           VERIFY_STDIO_SMOKE: ${{ needs.verify-integration-stdio-smoke.result }}
-          VERIFY_DOCKER: ${{ needs.verify-docker.result }}
         run: |
           set -euo pipefail
-          echo "changes.result=$CHANGES_RESULT changes.code=$CHANGES_CODE changes.image=$CHANGES_IMAGE"
+          echo "changes.result=$CHANGES_RESULT changes.code=$CHANGES_CODE"
           echo "build-primary=$BUILD_PRIMARY verify-ui-primary=$VERIFY_UI verify-integration-primary=$VERIFY_INTEGRATION"
-          echo "verify-integration-simple-smoke=$VERIFY_SIMPLE_SMOKE verify-integration-stdio-smoke=$VERIFY_STDIO_SMOKE verify-docker=$VERIFY_DOCKER"
+          echo "verify-integration-simple-smoke=$VERIFY_SIMPLE_SMOKE verify-integration-stdio-smoke=$VERIFY_STDIO_SMOKE"
 
           # Fail fast if the changes job itself broke.
           if [ "$CHANGES_RESULT" != "success" ]; then
@@ -842,11 +784,4 @@ jobs:
           test "$VERIFY_INTEGRATION" = "success"
           test "$VERIFY_SIMPLE_SMOKE" = "success"
           test "$VERIFY_STDIO_SMOKE" = "success"
-
-          # verify-docker only runs when image-affecting files change; otherwise it is skipped.
-          if [ "$CHANGES_IMAGE" = "true" ]; then
-            test "$VERIFY_DOCKER" = "success"
-          else
-            echo "No image-affecting changes — verify-docker skip is OK (result=$VERIFY_DOCKER)."
-          fi
           echo "All required integration jobs passed."

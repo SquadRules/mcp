@@ -193,7 +193,7 @@ export async function createMcpConnection() {
     return createStdioMcpConnection();
   }
 
-  // Refresh password-grant token so it includes optional scopes (e.g. kairos-groups) and matches server OIDC merge.
+  // Refresh password-grant token so it includes optional scopes (e.g. squadrules-groups) and matches server OIDC merge.
   if (serverRequiresAuth()) {
     await refreshTestAuthToken();
   }

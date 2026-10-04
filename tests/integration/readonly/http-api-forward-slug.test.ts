@@ -4,7 +4,7 @@ import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
 const QDRANT_URL = process.env.QDRANT_URL ?? 'http://localhost:6333';
-const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'kairos';
+const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'squadrules';
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY ?? '';
 const _d = isHttpTransport() ? describe : describe.skip;
 
@@ -83,14 +83,14 @@ _d('HTTP forward slug entry', () => {
     const response = await apiFetch(`${API_BASE}/forward`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uri: `kairos://adapter/${slug}` })
+      body: JSON.stringify({ uri: `squadrules://adapter/${slug}` })
     });
 
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toHaveProperty('must_obey', true);
     expect(data).toHaveProperty('current_layer');
-    expect(data.current_layer.uri).toMatch(/^kairos:\/\/layer\//);
+    expect(data.current_layer.uri).toMatch(/^squadrules:\/\/layer\//);
     expect(data).toHaveProperty('contract');
     expect(data).toHaveProperty('next_action');
     expect(typeof data.next_action).toBe('string');
@@ -102,7 +102,7 @@ _d('HTTP forward slug entry', () => {
     const response = await apiFetch(`${API_BASE}/forward`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uri: 'kairos://adapter/non-existent-slug-for-test' })
+      body: JSON.stringify({ uri: 'squadrules://adapter/non-existent-slug-for-test' })
     });
 
     expect(response.status).toBe(404);
@@ -124,17 +124,17 @@ _d('HTTP forward slug entry', () => {
     const response = await apiFetch(`${API_BASE}/forward`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uri: `kairos://adapter/${targetSlug}` })
+      body: JSON.stringify({ uri: `squadrules://adapter/${targetSlug}` })
     });
 
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toHaveProperty('must_obey', true);
     expect(data).toHaveProperty('current_layer');
-    expect(data.current_layer.uri).toMatch(/^kairos:\/\/layer\//);
+    expect(data.current_layer.uri).toMatch(/^squadrules:\/\/layer\//);
     expect(data).toHaveProperty('contract');
     expect(typeof data.slug_disambiguation_note).toBe('string');
     expect(String(data.slug_disambiguation_note)).toMatch(new RegExp(targetSlug, 'i'));
-    expect(String(data.slug_disambiguation_note)).toMatch(/kairos:\/\/adapter\//i);
+    expect(String(data.slug_disambiguation_note)).toMatch(/squadrules:\/\/adapter\//i);
   }, 30000);
 });

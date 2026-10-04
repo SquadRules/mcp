@@ -1,4 +1,4 @@
-import { KAIROS_LOGO_SVG } from './kairos-logo-embedded.js';
+import { SQUADRULES_LOGO_SVG } from './squadrules-logo-embedded.js';
 import { FORWARD_WIDGET_INLINE_CSS } from './forward-widget-inline-css.js';
 import { FORWARD_WIDGET_INLINE_SCRIPT } from './forward-widget-inline-script.js';
 import { minifyInlineWidgetHtml } from './widget-inline-minify.js';
@@ -9,11 +9,11 @@ import { substituteWidgetPresentationToken } from './mcp-widget-presentation-inj
  * Same lifecycle as {@link ./spaces-mcp-app-widget-html.ts}.
  */
 export function buildForwardWidgetHtml(): string {
-  const logo = KAIROS_LOGO_SVG.replaceAll('`', '&#96;');
-  return minifyInlineWidgetHtml(`<div id="kairos-forward-root">
+  const logo = SQUADRULES_LOGO_SVG.replaceAll('`', '&#96;');
+  return minifyInlineWidgetHtml(`<div id="squadrules-forward-root">
   <div class="brand">
     ${logo}
-    <h1 id="header-title" class="header-title"><span class="ht-brand">KAIROS</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Protocol:</span></h1>
+    <h1 id="header-title" class="header-title"><span class="ht-brand">SQUADRULES</span><span class="ht-sep"> • </span><span class="ht-protocol-label">Protocol:</span></h1>
   </div>
   <div id="out"><span class="waiting">Loading this forward step…</span></div>
   <footer id="run-footer" class="run-footer" hidden>

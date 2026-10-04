@@ -44,6 +44,6 @@ Done.`;
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toHaveProperty('status', 'stored');
-    expect(data.items?.[0]?.adapter_uri).toMatch(/^kairos:\/\/adapter\//);
+    expect(data.items?.[0]?.adapter_uri).toMatch(/^squadrules:\/\/adapter\//);
   }, 30000);
 });

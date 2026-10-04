@@ -7,13 +7,13 @@ import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpTool
 import { getTenantId, runWithOptionalSpaceAsync } from '../utils/tenant-context.js';
 import { executeSearch } from './search.js';
 import { activateInputSchema, activateOutputSchema, type ActivateInput, type ActivateOutput } from './activate_schema.js';
-import { buildAdapterUri, parseKairosUri } from './kairos-uri.js';
+import { buildAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { mcpRateLimitErrorResult } from './mcp-runtime-error.js';
-import { KAIROS_ACTIVATE_TOOL_UI_META } from '../mcp-apps/kairos-ui-constants.js';
-import { KAIROS_CREATION_FOOTER_NEXT_ACTION } from '../constants/builtin-search-meta.js';
-import { KAIROS_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { SQUADRULES_ACTIVATE_TOOL_UI_META } from '../mcp-apps/squadrules-ui-constants.js';
+import { SQUADRULES_CREATION_FOOTER_NEXT_ACTION } from '../constants/builtin-search-meta.js';
+import { SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
 import { listAdapterArtifacts } from './artifact-catalog.js';
@@ -34,7 +34,7 @@ function canonicalizeAdapterUri(
   if (options?.slug) {
     return buildAdapterUri(options.slug);
   }
-  const parsed = parseKairosUri(uri);
+  const parsed = parseSquadrulesUri(uri);
   if (parsed.kind === 'adapter' && parsed.idKind === 'slug') {
     return buildAdapterUri(parsed.id);
   }
@@ -61,9 +61,9 @@ async function mapSearchToActivate(
     const parentDirForPath = escapeShellDoubleQuoted(parentDir);
     const mkdirPart =
       parentDir.length > 0
-        ? `mkdir -p "$KAIROS_LOCAL_ARTIFACT_DIR/${parentDirForPath}" && `
+        ? `mkdir -p "$SQUADRULES_LOCAL_ARTIFACT_DIR/${parentDirForPath}" && `
         : '';
-    return `${mkdirPart}curl -fsSL '${urlEscaped}' -o "$KAIROS_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$KAIROS_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$KAIROS_LOCAL_ARTIFACT_DIR/${relForPath}"`;
+    return `${mkdirPart}curl -fsSL '${urlEscaped}' -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
   };
 
   const visibleChoices = options.includeRefineFooter
@@ -84,7 +84,7 @@ async function mapSearchToActivate(
           role: choice.role,
           tags: choice.tags,
           next_action: choice.role === 'create'
-            ? KAIROS_CREATION_FOOTER_NEXT_ACTION
+            ? SQUADRULES_CREATION_FOOTER_NEXT_ACTION
             : `call forward with ${adapterUri} and no solution to start the refine adapter`,
           adapter_version: choice.adapter_version,
           activation_patterns: [],
@@ -156,7 +156,7 @@ async function mapSearchToActivate(
         );
       }
       const nextAction = linkedArtifacts.length > 0
-        ? `Materialize this choice's linked_artifacts to $KAIROS_LOCAL_ARTIFACT_DIR, verify sha256, then call forward with ${adapterUri} and no solution to start this adapter`
+        ? `Materialize this choice's linked_artifacts to $SQUADRULES_LOCAL_ARTIFACT_DIR, verify sha256, then call forward with ${adapterUri} and no solution to start this adapter`
         : `call forward with ${adapterUri} and no solution to start this adapter`;
       return {
         uri: adapterUri,
@@ -202,7 +202,7 @@ async function mapSearchToActivate(
     execution_id: options.executionId,
     query,
     choices,
-    ...buildLocalArtifactDirFields(KAIROS_LOCAL_ARTIFACT_DIRS)
+    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
   };
 }
 
@@ -248,7 +248,7 @@ export function registerActivateTool(server: any, memoryStore: MemoryQdrantStore
       description: resolveToolDoc('activate') || 'Find the best adapter for the current input and return ranked activation choices.',
       inputSchema: mcpLooseToolInput(activateInputSchema),
       outputSchema: activateOutputSchema,
-      _meta: KAIROS_ACTIVATE_TOOL_UI_META
+      _meta: SQUADRULES_ACTIVATE_TOOL_UI_META
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

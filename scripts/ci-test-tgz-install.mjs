@@ -36,14 +36,14 @@ if (!existsSync(tgzPath)) {
 try {
   run("npm", ["init", "-y"], testDir, "npm init");
   run("npm", ["install", tgzPath], testDir, "npm install <tgz>");
-  run("npx", ["kairos", "--version"], testDir, "npx kairos --version");
-  run("npx", ["kairos-mcp", "--version"], testDir, "npx kairos-mcp --version");
-  run("npx", ["kairos", "serve", "--help"], testDir, "npx kairos serve --help");
-  run("npx", ["kairos-mcp", "serve", "--help"], testDir, "npx kairos-mcp serve --help");
+  run("npx", ["squadrules", "--version"], testDir, "npx squadrules --version");
+  run("npx", ["squadrules-mcp", "--version"], testDir, "npx squadrules-mcp --version");
+  run("npx", ["squadrules", "serve", "--help"], testDir, "npx squadrules serve --help");
+  run("npx", ["squadrules-mcp", "serve", "--help"], testDir, "npx squadrules-mcp serve --help");
 } finally {
   rmSync(testDir, { recursive: true, force: true });
 }
 
 console.log(
-  "test:tgz OK — install, kairos --version, kairos-mcp --version, and serve --help succeeded."
+  "test:tgz OK — install, squadrules --version, squadrules-mcp --version, and serve --help succeeded."
 );

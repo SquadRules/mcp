@@ -4,12 +4,12 @@ This directory contains the official SquadRules MCP logo.
 
 | File | Description |
 |------|-------------|
-| [kairos-mcp.svg](kairos-mcp.svg) | Primary logo — “Deterministic Path” symbol (512×512). Dark background, gradient path with four nodes. Use for app icon, favicon, sidebar, and docs. |
+| [squadrules-mcp.svg](squadrules-mcp.svg) | Primary logo — “Deterministic Path” symbol (512×512). Dark background, gradient path with four nodes. Use for app icon, favicon, sidebar, and docs. |
 
-> **Filename note.** The asset keeps its historical `kairos-mcp.svg` filename for
+> **Filename note.** The asset keeps its historical `squadrules-mcp.svg` filename for
 > now because the web app imports it by that exact path
 > (`src/ui/components/Layout.tsx`) and the embedded copy in
-> `src/mcp-apps/kairos-logo-embedded.ts` mirrors it. Renaming the SVG is a
+> `src/mcp-apps/squadrules-logo-embedded.ts` mirrors it. Renaming the SVG is a
 > coordinated follow-up that must update those `src/` imports in the same change.
 
 The logo is used in the repo at: root README, the web app (`src/ui/`

@@ -1,5 +1,5 @@
 import { QdrantConnection } from './connection.js';
-import { KairosError } from '../../types/index.js';
+import { SquadrulesError } from '../../types/index.js';
 import { sanitizeAndUpsert } from './utils.js';
 import { logger } from '../../utils/structured-logger.js';
 import { getSpaceContext } from '../../utils/tenant-context.js';
@@ -26,7 +26,7 @@ export async function updateQualityMetrics(conn: QdrantConnection, id: string, m
   return conn.executeWithReconnect(async () => {
     const existingPoint = await retrieveAccessiblePointById(conn, id, { withVector: true });
     if (!existingPoint) {
-      throw new KairosError(`Memory with ID ${id} not found for quality update`, 'MEMORY_NOT_FOUND', 404);
+      throw new SquadrulesError(`Memory with ID ${id} not found for quality update`, 'MEMORY_NOT_FOUND', 404);
     }
     const existingPayload = existingPoint.payload as any;
 
@@ -62,7 +62,7 @@ export async function updateQualityMetadata(conn: QdrantConnection, id: string, 
   return conn.executeWithReconnect(async () => {
     const existingPoint = await retrieveAccessiblePointById(conn, id, { withVector: true });
     if (!existingPoint) {
-      throw new KairosError(`Memory with ID ${id} not found for quality metadata update`, 'MEMORY_NOT_FOUND', 404);
+      throw new SquadrulesError(`Memory with ID ${id} not found for quality metadata update`, 'MEMORY_NOT_FOUND', 404);
     }
     const existingPayload = existingPoint.payload as any;
     const updatedQualityMetadata = { ...(existingPayload.quality_metadata || {}), ...qualityMetadata };
@@ -76,7 +76,7 @@ export async function trackPendingValidation(conn: QdrantConnection, id: string,
   return conn.executeWithReconnect(async () => {
     const existingPoint = await retrieveAccessiblePointById(conn, id, { withVector: true });
     if (!existingPoint) {
-      throw new KairosError(`Memory with ID ${id} not found for validation tracking`, 'MEMORY_NOT_FOUND', 404);
+      throw new SquadrulesError(`Memory with ID ${id} not found for validation tracking`, 'MEMORY_NOT_FOUND', 404);
     }
     const existingPayload = existingPoint.payload as any;
     const currentMetrics = existingPayload.quality_metrics || {};

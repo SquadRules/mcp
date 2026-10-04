@@ -26,7 +26,7 @@ const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
 const _d = isHttpTransport() ? describe : describe.skip;
 
-_d('Auth (Keycloak + kairos-tester)', () => {
+_d('Auth (Keycloak + squadrules-tester)', () => {
   test('unauthenticated GET /api returns 401 with login_url (or 200 when auth disabled)', async () => {
     const res = await fetch(`${API_BASE}`, { method: 'GET' });
     if (res.status === 200) {
@@ -78,7 +78,7 @@ _d('Auth (Keycloak + kairos-tester)', () => {
     }
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data).toHaveProperty('service', 'KAIROS API');
+    expect(data).toHaveProperty('service', 'SquadRules API');
     expect(data).toHaveProperty('endpoints');
     expect(data.endpoints).toHaveProperty('activate');
   }, 60000);

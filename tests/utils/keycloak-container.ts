@@ -1,15 +1,14 @@
 /**
  * Testcontainers-based Keycloak for auth integration tests.
- * Starts Keycloak, creates realm kairos-dev, client kairos-mcp, user kairos-tester.
+ * Starts Keycloak, creates realm squadrules-dev, client squadrules-mcp, user squadrules-tester.
  * User is created with credentials and requiredActions: [] in one POST to avoid "Account is not fully set up".
  */
-
 import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 
-export const REALM = 'kairos-dev';
-export const CLIENT_ID = 'kairos-mcp';
-export const TEST_USERNAME = 'kairos-tester';
-export const TEST_PASSWORD = 'kairos-tester-secret';
+export const REALM = 'squadrules-dev';
+export const CLIENT_ID = 'squadrules-mcp';
+export const TEST_USERNAME = 'squadrules-tester';
+export const TEST_PASSWORD = 'squadrules-tester-secret';
 
 export interface KeycloakTestEnv {
   /** Set when using Testcontainers; undefined when using existing Keycloak from .env */
@@ -160,8 +159,8 @@ export async function createUser(
   const url = `${baseUrl.replace(/\/$/, '')}/admin/realms/${realm}/users`;
   const body = {
     username: TEST_USERNAME,
-    email: 'kairos-tester@localhost',
-    firstName: 'Kairos',
+    email: 'squadrules-tester@localhost',
+    firstName: 'Squadrules',
     lastName: 'Tester',
     enabled: true,
     emailVerified: true,
@@ -258,11 +257,11 @@ export function getTestUserTokenFromKeycloak(
   password: string
 ): Promise<string> {
   const tokenUrl = `${baseUrl.replace(/\/$/, '')}/realms/${realm}/protocol/openid-connect/token`;
-  // kairos-groups: matches tests/utils/auth-headers.ts (#278). Do not default to
+  // squadrules-groups: matches tests/utils/auth-headers.ts (#278). Do not default to
   // profile/email here — explicit email scope can make Keycloak reject password grant
   // with "Account is not fully set up" when the test user is not email-verified.
   const scope =
-    process.env.KAIROS_TEST_OIDC_SCOPE?.trim() || 'openid kairos-groups';
+    process.env.SQUADRULES_TEST_OIDC_SCOPE?.trim() || 'openid squadrules-groups';
   const doRequest = () =>
     fetch(tokenUrl, {
       method: 'POST',
@@ -295,7 +294,7 @@ export function getTestUserTokenFromKeycloak(
 }
 
 /**
- * Start Keycloak with Testcontainers, create realm, client, and kairos-tester user.
+ * Start Keycloak with Testcontainers, create realm, client, and squadrules-tester user.
  * User is created with credentials in one POST (no separate reset-password) so password grant works.
  * Caller must stop the container when done.
  */

@@ -81,7 +81,7 @@ _d('API error paths: consistent handling across MCP and HTTP', () => {
       const res = await httpFetch(`${API_BASE}/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uri: 'kairos://layer/00000000-0000-0000-0000-000000000000' })
+        body: JSON.stringify({ uri: 'squadrules://layer/00000000-0000-0000-0000-000000000000' })
       });
       expect(res.status).toBe(404);
       const data = (await res.json()) as Record<string, unknown>;
@@ -96,7 +96,7 @@ _d('API error paths: consistent handling across MCP and HTTP', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uri: 'kairos://layer/00000000-0000-0000-0000-000000000000',
+          uri: 'squadrules://layer/00000000-0000-0000-0000-000000000000',
           outcome: 'invalid',
           feedback: 'test'
         })

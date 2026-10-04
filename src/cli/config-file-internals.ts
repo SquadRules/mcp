@@ -4,7 +4,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { getKairosConfigDir } from '../utils/kairos-user-dirs.js';
+import { getSquadrulesConfigDir } from '../utils/squadrules-user-dirs.js';
 
 const CONFIG_FILE_NAME = 'config.json';
 export const KEYCHAIN_TOKEN_PLACEHOLDER = '__KEYCHAIN__';
@@ -17,7 +17,7 @@ export interface EnvironmentEntry {
 export interface ConfigFileShape {
     defaultUrl?: string;
     environments?: Record<string, EnvironmentEntry>;
-    KAIROS_API_URL?: string;
+    SQUADRULES_API_URL?: string;
     bearerToken?: string;
     refreshToken?: string;
 }
@@ -34,7 +34,7 @@ export function isSingleEnvFlatConfig(parsed: ConfigFileShape): boolean {
     return (
         parsed.environments === undefined &&
         (
-            parsed.KAIROS_API_URL !== undefined ||
+            parsed.SQUADRULES_API_URL !== undefined ||
             parsed.bearerToken !== undefined ||
             parsed.refreshToken !== undefined
         )
@@ -59,7 +59,7 @@ export function writeConfigShape(shape: ConfigFileShape): void {
 }
 
 export function getConfigDir(): string {
-    return getKairosConfigDir();
+    return getSquadrulesConfigDir();
 }
 
 export function getConfigPath(): string {

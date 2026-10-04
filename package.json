@@ -29,9 +29,7 @@
   ],
   "bin": {
     "squadrules": "dist/cli/index.js",
-    "squadrules-mcp": "dist/cli/index.js",
-    "kairos": "dist/cli/index.js",
-    "kairos-mcp": "dist/cli/index.js"
+    "squadrules-mcp": "dist/cli/index.js"
   },
   "files": [
     "dist/",
@@ -40,7 +38,7 @@
   ],
   "scripts": {
     "cli": "node dist/cli/index.js",
-    "cli:dev": "sh -c 'set -a && [ -f .env ] && . ./.env; set +a && export KAIROS_API_URL=\"${KAIROS_API_URL:-http://localhost:${SERVER_PORT:-3300}}\" && exec node dist/cli/index.js \"$@\"' _",
+    "cli:dev": "sh -c 'set -a && [ -f .env ] && . ./.env; set +a && export SQUADRULES_API_URL=\"${SQUADRULES_API_URL:-http://localhost:${SERVER_PORT:-3300}}\" && exec node dist/cli/index.js \"$@\"' _",
     "dev:cli-ready": "./scripts/deploy-dev-cli-ready.sh",
     "test": "npm run dev:deploy && npm run dev:test",
     "dev:build": "npm run lint && npm run knip && npm run ui:build && ENV=dev ./scripts/deploy-run-env.sh build",
@@ -109,14 +107,13 @@
     "ci:health": "node scripts/ci-health.mjs",
     "test:spec-parity": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testPathPatterns tests/unit/spec-parity.test.ts",
     "test:ui:watch": "vitest --config vitest.config.ts",
-    "test:helm": "./scripts/test-helm.sh",
     "pack": "npm run build && npm pack",
     "npm:publish": "npm run build && npm publish --access public",
     "npm:publish:dry": "npm run build && npm publish --access public --dry-run",
     "ensure-coding-rules": "./scripts/deploy-run-env.sh ensure-coding-rules",
     "knip": "node -e \"if(process.env.DOCKER_BUILD)process.exit(0); const r=require('child_process').spawnSync('npx',['knip','--no-config-hints'],{stdio:'inherit'});process.exit(r.status!=null?r.status:1)\"",
     "handoff": "npm run dev:deploy && npm run dev:test && npm run ensure-coding-rules && npm run knip && npm run lint:markdown && npm run lint:mermaid",
-    "infra:up": "docker compose -p kairos-mcp --env-file .env --profile fullstack up -d --remove-orphans && python3 scripts/deploy-configure-keycloak-realms.py",
+    "infra:up": "docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d --remove-orphans && python3 scripts/deploy-configure-keycloak-realms.py",
     "lint": "eslint . && npm run lint:skills && npm run lint:markdown && npm run lint:docs",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx,.mjs,.cjs --fix && npm run lint:markdown:fix",
     "lint:skills": "python3 scripts/lint-agent-skills.py",
@@ -125,9 +122,8 @@
     "lint:markdown:fix": "markdownlint-cli2 'docs/**/*.md' 'README.md' 'CONTRIBUTING.md' 'SECURITY.md' --config .markdownlint.jsonc --no-progress --fix",
     "lint:mermaid": "./scripts/validate-mermaid.sh docs/**/*.md",
     "compose:sync-app-tag": "node -e \"const fs=require('fs');const p='compose.yaml';const v=require('./package.json').version;let s=fs.readFileSync(p,'utf8');s=s.replace(/(^\\s*image:\\s*quay\\.io\\/squadrules\\/mcp:)(\\S+)/m,(_,prefix)=>prefix+'v'+v);fs.writeFileSync(p,s);\"",
-    "version:sync": "npm run version:sync-skills && npm run compose:sync-app-tag && npm run helm:sync-app-version",
+    "version:sync": "npm run version:sync-skills && npm run compose:sync-app-tag",
     "version:sync-skills": "node scripts/build-sync-skill-versions.mjs",
-    "helm:sync-app-version": "node scripts/helm-sync-app-version.mjs",
     "version:check-skills": "node scripts/build-sync-skill-versions.mjs --check",
     "prebuild": "npm run verify:clean && npx ts-node scripts/build-embed-docs.ts && node scripts/build-sync-skill-versions.mjs",
     "verify:clean": "node scripts/lint-verify-clean-source.mjs",

@@ -3,8 +3,8 @@ import { z } from 'zod';
 const layerUriSchema = z
   .string()
   .regex(
-    /^(?:kairos|squadrules):\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
-    'must match kairos://layer/{uuid}[?execution_id={uuid}] (squadrules:// also accepted)'
+    /^squadrules:\/\/layer\/[0-9a-f-]{36}(?:\?execution_id=[0-9a-f-]{36})?$/i,
+    'must match squadrules://layer/{uuid}[?execution_id={uuid}]'
   );
 
 export const rewardInputSchema = z.object({
