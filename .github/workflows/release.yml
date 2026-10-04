@@ -149,28 +149,3 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-release.mjs publish
-      - name: Notify containers repository
-        # Best-effort cross-repo signal sent AFTER the npm publication succeeded, so
-        # SquadRules/containers (which builds the images FROM this published package) can
-        # build, scan, sign and publish the matching image and then signal SquadRules/charts.
-        if: success() && github.ref == 'refs/heads/main'
-        continue-on-error: true  # Dispatch failure must not fail or undo the published npm artifact
-        env:
-          # Requires a narrowly-scoped GitHub App token or PAT with dispatch access to
-          # SquadRules/containers. GITHUB_TOKEN cannot dispatch to other repositories, and
-          # this is intentionally NOT a publishing credential.
-          CONTAINERS_DISPATCH_TOKEN: ${{ secrets.CONTAINERS_DISPATCH_TOKEN }}
-        run: |
-          set -uo pipefail
-          if [ -z "${CONTAINERS_DISPATCH_TOKEN:-}" ]; then
-            echo "CONTAINERS_DISPATCH_TOKEN not configured; skipping SquadRules/containers notification."
-            exit 0
-          fi
-          # Version comes from the sealed release manifest recovered by the publish step.
-          manifest=.local/release/manifest.json
-          version=$(jq -r '.version // empty' "$manifest" 2>/dev/null || true)
-          curl -sf -X POST \
-            -H "Authorization: Bearer ${CONTAINERS_DISPATCH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/SquadRules/containers/dispatches \
-            -d "{\"event_type\":\"npm-published\",\"client_payload\":{\"version\":\"${version}\"}}"
