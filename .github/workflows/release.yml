@@ -1,145 +1,68 @@
-# Single npm OIDC publisher and release environment. Every stage uses the resolved
-# immutable source; recovery reuses checksummed artifacts, never an old tag/new tree.
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       dry-run:
-        description: Preview the semantic version without publishing
+        description: Preview the next version without publishing
         type: boolean
-        default: false
-      validate-artifacts:
-        description: Also prepare and validate all artifacts during a dry run
-        type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
 
+# Never cancel a publisher halfway through npm/tag/GitHub Release publication.
 concurrency:
-  group: release-pipeline
+  group: release-main
   cancel-in-progress: false
 
 jobs:
-  # Release runs by default from its own triggers (main push, hourly reconciliation,
-  # manual dispatch); it is intentionally NOT gated by vars.AUTOMATION_ENABLED, which
-  # only pauses the dependency producers/controller. Production vs non-production is
-  # decided by branch: main -> stable, any other branch dispatched -> prerelease channel.
-  resolve:
-    runs-on: ubuntu-latest
+  integration:
+    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/integration.yml
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  security:
+    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
     permissions:
-      contents: write # delete unrecoverable untagged-* orphan drafts left by interrupted runs
+      contents: read
       actions: read
-    outputs:
-      skip: ${{ steps.resolve.outputs.skip }}
-      sha: ${{ steps.resolve.outputs.sha }}
-      branch: ${{ steps.resolve.outputs.branch }}
-      recovery: ${{ steps.resolve.outputs.recovery }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: refs/heads/main
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-      - name: Resolve exact validated source or oldest incomplete release
-        id: resolve
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/ci-release.mjs resolve
+      pull-requests: read
+      security-events: write
+    uses: ./.github/workflows/security.yml
+  policy:
+    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/automation-policy.yml
 
-  prepare:
-    needs: resolve
-    if: needs.resolve.outputs.skip == 'false' && needs.resolve.outputs.recovery == ''
+  publish:
+    needs: [integration, security, policy]
+    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    environment: release
     permissions:
       contents: write
-    outputs:
-      skip: ${{ steps.plan.outputs.skip }}
-      artifact: ${{ steps.artifact.outputs.artifact-id }}
-    env:
-      SOURCE_SHA: ${{ needs.resolve.outputs.sha }}
-      RELEASE_BRANCH: ${{ needs.resolve.outputs.branch }}
+      id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ needs.resolve.outputs.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
-          fetch-tags: true
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Compute version once (semantic-release preview, no publication)
-        id: plan
+      - name: Release (or preview)
         env:
-          GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
-          SQUADRULES_PRERELEASE_BRANCH: ${{ needs.resolve.outputs.branch != 'main' && needs.resolve.outputs.branch || '' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
-          VALIDATE_ARTIFACTS: ${{ inputs.validate-artifacts && 'true' || 'false' }}
-        run: npm run ci:release -- plan
-      - name: Prepare and consumer-test the versioned npm package
-        if: steps.plan.outputs.skip == 'false'
-        run: npm run ci:release -- package
-      - name: Seal source, version, validation evidence and artifact checksums
-        if: steps.plan.outputs.skip == 'false'
-        env:
-          VALIDATION_PASSED: 'true'
-        run: npm run ci:release -- seal
-      - uses: actions/upload-artifact@v5
-        id: artifact
-        if: steps.plan.outputs.skip == 'false'
-        with:
-          name: prepared-release-${{ needs.resolve.outputs.sha }}
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 90
-          compression-level: 0
-          path: |
-            .local/release/package.tgz
-            .local/release/*sbom.json
-            .local/release/validation.json
-            .local/release/manifest.json
-            .local/release/plan.json
-
-  publish:
-    needs: [resolve, prepare]
-    if: >-
-      always() && !failure() && !cancelled() &&
-      needs.resolve.outputs.skip == 'false' &&
-      !(github.event_name == 'workflow_dispatch' && inputs.dry-run) &&
-      (needs.resolve.outputs.recovery != '' || needs.prepare.outputs.skip == 'false')
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: release
-    permissions:
-      contents: write
-      actions: read
-      id-token: write
-    env:
-      SOURCE_SHA: ${{ needs.resolve.outputs.sha }}
-      RECOVERY_ID: ${{ needs.resolve.outputs.recovery }}
-      RECOVERY_ARTIFACT_ID: ${{ needs.prepare.outputs.artifact }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.resolve.outputs.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-      - uses: actions/download-artifact@v8
-        if: needs.resolve.outputs.recovery == ''
-        with:
-          name: prepared-release-${{ needs.resolve.outputs.sha }}
-          path: .local/release
-      - name: Persist, publish the immutable npm version, verify, then publish the GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/ci-release.mjs publish
+        run: |
+          if [ "$DRY_RUN" = true ]; then
+            npm run release -- --dry-run
+          else
+            npm run release
+          fi

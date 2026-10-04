@@ -34,6 +34,8 @@ const config: KnipConfig = {
         'src/tools/**/*_schema.ts',
     ],
     ignoreDependencies: [
+        // Loaded by semantic-release via preset: 'conventionalcommits'.
+        'conventional-changelog-conventionalcommits',
         // Loaded via createRequire in src/cli/keyring.ts (dynamic require for ESM)
         '@napi-rs/keyring',
         // Optional @tiptap/react peers pinned as direct runtime dependencies so the

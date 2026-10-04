@@ -1,49 +1,41 @@
 #!/usr/bin/env node
-/**
- * Installs the built tgz (from npm pack) into a temp dir and runs a quick smoke test.
- * Ensures the package can be installed and the CLI runs. Used before publish.
- */
-import { spawnSync } from "child_process";
-import { mkdtempSync, existsSync, rmSync } from "fs";
-import { tmpdir } from "os";
-import { join, resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import { createRequire } from "module";
+/** Exercise the packed consumer install outside the repository's dependency tree. */
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
-const require = createRequire(import.meta.url);
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, "..");
-const pkg = require(join(root, "package.json"));
-const version = pkg.version;
-const tgzName = `squadrules-mcp-${version}.tgz`;
-const tgzPath = join(root, "dist", tgzName);
-// Use OS temp dir so Node cannot resolve missing deps from repo-root node_modules.
-const testDir = mkdtempSync(join(tmpdir(), "squadrules-tgz-install-test-"));
+const root = resolve(import.meta.dirname, '..');
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const tgzPath = join(root, 'artifacts', `squadrules-mcp-${pkg.version}.tgz`);
+assert.ok(existsSync(tgzPath), "Run 'npm run build:tgz' first.");
+const testDir = mkdtempSync(join(tmpdir(), 'squadrules-tgz-install-'));
 
-function run(cmd, args, cwd = root, desc) {
-  const r = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: false });
-  if (r.status !== 0) {
-    console.error(`Error: ${desc || `${cmd} ${args.join(" ")}`} failed (exit ${r.status})`);
-    process.exit(1);
-  }
-}
-
-if (!existsSync(tgzPath)) {
-  console.error(`Error: tgz not found at ${tgzPath}. Run 'npm run build:tgz' first.`);
-  process.exit(1);
+function run(command, args, capture = false) {
+  const result = spawnSync(command, args, {
+    cwd: testDir, encoding: 'utf8', stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+  });
+  assert.equal(result.status, 0, `${command} ${args.join(' ')} failed: ${result.error ?? result.status}`);
+  return result.stdout?.trim();
 }
 
 try {
-  run("npm", ["init", "-y"], testDir, "npm init");
-  run("npm", ["install", tgzPath], testDir, "npm install <tgz>");
-  run("npx", ["squadrules", "--version"], testDir, "npx squadrules --version");
-  run("npx", ["squadrules-mcp", "--version"], testDir, "npx squadrules-mcp --version");
-  run("npx", ["squadrules", "serve", "--help"], testDir, "npx squadrules serve --help");
-  run("npx", ["squadrules-mcp", "serve", "--help"], testDir, "npx squadrules-mcp serve --help");
+  run('npm', ['init', '-y']);
+  run('npm', ['install', '--no-audit', '--no-fund', tgzPath]);
+  const installedRoot = join(testDir, 'node_modules', pkg.name);
+  const installed = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'));
+  assert.equal(installed.version, pkg.version);
+  assert.equal(installed.name, pkg.name);
+  for (const file of [pkg.main, 'dist/ui/index.html', 'dist/embed-docs/mem', 'LICENSE', 'README.md']) {
+    assert.ok(existsSync(join(installedRoot, file)), `Missing packaged resource: ${file}`);
+  }
+  for (const bin of Object.keys(pkg.bin)) {
+    const executable = join(testDir, 'node_modules', '.bin', bin);
+    assert.equal(run(executable, ['--version'], true), pkg.version, `${bin} version differs from package`);
+    run(executable, ['serve', '--help']);
+  }
 } finally {
   rmSync(testDir, { recursive: true, force: true });
 }
-
-console.log(
-  "test:tgz OK — install, squadrules --version, squadrules-mcp --version, and serve --help succeeded."
-);
+console.log('Packed consumer install, resources, CLI versions and help passed.');

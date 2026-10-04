@@ -41,7 +41,7 @@
     "cli:dev": "sh -c 'set -a && [ -f .env ] && . ./.env; set +a && export SQUADRULES_API_URL=\"${SQUADRULES_API_URL:-http://localhost:${SERVER_PORT:-3300}}\" && exec node dist/cli/index.js \"$@\"' _",
     "dev:cli-ready": "./scripts/deploy-dev-cli-ready.sh",
     "test": "npm run dev:deploy && npm run dev:test",
-    "dev:build": "npm run lint && npm run knip && npm run ui:build && ENV=dev ./scripts/deploy-run-env.sh build",
+    "dev:build": "npm run lint && npm run knip && ENV=dev ./scripts/deploy-run-env.sh build",
     "dev:deploy": "npm run dev:build && npm run dev:restart",
     "dev:logs": "ENV=dev ./scripts/deploy-run-env.sh logs",
     "dev:qdrant-curl": "ENV=dev ./scripts/deploy-run-env.sh qdrant-curl",
@@ -88,7 +88,7 @@
     "prod:raw-qdrant-search": "node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs",
     "prod:redis-cli": "ENV=prod ./scripts/deploy-run-env.sh redis-cli",
     "prod:logs": "ENV=prod ./scripts/deploy-run-env.sh logs",
-    "build": "npm run prebuild && node -e \"if(!process.env.DOCKER_BUILD){const r=require('child_process').spawnSync('npm',['run','lint'],{stdio:'inherit'});if(r.status!==0)process.exit(r.status!=null?r.status:1)}\" && npm run ui:build && npx tsc && chmod +x dist/cli/index.js",
+    "build": "npm run ui:build && tsc && chmod +x dist/cli/index.js",
     "docker:build": "docker build --target runtime --build-arg PACKAGE_VERSION=$(node -p \"require('./package.json').version\") -t quay.io/squadrules/mcp:latest -t quay.io/squadrules/mcp:$(node -p \"require('./package.json').version\") .",
     "docker:build:dev": "docker build -f Dockerfile.dev -t quay.io/squadrules/mcp:dev .",
     "docker:push": "docker push quay.io/squadrules/mcp:latest && docker push quay.io/squadrules/mcp:$(node -p \"require('./package.json').version\")",
@@ -102,14 +102,11 @@
     "lint:renovate": "node scripts/ci-renovate.mjs validate",
     "ci:controller": "node scripts/ci-automation.mjs",
     "ci:renovate": "node scripts/ci-renovate.mjs",
-    "ci:release": "node scripts/ci-release.mjs",
     "ci:audit": "node scripts/ci-audit.mjs",
     "ci:health": "node scripts/ci-health.mjs",
     "test:spec-parity": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testPathPatterns tests/unit/spec-parity.test.ts",
     "test:ui:watch": "vitest --config vitest.config.ts",
-    "pack": "npm run build && npm pack",
-    "npm:publish": "npm run build && npm publish --access public",
-    "npm:publish:dry": "npm run build && npm publish --access public --dry-run",
+    "pack": "npm run build:tgz",
     "ensure-coding-rules": "./scripts/deploy-run-env.sh ensure-coding-rules",
     "knip": "node -e \"if(process.env.DOCKER_BUILD)process.exit(0); const r=require('child_process').spawnSync('npx',['knip','--no-config-hints'],{stdio:'inherit'});process.exit(r.status!=null?r.status:1)\"",
     "handoff": "npm run dev:deploy && npm run dev:test && npm run ensure-coding-rules && npm run knip && npm run lint:markdown && npm run lint:mermaid",
@@ -125,14 +122,15 @@
     "version:sync": "npm run version:sync-skills && npm run compose:sync-app-tag",
     "version:sync-skills": "node scripts/build-sync-skill-versions.mjs",
     "version:check-skills": "node scripts/build-sync-skill-versions.mjs --check",
-    "prebuild": "npm run verify:clean && npx ts-node scripts/build-embed-docs.ts && node scripts/build-sync-skill-versions.mjs",
+    "prebuild": "node -e \"require('node:fs').rmSync('dist', {recursive:true, force:true})\" && npm run verify:clean && npm run version:sync-skills && ts-node scripts/build-embed-docs.ts",
     "verify:clean": "node scripts/lint-verify-clean-source.mjs",
     "prepare": "husky",
-    "build:tgz": "node scripts/build-ensure-tgz.mjs",
+    "build:tgz": "mkdir -p artifacts && npm pack --pack-destination artifacts",
     "test:tgz": "node scripts/ci-test-tgz-install.mjs",
     "test:package-local": "npm run build:tgz && npm run test:tgz",
-    "prepare:publish": "npm run build:tgz && npm run test:tgz",
-    "publish": "npm run prepare:publish && npm publish ./dist/squadrules-mcp-$(node -p \"require('./package.json').version\").tgz --access public"
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.ui.json",
+    "release": "semantic-release"
   },
   "dependencies": {
     "@exodus/bytes": "^1.15.0",
@@ -177,6 +175,7 @@
     "@jest/test-sequencer": "^30.2.0",
     "@mermaid-js/mermaid-cli": "^11.15.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/dom": "^10.4.1",
@@ -193,6 +192,7 @@
     "@vitejs/plugin-react": "6.1.1",
     "autoprefixer": "^10.4.20",
     "concurrently": "10.0.5",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
     "dotenv-cli": "^11.0.0",
     "eslint": "10.11.0",
     "husky": "^9.1.7",
@@ -236,5 +236,10 @@
   },
   "allowScripts": {
     "puppeteer@25.4.0": true
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "provenance": true
   }
 }

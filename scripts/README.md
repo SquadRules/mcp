@@ -15,7 +15,7 @@ File names use a **prefix** so you can see which pipeline stage they belong to:
 | **`ci-test-`** | CI-oriented **test verification** (e.g. install smoke checks for release tarballs); still run locally via `npm run` when needed |
 | **`deploy-`** | Local/prod **environment** lifecycle: `.env`, Compose/Keycloak, run server/tests via one script, raw Qdrant probes |
 
-**Rule:** Workflow orchestration in `scripts/` **must** start with **`ci-`** (e.g. `ci-github-step-summary.mjs`, `ci-parallel-checks.mjs`, `ci-wait-for-infra.sh`). Scripts whose main job is **test-style checks for CI / release** may use **`ci-test-`** (e.g. `ci-test-tgz-install.mjs`) instead of plain `test-`. (Jest’s job-summary reporter stays under `tests/reporters/` because Jest loads it by path.)
+**Rule:** Workflow orchestration in `scripts/` **must** start with **`ci-`** (e.g. `ci-github-step-summary.mjs`, `ci-wait-for-infra.sh`). Scripts whose main job is **test-style checks for CI / release** may use **`ci-test-`** (e.g. `ci-test-tgz-install.mjs`) instead of plain `test-`. (Jest’s job-summary reporter stays under `tests/reporters/` because Jest loads it by path.)
 
 `src/embed-docs/` is **not** under `scripts/`; it is the source tree the **`build-embed-docs`** step reads.
 
@@ -63,10 +63,8 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/build-embed-docs-slug-meta.ts` | Slug/frontmatter helpers for `build-embed-docs.ts` | Imported by `build-embed-docs.ts` only |
 | `scripts/build-vite-ui-env-define.ts` | Exposes package version to Vite/Vitest via `import.meta.env` | `vite.config.ts`, `vitest.config.ts` |
 | `scripts/build-sync-skill-versions.mjs` | Keeps skill metadata versions aligned with `package.json` | `npm run prebuild`, `npm run version:sync-skills`, `npm run version:check-skills`, release `npm version` scripts |
-| `scripts/build-ensure-tgz.mjs` | Builds the publishable `.tgz` into `dist/` | `npm run build:tgz` |
 | `scripts/ci-test-tgz-install.mjs` | Installs the built tarball into a temp dir to verify packaging | `npm run test:tgz` |
 | `scripts/ci-github-step-summary.mjs` | Runs a subprocess and appends a Vitest-style block to `$GITHUB_STEP_SUMMARY` | `.github/workflows/integration.yml` (many steps) |
-| `scripts/ci-parallel-checks.mjs` | Runs `tsc --noEmit`, `knip`, and `test:ui` in parallel; appends summaries | `.github/workflows/integration.yml` |
 | `scripts/test-embedding-key.mjs` | Quick check that `OPENAI_API_KEY` can call the configured embedding model | `npm run dev:test-embedding-key` |
 | `scripts/test-capture-viewports.mjs` | Playwright capture of UI viewports for design review | `npm run design:viewports` |
 | `scripts/test-integration-app-base-url.mjs` | Resolves local SQUADRULES base URL from env (shared helper) | `test-ai-mcp-integration.mjs`, `test-capture-viewports.mjs` |

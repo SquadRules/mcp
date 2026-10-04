@@ -1,319 +1,61 @@
-# Integration workflow: build npm tgz, then verify in parallel (UI/static, npm+infra tests).
-# Secrets: OPENAI_API_KEY (from GitHub secrets). Infra/dev secrets are generated in verify-integration-primary each run.
-# See .github/workflows/README.md for gh secret/variable setup.
-#
-# build-primary — Node 24 only (npm ci + pack); artifact npm-package-node24 (merge gate).
-# build-advisory — single Node Current pin (26), continue-on-error (not in integration-pass needs).
-# verify-ui-primary — static + UI tests, Node 24 only; parallel with build jobs (no tgz); merge gate.
-# verify-ui-advisory — same steps on Node 26; continue-on-error; not in integration-pass needs.
-# verify-integration-primary — Node 24 only; needs build-primary; scenario contracts (e.g. http-auth) follow scripts/deploy-run-env.sh and the workflows README matrix.
-# verify-integration-embedded-simple — Service-free advisory lane: installed package on the embedded LanceDB backend (blanked QDRANT_URL), key-free embedding via the local fastembed default (no OPENAI_API_KEY), no Qdrant/Redis/Keycloak/Docker; Node 24; continue-on-error; NOT in integration-pass needs (promote once stable).
-# integration-pass — gates only on Node-24 primary jobs (no advisory UI/build/integration).
-# Container image build/scan/publish is decoupled into SquadRules/containers (not a gate here).
 name: Integration
 
 on:
   pull_request:
     branches: [main]
   merge_group:
-  push:
-    branches: [main]
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      OPENAI_API_KEY:
+        required: true
 
 permissions:
   contents: read
 
-# Path filtering (Pattern B): the `changes` job inspects modified paths and sets `code=true` only when
-# files that affect build/test outcomes are touched. Heavy jobs gate on `needs.changes.outputs.code == 'true'`,
-# so docs-only / wiki-only PRs skip the expensive work while `integration-pass`
-# still reports a successful status (required-check compatible).
-#
-# Main pushes, workflow_dispatch and merge_group force full code validation.
-
 jobs:
-  changes:
-    name: Detect relevant changes
+  build:
+    name: Build and checks (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      code: ${{ steps.combine.outputs.code }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['24', '26']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 0
-
-      - name: Path filter
-        id: filter
-        uses: dorny/paths-filter@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          # Files that can affect build, lint, or integration outcomes (auth full + simple/stdio smoke).
-          # `code` is the master switch for build + UI/static + integration jobs.
-          filters: |
-            code:
-              - 'src/**'
-              - 'tests/**'
-              - 'scripts/**'
-              - 'skills/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - 'tsconfig*.json'
-              - 'jest.config.js'
-              - 'vitest.config.ts'
-              - 'vite.config.ts'
-              - 'postcss.config.js'
-              - 'eslint.config.cjs'
-              - 'eslint/**'
-              - 'knip.config.ts'
-              - 'Dockerfile*'
-              - 'compose.yaml'
-              - '.env.dev_simple'
-              - '.env.dev_stdio'
-              - '.github/**'
-              - 'renovate.json'
-              - 'release.config.mjs'
-              - '.agents/skills/**'
-
-      - name: Combine with forced-run events
-        id: combine
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF: ${{ github.ref }}
-          FILTER_CODE: ${{ steps.filter.outputs.code }}
-        run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] \
-             || [ "$EVENT_NAME" = "merge_group" ] \
-             || [ "$EVENT_NAME" = "push" ] \
-             || [[ "$REF" == refs/heads/ci/* ]]; then
-            echo "Forcing code=true for event=$EVENT_NAME ref=$REF"
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Filter result: code=$FILTER_CODE"
-            echo "code=$FILTER_CODE" >> "$GITHUB_OUTPUT"
-          fi
-
-  build-primary:
-    name: Build npm package (tgz, Node 24)
-    needs: [changes]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run version:check-skills
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run knip
+      - run: npm run test:spec-parity
+      - run: npm run test:ui
+      - run: npm run build:tgz
+      - run: npm run test:tgz
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
-
-      - name: Build package (tgz)
-        run: node scripts/ci-github-step-summary.mjs "Build package (tgz)" -- npm run build:tgz
-
-      - name: Verify repository clean after build
-        run: |
-          set -euo pipefail
-          allowed_re='^(dist/embed-docs/mem/|src/resources/embedded-mcp-resources\.ts$|$)'
-          dirty=$(git diff --name-only)
-          unexpected=$(printf '%s\n' "$dirty" | grep -vE "$allowed_re" || true)
-          if [ -n "$unexpected" ]; then
-            echo "::error::Repository changed during build outside allowed paths."
-            echo "$unexpected"
-            git diff
-            exit 1
-          fi
-
-      - name: Test package install (clean tgz smoke)
-        run: node scripts/ci-github-step-summary.mjs "Test package install (clean tgz smoke)" -- npm run test:tgz
-
-      - name: Upload npm package artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: npm-package-node24
-          path: dist/*.tgz
-
-  build-advisory:
-    name: Build npm package (tgz, Node 26, advisory)
-    needs: [changes]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "26"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
-
-      - name: Build package (tgz)
-        run: node scripts/ci-github-step-summary.mjs "Build package (tgz)" -- npm run build:tgz
-
-      - name: Test package install (clean tgz smoke)
-        run: node scripts/ci-github-step-summary.mjs "Test package install (clean tgz smoke)" -- npm run test:tgz
-
-      - name: Upload npm package artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: npm-package-node26
-          path: dist/*.tgz
-
-  verify-ui-primary:
-    name: Static checks + UI tests (Node 24)
-    needs: [changes]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Check versions (mem = package.json, skills = last stable)
-        run: node scripts/ci-github-step-summary.mjs "Version check (mem & skills)" -- npm run version:check-skills
-
-      - name: Lint skills (skills-ref)
-        run: node scripts/ci-github-step-summary.mjs "Lint skills (skills-ref)" -- npm run lint:skills
-
-      - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
-
-      - name: Audit-fix workflow regression
-        run: node scripts/ci-github-step-summary.mjs "Audit-fix workflow regression" -- npm run test:audit-fix-workflow
-
-      # Static spec-parity gate: no infra, no OpenAI. Fails fast on tool-surface drift
-      # (MCP registry / HTTP routes / CLI / embedded docs) before the heavy steps below.
-      - name: Spec parity (static, no infra)
-        run: node scripts/ci-github-step-summary.mjs "Spec parity (static)" -- npm run test:spec-parity
-
-      - name: Lint
-        run: node scripts/ci-github-step-summary.mjs "Lint" -- npm run lint
-
-      # Avoid re-downloading ~280MB Chromium/headless-shell/ffmpeg when lockfile unchanged
-      - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@v6
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        id: playwright-install
-        run: node scripts/ci-github-step-summary.mjs "Install Playwright browsers" -- npx playwright install chromium
-
-      - name: Save Playwright browsers cache
-        uses: actions/cache/save@v6
-        if: steps.playwright-cache.outputs.cache-hit != 'true' && steps.playwright-install.outcome == 'success'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: TypeScript, Knip, UI tests (parallel)
-        run: node scripts/ci-parallel-checks.mjs
-
-  verify-ui-advisory:
-    name: Static checks + UI tests (Node 26, Current, advisory)
-    needs: [changes]
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "26"
-          cache: "npm"
-
-      - name: Check versions (mem = package.json, skills = last stable)
-        run: node scripts/ci-github-step-summary.mjs "Version check (mem & skills)" -- npm run version:check-skills
-
-      - name: Lint skills (skills-ref)
-        run: node scripts/ci-github-step-summary.mjs "Lint skills (skills-ref)" -- npm run lint:skills
-
-      - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
-
-      - name: Lint
-        run: node scripts/ci-github-step-summary.mjs "Lint" -- npm run lint
-
-      # Node-version suffix so the advisory runner does not fight the Node 24 primary key
-      - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@v6
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-node26-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        id: playwright-install
-        run: node scripts/ci-github-step-summary.mjs "Install Playwright browsers" -- npx playwright install chromium
-
-      - name: Save Playwright browsers cache
-        uses: actions/cache/save@v6
-        if: steps.playwright-cache.outputs.cache-hit != 'true' && steps.playwright-install.outcome == 'success'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-node26-${{ hashFiles('package-lock.json') }}
-
-      - name: TypeScript, Knip, UI tests (parallel)
-        run: node scripts/ci-parallel-checks.mjs
+          name: npm-package-node${{ matrix.node }}
+          path: artifacts/*.tgz
+          if-no-files-found: error
 
   verify-integration-primary:
     name: Infra + dev deploy + integration tests (AUTH on, Node 24)
-    needs: [changes, build-primary]
-    if: needs.changes.outputs.code == 'true'
+    needs: [build]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -321,7 +63,7 @@ jobs:
           fetch-tags: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: "npm"
@@ -329,13 +71,13 @@ jobs:
       - name: "Generate .env (fullstack: infra + app + auth)"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
+        run: python3 scripts/deploy-generate-dev-secrets.py
 
       - name: Verify .env exists
         run: ls -la .env
 
       - name: Restore infra Docker image cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         id: docker-infra-cache
         with:
           path: .cache/docker-infra
@@ -352,7 +94,7 @@ jobs:
           ec=0
           docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
-          node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci &
+          npm ci &
           pid_npm=$!
           wait $pid_compose || ec=1
           wait $pid_npm || ec=1
@@ -367,7 +109,7 @@ jobs:
           docker save -o .cache/docker-infra/images.tar "${images[@]}"
 
       - name: Cache infra Docker images
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         if: steps.docker-infra-cache.outputs.cache-hit != 'true'
         with:
           path: .cache/docker-infra
@@ -375,14 +117,14 @@ jobs:
 
       # Keep artifact outside ./dist — integration tests expect ./dist/cli/index.js (see tests/integration/cli-commands-shared.ts).
       - name: Download npm package artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: npm-package-node24
           path: artifact-npm
 
       # E2E tests (e.g. cli-auth-browser-login) use Playwright chromium; separate runner from verify-ui-primary.
       - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         id: playwright-cache-integration
         with:
           path: ~/.cache/ms-playwright
@@ -393,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          node scripts/ci-github-step-summary.mjs "Install Playwright browsers" -- npx playwright install chromium &
+          npx playwright install chromium &
           pid_pw=$!
           bash scripts/ci-wait-for-infra.sh &
           pid_wait=$!
@@ -402,19 +144,19 @@ jobs:
           exit $ec
 
       - name: Save Playwright browsers cache
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         if: steps.playwright-cache-integration.outputs.cache-hit != 'true' && steps.playwright-install-integration.outcome == 'success'
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Configure Keycloak realms and test user
-        run: node scripts/ci-github-step-summary.mjs "Configure Keycloak realms" -- python3 scripts/deploy-configure-keycloak-realms.py
+        run: python3 scripts/deploy-configure-keycloak-realms.py
 
       - name: Install package from tgz
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
+          \
             npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
 
       - name: Expose installed package dist for CLI tests
@@ -423,7 +165,7 @@ jobs:
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
       - name: Restore Qdrant test snapshot cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         id: qdrant-snapshot-cache
         with:
           path: |
@@ -446,6 +188,9 @@ jobs:
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
             sleep 2
           done
+
+      - name: Run unit tests against the deployed test services
+        run: npm run dev:test -- tests/unit
 
       - name: Run integration tests (AUTH stack + Jest suite)
         run: npm run dev:test
@@ -475,7 +220,7 @@ jobs:
 
       - name: Upload squadrules log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: squadrules-log-node24
           path: var/log/squadrules.log
@@ -486,13 +231,12 @@ jobs:
     # stack (verify-integration-primary); this job just proves the simple/no-auth HTTP stack
     # boots and serves MCP. Reuses build-primary's tgz (npm-package-node24) — no separate build.
     name: Transport smoke (SIMPLE mode, HTTP no-auth, Node 24)
-    needs: [changes, build-primary]
-    if: needs.changes.outputs.code == 'true'
+    needs: [build]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -500,7 +244,7 @@ jobs:
           fetch-tags: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: "npm"
@@ -508,7 +252,7 @@ jobs:
       - name: "Generate .env (base vars, overridden for simple mode)"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
+        run: python3 scripts/deploy-generate-dev-secrets.py
 
       - name: Apply simple profile overrides
         run: cat .env.dev_simple >> .env
@@ -519,20 +263,20 @@ jobs:
           ec=0
           QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
           pid_qdrant=$!
-          node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci &
+          npm ci &
           pid_npm=$!
           wait $pid_qdrant || ec=1
           wait $pid_npm || ec=1
           exit $ec
 
       - name: Download npm package artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: npm-package-node24
           path: artifact-npm
 
       - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         id: playwright-cache-simple
         with:
           path: ~/.cache/ms-playwright
@@ -543,7 +287,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          node scripts/ci-github-step-summary.mjs "Install Playwright browsers" -- npx playwright install chromium &
+          npx playwright install chromium &
           pid_pw=$!
           for i in $(seq 1 30); do
             curl -sSf http://127.0.0.1:7633/healthz >/dev/null && break
@@ -556,7 +300,7 @@ jobs:
           exit $ec
 
       - name: Save Playwright browsers cache
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         if: steps.playwright-cache-simple.outputs.cache-hit != 'true' && steps.playwright-install-simple.outcome == 'success'
         with:
           path: ~/.cache/ms-playwright
@@ -565,7 +309,7 @@ jobs:
       - name: Install package from tgz
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
+          \
             npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
 
       - name: Expose installed package dist for CLI tests
@@ -616,7 +360,7 @@ jobs:
 
       - name: Upload squadrules simple log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: squadrules-simple-log-node24
           path: var/log/squadrules-simple.log
@@ -628,15 +372,14 @@ jobs:
 
   verify-integration-stdio-smoke:
     # Transport smoke only (stdio JSON-RPC). No HTTP server; tests spawn a stdio subprocess.
-    # Reuses build-primary's tgz (npm-package-node24) — no separate build.
+    # Reuses build's tgz (npm-package-node24) — no separate build.
     name: Transport smoke (STDIO mode, Node 24)
-    needs: [changes, build-primary]
-    if: needs.changes.outputs.code == 'true'
+    needs: [build]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -644,7 +387,7 @@ jobs:
           fetch-tags: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: "npm"
@@ -652,7 +395,7 @@ jobs:
       - name: "Generate .env (base vars, overridden for stdio mode)"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
+        run: python3 scripts/deploy-generate-dev-secrets.py
 
       - name: Apply stdio profile overrides
         run: |
@@ -672,14 +415,14 @@ jobs:
           ec=0
           QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
           pid_qdrant=$!
-          node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci &
+          npm ci &
           pid_npm=$!
           wait $pid_qdrant || ec=1
           wait $pid_npm || ec=1
           exit $ec
 
       - name: Download npm package artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: npm-package-node24
           path: artifact-npm
@@ -696,7 +439,7 @@ jobs:
       - name: Install package from tgz
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
+          \
             npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
 
       - name: Expose installed package dist for CLI tests
@@ -732,7 +475,7 @@ jobs:
 
       - name: Upload squadrules stdio log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: squadrules-stdio-log-node24
           path: var/log/squadrules-stdio.log
@@ -745,15 +488,14 @@ jobs:
   # Service-free lane: SIMPLE mode with all built-in components and NO external data store.
   # Installs the built package (npm-package-node24) and runs it on the embedded LanceDB backend
   # by blanking QDRANT_URL (isQdrantConfigured=false). No Qdrant/Redis/Keycloak/Docker is started;
-  # cache is in-memory; auth is off. Only the OpenAI embedding provider stays external (issue #11
-  # will remove even that). Proves `serve` boots on a zero-infrastructure host and that a real
-  # train->activate flow works against the embedded store, including the boot-injected built-in
-  # adapters. ADVISORY first (continue-on-error, not in integration-pass needs) to avoid blocking
-  # merges while it proves stable; promote once green over several runs.
+  # cache is in-memory; auth is off. Embeddings are key-free on the local fastembed default
+  # (issue #11): no OPENAI_API_KEY is supplied. Proves `serve` boots on a zero-infrastructure host
+  # and that a real train->activate flow works against the embedded store, including the
+  # boot-injected built-in adapters. ADVISORY first (continue-on-error, not in integration-pass
+  # needs) to avoid blocking merges while it proves stable.
   verify-integration-embedded-simple:
     name: Service-free smoke (embedded LanceDB, no Qdrant/Redis, Node 24)
-    needs: [changes, build-primary]
-    if: needs.changes.outputs.code == 'true'
+    needs: [build]
     runs-on: ubuntu-latest
     # fastembed cold boot (model download + CPU ONNX injection of shipped adapters) plus the
     # real train->activate smoke tests are far slower than the old near-instant OpenAI path.
@@ -761,7 +503,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -769,7 +511,7 @@ jobs:
           fetch-tags: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: "npm"
@@ -806,7 +548,7 @@ jobs:
         run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
 
       - name: Download npm package artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: npm-package-node24
           path: artifact-npm
@@ -885,53 +627,25 @@ jobs:
 
       - name: Upload embedded log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: squadrules-embedded-log-node24
           path: var/log/squadrules-embedded.log
           if-no-files-found: ignore
 
-  # Merge gate: Node 24 primary jobs only (build, UI/static, integration). Node 26 advisory
-  # jobs (build-advisory, verify-ui-advisory, verify-integration-advisory) are omitted from
-  # needs: so they cannot fail this check or block PR merge. Container image build/scan is
-  # decoupled into SquadRules/containers and is intentionally not a merge gate here.
-  # When `changes.code == 'false'` (docs-only / wiki PR), the heavy jobs are skipped
-  # and this gate passes immediately so required status checks still report success.
+  # Merge gate: the Node 24/26 build lane plus the Node 24 service lanes. The advisory
+  # verify-integration-embedded-simple lane is omitted from needs: so it cannot block a merge.
+  # Container image build/scan/publish is decoupled into SquadRules/containers, not a gate here.
   integration-pass:
     name: Integration workflow passed
-    needs: [changes, build-primary, verify-ui-primary, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke]
+    needs: [build, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require all jobs
+      - name: Require every validation job
         env:
-          CHANGES_CODE: ${{ needs.changes.outputs.code }}
-          CHANGES_RESULT: ${{ needs.changes.result }}
-          BUILD_PRIMARY: ${{ needs.build-primary.result }}
-          VERIFY_UI: ${{ needs.verify-ui-primary.result }}
-          VERIFY_INTEGRATION: ${{ needs.verify-integration-primary.result }}
-          VERIFY_SIMPLE_SMOKE: ${{ needs.verify-integration-simple-smoke.result }}
-          VERIFY_STDIO_SMOKE: ${{ needs.verify-integration-stdio-smoke.result }}
+          RESULTS: ${{ join(needs.*.result, ',') }}
         run: |
-          set -euo pipefail
-          echo "changes.result=$CHANGES_RESULT changes.code=$CHANGES_CODE"
-          echo "build-primary=$BUILD_PRIMARY verify-ui-primary=$VERIFY_UI verify-integration-primary=$VERIFY_INTEGRATION"
-          echo "verify-integration-simple-smoke=$VERIFY_SIMPLE_SMOKE verify-integration-stdio-smoke=$VERIFY_STDIO_SMOKE"
-
-          # Fail fast if the changes job itself broke.
-          if [ "$CHANGES_RESULT" != "success" ]; then
-            echo "::error::changes job did not succeed (result=$CHANGES_RESULT)"
-            exit 1
-          fi
-
-          if [ "$CHANGES_CODE" != "true" ]; then
-            echo "No relevant code changes detected — skipping integration is OK."
-            exit 0
-          fi
-
-          test "$BUILD_PRIMARY" = "success"
-          test "$VERIFY_UI" = "success"
-          test "$VERIFY_INTEGRATION" = "success"
-          test "$VERIFY_SIMPLE_SMOKE" = "success"
-          test "$VERIFY_STDIO_SMOKE" = "success"
-          echo "All required integration jobs passed."
+          for result in ${RESULTS//,/ }; do
+            test "$result" = success || exit 1
+          done

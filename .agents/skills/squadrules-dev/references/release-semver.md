@@ -1,70 +1,122 @@
 ---
 name: sqd-dev-release-semver
 description: >-
-  squadrules-mcp: unattended semantic releases from validated main, branch prerelease
-  dispatch, immutable artifact recovery, and automation rollout. No manual tags
-  or version-bump PRs; conventional commits determine the version.
+  npm-only semantic releases from validated main, trusted publishing,
+  migration and failure recovery. Conventional Commits determine the version.
 ---
 
-# Releases and dependency automation
+# npm releases
 
-The single release mechanism is [release.yml](https://github.com/SquadRules/mcp/blob/main/.github/workflows/release.yml), using `release.config.mjs` as the semantic version authority. Never create release tags locally or bump committed versions to trigger publishing. The committed version is a baseline, not the next release number.
+[release.yml](https://github.com/SquadRules/mcp/blob/main/.github/workflows/release.yml)
+is the only publisher. A push to `main` runs Integration, Security and Automation
+policy as reusable workflows at the event SHA. Only after all succeed does
+semantic-release publish `@squadrules/mcp` and its GitHub Release.
+This repository does not build or publish production containers or Helm charts,
+and does not dispatch notifications to other repositories.
 
-## Normal operation
+## Version and package lifecycle
 
-- Hourly Renovate (`17 * * * *`) owns routine dependency updates, including majors. Native Dependabot owns security updates; its zero version-PR limit does not disable security updates.
-- Hourly npm audit (`43 * * * *`) assesses moderate-or-higher findings. A progressing native security PR takes precedence for two hours; blocked or stalled fixes allow one refreshed consolidated fallback. Registry failures are errors, not vulnerability findings.
-- Main must pass full Integration, Security, and automation-policy validation at the exact source SHA. Completion events and hourly reconciliation (`53 * * * *`) trigger Release automatically. Native GitHub auto-merge handles Dependabot security PRs when all checks pass.
-- `fix:` and dependency updates are patches; `feat:` is minor; `!` or `BREAKING CHANGE` is major. Legacy `chore(deps)` and `deps(...)` commits count as patches. An unreleased feature or breaking change takes precedence over dependency patches. Housekeeping-only history is a true no-op.
-- No AI agent, administrator bypass, or required human approval is part of this path. Copilot auto-fix remains outside it.
+- `fix:` and `perf:` produce patches; `feat:` produces a minor release;
+  `!` or a `BREAKING CHANGE:` footer produces a major release.
+- Historical `chore(deps):`, `chore(deps-dev):` and `deps:` commits still
+  produce patches. Other housekeeping commits do not release on their own.
+- Use Conventional Commit PR titles and squash merges with the PR title as
+  the commit subject. Review breaking changes before merging.
+- The standard npm plugin sets the workspace version; `prepack` cleans and
+  builds the package, synchronizing embedded documentation and skills first.
+  The generated version is never committed back to `main`.
+- A clean consumer installation checks the tarball before publication. The
+  GitHub Release includes the npm tarball and a production CycloneDX SBOM.
+- Only `main` is a release branch, publishing to `latest`. Arbitrary branch
+  prereleases, channel promotion, release manifests and custom git-note
+  manipulation have been removed. Add a reviewed, explicit semantic-release
+  prerelease branch configuration only if a concrete need arises.
 
-## One-time rollout and credentials
+## Required repository and npm settings
 
-Keep `AUTOMATION_ENABLED` unset or `false` to pause the dependency producers (Renovate, npm audit fix, automation-health) until their prerequisites are verified. Release is **not** gated by this variable — it runs by default from its own triggers (see below).
+Configure these **before merging** because a releasable main push publishes:
 
-1. Merge the implementation through normal protected PR checks.
-2. Require `Integration workflow passed`, `Security workflow passed`, and `Automation policy passed`, bound to GitHub Actions (app ID `15368`). Keep strict up-to-date protection, administrator enforcement, and zero mandatory approvals. Set squash commit titles to the PR title.
-3. Set `AUTOMATION_USER_ID` to the verified numeric owner of the existing Actions `GH_PAT`. That credential must have repository contents, pull-request mutation, workflow-file update and required read access. Never copy it to Dependabot secrets. Automation-generated branch/PR mutations use it so fresh CI can start unattended.
-4. Keep the restricted embedding-test `OPENAI_API_KEY` in Actions and Dependabot secrets. Tests receive no publishing or repository-write credentials.
-5. Keep npm's trusted publisher bound to `release.yml` and environment `release`, with no approval requirement. Publishing uses package-scoped OIDC credentials and sets the release's channel dist-tag directly (`npm publish --tag <channel>`); npm's OIDC flow authorizes only `npm publish`, so there is no separate dist-tag-promotion call (a standalone `PUT` is rejected with 403) and never a long-lived npm token. Container/Helm channel aliases are promoted with registry credentials after verification.
-6. Verify `DOCKER_USERNAME`/`DOCKER_PASSWORD`, `QUAY_USERNAME`/`QUAY_PASSWORD`, and `QUAY_NAMESPACE`. Quay credentials need access to both `squadrules-mcp` (images) and `squadrules-mcp-chart` (Helm); these must be separate repositories so identical version tags cannot collide. Both repositories must be readable by consumers.
-7. Run controller and Renovate dry-runs, then set `AUTOMATION_ENABLED=true`. Observe the next scheduled producer run, a real protected dependency merge, full main validation and all released artifact identities. Do not declare live CVE remediation verified without a real advisory.
+1. Protect `main`: require PRs and the GitHub Actions checks
+   `Integration workflow passed`, `Security workflow passed`, and
+   `Automation policy passed`. Require up-to-date branches (or merge queue),
+   prevent force pushes/deletion, and apply protection to administrators.
+   Choose human review requirements according to repository policy.
+2. Enable squash merges and use the PR title as the default squash subject.
+   Configure a merge queue to preserve Conventional Commit subjects if used.
+3. On npm, open `@squadrules/mcp` → Settings → Trusted publishing. Configure
+   GitHub owner `SquadRules`, repository `mcp`, workflow `release.yml`,
+   environment `release`. Confirm the package exists and is public.
+4. Create/restrict the GitHub `release` environment to `main`. Optional
+   required reviewers pause publication if the maintainers want approval.
+   Allow `GITHUB_TOKEN` to create tags, semantic-release notes and GitHub
+   Releases; tag rules must permit this. No branch protection bypass is needed.
+5. Remove legacy `NPM_TOKEN`/`NODE_AUTH_TOKEN` release configuration. npm
+   Trusted Publishing uses short-lived OIDC and automatically supplies
+   provenance. The manifest also explicitly requests provenance. The release
+   runner uses Node 24; the lockfile includes the npm 11 CLI used by the npm
+   plugin (above npm's required 11.5.1 and Node 22.14 minimums).
+6. Retain the restricted `OPENAI_API_KEY` for the existing real embedding tests.
+   Fork PRs do not receive secrets: review the change, then test a trusted
+   same-repository branch. Do not introduce `pull_request_target` execution
+   of untrusted code or bypass the required integration gate.
+7. Reconcile old draft releases, tags, npm versions and semantic-release notes
+   before enabling the new publisher. Confirm the last stable tag is reachable
+   from `main` and matches npm. Do not move/delete published tags to force a
+   version. The existing `v5.0.0-beta.1` tag is not a stable baseline;
+   accumulated breaking changes since `v4.8.6` may produce `5.0.0`.
 
-The Renovate repository configuration disables hosted Mend execution. Only the trusted self-hosted runner enables it, using a distinct `automation/renovate/` prefix. Install scripts, plugins and arbitrary post-upgrade commands are disabled.
+The dependency producers retain their existing `AUTOMATION_ENABLED`, `GH_PAT`
+and `AUTOMATION_USER_ID` configuration. These are unrelated to publication;
+`AUTOMATION_ENABLED=false` does not disable Release. Disable the Release workflow
+in Actions to pause automatic publishing. No registry credentials for containers
+or charts are required by this repository's release path.
 
-## Preview and prereleases
+## Preview and validation
 
-Preview stable history without mutations:
+After the workflow is available on main, preview with all validation enabled:
 
 ```bash
 gh workflow run release.yml --ref main -f dry-run=true
-gh workflow run renovate.yml --ref main -f dry-run=true
 ```
 
-Add `-f validate-artifacts=true` to a Release dry-run to also build, consumer-test, scan and checksum every release artifact without publishing. Run this rehearsal before enabling automation.
+Manual dispatch defaults to preview and rejects other branches via job guards.
+A semantic-release dry run verifies configuration and calculates notes/version,
+but skips prepare/publish: it does not prove npm publishing authorization or
+validate the final release-version tarball. The preceding CI jobs build and test
+the baseline package. A real release builds and tests again after versioning.
+Use `dry-run=false` only when intentionally retrying or releasing validated main.
+No release was published as part of this migration PR.
 
-For a short-lived prerelease branch, first dispatch **Integration**, **Security**, and **Automation policy** on that branch and wait for all three to pass at the same SHA. Then dispatch `release.yml --ref <branch> -f dry-run=false`. The sanitized branch name becomes the prerelease identifier and channel; prereleases never move `latest` or stable image aliases. A pending older release is recovered before any newer stable or prerelease publication.
+Local checks: `npm ci`, `npm run lint`, `npm run typecheck`,
+`npm run test:automation`, `npm run test:ui`, `npm run test:package-local`,
+`npm run lint:workflows`, and `npm run lint:renovate`.
+For service-dependent unit/integration tests, deploy first per
+[build-test.md](build-test.md), then use `npm run dev:test -- tests/unit`
+and `npm run dev:test`.
 
-## Artifact identity and recovery
+## Failures and verification
 
-Release resolves one source SHA. It prepares and consumer-tests the versioned npm tgz, validates Helm, builds a multi-platform OCI archive, smoke-tests both platforms, and scans both before publication. A manifest records version, channel, source SHA, npm integrity, image digest and artifact checksums. SBOMs and validation evidence are included.
-
-Validated artifacts first enter immutable Actions storage, then a draft GitHub Release. Because npm's OIDC flow authorizes only `npm publish` and cannot move a dist-tag afterward, npm publishes the version directly under its final channel tag (`latest` on main, the prerelease channel otherwise) — this npm channel tag therefore moves during the npm stage, before container/Helm alias promotion. Versioned images and the Helm chart publish without moving stable aliases. Existing artifacts must match the recorded integrity/digest. Container digests are signed and verified. Container/Helm channel aliases are promoted only after all publication checks pass, and the GitHub Release stays a draft until the final `complete` step, so a mid-flight failure is retained and recoverable even though npm's channel tag has already advanced.
-
-Cross-registry publication is not atomic. A failure retains the draft, original source, checksums, original recovery artifact ID and stage progress. The next event, hourly reconciliation, or manual `release.yml --ref main -f dry-run=false` resumes that record. It never rebuilds newer source under an old version. Missing/expired recovery bytes, mismatched artifacts, invalid credentials and legacy drafts without manifests fail visibly and need remediation. `resolve` deletes only unrecoverable `untagged-*` orphan drafts (a git tag was created but the GitHub publication never completed); a genuine pending draft keeps `tag_name vX` and must never be deleted or overwritten to force progress. The draft is created before its git ref exists, so GitHub keys it to an `untagged-<id>` placeholder. Any later release `PATCH` that omits `tag_name` — including every per-stage `mark()` body write and the final `complete` publish — re-detaches the release back to that placeholder (an echo of `tag_name vX` on the draft is not a binding). Therefore the `tag` stage creates the ref and **every** subsequent release `PATCH` re-submits `tag_name vX` so the association sticks, and `complete` verifies the real binding by resolving `GET /releases/tags/vX` to the release id before reporting published; a published release is immutable and its tag can no longer be corrected.
-
-Transient command operations (skopeo/cosign, aliases) retry up to three times. Publication-metadata verification polls longer with capped backoff because an immutable write can be accepted yet queryable only after an eventual-consistency delay; npm gets the widest window because its post-publish provenance/processing pass can keep the just-published version unqueryable for many minutes even though the write already succeeded. A real identity mismatch still fails on the first read. `automation-health.yml` monitors failures, stale runs and incomplete drafts; it maintains one incident per workflow and closes it after recovery. Setting `AUTOMATION_ENABLED=false` pauses the dependency producers (Renovate, npm audit fix, automation-health). It does **not** pause Release: Release runs by default from main-push, hourly reconciliation and manual dispatch, and a `false` value does not undo artifacts already published.
-
-## Verification
-
-Check the workflow summary and the release's `manifest.json`, not merely a green job:
+npm publication, git tags and GitHub Releases are not an atomic transaction.
+Before retrying a failed publisher, inspect its logs and all three remote states:
 
 ```bash
 gh run list --workflow=release.yml --limit 3
 gh release view v<version>
-npm view @squadrules/mcp@<version> dist.integrity
+npm view @squadrules/mcp@<version> version gitHead dist.integrity dist.attestations
 npm dist-tag ls @squadrules/mcp
-helm pull oci://quay.io/<namespace>/squadrules-mcp-chart --version <version>
 ```
 
-Compare npm integrity, both registries' image digests, downloaded chart checksum, channel aliases, and Git tag source with the manifest. Local regression entry points are `npm run test:automation`, `npm run test:audit-fix-workflow`, `npm run lint:workflows`, and `npm run lint:renovate`. For deployment and integration testing, follow [build-test.md](build-test.md).
+If no tag or package was published, fix the cause and rerun. If publication was
+partial, repair the missing GitHub Release/assets or resolve the tag/npm mismatch
+at the original source as a maintainer before running another release. An existing
+tag can make semantic-release consider that version released; rerunning is not
+an automatic rollback or recovery. Never overwrite an immutable npm version or
+relabel newer source as an old version. Keep Actions logs/artifacts during repair.
+Health monitoring reports the latest release failure without expecting hourly
+releases or custom recovery drafts.
+
+## References
+
+- [semantic-release GitHub Actions recipe](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions)
+- [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
+- [semantic-release npm plugin](https://github.com/semantic-release/npm)

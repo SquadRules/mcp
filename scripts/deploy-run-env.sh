@@ -216,9 +216,7 @@ build() {
     cd "$PROJECT_DIR"
     case "$ENV" in
         dev|dev_simple|dev_stdio|prod)
-            print_info "Running prebuild (embed-docs) and verification..."
-            npm run prebuild
-            npx tsc && chmod +x dist/cli/index.js && print_success "Build complete"
+            npm run build && print_success "Build complete"
             ;;
     esac
 }
