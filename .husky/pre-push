@@ -1,8 +1,9 @@
 #!/bin/sh
 # Developer guard: version tags are cut only by the Release workflow, never pushed by hand.
-# The publisher job installs these same hooks through `prepare: husky` and runs with HUSKY=0
-# (see the publish job in .github/workflows/release.yml) so semantic-release can push the tag.
-# Do not weaken this guard to "fix" a failing release run - fix the workflow env instead.
+# The publisher job installs these same hooks through `prepare: husky` and then resets
+# core.hooksPath in its own checkout (see .github/workflows/release.yml) so semantic-release
+# can push the tag; that is why this guard must never be weakened.
+# Do not "fix" a failing release run with HUSKY=0 - it leaks into npm pack stdout.
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   if echo "$remote_ref" | grep -q "^refs/tags/v"; then
     echo >&2 ""
