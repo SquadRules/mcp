@@ -117,10 +117,12 @@ and "Do not push release tags manually" was blocked by this repository's own
 pre-push hook inside the runner, because `npm ci` executes `prepare: husky`. The
 guard never fired before semantic-release took over tagging, because the previous
 publisher created tags through the GitHub REST API, which has no client hooks.
-The publish job must set `HUSKY=0` (asserted by `npm run lint:workflows`); do not
-loosen the hook instead. semantic-release pushes the tag after `prepare` and
-before any `publish` step, so this failure leaves no tag, npm version or GitHub
-Release behind and a plain rerun is safe.
+The publish job resets `core.hooksPath` after `npm ci`, asserted by
+`npm run lint:workflows`. Never set `HUSKY=0` there and never loosen the hook: on
+`HUSKY=0` husky's install writes `HUSKY=0 skip install` to stdout,
+`@semantic-release/npm` parses `npm pack` stdout as the tarball name, and the run
+aborts on that bogus path instead. Both failures stop before the tag push, so
+they leave no tag, npm version or GitHub Release behind and a plain rerun is safe.
 Health monitoring reports the latest release failure without expecting hourly
 releases or custom recovery drafts.
 
