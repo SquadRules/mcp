@@ -28,11 +28,18 @@ describe('executeTrain artifact adapter_uri mapping', () => {
       {
         content: 'print("ok")',
         llm_model_id: 'test-model',
+        force_update: false,
         mime: 'text/x-python',
         artifact_name: 'artifact.py',
         adapter_uri: parentAdapterUri
       },
-      async (fn) => fn()
+      async (fn) => fn(),
+      // An artifact train resolves the parent adapter slug through the adapter store
+      // (src/tools/train-artifact-adapter-uri.ts) and fails without it; the stub resolves the
+      // slug back to the same adapter id so the parent uri is kept on the stored item.
+      {
+        findFirstStepMemoryUuidBySlug: async () => ({ layerUuid: 'parent-adapter' })
+      } as any
     );
 
     expect(output.status).toBe('stored');

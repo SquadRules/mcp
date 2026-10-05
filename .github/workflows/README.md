@@ -1,94 +1,67 @@
-# GitHub Actions – workflow design
+# GitHub Actions
 
-<!-- squadrules-lint-allow-protocol-synonyms -->
+## Validation and release
 
-## Overview
+Pull requests and merge groups run Integration, Security and Automation policy.
+Every push to `main` runs Release, which calls those same three workflows at
+`${{ github.sha }}` and publishes only after all succeed. There is no polling of
+other workflow runs, scheduled release reconciliation, or PR publication.
 
-```mermaid
-flowchart LR
-  REN[Hourly Renovate] --> PR[Dependency PR]
-  DEP[Dependabot security updates] --> PR
-  AUD[Hourly audit fallback] --> PR
-  PR --> CI[Integration + Security + Automation policy]
-  CI --> MAIN[Protected squash merge to main]
-  MAIN --> FULL[Full exact-SHA validation]
-  FULL --> REL[Prepare and validate release artifacts]
-  REL --> PUB[Persist, publish npm version, verify, GitHub Release]
-  HEALTH[Automation health] -.-> REN
-  HEALTH -.-> PUB
-```
+| Workflow | Responsibility |
+|----------|----------------|
+| [Integration](integration.yml) | npm ci, lint, typecheck, Knip, UI/spec checks, build and consumer-package tests on Node 24 and 26; service tests on Node 24 |
+| [Security](security.yml) | Read-only production npm audit, CodeQL, and dependency review on PRs |
+| [Automation policy](automation-policy.yml) | Conventional PR titles, automation regression tests, workflow and Renovate validation |
+| [Release](release.yml) | Standard semantic-release npm/GitHub plugins; npm OIDC/provenance; stable main only |
+| [Renovate](renovate.yml) | Dependency PR producer every six hours |
+| [npm audit fix](npm-audit-fix.yml) | Hourly dependency remediation through a PR, separate from validation |
+| [Automation health](automation-health.yml) | Monitor producers and latest main release outcome |
+| [Wiki sync](sync-qoder-repowiki-to-github-wiki.yml) | Sync generated repository wiki |
+| [Verify OpenAI key](verify-openai-key.yml) | Manual test-credential verification |
 
-[Release and dependency automation](../../.agents/skills/squadrules-dev/references/release-semver.md) is the authoritative runbook for schedules, credentials, rollout, semantic versioning, prereleases, artifact identity and recovery. Automation is disabled until its rollout prerequisites are verified. Copilot auto-fix is outside the release path and remains disabled.
+## Required checks and runtime support
 
-## Workflows
+Protect main with `Integration workflow passed`, `Security workflow passed`, and
+`Automation policy passed`. Both Node 24 (release/LTS runtime) and Node 26
+(Current) build/static/package lanes are blocking. The package retains Node
+`>=24.0.0`; Node 22 and older are not supported. Review the matrix as Node releases
+move through support; new majors are not implicitly a tested compatibility claim.
 
-| Workflow | File | Responsibility |
-|----------|------|----------------|
-| Integration | [integration.yml](integration.yml) | Node 24 build, packed-consumer install, AUTH integration, HTTP/STDIO smoke and UI/static validation. Publishes nothing. |
-| Security | [security.yml](security.yml) | Blocking dependency review on PRs, npm audit and CodeQL. |
-| Automation policy | [automation-policy.yml](automation-policy.yml) | Conventional PR titles, deterministic automation regressions, workflow validation and strict Renovate config validation. |
-| Renovate | [renovate.yml](renovate.yml) | Hourly routine dependency updates; no independent auto-merge. |
-| Dependabot | [../dependabot.yml](../dependabot.yml) | Native security updates; version-PR limit zero. |
-| npm audit fix | [npm-audit-fix.yml](npm-audit-fix.yml) | Hourly assessment and one refreshable fallback PR, respecting progressing native fixes. |
-| Release | [release.yml](release.yml) | Single automatic npm OIDC publish, tag and GitHub Release path; best-effort signals SquadRules/containers to build the image. |
-| Automation health | [automation-health.yml](automation-health.yml) | Detect stale producers and incomplete releases; deduplicate incidents. |
-| Sync Qoder repowiki | [sync-qoder-repowiki-to-github-wiki.yml](sync-qoder-repowiki-to-github-wiki.yml) | Publish generated wiki content. |
-| Verify OpenAI key | [verify-openai-key.yml](verify-openai-key.yml) | Manual validation of the restricted embedding-test credential. |
+All PRs run validation, including documentation changes. Checkout uses the exact
+event revision and does not persist Git credentials. PR checks never push fixes.
+Publishing permissions exist only in the guarded Release job; CodeQL has its own
+security-events permission for uploading analysis.
 
-## Mandatory merge gates
+## Project-specific integration coverage
 
-Repository protection, not YAML alone, makes checks mandatory. Before enabling automation, require these three GitHub Actions-bound aggregate checks with strict up-to-date protection and administrator enforcement:
+The authenticated service job installs the Node 24 tarball, starts Qdrant, Valkey,
+Postgres and Keycloak, then runs unit and integration tests. Some tests under
+`tests/unit` require real services, so they run after deployment. HTTP without
+auth and stdio transport smoke jobs install that same artifact. The full suite
+uses a restricted OpenAI embedding key; fork PRs require maintainer review and
+validation from a trusted branch because GitHub does not expose secrets to forks.
+UI tests use jsdom and do not require a browser download; the auth browser tests
+retain Playwright. No production image/Helm build or downstream dispatch belongs
+in this npm-only repository.
 
-- `Integration workflow passed`
-- `Security workflow passed`
-- `Automation policy passed`
+One advisory lane proves the zero-infrastructure default: it installs the same Node 24
+tarball with `QDRANT_URL` blanked and `EMBEDDING_PROVIDER=fastembed`, so the server runs
+the embedded LanceDB store and local key-free embeddings without Qdrant, Redis, Keycloak
+or Docker, asserts `/health` reports `embedded-lancedb`, and runs one real
+`train`→`activate` flow. It is `continue-on-error` and excluded from the merge gate until
+it proves stable.
 
-Keep zero mandatory human approvals and use PR titles for squash commits. Do not bypass protection, approve automatically, or use skip-CI instructions.
+The tarball is created outside `dist/`, preventing old tarballs from being packed
+into subsequent packages. `prepack` always cleans/rebuilds output, including UI,
+CLI and versioned embedded documentation. The isolated consumer smoke test checks
+installed metadata, CLI version and help. Generated resources stay in the build
+workspace and are never committed by CI.
 
-All three validation workflows support PRs, main pushes, merge groups and manual branch validation. Checkouts use the immutable event revision without persisted credentials. Validation jobs never push generated resources or receive publishing/repository-write credentials. Only the restricted embedding-test credential is used by tests; local test-service credentials may use isolated defaults.
+## Release and migration settings
 
-## Integration job graph
-
-Node 24 is the merge-gating runtime. One Node Current lane is advisory and excluded from the aggregate's dependencies.
-
-- `build-primary` lints, builds and consumer-tests the npm tgz, then uploads `npm-package-node24`.
-- `verify-ui-primary` runs static checks, Knip and UI tests alongside the build.
-- `verify-integration-primary` installs the tested tgz and runs the full AUTH suite after infrastructure startup.
-- `verify-integration-simple-smoke` and `verify-integration-stdio-smoke` consume the same tgz for transport coverage without repeating the full embedding-intensive suite.
-- `verify-integration-embedded-simple` is a service-free advisory lane: it installs the tested tgz, blanks `QDRANT_URL` so the server runs the embedded LanceDB backend and pins `EMBEDDING_PROVIDER=fastembed` so embeddings are key-free (local fastembed, no `OPENAI_API_KEY`) — no Qdrant, Redis, Keycloak or Docker — asserts `/health` reports `embedded-lancedb` and that the fastembed model cache dir is created, and runs transport smoke plus one real `train→activate` flow against the embedded store. It is `continue-on-error` and excluded from `integration-pass` until it proves stable.
-- `integration-pass` requires all applicable primary jobs; advisory failures never hide a primary failure.
-
-Generated embedded resources may change in the build workspace. They are included in the tested package, never committed back during CI. Every checkout in a run uses the same immutable event revision.
-
-### Path filters and release eligibility
-
-PR path filters may skip expensive application work for docs-only changes. Workflow files, dependency configuration, release configuration and automation scripts are validation inputs, so workflow-only changes run the relevant tests. Update the code filter whenever adding build inputs.
-
-Every main push, manual validation and merge group forces `code=true`. A docs-only PR success is therefore never used as proof that a release artifact works: Release requires successful full main-push validation at its resolved source SHA.
-
-### Integration test matrix
-
-Transport-neutral assertions live in `tests/integration/contracts/`; scenario bootstrap is in `tests/integration/harness/`; wrappers are in `tests/integration/scenarios/`. The npm dev scripts select wrappers for the matching AUTH, HTTP-simple or STDIO stack.
-
-Follow [build and test](../../.agents/skills/squadrules-dev/references/build-test.md), including deployment before integration tests. After deploying the matching stack, individual contract entry points are:
-
-- `npm run test:integration:contracts:http-auth`
-- `npm run test:integration:contracts:http-simple`
-- `npm run test:integration:contracts:stdio-simple`
-
-## Release stages
-
-`resolve` chooses one fully validated source or the oldest incomplete draft. `prepare` computes the semantic version, then builds, consumer-tests and seals the npm artifacts. `publish` persists recovery bytes, verifies the immutable npm identity, then publishes the GitHub Release and best-effort signals SquadRules/containers. All downstream checkouts use the resolved SHA, not a mutable branch or the completion event's SHA.
-
-There is no old-tag republishing fallback. No releasable history is a true no-op. Incomplete releases recover the original source/version/checksums and block newer publication. See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md#artifact-identity-and-recovery) for recovery and npm registry verification.
-
-Container images are built, scanned, signed and published by [SquadRules/containers](https://github.com/SquadRules/containers) FROM the published npm package. This repository keeps only `Dockerfile.dev`/`Dockerfile.stdio` for local compose/dev flows (never published); their pinned `FROM` declarations determine local container Node versions independently of the Node 24 CI gate.
-
-## Automation regression entry points
-
-- `npm run test:automation`
-- `npm run test:audit-fix-workflow`
-- `npm run lint:workflows`
-- `npm run lint:renovate`
-
-Workflow summaries expose candidate PRs, source SHA, gate states, deferred/error reasons, version and artifact progress. Health issues remain visible for persistent failures; a successful command invocation alone is not evidence of a completed merge or publication.
+See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md)
+for npm Trusted Publishing, branch/environment/tag protection, squash conventions,
+legacy draft/tag migration, preview limitations and partial-publish recovery.
+Manual release dispatch defaults to dry-run; only main is eligible. There are no
+prerelease channels or custom recovery manifests. Standard semantic-release
+produces the version, notes, tag, npm publish and GitHub Release with tarball/SBOM.

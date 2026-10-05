@@ -4,11 +4,10 @@
 name: Security
 
 on:
+  workflow_call:
   pull_request:
     branches: [main]
   merge_group:
-  push:
-    branches: [main]
   schedule:
     # Daily 02:00 UTC
     - cron: '0 2 * * *'
@@ -28,12 +27,12 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Dependency review
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
         with:
           fail-on-severity: high
           # Optional: deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
@@ -42,143 +41,19 @@ jobs:
     name: npm audit
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
-          persist-credentials: ${{ github.event_name == 'pull_request' }}
-          fetch-depth: 0
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "24"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: npm audit with auto-remediation
-        run: |
-          set -euo pipefail
-          
-          # Count PRODUCTION project vulnerabilities (excluding npm's bundled deps).
-          # Production scope is deliberate: `npm audit fix --force` "resolves"
-          # wide-ranged dev tooling (markdownlint-cli2, semantic-release, ...) by
-          # installing an older major, which breaks builds/releases and still leaves
-          # advisories open. We gate and force-fix production only, apply safe
-          # semver-compatible fixes to everything, and never downgrade pinned dev
-          # tooling. Residual dev-only advisories are reported (non-blocking).
-          check_project_vulns() {
-            local audit_output
-            audit_output=$(npm audit --omit=dev --json 2>/dev/null || true)
-            
-            # Filter out vulnerabilities that ONLY exist in npm's bundled dependencies
-            local project_vulns
-            project_vulns=$(echo "$audit_output" | node -e "
-              const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-              const vulns = data.vulnerabilities || {};
-              const projectVulns = Object.entries(vulns).filter(([name, vuln]) => {
-                const nodes = vuln.nodes || [];
-                // Keep if at least one node is NOT in npm's bundled deps
-                return nodes.some(n => !n.includes('node_modules/npm/node_modules/'));
-              });
-              console.log(projectVulns.length);
-            ")
-            
-            if [ "$project_vulns" = "0" ]; then
-              return 0
-            else
-              return 1
-            fi
-          }
-          
-          # Count remaining project advisory nodes. Only called once production is
-          # confirmed clean, so every node counted here is dev-only by definition.
-          count_dev_vulns() {
-            local audit_output
-            audit_output=$(npm audit --json 2>/dev/null || true)
-            echo "$audit_output" | node -e "
-              const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8') || '{}');
-              const vulns = data.vulnerabilities || {};
-              const nodes = Object.values(vulns).filter(v => (v.nodes || []).some(n => !n.includes('node_modules/npm/node_modules/')));
-              console.log(nodes.length);
-            "
-          }
-          
-          # Gate on production dependencies only.
-          if check_project_vulns; then
-            echo "✓ No production vulnerabilities in project dependencies"
-            dev_count=$(count_dev_vulns)
-            if [ "$dev_count" != "0" ]; then
-              echo "::warning::$dev_count dev-only advisory node(s) remain; delegated to dependency tooling (never force-downgraded)."
-            fi
-            exit 0
-          fi
-          
-          echo "::warning::Production vulnerabilities detected, attempting auto-remediation..."
-          
-          # Safe, semver-compatible fixes across ALL deps first (may bump dev
-          # tooling upward; never a downgrade).
-          npm audit fix || true
-          
-          # Escalate with a PRODUCTION-ONLY force fix when production advisories
-          # remain, then prove it did not rewrite pinned dev tooling.
-          if ! check_project_vulns; then
-            echo "Production advisories remain after the safe fix; trying npm audit fix --omit=dev --force..."
-            dev_deps_before=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
-            npm audit fix --omit=dev --force || true
-            dev_deps_after=$(node -e "console.log(JSON.stringify(require('./package.json').devDependencies||{}))")
-            if [ "$dev_deps_before" != "$dev_deps_after" ]; then
-              echo "::error::Refusing to proceed: the production force fix modified devDependencies (pinned tooling downgrade)."
-              git checkout -- package.json package-lock.json
-              exit 1
-            fi
-          fi
-          
-          if git diff --quiet package.json package-lock.json; then
-            echo "::error::Could not auto-remediate production vulnerabilities without downgrading tooling"
-            npm audit --omit=dev --audit-level=high
-            exit 1
-          fi
-          
-          # Files changed, commit them
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR flow: commit to the PR branch (detached HEAD, push to head_ref)
-            git add package.json package-lock.json
-            git commit -m "fix(deps): auto-remediate npm audit vulnerabilities"
-            git push origin HEAD:"$HEAD_REF"
-            echo "✓ Committed dependency updates to PR branch"
-          else
-            # Scheduled/push flow: open a PR
-            BRANCH="auto/npm-audit-$(date +%Y%m%d-%H%M%S)"
-            git checkout -b "$BRANCH"
-            git add package.json package-lock.json
-            git commit -m "fix(deps): auto-remediate npm audit vulnerabilities"
-            git push -u origin "$BRANCH"
-            PR_URL=$(gh pr create --title "fix(deps): auto-remediate npm audit vulnerabilities" \
-                         --body "Automated dependency updates from scheduled security scan." \
-                         --label "dependencies")
-            gh pr merge --auto --squash "$PR_URL"
-            echo "✓ Opened PR with dependency updates (auto-merge enabled)"
-          fi
-          
-          # Verify production is clean; report residual dev advisories (non-blocking).
-          if ! check_project_vulns; then
-            echo "::error::Production vulnerabilities still present after auto-remediation"
-            exit 1
-          fi
-          dev_count=$(count_dev_vulns)
-          if [ "$dev_count" != "0" ]; then
-            echo "::warning::$dev_count dev-only advisory node(s) remain after remediation; delegated to dependency tooling."
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HUSKY: 0
-          HEAD_REF: ${{ github.head_ref }}
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      # Remediation belongs to npm-audit-fix.yml, never a validation workspace.
+      - run: npm audit --omit=dev --audit-level=high
 
   codeql:
     name: CodeQL
@@ -189,20 +64,20 @@ jobs:
       actions: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4.38.2
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: javascript
           queries: security-extended
           config-file: .github/codeql/codeql-config.yml
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v4.38.2
+        uses: github/codeql-action/autobuild@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4.38.2
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:javascript"
 

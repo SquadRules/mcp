@@ -58,7 +58,8 @@ export default {
     },
     // Environment loading now handled once by globalSetup (tests/global-setup-auth.ts)
     // env-loader.ts kept to preserve Jest configuration structure (prevents 85+ redundant dotenv logs)
-    setupFiles: ['<rootDir>/tests/env-loader.ts'],
+    // setup-qdrant-fetch-compat.ts mirrors the Qdrant fetch shim the server installs at boot.
+    setupFiles: ['<rootDir>/tests/env-loader.ts', '<rootDir>/tests/setup-qdrant-fetch-compat.ts'],
     // Global test setup runs before all tests
     setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
     // When AUTH_ENABLED=true: start Keycloak + server, write .test-auth-env.dev.json

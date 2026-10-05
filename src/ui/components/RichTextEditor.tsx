@@ -217,7 +217,6 @@ export function RichTextEditor({ value, onChange, label, hint, id, contentKey }:
   onChangeRef.current = onChange;
 
   const editor = useEditor({
-    key: contentKey ?? "default",
     immediatelyRender: false,
     extensions: createRichTextEditorExtensions(),
     content: value,
@@ -238,13 +237,13 @@ export function RichTextEditor({ value, onChange, label, hint, id, contentKey }:
     if (contentKey !== lastContentKeyRef.current) {
       lastContentKeyRef.current = contentKey;
       lastEmittedMarkdown.current = value;
-      editor.commands.setContent(value, false, { contentType: "markdown" });
+      editor.commands.setContent(value, { emitUpdate: false, contentType: "markdown" });
       return;
     }
 
     if (value !== lastEmittedMarkdown.current) {
       lastEmittedMarkdown.current = value;
-      editor.commands.setContent(value, false, { contentType: "markdown" });
+      editor.commands.setContent(value, { emitUpdate: false, contentType: "markdown" });
     }
   }, [contentKey, value, editor]);
 

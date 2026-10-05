@@ -150,7 +150,7 @@ Participants must maintain a respectful and inclusive environment.
 
 ## Prerequisites
 
-- Node.js >= 24.0.0 (Node 24 LTS is the merge gate; CI runs one advisory lane on Node Current, pinned in workflows — see `.github/workflows/integration.yml` and `.github/workflows/README.md`)
+- Node.js >= 24.0.0 (Node 24 LTS and Node 26 Current are required CI lanes — see `.github/workflows/integration.yml` and `.github/workflows/README.md`)
 - Docker and Docker Compose (v2)
 - Git
 
@@ -393,7 +393,9 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) — semantic-re
 - `feat:` — new feature (releases a **minor**)
 - `fix:` — bug fix (releases a **patch**)
 - `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer — breaking change (releases a **major**)
-- `docs:` / `chore:` / `refactor:` / `ci:` / `test:` / `perf:` — housekeeping; never releases on its own
+- `perf:` — performance improvement (releases a **patch**)
+- `chore(deps):`, `chore(deps-dev):`, `deps:` — historical dependency updates (patch)
+- `docs:` / other `chore:` / `refactor:` / `ci:` / `test:` — no release on their own
 
 Scope suffixes are encouraged for readability, e.g. `feat(ui):`, `fix(ci):`.
 
@@ -427,7 +429,7 @@ Releasable changes on `main` publish automatically after full Integration, Secur
 
 Do not create release tags locally or open version-bump PRs. Tests and protected merge checks are mandatory; no approval bot, administrator bypass or AI decision participates in the release path.
 
-Follow the [release and dependency automation runbook](.agents/skills/squadrules-dev/references/release-semver.md) for rollout, dry-run previews, branch prereleases, credentials and immutable-artifact recovery. The [workflow design](.github/workflows/README.md) describes the validation jobs and privilege boundaries.
+Follow the [release and dependency automation runbook](.agents/skills/squadrules-dev/references/release-semver.md) for migration, dry-run previews, trusted publishing settings and partial-publish recovery. The [workflow design](.github/workflows/README.md) describes the validation jobs and privilege boundaries.
 
 ## Code style
 

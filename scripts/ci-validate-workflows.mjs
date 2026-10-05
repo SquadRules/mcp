@@ -11,55 +11,58 @@ const policy = workflow('automation-policy');
 const release = workflow('release');
 
 for (const config of [integration, security, policy]) {
-  assert.ok(Object.hasOwn(config.on, 'pull_request') && Object.hasOwn(config.on, 'push') && Object.hasOwn(config.on, 'merge_group'));
-  for (const [jobName, job] of Object.entries(config.jobs)) {
-    // Security workflow's npm-audit auto-remediation job is allowed to write
-    const isSecurityAutoRemediation = config === security && jobName === 'npm-audit';
-    
-    if (!isSecurityAutoRemediation) {
-      assert.notEqual(job.permissions?.contents, 'write', 'PR tests must not write repository contents');
-    }
-    
+  assert.ok(Object.hasOwn(config.on, 'pull_request') && Object.hasOwn(config.on, 'workflow_call') && Object.hasOwn(config.on, 'merge_group'));
+  assert.ok(!Object.hasOwn(config.on, 'push'), 'Main validation is called once by Release');
+  for (const job of Object.values(config.jobs)) {
+    assert.notEqual(job.permissions?.contents, 'write', 'Validation must not write repository contents');
     for (const step of job.steps ?? []) {
       if (step.uses?.startsWith('actions/checkout@')) {
-        assert.equal(step.with?.ref, '${{ github.sha }}', 'All tests must consume the immutable event revision');
-        // Security auto-remediation jobs need credentials for pushing fixes
-        if (!isSecurityAutoRemediation) {
-          assert.equal(step.with?.['persist-credentials'], false, 'Do not persist tokens in PR build workspaces');
-        }
+        assert.equal(step.with?.ref, '${{ github.sha }}', 'Tests consume the immutable event revision');
+        assert.equal(step.with?.['persist-credentials'], false);
       }
-      assert.doesNotMatch(JSON.stringify(step), /secrets\.(GH_PAT|DOCKER_PASSWORD|QUAY_PASSWORD)/, 'Publishing credentials must not reach tests');
-      // Security auto-remediation jobs are allowed to push fixes
-      if (!isSecurityAutoRemediation) {
-        assert.doesNotMatch(step.run ?? '', /git push|--force-with-lease|gh pr merge/, 'Tests must never mutate PRs');
-      }
+      assert.doesNotMatch(JSON.stringify(step), /secrets\.(GH_PAT|NPM_TOKEN|DOCKER_PASSWORD|QUAY_PASSWORD)/);
+      assert.doesNotMatch(step.run ?? '', /git push|--force-with-lease|gh pr merge|npm audit fix/);
     }
   }
 }
 assert.ok(security.jobs['security-pass'].needs.includes('dependency-review'));
 assert.notEqual(security.jobs['dependency-review']['continue-on-error'], true);
-assert.ok(integration.jobs['verify-ui-primary'].steps.some(s => /npm run lint\b/.test(s.run ?? '')));
-assert.match(integration.jobs.changes.steps.find(s => s.id === 'combine').run, /\[ "\$EVENT_NAME" = "push" \]/);
+for (const script of ['lint', 'typecheck', 'knip', 'test:ui', 'build:tgz', 'test:tgz']) {
+  assert.ok(integration.jobs.build.steps.some(s => s.run === `npm run ${script}`));
+}
+assert.deepEqual(integration.jobs.build.strategy.matrix.node, ['24', '26']);
+assert.ok(integration.jobs['verify-integration-primary'].steps.some(s => s.run === 'npm run dev:test -- tests/unit'));
+const embedded = integration.jobs['verify-integration-embedded-simple'];
+assert.deepEqual(embedded.needs, ['build'], 'Service-free lane consumes the build matrix artifact');
+assert.equal(embedded['continue-on-error'], true, 'Service-free lane is advisory until proven stable');
+assert.ok(!integration.jobs['integration-pass'].needs.includes('verify-integration-embedded-simple'));
+assert.ok(embedded.steps.some(s => /EMBEDDING_PROVIDER=fastembed/.test(s.run ?? '')), 'Service-free lane pins the key-free local embedding default');
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
-assert.ok(release.on.workflow_dispatch);
-assert.ok(!release.on.workflow_run && !release.on.schedule, 'Release must be manual-only (workflow_dispatch)');
-assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, false, 'dry-run must default to false for manual publishes');
-assert.deepEqual(release.jobs.publish.needs, ['resolve', 'prepare']);
+assert.deepEqual(release.on.push.branches, ['main']);
+assert.ok(!release.on.workflow_run && !release.on.schedule && !release.on.pull_request);
+assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, true);
+assert.deepEqual(release.jobs.publish.needs, ['integration', 'security', 'policy']);
+for (const [job, file] of [['integration', 'integration'], ['security', 'security'], ['policy', 'automation-policy']]) {
+  assert.equal(release.jobs[job].uses, `./.github/workflows/${file}.yml`);
+}
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
-assert.equal(release.on.workflow_dispatch.inputs['validate-artifacts'].default, false);
-assert.match(release.jobs.publish.if, /!\(github\.event_name == 'workflow_dispatch' && inputs\.dry-run\)/, 'Artifact rehearsal must never publish');
-for (const job of ['prepare', 'publish']) {
-  assert.equal(release.jobs[job].steps[0].with.ref, '${{ needs.resolve.outputs.sha }}');
-}
+assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
+assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
+assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
 assert.equal(release.concurrency['cancel-in-progress'], false);
-const source = readFileSync('scripts/ci-release.mjs', 'utf8');
-assert.doesNotMatch(source, /git describe|already published versions|already exist/);
-assert.match(source, /await publishStages\(record/);
-for (const stage of ['validate', 'recover', 'tag', 'npm', 'complete']) {
-  assert.match(source, new RegExp(`\\b${stage}:`), `Release must wire the tested ${stage} stage`);
-}
+assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch/);
+const { default: config } = await import('../release.config.mjs');
+assert.deepEqual(config.branches, ['main']);
+assert.deepEqual(config.plugins.map(p => p[0]), [
+  '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
+  '@semantic-release/npm', '@semantic-release/exec', '@semantic-release/github',
+]);
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
+assert.equal(pkg.scripts.prepack, 'npm run build');
+assert.equal(pkg.publishConfig.provenance, true);
 const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));
 assert.equal(dependabot.updates.length, 2);
 assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
