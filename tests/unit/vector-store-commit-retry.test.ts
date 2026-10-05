@@ -2,6 +2,7 @@
  * Unit tests for the embedded vector-store commit-retry helper.
  * Pure logic: no LanceDB, no network, no infrastructure.
  */
+import { jest } from '@jest/globals';
 import { isCommitConflictError, withCommitRetry } from '../../src/services/vector-store/commit-retry.js';
 
 describe('isCommitConflictError', () => {
@@ -23,14 +24,14 @@ describe('withCommitRetry', () => {
   const fast = { maxAttempts: 5, baseDelayMs: 1, maxDelayMs: 2 };
 
   it('returns the result on first success', async () => {
-    const write = jest.fn().mockResolvedValue('ok');
+    const write = jest.fn<() => Promise<string>>().mockResolvedValue('ok');
     await expect(withCommitRetry(write, 'op', fast)).resolves.toBe('ok');
     expect(write).toHaveBeenCalledTimes(1);
   });
 
   it('retries only conflict errors, then succeeds', async () => {
     const write = jest
-      .fn()
+      .fn<() => Promise<string>>()
       .mockRejectedValueOnce(new Error('commit conflict'))
       .mockRejectedValueOnce(new Error('version conflict'))
       .mockResolvedValue('done');
@@ -39,13 +40,13 @@ describe('withCommitRetry', () => {
   });
 
   it('throws immediately on a non-conflict error', async () => {
-    const write = jest.fn().mockRejectedValue(new Error('schema mismatch'));
+    const write = jest.fn<() => Promise<string>>().mockRejectedValue(new Error('schema mismatch'));
     await expect(withCommitRetry(write, 'op', fast)).rejects.toThrow('schema mismatch');
     expect(write).toHaveBeenCalledTimes(1);
   });
 
   it('gives up and rethrows the last conflict after exhausting attempts', async () => {
-    const write = jest.fn().mockRejectedValue(new Error('commit conflict'));
+    const write = jest.fn<() => Promise<string>>().mockRejectedValue(new Error('commit conflict'));
     await expect(withCommitRetry(write, 'op', fast)).rejects.toThrow('commit conflict');
     expect(write).toHaveBeenCalledTimes(fast.maxAttempts);
   });

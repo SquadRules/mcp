@@ -100,24 +100,18 @@ describe('export source format', () => {
               adapter: { id: adapterId, name: 'Test' }
             } as any)
           : null,
-      getQdrantAccess: () => ({
-        client: {
-          scroll: async () => ({
-            points: [
-              {
-                id: '11111111-2222-3333-4444-555555555555',
-                payload: {
-                  label: 'artifact.py',
-                  content_type: 'text/x-python',
-                  tags: ['artifact', 'x-python']
-                }
-              }
-            ],
-            next_page_offset: null
-          })
-        },
-        collection: 'squadrules'
-      })
+      // Adapter artifacts are listed through the record store (src/tools/artifact-catalog.ts),
+      // not through a raw Qdrant scroll.
+      listAdapterArtifacts: async () => [
+        {
+          uuid: '11111111-2222-3333-4444-555555555555',
+          payload: {
+            label: 'artifact.py',
+            content_type: 'text/x-python',
+            tags: ['artifact', 'x-python']
+          }
+        }
+      ]
     } as any;
 
     const out = await executeExport(memoryStore, qdrantService as any, {

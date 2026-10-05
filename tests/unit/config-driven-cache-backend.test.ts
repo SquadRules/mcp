@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Tests for config-driven cache backend selection.
@@ -13,8 +14,9 @@ import { resolve } from 'node:path';
  * selection. No replica-count logic, no redundant REDIS_URL checks.
  */
 
-// eslint-disable-next-line no-undef -- __dirname provided by CJS transform
-const _repoRoot = resolve(__dirname, '..', '..');
+// Jest runs this project as ESM (ts-jest default-esm preset), so there is no __dirname; the
+// repository root is derived from the module URL instead.
+const _repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 function readSrc(relativePath: string): string {
   return readFileSync(resolve(_repoRoot, relativePath), 'utf-8');

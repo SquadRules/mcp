@@ -1,13 +1,23 @@
 /**
  * @file ESLint rule tests for squadrules-codeql-comments/codeql-line-comment-integrity
+ * Jest runs this project with the ts-jest default-esm preset, so the CommonJS-only modules
+ * below are loaded through createRequire instead of top-level require().
  */
-'use strict';
+import { createRequire } from 'node:module';
+import { describe, it } from '@jest/globals';
 
+const require = createRequire(import.meta.url);
 const { RuleTester } = require('eslint');
 const tsParser = require('@typescript-eslint/parser');
 const { squadrulesCodeqlLineCommentsPlugin } = require('../../eslint/plugins/squadrules-codeql-line-comments.cjs');
 
 const rule = squadrulesCodeqlLineCommentsPlugin.rules['codeql-line-comment-integrity'];
+
+// RuleTester only registers Jest cases when it is given describe/it explicitly; under ESM they
+// are not globals, and without them the suite would contain no tests at all.
+RuleTester.describe = describe;
+RuleTester.it = it;
+RuleTester.itOnly = it.only;
 
 const ruleTester = new RuleTester({
   languageOptions: {
