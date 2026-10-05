@@ -56,20 +56,22 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      # `npm ci` runs the `prepare: husky` lifecycle script, which repoints core.hooksPath at
-      # .husky/_ inside this checkout. The repository's pre-push hook refuses any push of
-      # refs/tags/v* to stop developers from cutting release tags by hand, so it also refused
-      # semantic-release's own sanctioned tag push (run 37313583239). Redirecting the hook path
-      # to git's stock sample-only directory bypasses it for this job alone. Do not use HUSKY=0
-      # instead: husky's install then writes "HUSKY=0 skip install" to stdout, @semantic-release/npm
-      # parses npm pack stdout as the tarball name and dies on that bogus path before the tag push
-      # (run 37320320913). The developer guard in .husky/pre-push stays in force everywhere else.
-      - name: Disable git hooks for the release tag push
-        run: git config core.hooksPath .git/hooks
       - name: Release (or preview)
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
+          # The repository's pre-push hook refuses any push of refs/tags/v* so developers cannot
+          # cut release tags by hand, but `prepare: husky` installs that hook into this checkout
+          # (on npm ci AND again on the npm pack inside semantic-release), which also blocks
+          # semantic-release's own sanctioned tag push (runs 37313583239, 37324905156, 37327188173).
+          # Point core.hooksPath at git's stock sample-only directory via GIT_CONFIG_* command-line
+          # scope, which outranks the file husky rewrites mid-run, so the re-install cannot undo it.
+          # Do not use HUSKY=0: husky's install then writes "HUSKY=0 skip install" to stdout and
+          # @semantic-release/npm reads npm pack stdout as the tarball name, failing before the push
+          # (run 37320320913). The developer guard in .husky/pre-push stays in force everywhere else.
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.hooksPath
+          GIT_CONFIG_VALUE_0: ${{ github.workspace }}/.git/hooks
         run: |
           if [ "$DRY_RUN" = true ]; then
             npm run release -- --dry-run
