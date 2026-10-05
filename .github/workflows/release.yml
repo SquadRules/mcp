@@ -45,6 +45,15 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    # `npm ci` runs the `prepare: husky` lifecycle script, which points core.hooksPath at
+    # .husky/_ inside the runner workspace. The repository's pre-push hook refuses any push
+    # of refs/tags/v* to stop developers from cutting release tags by hand - and this job is
+    # the one sanctioned tagger, so semantic-release's own `git push --tags` would be stopped
+    # by it (run 37313583239 failed exactly there, after prepare and before publish). Husky's
+    # hook wrapper exits on HUSKY=0, which disables the hooks for this job only; the human
+    # guard in .husky/pre-push stays intact everywhere else.
+    env:
+      HUSKY: '0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
