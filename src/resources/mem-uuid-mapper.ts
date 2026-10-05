@@ -1,5 +1,4 @@
 import { MemoryQdrantStore } from '../services/memory/store.js';
-import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { IDGenerator } from '../services/id-generator.js';
 import { structuredLogger } from '../utils/structured-logger.js';
@@ -39,33 +38,19 @@ export async function deletePreexistingAppSpaceEntries(
   const slug = typeof parsed.slugRaw === 'string' ? parsed.slugRaw.trim() : '';
   const h1Title = extractFirstH1Title(body);
 
-  const filters: any[] = [];
-  if (slug.length > 0) {
-    filters.push({
-      must: [
-        { key: 'slug', match: { value: slug } },
-        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
-      ]
-    });
-  }
-  if (h1Title) {
-    const adapterId = IDGenerator.generateAdapterUUIDv5(h1Title);
-    filters.push({
-      must: [
-        { key: 'adapter.id', match: { value: adapterId } },
-        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
-      ]
-    });
-  }
+  const hasSlug = slug.length > 0;
+  const adapterId = h1Title ? IDGenerator.generateAdapterUUIDv5(h1Title) : '';
 
-  if (filters.length === 0) return;
+  if (!hasSlug && !adapterId) return;
 
-  const { client, collection } = memoryStore.getQdrantAccess();
   const { redisCacheService } = await import('../services/redis-cache.js');
   await redisCacheService.invalidateMemoryCache(contextLabel);
 
-  for (const filter of filters) {
-    await client.delete(collection, { filter } as any);
+  if (hasSlug) {
+    await memoryStore.deleteAppSpaceBySlug(slug);
+  }
+  if (adapterId) {
+    await memoryStore.deleteAppSpaceByAdapterId(adapterId);
   }
   await redisCacheService.invalidateAfterUpdate();
 

@@ -1,5 +1,6 @@
 import { API_BASE, apiFetch, REVIEW_EVIDENCE_PARAM } from './http-api-test-helpers.js';
 import { isHttpTransport } from '../utils/auth-headers.js';
+import { describeQdrantBackend } from '../utils/vector-backend.js';
 
 const _d = isHttpTransport() ? describe : describe.skip;
 
@@ -94,7 +95,7 @@ Done.`;
 
   });
 
-  describe('POST /api/snapshot', () => {
+  describeQdrantBackend('POST /api/snapshot', () => {
     test('triggers Qdrant snapshot', async () => {
       expect.hasAssertions();
       const response = await apiFetch(`${API_BASE}/snapshot`, { method: 'POST' });

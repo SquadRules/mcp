@@ -45,15 +45,33 @@ If any requirement is missing, fix it before you continue.
 
 ---
 
+## Vector store
+
+SquadRules keeps adapter and memory vectors in a store chosen by a single switch —
+the presence of a non-empty `QDRANT_URL`:
+
+- **Default: embedded LanceDB.** With no `QDRANT_URL` the server runs a local,
+  file-backed LanceDB store, so the CLI / `serve` path needs no Qdrant, Redis, or
+  Docker.
+- **Qdrant is opt-in.** The Docker Compose and Helm paths below start Qdrant and set
+  `QDRANT_URL`, which selects the Qdrant backend with unchanged collections.
+
+There is no silent fallback between them, and an embedding provider is required in
+both cases — the embedded store removes the database dependency, not the model. The
+full selection rule and per-backend limitations are in
+[Known issues & limitations § Vector store backends](../known-issues-and-limitations.md#vector-store-backends).
+
+---
+
 ## Embedding backend
 
 Choose the embedding backend before you populate `.env` or configure Helm
 values. The application needs a text-embedding service to convert text into
-vectors for Qdrant, and each backend uses a different set of variables.
+vectors for the active store, and each backend uses a different set of variables.
 
 ### Why an embedding model?
 
-SquadRules stores adapter and workflow text in Qdrant as vectors. An embedding
+SquadRules stores adapter and workflow text as vectors in its store. An embedding
 model produces those vectors from plain text so the server can search and train
 by meaning instead of exact keyword matching.
 

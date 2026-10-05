@@ -5,6 +5,7 @@ import { join } from 'path';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
+import { describeQdrantBackend } from '../../utils/vector-backend.js';
 
 const QDRANT_URL = process.env.QDRANT_URL ?? 'http://localhost:6333';
 const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'squadrules';
@@ -91,7 +92,7 @@ async function purgeExistingProtocols(label: string) {
   throw new Error(`Failed to purge existing Qdrant points for label: ${label}`);
 }
 
-describe('Qdrant storage verification', () => {
+describeQdrantBackend('Qdrant storage verification', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;
   const QUERY = 'AI CODING RULES';
 

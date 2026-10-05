@@ -1,5 +1,6 @@
 import { getAuthHeaders, getTestAuthBaseUrl, isHttpTransport } from '../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../utils/mock-review-evidence.js';
+import { testQdrantBackend } from '../utils/vector-backend.js';
 
 const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
@@ -100,7 +101,7 @@ async function trainProtocol(title: string, slug: string, body: string): Promise
 }
 
 _d('MCP forward slug error guidance', () => {
-  test('resolves ambiguous adapter slug via MCP and includes slug_disambiguation_note', async () => {
+  testQdrantBackend('resolves ambiguous adapter slug via MCP and includes slug_disambiguation_note', async () => {
     expect.hasAssertions();
 
     const targetSlug = `forward-mcp-ambiguous-${Date.now()}`;

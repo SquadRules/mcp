@@ -1,38 +1,15 @@
 import crypto from 'node:crypto';
 import type { QdrantClient } from '@qdrant/js-client-rest';
-import type { ExecutionTrace, RewardRecord, TensorValue } from '../types/memory.js';
-import { getQdrantUrl, QDRANT_API_KEY, getQdrantCollection } from '../config.js';
+import type { ExecutionTrace, RewardRecord } from '../types/memory.js';
+import { getQdrantUrl, isQdrantConfigured, QDRANT_API_KEY, getQdrantCollection } from '../config.js';
 import { QdrantConnection } from './qdrant/connection.js';
 import { logger } from '../utils/structured-logger.js';
 
-export interface TrainingPair {
-  id: string;
-  execution_id: string;
-  adapter_uri: string;
-  layer_uri: string;
-  layer_index: number;
-  timestamp: string;
-  instruction: {
-    activation_query?: string;
-    tensor_in: Record<string, unknown>;
-    layer_instructions: string;
-  };
-  response: {
-    tensor_out?: TensorValue;
-    trace?: string;
-    raw_solution?: unknown;
-  };
-  reward?: RewardRecord;
-}
+import type { StoredExecutionTrace, TrainingPair } from './vector-store/types.js';
+import type { IExecutionTraceStore } from './vector-store/IExecutionTraceStore.js';
+import { LanceExecutionTraceStore } from './vector-store/lancedb/LanceExecutionTraceStore.js';
 
-export interface StoredExecutionTrace {
-  execution_id: string;
-  adapter_id: string;
-  adapter_uri: string;
-  activation_query?: string;
-  reward?: RewardRecord;
-  traces: ExecutionTrace[];
-}
+export type { StoredExecutionTrace, TrainingPair };
 
 const TRACES_COLLECTION_SUFFIX = '_traces';
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -301,4 +278,11 @@ export class ExecutionTraceStore {
   }
 }
 
-export const executionTraceStore = new ExecutionTraceStore();
+// Backend-selected singleton: empty or unset `QDRANT_URL` selects the embedded
+// LanceDB trace store, so the four always-loaded tool call sites
+// (`reward`, `forward`, `forward-trace`, `export`) transparently hit the active
+// engine without importing a Qdrant client at module load. `new ExecutionTraceStore()`
+// is only evaluated on the Qdrant path, so `getQdrantUrl()` never throws on Lance.
+export const executionTraceStore: IExecutionTraceStore = isQdrantConfigured
+  ? new ExecutionTraceStore()
+  : new LanceExecutionTraceStore();

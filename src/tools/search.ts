@@ -25,7 +25,6 @@ import {
   SQUADRULES_CREATION_PROTOCOL_SLUG,
   SQUADRULES_REFINING_PROTOCOL_SLUG
 } from '../constants/builtin-search-meta.js';
-import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { buildAdapterUri } from './squadrules-uri.js';
 
 const CREATION_PROTOCOL_URI = buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG);
@@ -116,28 +115,18 @@ async function resolveFooterProtocolVersions(
   memoryStore: MemoryQdrantStore
 ): Promise<{ refine: string | null; create: string | null }> {
   try {
-    const { client, collection } = memoryStore.getQdrantAccess();
-    const slugs = [SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG];
-    const page = await client.scroll(collection, {
-      filter: {
-        must: [
-          { key: 'slug', match: { any: slugs } },
-          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
-          { key: 'adapter.layer_index', match: { value: 1 } }
-        ]
-      },
-      limit: 10,
-      with_payload: { include: ['slug', 'adapter'] },
-      with_vector: false
-    } as any);
+    const layers = await memoryStore.findProtocolFooterLayers(
+      SQUADRULES_REFINING_PROTOCOL_SLUG,
+      SQUADRULES_CREATION_PROTOCOL_SLUG
+    );
 
     let refine: string | null = null;
     let create: string | null = null;
-    for (const point of page?.points ?? []) {
-      const payload = (point.payload ?? {}) as Record<string, any>;
-      const slug = typeof payload['slug'] === 'string' ? payload['slug'] : '';
-      const version = typeof payload['adapter']?.protocol_version === 'string'
-        ? payload['adapter'].protocol_version
+    for (const { payload } of layers) {
+      const record = payload as unknown as Record<string, any>;
+      const slug = typeof record['slug'] === 'string' ? record['slug'] : '';
+      const version = typeof record['adapter']?.protocol_version === 'string'
+        ? record['adapter'].protocol_version
         : null;
       if (slug === SQUADRULES_REFINING_PROTOCOL_SLUG) refine = version;
       if (slug === SQUADRULES_CREATION_PROTOCOL_SLUG) create = version;

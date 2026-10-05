@@ -4,12 +4,20 @@ import { logger } from '../../utils/structured-logger.js';
 import { CodeBlockProcessor } from '../code-block-processor.js';
 import { MemoryQdrantStoreMethods } from './store-methods.js';
 import { resolveCollectionAlias } from '../../utils/qdrant-utils.js';
-import { getQdrantUrl, getQdrantCollection, QDRANT_API_KEY } from '../../config.js';
+import { getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, SQUADRULES_APP_SPACE_ID } from '../../config.js';
+import { getSearchSpaceIds } from '../../utils/tenant-context.js';
+import { buildSpaceFilter } from '../../utils/space-filter.js';
+import { ALLOWED_ARTIFACT_MIMES } from '../../tools/artifact-mime.js';
 import { initializeQdrantStore } from './store-init.js';
 import { MemoryQdrantStoreAdapter } from './store-adapter.js';
 import type { StoreArtifactOptions } from './store-adapter.js';
+import type { LayerRecord } from '../vector-store/types.js';
 
-const DEFAULT_QDRANT_URL = getQdrantUrl();
+// `DEFAULT_COLLECTION` is env-driven with a built-in default (never throws), so it
+// is safe at import time. The Qdrant URL, by contrast, MUST NOT be resolved here:
+// `getQdrantUrl()` throws when `QDRANT_URL` is unset, which would crash import on
+// the embedded LanceDB path. It is resolved lazily in the constructor, which only
+// runs when this Qdrant store is actually selected by the factory.
 const DEFAULT_COLLECTION = getQdrantCollection('squadrules');
 
 export interface MemoryQdrantStoreOptions {
@@ -27,7 +35,7 @@ export class MemoryQdrantStore {
   private adapterStore: MemoryQdrantStoreAdapter;
 
   constructor(options: MemoryQdrantStoreOptions = {}) {
-    const url = options.url || DEFAULT_QDRANT_URL;
+    const url = options.url || getQdrantUrl();
     const apiKey = QDRANT_API_KEY;
 
     logger.info(
@@ -141,6 +149,118 @@ export class MemoryQdrantStore {
 
   async searchMemories(query: string, limit: number, collapse: boolean = true): Promise<{ memories: Memory[], scores: number[] }> {
     return this.methods.searchMemories(query, limit, collapse);
+  }
+
+  // --- backend-owned domain reads/writes that replace raw getQdrantAccess() at call sites ---
+
+  /**
+   * Scroll every layer point in one space as neutral `LayerRecord`s.
+   * `paginate` walks all pages (bulk enumeration); when false it returns a
+   * single page of `limit`, matching the shallow count view used by spaces.
+   */
+  async scrollSpace(spaceId: string, options: { paginate?: boolean; limit?: number } = {}): Promise<LayerRecord[]> {
+    const filter = buildSpaceFilter([spaceId]);
+    return this.scrollAll(filter, options.paginate ?? true, options.limit);
+  }
+
+  /** Artifact layer points attached to an adapter, across the searchable spaces. */
+  async listAdapterArtifacts(adapterId: string): Promise<LayerRecord[]> {
+    const filter = buildSpaceFilter(getSearchSpaceIds(), {
+      must: [
+        { key: 'adapter.id', match: { value: adapterId } },
+        { key: 'content_type', match: { any: [...ALLOWED_ARTIFACT_MIMES] } }
+      ]
+    });
+    return this.scrollAll(filter, true);
+  }
+
+  /** First-layer footer points for the refining/creation protocol slugs. */
+  async findProtocolFooterLayers(refineSlug: string, createSlug: string): Promise<LayerRecord[]> {
+    const filter = {
+      must: [
+        { key: 'slug', match: { any: [refineSlug, createSlug] } },
+        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
+        { key: 'adapter.layer_index', match: { value: 1 } }
+      ]
+    };
+    return this.scrollAll(filter, false, 10);
+  }
+
+  /** Protocol version already stored for an app-space adapter slug, or undefined. */
+  async getStoredAdapterVersion(slug: string): Promise<string | undefined> {
+    const filter = {
+      must: [
+        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
+        { key: 'slug', match: { value: slug } }
+      ]
+    };
+    const page = await this.client.scroll(this.collection, {
+      filter,
+      limit: 1,
+      with_payload: true,
+      with_vector: false
+    } as Parameters<QdrantClient['scroll']>[1]);
+    const payload = page?.points?.[0]?.payload as Record<string, unknown> | undefined;
+    const version = payload?.['protocol_version'];
+    return typeof version === 'string' ? version : undefined;
+  }
+
+  /** Attach a payload patch (e.g. content_sha256) to a set of layer points. */
+  async setPayloadOnLayers(layerIds: string[], patch: Record<string, unknown>): Promise<void> {
+    await this.client.setPayload(this.collection, {
+      payload: patch,
+      points: layerIds
+    } as Parameters<QdrantClient['setPayload']>[1]);
+  }
+
+  /** Delete app-space points matching a slug. */
+  async deleteAppSpaceBySlug(slug: string): Promise<void> {
+    await this.client.delete(this.collection, {
+      filter: {
+        must: [
+          { key: 'slug', match: { value: slug } },
+          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
+        ]
+      }
+    });
+  }
+
+  /** Delete app-space points matching an adapter id. */
+  async deleteAppSpaceByAdapterId(adapterId: string): Promise<void> {
+    await this.client.delete(this.collection, {
+      filter: {
+        must: [
+          { key: 'adapter.id', match: { value: adapterId } },
+          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } }
+        ]
+      }
+    });
+  }
+
+  private async scrollAll(
+    filter: unknown,
+    paginate: boolean,
+    limit?: number
+  ): Promise<LayerRecord[]> {
+    const pageSize = limit ?? 256;
+    const records: LayerRecord[] = [];
+    let offset: string | number | undefined;
+    do {
+      const page = await this.client.scroll(this.collection, {
+        filter,
+        limit: pageSize,
+        ...(offset !== undefined ? { offset } : {}),
+        with_payload: true,
+        with_vector: false
+      } as Parameters<QdrantClient['scroll']>[1]);
+      for (const point of page?.points ?? []) {
+        records.push({ uuid: String(point.id), payload: (point.payload ?? {}) as unknown as Memory });
+      }
+      const next = page?.next_page_offset;
+      offset = typeof next === 'string' || typeof next === 'number' ? next : undefined;
+      if (!paginate) break;
+    } while (offset !== undefined);
+    return records;
   }
 
   /**

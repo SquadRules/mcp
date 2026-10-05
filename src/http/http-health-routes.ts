@@ -3,7 +3,7 @@ import { MemoryQdrantStore } from '../services/memory/store.js';
 import { embeddingService } from '../services/embedding/service.js';
 import { keyValueStore } from '../services/key-value-store-factory.js';
 import { getBuildVersion } from '../utils/build-version.js';
-import { AUTH_ENABLED, REDIS_URL } from '../config.js';
+import { AUTH_ENABLED, REDIS_URL, isQdrantConfigured } from '../config.js';
 
 /**
  * Set up health check and basic info routes
@@ -57,7 +57,9 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
         const uptime = Math.floor(process.uptime());
 
         const dependencies: Record<string, string> = {
-            qdrant: qdrantHealthy ? 'healthy' : 'unhealthy',
+            // Report the active vector store under an honest key: `qdrant` only when
+            // Qdrant backs the process; otherwise `vectorStore` (embedded LanceDB).
+            [isQdrantConfigured ? 'qdrant' : 'vectorStore']: qdrantHealthy ? 'healthy' : 'unhealthy',
             embedding: embeddingConfigured
                 ? (teiHealthy ? 'healthy' : 'unhealthy')
                 : 'disabled'
@@ -69,7 +71,8 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
         }
 
         const details: Record<string, string> = {
-            cacheBackend: redisConfigured ? 'redis' : 'memory'
+            cacheBackend: redisConfigured ? 'redis' : 'memory',
+            vectorStoreBackend: isQdrantConfigured ? 'qdrant' : 'embedded-lancedb'
         };
         if (req.auth?.sub) {
             details['embedding'] = teiHealth.message;

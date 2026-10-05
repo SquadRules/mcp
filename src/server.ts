@@ -8,7 +8,7 @@ import { bootstrapEmptyResourceHandlers } from './resources/resource-bootstrap.j
 import { MemoryQdrantStore } from './services/memory/store.js';
 import { qdrantService } from './services/qdrant/index.js';
 import { getBuildVersion } from './utils/build-version.js';
-import { LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE, getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, QDRANT_RESCORE_STRING, TEI_BASE_URL, TEI_MODEL, SQUADRULES_SEARCH_OVERFETCH_FACTOR, SQUADRULES_SEARCH_MAX_FETCH, SQUADRULES_ENABLE_GROUP_COLLAPSE } from './config.js';
+import { LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE, isQdrantConfigured, getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, QDRANT_RESCORE_STRING, TEI_BASE_URL, TEI_MODEL, SQUADRULES_SEARCH_OVERFETCH_FACTOR, SQUADRULES_SEARCH_MAX_FETCH, SQUADRULES_ENABLE_GROUP_COLLAPSE } from './config.js';
 import { getEmbeddingDimension } from './services/embedding/config.js';
 // removed: debug tools (kb_version, kb_cache_stats)
 import { registerDeleteTool } from './tools/delete.js';
@@ -89,12 +89,14 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
         transport: {
             type: TRANSPORT_TYPE,
         },
-        qdrant: {
-            url: getQdrantUrl(),
-            collection: getQdrantCollection(),
-            apiKey: mask(QDRANT_API_KEY),
-            rescore: QDRANT_RESCORE_STRING,
-        },
+        qdrant: isQdrantConfigured
+            ? {
+                url: getQdrantUrl(),
+                collection: getQdrantCollection(),
+                apiKey: mask(QDRANT_API_KEY),
+                rescore: QDRANT_RESCORE_STRING,
+            }
+            : { backend: 'embedded-lancedb' },
         tei: {
             url: TEI_BASE_URL,
             model: TEI_MODEL,
