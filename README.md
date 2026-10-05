@@ -165,23 +165,24 @@ Add SquadRules to your host's `mcp.json` (Cursor, Claude Desktop, Claude Code, �
     "SquadRules": {
       "command": "squadrules",
       "args": ["serve"],
-      "env": {
-        "OPENAI_API_KEY": "sk-..."
-      }
+      "env": {}
     }
   }
 }
 ```
 
-With no `QDRANT_URL` the server uses the embedded LanceDB store (created on first
-run under `~/.config/squadrules/lancedb`). To use an existing Qdrant instead, add
-`"QDRANT_URL": "http://localhost:6333"` (and `"QDRANT_API_KEY": ""` for no-auth
-localhost Qdrant). For the embedding backend, supply **one** of:
+An empty `env` is enough: with no `QDRANT_URL` the server uses the embedded
+LanceDB store (created on first run under `~/.config/squadrules/lancedb`), and
+embeddings run **locally with fastembed** (no API key, no inference service; the
+model is downloaded once into `~/.config/squadrules/models`). To use an existing
+Qdrant instead, add `"QDRANT_URL": "http://localhost:6333"` (and
+`"QDRANT_API_KEY": ""` for no-auth localhost Qdrant). To override the local
+embedding default with an external backend, supply **one** of:
 
 - **OpenAI** — `OPENAI_API_KEY`
 - **Ollama / OpenAI-compatible** — `OPENAI_API_URL`, `OPENAI_EMBEDDING_MODEL`,
   and `OPENAI_API_KEY=ollama`
-- **TEI** — `TEI_BASE_URL` (+ optional `TEI_MODEL`)
+- **TEI** (deprecated) — `TEI_BASE_URL` (+ optional `TEI_MODEL`)
 
 Every parameter is **ENV-overridable**. To run SquadRules as an HTTP listener
 instead of stdio, add `"--transport", "http"` to `args` (see
@@ -309,11 +310,15 @@ health endpoint (`curl http://localhost:3000/health`).
 
 ### Embeddings fail on startup
 
-Set one working embedding backend in the host `env`:
+By default embeddings run **locally with fastembed** — no key required — but the
+**first run downloads the model**, so it needs network access once (cached under
+`~/.config/squadrules/models`; air-gapped hosts must pre-seed it). Override the
+model or location with `FASTEMBED_MODEL` / `FASTEMBED_CACHE_DIR`. To use an
+external backend instead, set one working provider in the host `env`:
 
 - OpenAI: `OPENAI_API_KEY`
 - Ollama/OpenAI-compatible: `OPENAI_API_URL`, `OPENAI_EMBEDDING_MODEL`, `OPENAI_API_KEY=ollama`
-- TEI: `TEI_BASE_URL` (+ optional `TEI_MODEL`)
+- TEI (deprecated): `TEI_BASE_URL` (+ optional `TEI_MODEL`)
 
 ### The CLI keeps asking for login
 
