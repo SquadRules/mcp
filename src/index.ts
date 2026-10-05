@@ -17,9 +17,11 @@ import {
   QDRANT_SNAPSHOT_ON_START,
   QDRANT_SNAPSHOT_DIR,
   SQUADRULES_LOCAL_ARTIFACT_DIRS,
-  TRANSPORT_TYPE
+  TRANSPORT_TYPE,
+  isQdrantConfigured
 } from './config.js';
 import { qdrantService } from './services/qdrant/index.js';
+import { getEmbeddedRecordStore } from './services/vector-store/embedded-store-singleton.js';
 import { triggerQdrantSnapshot } from './services/qdrant/snapshots.js';
 import { probeEmbeddingDimension } from './services/embedding/service.js';
 import { installQdrantFetchCompatibility } from './services/qdrant/undici-compat.js';
@@ -101,10 +103,19 @@ export async function runSquadrulesServer(): Promise<void> {
           `SQUADRULES_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
         );
 
-        const memoryStore = new MemoryQdrantStore();
+        // Backend-selected store. On the embedded path this is the shared
+        // LanceDB store double-cast to the `MemoryQdrantStore` shape (same
+        // instance `qdrantService` resolves to), so tools and boot injection
+        // keep calling the domain methods they already use.
+        const memoryStore = isQdrantConfigured
+          ? new MemoryQdrantStore()
+          : (getEmbeddedRecordStore() as unknown as MemoryQdrantStore);
 
-        // Wait for Qdrant to be available before initializing
-        await waitForQdrant(memoryStore);
+        // Wait for Qdrant to be available before initializing (embedded store is
+        // local — no server to wait for).
+        if (isQdrantConfigured) {
+          await waitForQdrant(memoryStore);
+        }
 
         const embeddingDim = await probeEmbeddingDimension();
         structuredLogger.info(`Embedding dimension resolved: ${embeddingDim}`);
@@ -113,7 +124,7 @@ export async function runSquadrulesServer(): Promise<void> {
         await memoryStore.init();
         structuredLogger.info('Memory store ready');
 
-        if (QDRANT_SNAPSHOT_ON_START) {
+        if (isQdrantConfigured && QDRANT_SNAPSHOT_ON_START) {
             const snapshotResult = await triggerQdrantSnapshot(qdrantService, {
                 enabled: true,
                 directory: QDRANT_SNAPSHOT_DIR,

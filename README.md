@@ -102,7 +102,7 @@ The current codebase includes:
 
 - **HTTP application server** — Express app for MCP, REST, auth routes, and UI
 - **stdio MCP transport** — direct local-host launch path for desktop/IDE MCP clients
-- **Qdrant-backed adapter store** — required for runtime
+- **Vector/trace store** — embedded LanceDB by default; Qdrant when `QDRANT_URL` is set
 - **Optional Redis cache / proof-of-work state store** — enabled when `REDIS_URL` is set
 - **Optional Keycloak auth integration** — browser session + Bearer JWT validation
 - **React UI** — served from the same origin at `/ui`
@@ -134,15 +134,13 @@ Compose — install the package globally and point your host at `squadrules serv
 ### Prerequisites
 
 - **Node.js 24+**.
-- **A Qdrant instance on `http://localhost:6333`** — SquadRules cannot start
-  without it, and no auth is required for local use. If you don't already run
-  one, this is the quickest option (optional convenience):
-
-  ```bash
-  docker run -p 6333:6333 qdrant/qdrant
-  ```
-
-- **One embedding backend**, supplied through the host `env` below.
+- **One embedding backend**, supplied through the host `env` below (the embedded
+  store removes the vector *database* dependency, not the embedding provider).
+- **No database required.** By default SquadRules keeps its vectors in an embedded,
+  file-backed LanceDB store under `~/.config/squadrules/lancedb` (created on first
+  run) — no Qdrant, Redis, or Docker. To keep an existing Qdrant, set `QDRANT_URL`;
+  the single-switch selection rule and limitations live in
+  [Known issues & limitations](docs/known-issues-and-limitations.md#vector-store-backends).
 
 ### Install
 
@@ -168,8 +166,6 @@ Add SquadRules to your host's `mcp.json` (Cursor, Claude Desktop, Claude Code, �
       "command": "squadrules",
       "args": ["serve"],
       "env": {
-        "QDRANT_URL": "http://localhost:6333",
-        "QDRANT_API_KEY": "",
         "OPENAI_API_KEY": "sk-..."
       }
     }
@@ -177,8 +173,10 @@ Add SquadRules to your host's `mcp.json` (Cursor, Claude Desktop, Claude Code, �
 }
 ```
 
-`QDRANT_API_KEY=""` selects no-auth localhost Qdrant. For the embedding backend,
-supply **one** of:
+With no `QDRANT_URL` the server uses the embedded LanceDB store (created on first
+run under `~/.config/squadrules/lancedb`). To use an existing Qdrant instead, add
+`"QDRANT_URL": "http://localhost:6333"` (and `"QDRANT_API_KEY": ""` for no-auth
+localhost Qdrant). For the embedding backend, supply **one** of:
 
 - **OpenAI** — `OPENAI_API_KEY`
 - **Ollama / OpenAI-compatible** — `OPENAI_API_URL`, `OPENAI_EMBEDDING_MODEL`,

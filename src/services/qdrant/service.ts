@@ -11,7 +11,8 @@ import * as listing from './listing.js';
 import * as rewardPropagation from './reward-propagation.js';
 import { UpsertResourceItem, UpsertResourceResult } from './types.js';
 import { logger } from '../../utils/structured-logger.js';
-import { getQdrantUrl, QDRANT_API_KEY, getQdrantCollection } from '../../config.js';
+import { getQdrantUrl, QDRANT_API_KEY, getQdrantCollection, isQdrantConfigured } from '../../config.js';
+import { getEmbeddedRecordStore } from '../vector-store/embedded-store-singleton.js';
 
 export class QdrantService {
   private conn: QdrantConnection;
@@ -149,4 +150,12 @@ export class QdrantService {
   }
 }
 
-export const qdrantService = new QdrantService();
+// Backend-selected singleton. Constructing `QdrantService` resolves `getQdrantUrl()`
+// (throws when `QDRANT_URL` is unset) and would crash import for the ~dozens of
+// modules that reach for `qdrantService` even on the embedded path. So on the
+// LanceDB path we hand them the shared embedded store double-cast to this shape —
+// only the methods actually called at runtime must exist, and the integration
+// suite is the gate that proves the used surface is covered.
+export const qdrantService: QdrantService = isQdrantConfigured
+  ? new QdrantService()
+  : (getEmbeddedRecordStore() as unknown as QdrantService);

@@ -7,7 +7,6 @@ import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
 import { mcpToolCalls, mcpToolDuration, mcpToolErrors, mcpToolInputSize, mcpToolOutputSize } from '../services/metrics/mcp-metrics.js';
 import { getTenantId, getSpaceContextFromStorage } from '../utils/tenant-context.js';
-import { buildSpaceFilter } from '../utils/space-filter.js';
 import { spaceIdToDisplayName, spaceKindFromSpaceId } from '../utils/space-display.js';
 import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { SQUADRULES_SPACES_TOOL_UI_META } from '../mcp-apps/squadrules-ui-constants.js';
@@ -61,23 +60,6 @@ function getSpacesToReport(): string[] {
   const ctx = getSpaceContextFromStorage();
   const allowed = ctx.allowedSpaceIds;
   return dedupeSpaceIds([...allowed, SQUADRULES_APP_SPACE_ID]);
-}
-
-async function scrollSpace(
-  client: { scroll: (collectionName: string, opts?: unknown) => Promise<{ points?: unknown[] }> } | unknown,
-  collection: string,
-  spaceId: string
-): Promise<Array<{ id: string; payload?: Record<string, unknown> }>> {
-  const filter = buildSpaceFilter([spaceId]);
-  const scrollClient = client as { scroll: (collectionName: string, opts: unknown) => Promise<{ points?: unknown[] }> };
-  const result = await scrollClient.scroll(collection, {
-    filter,
-    limit: SCROLL_LIMIT,
-    with_payload: true,
-    with_vector: false
-  });
-  const points = result?.points ?? [];
-  return points as Array<{ id: string; payload?: Record<string, unknown> }>;
 }
 
 function buildSpaceInfo(
@@ -195,11 +177,11 @@ export async function executeSpaces(
   const includeArtifacts = options.include_artifacts ?? false;
   const ctx = getSpaceContextFromStorage();
   const spaceIds = getSpacesToReport();
-  const { client, collection } = memoryStore.getQdrantAccess();
   const spaces: SpaceInfo[] = [];
 
   for (const spaceId of spaceIds) {
-    const points = await scrollSpace(client, collection, spaceId);
+    const records = await memoryStore.scrollSpace(spaceId, { paginate: false, limit: SCROLL_LIMIT });
+    const points = records.map((record) => ({ id: record.uuid, payload: record.payload as unknown as Record<string, unknown> }));
     spaces.push(buildSpaceInfo(spaceId, points, includeAdapterTitles || includeArtifacts, includeArtifacts, ctx.spaceNamesById));
   }
 

@@ -2,7 +2,8 @@
  * Centralized configuration for environment variables.
  * This file contains all environment variable parsing logic.
  * KEY_VALUE_STORE_URL (or REDIS_URL): when set (non-empty) → key-value backend;
- * when unset or empty → in-memory backend. QDRANT_URL is always required.
+ * when unset or empty → in-memory backend. QDRANT_URL set (non-empty) → Qdrant
+ * vector backend; empty/unset → embedded LanceDB (see `isQdrantConfigured`).
  */
 
 import path from 'path';
@@ -294,6 +295,9 @@ export function getQdrantUrl(): string {
 export function getQdrantCollection(defaultValue = 'squadrules'): string {
   return getEnvString('QDRANT_COLLECTION', defaultValue);
 }
+
+/** Whether an external Qdrant server is set (non-empty); else embedded LanceDB is selected. Mirrors `isRedisConfigured`. */
+export const isQdrantConfigured = (process.env['QDRANT_URL'] ?? '').trim().length > 0;
 
 // Trusted issuers: from env, or from KEYCLOAK_URL/REALM when unset. Add loopback alias (localhost <-> 127.0.0.1) so tokens match either.
 const _authIssuersFromEnv = AUTH_TRUSTED_ISSUERS_STRING.split(',')

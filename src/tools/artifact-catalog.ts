@@ -1,7 +1,4 @@
 import type { MemoryQdrantStore } from '../services/memory/store.js';
-import { ALLOWED_ARTIFACT_MIMES } from './artifact-mime.js';
-import { buildSpaceFilter } from '../utils/space-filter.js';
-import { getSearchSpaceIds } from '../utils/tenant-context.js';
 
 export interface AdapterArtifactMetadata {
   artifact_uuid: string;
@@ -16,15 +13,6 @@ export interface AdapterArtifactMetadata {
   content_type: string;
   tags: string[];
   text: string;
-}
-
-function buildArtifactScrollFilter(adapterId: string) {
-  return buildSpaceFilter(getSearchSpaceIds(), {
-    must: [
-      { key: 'adapter.id', match: { value: adapterId } },
-      { key: 'content_type', match: { any: [...ALLOWED_ARTIFACT_MIMES] } }
-    ]
-  });
 }
 
 function toArtifactMetadata(point: { id: unknown; payload?: Record<string, unknown> }, adapterId: string): AdapterArtifactMetadata | null {
@@ -81,34 +69,17 @@ export async function listAdapterArtifacts(
   memoryStore: MemoryQdrantStore,
   adapterId: string
 ): Promise<AdapterArtifactMetadata[]> {
-  const { client, collection } = memoryStore.getQdrantAccess();
+  const records = await memoryStore.listAdapterArtifacts(adapterId);
   const artifacts: AdapterArtifactMetadata[] = [];
-  let offset: string | number | undefined;
-
-  do {
-    const page = await client.scroll(collection, {
-      filter: buildArtifactScrollFilter(adapterId),
-      limit: 256,
-      ...(offset !== undefined ? { offset } : {}),
-      with_payload: true,
-      with_vector: false
-    });
-    const points = Array.isArray(page?.points) ? page.points : [];
-    for (const point of points) {
-      const row = toArtifactMetadata(
-        point as { id: unknown; payload?: Record<string, unknown> },
-        adapterId
-      );
-      if (row) {
-        artifacts.push(row);
-      }
+  for (const record of records) {
+    const row = toArtifactMetadata(
+      { id: record.uuid, payload: record.payload as unknown as Record<string, unknown> },
+      adapterId
+    );
+    if (row) {
+      artifacts.push(row);
     }
-    const nextOffset = page?.next_page_offset;
-    offset =
-      typeof nextOffset === 'string' || typeof nextOffset === 'number'
-        ? nextOffset
-        : undefined;
-  } while (offset !== null && offset !== undefined);
+  }
 
   artifacts.sort((a, b) => a.name.localeCompare(b.name) || a.artifact_uuid.localeCompare(b.artifact_uuid));
   return artifacts;

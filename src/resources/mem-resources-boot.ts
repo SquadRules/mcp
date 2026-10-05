@@ -13,32 +13,6 @@ import { redisCacheService } from '../services/redis-cache.js';
 const CONTENT_SHA256_KEY = 'content_sha256';
 
 /**
- * Look up the protocol_version of an already-stored adapter by slug.
- * Returns undefined if no matching entry exists or lookup fails.
- */
-async function getStoredAdapterVersion(
-  client: any,
-  collection: string,
-  slug: string
-): Promise<string | undefined> {
-  const page = await client.scroll(collection, {
-    limit: 1,
-    with_payload: { include: ['protocol_version'] },
-    with_vector: false,
-    filter: {
-      must: [
-        { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
-        { key: 'slug', match: { value: slug } }
-      ]
-    }
-  } as any);
-  const point = page?.points?.[0];
-  if (!point?.payload) return undefined;
-  const v = (point.payload as any).protocol_version;
-  return typeof v === 'string' ? v : undefined;
-}
-
-/**
  * Inject mem resources from filesystem into Qdrant at system boot.
  * Uses slug-based filenames. Each adapter file is deleted-then-retrained
  * to ensure clean state. SHA256 hashes are stored in payload for future
@@ -75,7 +49,6 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
     structuredLogger.info(`[mem-resources-boot] Injecting ${fileCount} mem resources into Qdrant (force: ${options.force || false})`);
 
     const llmModelId = 'system-boot';
-    const { client, collection } = memoryStore.getQdrantAccess();
     let injectedCount = 0;
 
     for (const [slug, markdownContent] of Object.entries(memResources)) {
@@ -98,7 +71,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
       try {
         // Version-based skip: if stored adapter already matches or is newer, skip retraining
         try {
-          const storedVersion = await getStoredAdapterVersion(client, collection, slug);
+          const storedVersion = await memoryStore.getStoredAdapterVersion(slug);
           if (storedVersion !== undefined && shippedVersion !== undefined) {
             const cmp = compareSemver(shippedVersion, storedVersion);
             if (cmp <= 0) {
@@ -127,10 +100,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
         // Store content_sha256 in all layers for future change detection
         if (memories.length > 0) {
           const layerIds = memories.map(m => m.memory_uuid);
-          await client.setPayload(collection, {
-            payload: { [CONTENT_SHA256_KEY]: shippedSha },
-            points: layerIds
-          } as any);
+          await memoryStore.setPayloadOnLayers(layerIds, { [CONTENT_SHA256_KEY]: shippedSha });
           injectedCount++;
           structuredLogger.info(
             `[mem-resources-boot] Trained adapter '${slug}' (${memories.length} layer(s), SHA=${shippedSha.slice(0, 12)}...)`

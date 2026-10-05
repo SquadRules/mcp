@@ -10,14 +10,54 @@ codebase and configuration model.
   both transports in one process.
 - **stdio mode is MCP-only.** With `TRANSPORT_TYPE=stdio`, the process serves MCP on
   stdin/stdout and does not start an HTTP listener: no `/health`, `/api`, `/ui`, or `/mcp` over HTTP.
-- **Qdrant is always required.** Startup fails without a reachable
-  `QDRANT_URL`.
+- **Qdrant is optional now.** An embedded LanceDB store is the default (see
+  *Vector store backends* below). Qdrant is used only when `QDRANT_URL` is set.
 - **Embedding provider is always required.** Search and training (store) depend on a
-  working embedding backend (OpenAI-compatible or TEI-compatible).
+  working embedding backend (OpenAI-compatible or TEI-compatible). The embedded
+  LanceDB default does not change this — embeddings still come from the configured
+  provider.
 - **Redis is optional, but the no-Redis path is in-process only.** When
   `REDIS_URL` is empty, caches and proof-of-work state live in the local memory
   store. That is suitable for single-process/local use, not shared multi-process
   deployments.
+
+## Vector store backends
+
+The server picks its vector/trace store from a single switch — the presence of a
+non-empty `QDRANT_URL`:
+
+- **Default: embedded LanceDB.** With `QDRANT_URL` unset or empty the server runs a
+  local, file-backed LanceDB store, so `npx -y @squadrules/mcp serve` needs no Qdrant,
+  Redis, or Docker — only an embedding provider.
+- **Qdrant is opt-in.** Setting `QDRANT_URL` keeps the existing Qdrant backend with
+  unchanged collections, aliases, search, and snapshots. A failed Qdrant connection
+  surfaces as an error; the server never falls back to an empty LanceDB while
+  `QDRANT_URL` is set.
+
+### Embedded LanceDB limitations
+
+- **Data directory must be writable.** LanceDB opens `<config dir>/lancedb/` —
+  `~/.config/squadrules/lancedb` (or `$XDG_CONFIG_HOME/squadrules/lancedb`) on
+  macOS/Linux and `%APPDATA%\squadrules\lancedb` on Windows — the same parent as
+  `config.json`. It is created on first run; a read-only or otherwise unwritable
+  location fails startup.
+- **Back up by stopping the server.** There is no server-side snapshot on the embedded
+  backend. `POST /api/snapshot` is a Qdrant capability and returns an honest
+  `400 SNAPSHOT_UNSUPPORTED` here. To back up, stop the server and copy the `lancedb`
+  directory.
+- **`/health` names the backend truthfully.** On the embedded store `dependencies`
+  reports `vectorStore` (not `qdrant`) and `details.vectorStoreBackend` is
+  `embedded-lancedb`; on Qdrant it reports `qdrant` and `vectorStoreBackend: qdrant`.
+- **No cross-process cache coherence without Redis.** Several MCP processes may share
+  one LanceDB directory (concurrent reads and writes are safe under Lance MVCC), but
+  each keeps its own in-process cache and cache `publish()` is a no-op when Redis is
+  not configured. A tune/update/delete in one process is not seen by another until that
+  process restarts or reads with `fresh`. Run Redis if you need shared invalidation.
+- **Qdrant-substrate integration tests are skipped on the embedded backend.** Tests
+  that assert raw Qdrant behavior (`points/scroll` / `points/payload` REST probes or
+  `POST /api/snapshot`) are gated to run only when `QDRANT_URL` is set, so they report
+  as skipped under embedded LanceDB. The equivalent behavior is covered by
+  backend-neutral API-level tests that run on both backends.
 
 ## Auth and client limitations
 
