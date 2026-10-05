@@ -136,7 +136,7 @@
   },
   "dependencies": {
     "@exodus/bytes": "^1.15.0",
-    "@lancedb/lancedb": "0.39.0",
+    "@lancedb/lancedb": "^0.30.0",
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@napi-rs/keyring": "^2.0.0",
     "@qdrant/js-client-rest": "^1.17.0",
