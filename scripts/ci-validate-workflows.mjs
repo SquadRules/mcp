@@ -48,6 +48,9 @@ for (const [job, file] of [['integration', 'integration'], ['security', 'securit
 }
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
+// npm ci installs husky hooks into the runner workspace; without this the guarded
+// pre-push hook rejects semantic-release's own `git push --tags` and the publish fails.
+assert.equal(release.jobs.publish.env?.HUSKY, '0', 'Publisher must bypass husky hooks to push the release tag');
 assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
 assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
 assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);

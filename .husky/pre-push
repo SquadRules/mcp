@@ -1,17 +1,19 @@
 #!/bin/sh
+# Developer guard: version tags are cut only by the Release workflow, never pushed by hand.
+# The publisher job installs these same hooks through `prepare: husky` and runs with HUSKY=0
+# (see the publish job in .github/workflows/release.yml) so semantic-release can push the tag.
+# Do not weaken this guard to "fix" a failing release run - fix the workflow env instead.
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   if echo "$remote_ref" | grep -q "^refs/tags/v"; then
     echo >&2 ""
     echo >&2 "  ERROR: Do not push release tags manually."
     echo >&2 ""
     echo >&2 "  This repo creates version tags in the Release workflow only."
-    echo >&2 "  Use the Release workflow instead:"
-    echo >&2 "    1. Merge conventional-commit PRs (feat:/fix:/feat!:) to main"
-    echo >&2 "       (or keep a CI-green branch for prereleases)"
-    echo >&2 "    2. Dispatch the Release workflow (Actions -> Release -> Run)"
-    echo >&2 "       - stable: from main"
-    echo >&2 "       - prerelease: from the CI-green branch"
-    echo >&2 "    3. semantic-release computes the version and pushes the tag"
+    echo >&2 "  A push to main runs it automatically (Integration -> Security -> Policy -> publish),"
+    echo >&2 "  or dispatch it by hand with dry-run=true to preview the next version first."
+    echo >&2 "  semantic-release computes the version and pushes the tag itself; main is the"
+    echo >&2 "  only release branch, so a tag pushed from another branch never has a channel."
+    echo >&2 "  Procedure and required settings: .agents/skills/squadrules-dev/references/release-semver.md"
     echo >&2 ""
     exit 1
   fi
