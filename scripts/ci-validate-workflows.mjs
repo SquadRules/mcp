@@ -48,18 +48,20 @@ for (const [job, file] of [['integration', 'integration'], ['security', 'securit
 }
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
-// npm ci runs `prepare: husky`, which installs this repository's tag-blocking pre-push hook
-// into the publisher's own checkout and refuses semantic-release's `git push --tags`. The job
-// must therefore reset core.hooksPath after npm ci. HUSKY=0 is not an option: husky then writes
+// `prepare: husky` installs this repository's tag-blocking pre-push hook into the publisher's own
+// checkout on `npm ci` and again on the `npm pack` inside semantic-release, so a pre-step
+// `git config core.hooksPath` is rewritten before the tag push. Only command-line git config
+// (GIT_CONFIG_*, which outranks the file) survives. HUSKY=0 is worse: husky then writes
 // "HUSKY=0 skip install" to stdout and @semantic-release/npm reads npm pack stdout as the tarball
-// name, so the release fails before the tag push.
+// name, so the release fails before the push.
 const publishSteps = release.jobs.publish.steps;
-assert.equal(release.jobs.publish.env?.HUSKY, undefined, 'Publisher must not set HUSKY: it leaks into npm pack stdout');
-const hooksStepIndex = publishSteps.findIndex(s => /core\.hooksPath/.test(s.run ?? ''));
-const npmCiIndex = publishSteps.findIndex(s => (s.run ?? '').trim() === 'npm ci');
-assert.ok(hooksStepIndex > -1, 'Publisher must disable the git hook path before releasing');
-assert.ok(npmCiIndex > -1 && hooksStepIndex > npmCiIndex, 'core.hooksPath must be reset after npm ci installs the hooks');
-assert.match(publishSteps[hooksStepIndex].run, /git config core\.hooksPath \S+/, 'Hook path reset must pin an explicit directory');
+assert.ok(!JSON.stringify(release.jobs.publish).includes('HUSKY'), 'Publisher must not use HUSKY: it leaks into npm pack stdout');
+assert.ok(!publishSteps.some(s => /core\.hooksPath/.test(s.run ?? '')), 'A pre-step core.hooksPath change is undone by npm pack; override it on the release step env');
+const releaseStep = publishSteps.find(s => /npm run release/.test(s.run ?? ''));
+assert.ok(releaseStep, 'Publisher must run semantic-release');
+assert.equal(releaseStep.env?.GIT_CONFIG_COUNT, '1', 'Release step must supply git config through the environment');
+assert.equal(releaseStep.env?.GIT_CONFIG_KEY_0, 'core.hooksPath', 'Release step must override core.hooksPath so the tag push skips husky');
+assert.match(String(releaseStep.env?.GIT_CONFIG_VALUE_0 ?? ''), /\.git\/hooks$/, 'core.hooksPath override must point at the stock empty hook directory');
 assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
 assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
 assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
