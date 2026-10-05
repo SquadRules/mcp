@@ -1,5 +1,6 @@
 import { getAuthHeaders, getTestAuthBaseUrl, isHttpTransport } from '../../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
+import { testQdrantBackend } from '../../utils/vector-backend.js';
 
 const BASE_URL = getTestAuthBaseUrl();
 const API_BASE = `${BASE_URL}/api`;
@@ -111,7 +112,7 @@ _d('HTTP forward slug entry', () => {
     expect(data).toHaveProperty('message', 'Layer or adapter not found');
   }, 30000);
 
-  test('resolves ambiguous adapter slug deterministically and returns disambiguation note', async () => {
+  testQdrantBackend('resolves ambiguous adapter slug deterministically and returns disambiguation note', async () => {
     expect.hasAssertions();
 
     const targetSlug = `forward-http-ambiguous-${Date.now()}`;

@@ -1,10 +1,11 @@
 import crypto from 'node:crypto';
 import { isHttpTransport } from '../utils/auth-headers.js';
+import { testQdrantBackend } from '../utils/vector-backend.js';
 
 const _d = isHttpTransport() ? describe : describe.skip;
 
 _d('Mem resources boot injection dedupe regression', () => {
-  test('boot injection recovers when app-space already contains duplicate slug entries', async () => {
+  testQdrantBackend('boot injection recovers when app-space already contains duplicate slug entries', async () => {
     const testCollection = `squadrules-test-mem-boot-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     let keyValueStoreForThisTest: { disconnect(): Promise<void> } | undefined;
     let collectionToDelete: string | undefined;

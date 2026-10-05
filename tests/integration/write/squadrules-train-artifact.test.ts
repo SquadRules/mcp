@@ -3,6 +3,7 @@ import { request as httpsRequest } from 'node:https';
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
+import { describeQdrantBackend } from '../../utils/vector-backend.js';
 
 const QDRANT_URL = process.env.QDRANT_URL ?? 'http://localhost:6333';
 const QDRANT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'squadrules';
@@ -38,7 +39,7 @@ function postJson<T>(urlString: string, payload: unknown): Promise<T> {
   });
 }
 
-describe('Train artifact storage and source export', () => {
+describeQdrantBackend('Train artifact storage and source export', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;
 
   beforeAll(async () => {

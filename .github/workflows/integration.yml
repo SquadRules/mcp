@@ -7,6 +7,7 @@
 # verify-ui-primary — static + UI tests, Node 24 only; parallel with build jobs (no tgz); merge gate.
 # verify-ui-advisory — same steps on Node 26; continue-on-error; not in integration-pass needs.
 # verify-integration-primary — Node 24 only; needs build-primary; scenario contracts (e.g. http-auth) follow scripts/deploy-run-env.sh and the workflows README matrix.
+# verify-integration-embedded-simple — Service-free advisory lane: installed package on the embedded LanceDB backend (blanked QDRANT_URL), no Qdrant/Redis/Keycloak/Docker; Node 24; continue-on-error; NOT in integration-pass needs (promote once stable).
 # integration-pass — gates only on Node-24 primary jobs (no advisory UI/build/integration).
 # Container image build/scan/publish is decoupled into SquadRules/containers (not a gate here).
 name: Integration
@@ -740,6 +741,136 @@ jobs:
       - name: Stop Qdrant (binary)
         if: always()
         run: npm run qdrant:binary:stop
+
+  # Service-free lane: SIMPLE mode with all built-in components and NO external data store.
+  # Installs the built package (npm-package-node24) and runs it on the embedded LanceDB backend
+  # by blanking QDRANT_URL (isQdrantConfigured=false). No Qdrant/Redis/Keycloak/Docker is started;
+  # cache is in-memory; auth is off. Only the OpenAI embedding provider stays external (issue #11
+  # will remove even that). Proves `serve` boots on a zero-infrastructure host and that a real
+  # train->activate flow works against the embedded store, including the boot-injected built-in
+  # adapters. ADVISORY first (continue-on-error, not in integration-pass needs) to avoid blocking
+  # merges while it proves stable; promote once green over several runs.
+  verify-integration-embedded-simple:
+    name: Service-free smoke (embedded LanceDB, no Qdrant/Redis, Node 24)
+    needs: [changes, build-primary]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: "Generate .env (base vars)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
+
+      - name: Apply simple profile overrides
+        run: cat .env.dev_simple >> .env
+
+      - name: Force embedded backend (blank QDRANT_URL in .env and the dev_simple profile)
+        run: |
+          set -euo pipefail
+          # Empty QDRANT_URL => isQdrantConfigured=false => embedded LanceDB. Blank it in BOTH
+          # files so the server (.env) and the jest worker (which re-sources .env.dev_simple)
+          # see the same embedded signal, and Qdrant-substrate tests self-skip.
+          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple
+          grep -E '^QDRANT_URL=' .env .env.dev_simple
+
+      - name: Install dependencies
+        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
+
+      - name: Download npm package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: npm-package-node24
+          path: artifact-npm
+
+      - name: Install package from tgz
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
+            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
+
+      - name: Expose installed package dist for CLI tests
+        run: |
+          rm -rf dist
+          cp -R node_modules/@squadrules/mcp/dist ./dist
+
+      - name: Start app (installed package, embedded, no infra started)
+        env:
+          HEALTH_CHECK_ATTEMPTS: 20
+          ENV: dev_simple
+          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
+        run: |
+          set -euo pipefail
+          mkdir -p var/log
+          npm run dev:start:installed > var/log/squadrules-embedded.log 2>&1 &
+          for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
+            curl -sSf http://127.0.0.1:4300/health >/dev/null && break
+            if [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ]; then
+              echo "::error::embedded server did not become healthy"; tail -n 200 var/log/squadrules-embedded.log; exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Assert embedded backend + first-run data dir (no Qdrant present)
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
+        run: |
+          set -euo pipefail
+          health=$(curl -sS http://127.0.0.1:4300/health)
+          echo "$health"
+          echo "$health" | jq -e '.status == "healthy"'                          >/dev/null || { echo "::error::status not healthy"; exit 1; }
+          echo "$health" | jq -e '.dependencies.vectorStore == "healthy"'         >/dev/null || { echo "::error::vectorStore not healthy"; exit 1; }
+          echo "$health" | jq -e '.details.vectorStoreBackend == "embedded-lancedb"' >/dev/null || { echo "::error::backend not embedded-lancedb"; exit 1; }
+          echo "$health" | jq -e '.dependencies | has("qdrant") | not'            >/dev/null || { echo "::error::qdrant key present on embedded"; exit 1; }
+          test -d "${XDG_CONFIG_HOME}/squadrules/lancedb" || { echo "::error::LanceDB first-run data dir not created"; exit 1; }
+          echo "OK: embedded health + LanceDB data dir present"
+
+      - name: Run embedded smoke tests (transport + real train->activate on Lance)
+        env:
+          ENV: dev_simple
+          QDRANT_COLLECTION: squadrules_ci
+          CI: "true"
+        run: |
+          npm run dev_simple:test -- \
+            tests/integration/readonly/mcp-client-connection.test.ts \
+            tests/integration/readonly/mcp-list-tools.test.ts \
+            tests/integration/scenarios/spaces-tool.http-simple.test.ts \
+            tests/integration/readonly/v4-squadrules-activate.test.ts
+
+      - name: Show test failure
+        if: failure()
+        run: |
+          echo "--- embedded app log (tail) ---"
+          tail -n 200 var/log/squadrules-embedded.log 2>/dev/null || true
+          echo "--- last test report (tail) ---"
+          latest=''
+          for report in reports/tests/*.log .local/reports/tests/*.log; do
+            if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then latest=$report; fi
+          done
+          if [ -n "$latest" ]; then tail -n 200 "$latest"; else echo "No test report log found"; fi
+
+      - name: Upload embedded log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: squadrules-embedded-log-node24
+          path: var/log/squadrules-embedded.log
+          if-no-files-found: ignore
 
   # Merge gate: Node 24 primary jobs only (build, UI/static, integration). Node 26 advisory
   # jobs (build-advisory, verify-ui-advisory, verify-integration-advisory) are omitted from
