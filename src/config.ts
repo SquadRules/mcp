@@ -1,9 +1,7 @@
 /**
- * Centralized configuration for environment variables.
- * This file contains all environment variable parsing logic.
- * KEY_VALUE_STORE_URL (or REDIS_URL): when set (non-empty) → key-value backend;
- * when unset or empty → in-memory backend. QDRANT_URL set (non-empty) → Qdrant
- * vector backend; empty/unset → embedded LanceDB (see `isQdrantConfigured`).
+ * Centralized configuration for environment variables; all env parsing lives here.
+ * KEY_VALUE_STORE_URL/REDIS_URL set → key-value backend, else in-memory. QDRANT_URL set
+ * → Qdrant vector backend, else embedded LanceDB (see `isQdrantConfigured`).
  */
 
 import path from 'path';
@@ -72,7 +70,12 @@ export const OPENAI_EMBEDDING_MODEL = getEnvString('OPENAI_EMBEDDING_MODEL', 'te
 /** Base URL for OpenAI API (e.g. https://api.openai.com or Azure endpoint). No trailing slash. */
 export const OPENAI_API_URL = getEnvString('OPENAI_API_URL', 'https://api.openai.com').replace(/\/$/, '');
 export const OPENAI_API_KEY = getEnvString('OPENAI_API_KEY', '');
+/** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'fastembed'. Auto prefers a configured
+ * external provider, else the local fastembed default (issue #11). */
 export const EMBEDDING_PROVIDER = getEnvString('EMBEDDING_PROVIDER', 'auto');
+// FASTEMBED_MODEL / FASTEMBED_CACHE_DIR defaults live in ./config/embedding-fastembed.ts (max-lines).
+export { FASTEMBED_MODEL, FASTEMBED_CACHE_DIR } from './config/embedding-fastembed.js';
+// DEPRECATED (issue #11): TEI kept functional as an opt-in alternative; emits a startup warning.
 export const TEI_BASE_URL = getEnvString('TEI_BASE_URL', '');
 export const TEI_MODEL = getEnvString('TEI_MODEL', 'Alibaba-NLP/gte-large-en-v1.5');
 export const TEI_API_KEY = getEnvString('TEI_API_KEY', '');

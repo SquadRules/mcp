@@ -7,7 +7,7 @@
 # verify-ui-primary — static + UI tests, Node 24 only; parallel with build jobs (no tgz); merge gate.
 # verify-ui-advisory — same steps on Node 26; continue-on-error; not in integration-pass needs.
 # verify-integration-primary — Node 24 only; needs build-primary; scenario contracts (e.g. http-auth) follow scripts/deploy-run-env.sh and the workflows README matrix.
-# verify-integration-embedded-simple — Service-free advisory lane: installed package on the embedded LanceDB backend (blanked QDRANT_URL), no Qdrant/Redis/Keycloak/Docker; Node 24; continue-on-error; NOT in integration-pass needs (promote once stable).
+# verify-integration-embedded-simple — Service-free advisory lane: installed package on the embedded LanceDB backend (blanked QDRANT_URL), key-free embedding via the local fastembed default (no OPENAI_API_KEY), no Qdrant/Redis/Keycloak/Docker; Node 24; continue-on-error; NOT in integration-pass needs (promote once stable).
 # integration-pass — gates only on Node-24 primary jobs (no advisory UI/build/integration).
 # Container image build/scan/publish is decoupled into SquadRules/containers (not a gate here).
 name: Integration
@@ -755,7 +755,9 @@ jobs:
     needs: [changes, build-primary]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # fastembed cold boot (model download + CPU ONNX injection of shipped adapters) plus the
+    # real train->activate smoke tests are far slower than the old near-instant OpenAI path.
+    timeout-minutes: 20
     continue-on-error: true
     steps:
       - name: Checkout
@@ -772,15 +774,19 @@ jobs:
           node-version: "24"
           cache: "npm"
 
-      - name: "Generate .env (base vars)"
+      - name: "Generate .env (base vars, key-free)"
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # The fullstack .env generator validates every SECRET_KEYS (incl. OPENAI_API_KEY) is
+          # non-empty after writing. Supply a throwaway value ONLY so generation passes; the next
+          # step blanks OPENAI_API_KEY and pins EMBEDDING_PROVIDER=fastembed, so the running lane
+          # stays genuinely key-free (no OpenAI call, no inference service).
+          OPENAI_API_KEY: ci-keyfree-placeholder
         run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
 
       - name: Apply simple profile overrides
         run: cat .env.dev_simple >> .env
 
-      - name: Force embedded backend (blank QDRANT_URL in .env and the dev_simple profile)
+      - name: Force embedded backend + key-free fastembed (blank QDRANT_URL and the OpenAI key)
         run: |
           set -euo pipefail
           # Empty QDRANT_URL => isQdrantConfigured=false => embedded LanceDB. Blank it in BOTH
@@ -788,6 +794,13 @@ jobs:
           # see the same embedded signal, and Qdrant-substrate tests self-skip.
           sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple
           grep -E '^QDRANT_URL=' .env .env.dev_simple
+          # Key-free embedding (issue #11): pin the local fastembed default so no OpenAI key is
+          # required. Strip the generated OPENAI_API_KEY and override the template's full-stack
+          # EMBEDDING_PROVIDER=openai, which would otherwise make the boot probe throw on a miss key.
+          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
+          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
+          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::embedded lane must not select an external provider"; exit 1; fi
 
       - name: Install dependencies
         run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
@@ -811,7 +824,12 @@ jobs:
 
       - name: Start app (installed package, embedded, no infra started)
         env:
-          HEALTH_CHECK_ATTEMPTS: 20
+          # The HTTP server binds only AFTER boot injection trains every shipped mem adapter
+          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). On a cold
+          # CI runner each adapter's embeddings run through CPU ONNX (~10s), so boot can take a
+          # few minutes vs the old near-instant OpenAI path. Generous cap; the loop `break`s on
+          # the first healthy response, so a fast boot costs nothing extra.
+          HEALTH_CHECK_ATTEMPTS: 120
           ENV: dev_simple
           XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
         run: |
@@ -838,7 +856,8 @@ jobs:
           echo "$health" | jq -e '.details.vectorStoreBackend == "embedded-lancedb"' >/dev/null || { echo "::error::backend not embedded-lancedb"; exit 1; }
           echo "$health" | jq -e '.dependencies | has("qdrant") | not'            >/dev/null || { echo "::error::qdrant key present on embedded"; exit 1; }
           test -d "${XDG_CONFIG_HOME}/squadrules/lancedb" || { echo "::error::LanceDB first-run data dir not created"; exit 1; }
-          echo "OK: embedded health + LanceDB data dir present"
+          test -d "${XDG_CONFIG_HOME}/squadrules/models" || { echo "::error::fastembed model cache dir not created (key-free default not active?)"; exit 1; }
+          echo "OK: embedded health + LanceDB data dir + fastembed model cache present"
 
       - name: Run embedded smoke tests (transport + real train->activate on Lance)
         env:

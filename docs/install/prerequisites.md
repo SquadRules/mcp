@@ -69,6 +69,12 @@ Choose the embedding backend before you populate `.env` or configure Helm
 values. The application needs a text-embedding service to convert text into
 vectors for the active store, and each backend uses a different set of variables.
 
+By default SquadRules embeds **locally** with
+[fastembed](#local-fastembed-default) — no API key and no inference service — so
+simple mode and `npx @squadrules/mcp serve` run with zero external dependencies.
+Configure OpenAI or Ollama only when you want to override that default; TEI is
+deprecated.
+
 ### Why an embedding model?
 
 SquadRules stores adapter and workflow text as vectors in its store. An embedding
@@ -80,8 +86,9 @@ Use a **text embedding** model exposed through an OpenAI-style
 embedding model has a fixed output dimension, so changing models on an existing
 collection can require a vector migration.
 
-These examples use OpenAI `text-embedding-3-small`, Ollama
-`nomic-embed-text`, or a self-hosted TEI endpoint.
+These examples use the local fastembed default, OpenAI
+`text-embedding-3-small`, Ollama `nomic-embed-text`, or a self-hosted (deprecated)
+TEI endpoint.
 
 ### Supported backends
 
@@ -89,9 +96,11 @@ These examples use OpenAI `text-embedding-3-small`, Ollama
 %%{init: {'theme': 'dark'}}%%
 flowchart TB
   Q[Choose one backend]
+  Q --> F[fastembed - default, no key]
   Q --> O[OpenAI]
   Q --> L[Ollama]
-  Q --> T[TEI]
+  Q --> T[TEI - deprecated]
+  F --> E0[none - local, first-run model download]
   O --> E1[OPENAI_API_KEY]
   L --> E2[OPENAI_API_URL + OPENAI_EMBEDDING_MODEL + OPENAI_API_KEY=ollama]
   T --> E3[TEI_BASE_URL]
@@ -99,10 +108,39 @@ flowchart TB
   classDef a fill:#0d6b48,stroke:#0a5a3c,color:#f0f6fc
   classDef b fill:#0e7b6e,stroke:#0a5c52,color:#f0f6fc
   classDef c fill:#9e6a03,stroke:#bf8700,color:#f0f6fc
+  classDef d fill:#2b6cb0,stroke:#2c5282,color:#f0f6fc
+  class F,E0 d
   class O,E1 a
   class L,E2 b
   class T,E3 c
 ```
+
+---
+
+### Local fastembed (default)
+
+With no external provider configured, SquadRules embeds **locally** using
+[fastembed](https://github.com/qdrant/fastembed) (`BAAI/bge-base-en-v1.5`, 768
+dimensions). It needs **no API key and no inference service**, which is why
+simple mode and `npx @squadrules/mcp serve` run with zero external dependencies.
+
+```ini
+# No configuration required for the default. Override only if needed:
+# FASTEMBED_MODEL=fast-bge-base-en-v1.5
+# FASTEMBED_CACHE_DIR=/custom/path   # default: <config dir>/models
+```
+
+- On first use fastembed downloads the model weights into a shared per-user
+  cache directory (`$XDG_CONFIG_HOME/squadrules/models`, or
+  `%APPDATA%\squadrules\models` on Windows) — the sibling of the embedded
+  LanceDB data dir.
+- The download is performed by fastembed's own downloader and **needs network
+  access on first run**. Air-gapped installs must pre-seed that cache directory.
+- The 768-d vectors differ in size from OpenAI `text-embedding-3-small` (1536)
+  and TEI models, so switching providers on an existing collection can require a
+  vector migration.
+- Leave `EMBEDDING_PROVIDER=auto` (the default) and provide no external
+  credentials to use it, or set `EMBEDDING_PROVIDER=fastembed` to pin it.
 
 ---
 
@@ -189,6 +227,11 @@ Qdrant migration.
 ---
 
 ### TEI
+
+> **Deprecated (issue #11).** TEI remains functional but is soft-deprecated.
+> Prefer the local fastembed default, OpenAI, or Ollama. A one-time startup
+> warning is emitted when TEI is selected; removal is planned as a future
+> breaking change.
 
 Use TEI when you already operate a text-embedding inference service.
 

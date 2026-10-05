@@ -1,3 +1,6 @@
+# DEPRECATED: @squadrules/mcp is an npm-only package. Container images are built in
+# SquadRules/containers from the published npm package. Retained for reference pending
+# Docker cleanup; do not extend.
 # Compose with Docker named volumes (default). No VOLUME_LOCAL_PATH required.
 # Alternative: compose-dir-volumes.yaml uses host dirs (bind mounts).
 #

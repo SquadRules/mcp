@@ -1,8 +1,8 @@
 import { logger } from '../../utils/structured-logger.js';
 import { OPENAI_API_KEY, EMBEDDING_PROVIDER, TEI_BASE_URL, TEI_MODEL, TEI_API_KEY, EMBEDDING_MAX_RETRIES, EMBEDDING_RETRY_BASE_DELAY_MS, EMBEDDING_RETRY_MAX_DELAY_MS, EMBEDDING_RETRY_AFTER_CAP_MS, EMBEDDING_RETRY_BUDGET_MS } from '../../config.js';
 import { OPENAI_EMBEDDING_MODEL, OPENAI_ENDPOINT, TEI_EMBEDDING_ENDPOINT, setResolvedEmbeddingDimension } from './config.js';
-import { getRequestIdFromStorage, getTenantId } from '../../utils/tenant-context.js';
-import { structuredLogger } from '../../utils/structured-logger.js';
+import { auditProviderCall } from './provider-audit.js';
+import { postEmbeddingsFastEmbed } from './fastembed-provider.js';
 
 function sleep(ms: number): Promise<void> { return new Promise((resolve) => setTimeout(resolve, ms)); }
 const RETRIABLE_NETWORK_TOKENS = ['fetch failed', 'timed out', 'econnreset', 'econnrefused', 'enotfound', 'eai_again'];
@@ -88,24 +88,6 @@ async function fetchWithRetries(url: string, init: RequestInit, provider: 'opena
         }
     }
     throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
-type AuditPayload = { provider: 'openai' | 'tei'; model: string; status: 'success' | 'error'; inputCount: number; inputCharLength: number; outputDimension: number; latencyMs: number; httpStatus?: number; errorMessage?: string };
-function auditProviderCall(payload: AuditPayload): void {
-    structuredLogger.info({
-        category: 'audit.embedding',
-        stage: 'provider',
-        provider: payload.provider,
-        model: payload.model,
-        tenant_id: getTenantId(),
-        request_id: getRequestIdFromStorage(),
-        status: payload.status,
-        input_count: payload.inputCount,
-        input_char_length: payload.inputCharLength,
-        output_dimension: payload.outputDimension,
-        latency_ms: payload.latencyMs,
-        ...(payload.httpStatus !== undefined && { http_status: payload.httpStatus }),
-        ...(payload.errorMessage && { error_message: payload.errorMessage })
-    }, `Embedding provider ${payload.provider} ${payload.status}`);
 }
 async function postEmbeddingsOpenAI(input: string[] | string): Promise<number[][]> {
     if (!OPENAI_API_KEY || !OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_API_KEY and OPENAI_EMBEDDING_MODEL to be configured');
@@ -300,31 +282,46 @@ async function postEmbeddingsTEI(input: string[] | string): Promise<number[][]> 
 }
 async function postEmbeddings(input: string[] | string): Promise<number[][]> {
     // Choose provider based on explicit ENV override or auto-discovery
-    const providerPref = EMBEDDING_PROVIDER; // 'auto' | 'openai' | 'tei'
+    const providerPref = EMBEDDING_PROVIDER; // 'auto' | 'openai' | 'tei' | 'fastembed'
     if (providerPref === 'openai') {
         if (!OPENAI_API_KEY || !OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_API_KEY and OPENAI_EMBEDDING_MODEL to be configured');
         return await postEmbeddingsOpenAI(input);
     }
     if (providerPref === 'tei') {
         if (!TEI_BASE_URL || !TEI_MODEL) throw new Error('TEI requires TEI_BASE_URL and TEI_MODEL to be configured');
+        warnTeiDeprecated();
         return await postEmbeddingsTEI(input);
     }
-    // Auto detection: prefer OpenAI if both OPENAI vars present, otherwise TEI
+    if (providerPref === 'fastembed') {
+        return await postEmbeddingsFastEmbed(input);
+    }
+    // Auto detection: prefer OpenAI if both OPENAI vars present, otherwise TEI,
+    // otherwise fall back to the local fastembed default (no key, no service).
     if (OPENAI_API_KEY && OPENAI_EMBEDDING_MODEL) {
         try {
             return await postEmbeddingsOpenAI(input);
         } catch (err) {
             logger.warn('[EmbeddingService] OpenAI failed, attempting TEI fallback: ' + (err instanceof Error ? err.message : String(err)));
             if (TEI_BASE_URL && TEI_MODEL) {
+                warnTeiDeprecated();
                 return await postEmbeddingsTEI(input);
             }
             throw err;
         }
     }
     if (TEI_BASE_URL && TEI_MODEL) {
+        warnTeiDeprecated();
         return await postEmbeddingsTEI(input);
     }
-    throw new Error('No embedding provider configured (OPENAI_API_KEY+OPENAI_EMBEDDING_MODEL or TEI_BASE_URL+TEI_MODEL required)');
+    return await postEmbeddingsFastEmbed(input);
 }
 
-export { postEmbeddings, postEmbeddingsOpenAI, postEmbeddingsTEI };
+/** One-time (per process) TEI soft-deprecation notice. Removal is a later breaking change. */
+let teiDeprecationWarned = false;
+function warnTeiDeprecated(): void {
+    if (teiDeprecationWarned) return;
+    teiDeprecationWarned = true;
+    logger.warn('[EmbeddingService] TEI provider is deprecated (issue #11) and will be removed in a future release. OpenAI/Ollama or the local fastembed default are the supported alternatives.');
+}
+
+export { postEmbeddings, postEmbeddingsOpenAI, postEmbeddingsTEI, postEmbeddingsFastEmbed };

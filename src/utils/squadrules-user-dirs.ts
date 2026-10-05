@@ -59,3 +59,16 @@ export function getSquadrulesSkillInstallDirForSlug(slug: string, env: NodeJS.Pr
   const safe = slug.replace(/[/\\]/g, '_');
   return join(getSquadrulesSkillsInstallBaseDir(env), safe);
 }
+
+/**
+ * Base directory for locally downloaded embedding-model artifacts (fastembed ONNX
+ * weights), under the same tree as CLI config and the embedded LanceDB store.
+ * Passed to `fastembed` as its `cacheDir`; fastembed owns fetching/verification
+ * inside this directory. Created on demand by the downloader, so like the skills
+ * base this helper does not `mkdir` eagerly.
+ * - Windows: `%APPDATA%\squadrules\models`
+ * - Unix: `$XDG_CONFIG_HOME/squadrules/models` or `~/.config/squadrules/models`
+ */
+export function getSquadrulesModelsDir(env: NodeJS.ProcessEnv = process.env): string {
+  return join(getSquadrulesConfigDir(env), 'models');
+}

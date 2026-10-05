@@ -1,4 +1,8 @@
 #!/bin/sh
+# DEPRECATED: Docker stdio entrypoint (copied in by Dockerfile.stdio only). @squadrules/mcp
+# is an npm-only package; container images build in SquadRules/containers from the published
+# npm package, and `npx @squadrules/mcp serve` needs no OPENAI_API_KEY (local fastembed is the
+# default). Retained for reference pending Docker cleanup; do not extend.
 set -eu
 
 if [ -z "${OPENAI_API_KEY:-}" ]; then

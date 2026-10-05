@@ -12,10 +12,10 @@ codebase and configuration model.
   stdin/stdout and does not start an HTTP listener: no `/health`, `/api`, `/ui`, or `/mcp` over HTTP.
 - **Qdrant is optional now.** An embedded LanceDB store is the default (see
   *Vector store backends* below). Qdrant is used only when `QDRANT_URL` is set.
-- **Embedding provider is always required.** Search and training (store) depend on a
-  working embedding backend (OpenAI-compatible or TEI-compatible). The embedded
-  LanceDB default does not change this — embeddings still come from the configured
-  provider.
+- **An embedding backend is required, but no longer needs a key or service.** Search and
+  training (store) depend on embeddings. By default they are produced **locally** with
+  fastembed (see *Embedding backends* below), so simple mode and `npx ... serve` need no
+  `OPENAI_API_KEY` and no inference service. OpenAI/Ollama remain opt-in alternatives.
 - **Redis is optional, but the no-Redis path is in-process only.** When
   `REDIS_URL` is empty, caches and proof-of-work state live in the local memory
   store. That is suitable for single-process/local use, not shared multi-process
@@ -58,6 +58,29 @@ non-empty `QDRANT_URL`:
   `POST /api/snapshot`) are gated to run only when `QDRANT_URL` is set, so they report
   as skipped under embedded LanceDB. The equivalent behavior is covered by
   backend-neutral API-level tests that run on both backends.
+
+## Embedding backends
+
+Embeddings default to **local fastembed** (`BAAI/bge-base-en-v1.5`, 768 dims) when no
+external provider is configured; OpenAI (including Ollama via `OPENAI_API_URL`) and TEI
+are opt-in alternatives. See [install/prerequisites.md#embedding-backend](install/prerequisites.md#embedding-backend)
+for configuration.
+
+- **First run downloads the model.** fastembed's own downloader fetches the ONNX weights
+  into a shared per-user cache dir (`<config dir>/models`, sibling of the LanceDB data
+  dir). This needs network on first use; **air-gapped installs must pre-seed that
+  directory**. `FASTEMBED_MODEL` / `FASTEMBED_CACHE_DIR` override the model and location.
+- **Model dimensions are a migration boundary.** fastembed is 768-d, OpenAI
+  `text-embedding-3-small` is 1536-d, and TEI models vary. Changing the provider on an
+  existing collection can require a vector migration because stored vectors are fixed-size.
+- **Deferred limitation — download integrity and cross-instance races.** The download is
+  delegated to fastembed, so this release does **not** verify a boot checksum, does not
+  lock the cache across instances, and does not atomically move a completed download. Two
+  `npx` processes cold-starting at once against a fresh cache dir could race it. Accepted
+  deliberately for a young, low-traffic project; revisit — or file improvements upstream
+  with fastembed — if corruption or races surface.
+- **TEI is deprecated (issue #11).** It remains functional but emits a one-time startup
+  warning; removal is planned as a future breaking change.
 
 ## Auth and client limitations
 

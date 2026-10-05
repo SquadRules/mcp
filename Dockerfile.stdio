@@ -1,3 +1,6 @@
+# DEPRECATED: @squadrules/mcp is an npm-only package. Container images are built in
+# SquadRules/containers from the published npm package. Retained for reference pending
+# Docker cleanup; do not extend.
 FROM qdrant/qdrant:v1.19.1@sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10 AS qdrant
 
 FROM node:26-bookworm-slim@sha256:662933cf47f013bc8e4beb31a6116448427a82057ba7c42c97e4c5ba766504c2

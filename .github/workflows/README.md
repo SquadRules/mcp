@@ -55,7 +55,7 @@ Node 24 is the merge-gating runtime. One Node Current lane is advisory and exclu
 - `verify-ui-primary` runs static checks, Knip and UI tests alongside the build.
 - `verify-integration-primary` installs the tested tgz and runs the full AUTH suite after infrastructure startup.
 - `verify-integration-simple-smoke` and `verify-integration-stdio-smoke` consume the same tgz for transport coverage without repeating the full embedding-intensive suite.
-- `verify-integration-embedded-simple` is a service-free advisory lane: it installs the tested tgz, blanks `QDRANT_URL` so the server runs the embedded LanceDB backend (no Qdrant, Redis, Keycloak or Docker), asserts `/health` reports `embedded-lancedb`, and runs transport smoke plus one real `train→activate` flow against the embedded store. It is `continue-on-error` and excluded from `integration-pass` until it proves stable.
+- `verify-integration-embedded-simple` is a service-free advisory lane: it installs the tested tgz, blanks `QDRANT_URL` so the server runs the embedded LanceDB backend and pins `EMBEDDING_PROVIDER=fastembed` so embeddings are key-free (local fastembed, no `OPENAI_API_KEY`) — no Qdrant, Redis, Keycloak or Docker — asserts `/health` reports `embedded-lancedb` and that the fastembed model cache dir is created, and runs transport smoke plus one real `train→activate` flow against the embedded store. It is `continue-on-error` and excluded from `integration-pass` until it proves stable.
 - `integration-pass` requires all applicable primary jobs; advisory failures never hide a primary failure.
 
 Generated embedded resources may change in the build workspace. They are included in the tested package, never committed back during CI. Every checkout in a run uses the same immutable event revision.

@@ -1,3 +1,6 @@
+# DEPRECATED: @squadrules/mcp is an npm-only package. Container images are built in
+# SquadRules/containers from the published npm package. Retained for reference pending
+# Docker cleanup; do not extend.
 # Local dev: build from source (no npm publish required).
 # Use: docker build -f Dockerfile.dev -t squadrules-mcp:dev .
 # Release images use Dockerfile and install from npm.
