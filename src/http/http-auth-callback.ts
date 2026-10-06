@@ -123,7 +123,7 @@ export function setupAuthCallback(app: express.Express): void {
     if (!AUTH_ENABLED || !KEYCLOAK_URL || !SESSION_SECRET || !AUTH_CALLBACK_BASE_URL) {
       res.status(503).json({
         error: 'Auth not configured',
-        message: 'AUTH_ENABLED, KEYCLOAK_URL, SESSION_SECRET, and AUTH_CALLBACK_BASE_URL are required. Set in .env (see docs/install/README.md).'
+        message: 'AUTH_ENABLED, KEYCLOAK_URL, SESSION_SECRET, and AUTH_CALLBACK_BASE_URL are required. Set in .env or the process environment (see docs/keycloak/README.md).'
       });
       return;
     }

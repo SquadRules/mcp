@@ -33,9 +33,9 @@ DEMO_PASSWORD="${DEMO_PASSWORD:-demo}"
 REALM="${REALM:-squadrules-dev}"
 
 # Resolve Keycloak container (compose project from ROOT_DIR)
-CONTAINER=$(docker compose -p squadrules-mcp --env-file .env -f compose.yaml ps -q keycloak 2>/dev/null || true)
+CONTAINER=$(docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml ps -q keycloak 2>/dev/null || true)
 if [ -z "$CONTAINER" ]; then
-  echo "ERROR: Keycloak container not running. Start with: docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d" >&2
+  echo "ERROR: Keycloak container not running. Start with: docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d" >&2
   exit 1
 fi
 

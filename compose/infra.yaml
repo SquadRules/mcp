@@ -1,14 +1,14 @@
-# DEPRECATED: @squadrules/mcp is an npm-only package. Container images are built in
-# SquadRules/containers from the published npm package. Retained for reference pending
-# Docker cleanup; do not extend.
-# Compose with Docker named volumes (default). No VOLUME_LOCAL_PATH required.
-# Alternative: compose-dir-volumes.yaml uses host dirs (bind mounts).
+# Infrastructure services for CI integration tests and devcontainer.
+# The app itself runs via npm on the host (or inside the devcontainer);
+# no app service is defined here. @squadrules/mcp is an npm-only package;
+# container images are built in SquadRules/containers from the published
+# npm package.
 #
-# Default (mini): Qdrant + app only. No profile needed.
-#   docker compose -p squadrules-mcp up -d
+# Default (mini): Qdrant only. No profile needed.
+#   docker compose -p squadrules-mcp -f compose/infra.yaml up -d
 # Fullstack: add Valkey, Postgres, Keycloak (use with fullstack .env).
-#   docker compose -p squadrules-mcp --profile fullstack up -d
-# Optional UI (only with fullstack): docker compose -p squadrules-mcp --profile fullstack --profile infra-ui up -d
+#   docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack up -d
+# Optional UI (only with fullstack): docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack --profile infra-ui up -d
 
 services:
   valkey:
@@ -62,7 +62,7 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
     env_file:
-      - .env
+      - ../.env
     environment:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6534
@@ -89,7 +89,7 @@ services:
       - fullstack
     image: postgres:18.3-alpine3.22@sha256:af27ebd3413839ccfdcdf88e91ca76ad82117e52192067b76de9bb5be7ea6e04
     env_file:
-      - .env
+      - ../.env
     environment:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
@@ -113,7 +113,7 @@ services:
     profiles:
       - fullstack
     env_file:
-      - .env
+      - ../.env
     image: quay.io/keycloak/keycloak:26.5.4@sha256:ae8efb0d218d8921334b03a2dbee7069a0b868240691c50a3ffc9f42fabba8b4
     depends_on:
       postgres:
@@ -140,41 +140,21 @@ services:
       - squadrules-network
     restart: unless-stopped
 
-  app-prod:
-    image: quay.io/squadrules/mcp:v4.8.6
-    #pull_policy: always
-    labels:
-      - "environment=prod"
-    env_file:
-      - .env
-    ports:
-      - "${SERVER_PORT:-3000}:${SERVER_PORT:-3000}"
-      - "${METRICS_PORT:-9090}:${METRICS_PORT:-9090}"
-    environment:
-      # Container must reach Qdrant by service name
-      - QDRANT_URL=http://qdrant:6333
-      - SERVER_PORT=${SERVER_PORT:-3000}
-      - TRANSPORT_TYPE=http
-      - METRICS_PORT=${METRICS_PORT:-9090}
-      # Snapshot backup dir (volume mount); omit to disable backup (503 on POST /api/snapshot)
-      - QDRANT_SNAPSHOT_DIR=/snapshots
-      # KEY_VALUE_STORE_URL/REDIS_URL and KEYCLOAK_INTERNAL_URL from .env (set for fullstack; omit for mini)
+  # Minimal dev tooling container for devcontainer.json `service` target.
+  # Provides Docker CLI + socket access so the devcontainer can manage
+  # the infrastructure services above. The Node app runs via npm inside
+  # this container (workspace mounted at /workspace).
+  dev:
+    image: docker:cli
+    pull_policy: missing
+    command: ["sh", "-c", "while ! docker inspect squadrules-mcp-qdrant-1 >/dev/null 2>&1; do sleep 5; done && echo 'infra ready' && sleep infinity"]
     volumes:
-      - snapshots-prod:/snapshots
-    depends_on:
-      qdrant:
-        condition: service_started
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../.env:/workspace/.env:ro
+      - ..:/workspace
+    working_dir: /workspace
     networks:
       - squadrules-network
-    restart: unless-stopped
-    # Health check covering both transports
-    healthcheck:
-      test: >
-        wget --quiet --tries=1 --timeout=5 --spider http://127.0.0.1:$$SERVER_PORT/health || exit 1
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 40s
 
 networks:
   squadrules-network:
@@ -185,4 +165,3 @@ volumes:
   redisinsight-data:
   qdrant-data:
   postgres-data:
-  snapshots-prod:

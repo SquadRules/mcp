@@ -20,13 +20,13 @@ the single source of truth for those topics.
 Sources under `install/` and `CLI.md` are functional inputs consumed by the
 build and tests; keep them build-accurate.
 
-- [Install index](install/README.md) — entry point and diagram
-- [Prerequisites](install/prerequisites.md)
-- [Docker Compose — simple stack](install/docker-compose-simple.md) — Qdrant +
-  app (default profile)
-- [Optional `fullstack` Compose note](install/docker-compose-full-stack.md) —
-  not a Keycloak install guide
-- [Helm deployment](install/helm.md)
+- [Install index](install/README.md) — npm package, CLI, and MCP host configuration
+- [Prerequisites](install/prerequisites.md) — Node, vector-store switch, and
+  embedding-backend selection
+- [Helm deployment](https://github.com/SquadRules/charts) — chart lives in
+  the `SquadRules/charts` repo
+- [Container images](https://github.com/SquadRules/containers) — image
+  pipeline lives in the `SquadRules/containers` repo
 - [CLI reference](CLI.md) — `squadrules`, auth, batch
   training
 - [SquadRules bundles](squadrules-bundles.md) — bundle layout plus export/import paths

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,13 +9,17 @@ describe('compose simple profile interpolation', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'squadrules-compose-simple-'));
 
     try {
-      copyFileSync(join(process.cwd(), 'compose.yaml'), join(tempDir, 'compose.yaml'));
+      // Mirror the repo layout: compose/infra.yaml uses `../.env`, so .env must
+      // live one level above the compose file.
+      const composeDir = join(tempDir, 'compose');
+      mkdirSync(composeDir);
+      copyFileSync(join(process.cwd(), 'compose', 'infra.yaml'), join(composeDir, 'infra.yaml'));
       writeFileSync(
         join(tempDir, '.env'),
-        ['OPENAI_API_KEY=test-openai-key', 'QDRANT_API_KEY=test-qdrant-key', 'AUTH_ENABLED=false'].join('\n')
+        ['OPENAI_API_KEY=test-openai-key', 'QDRANT_API_KEY=test-qdrant-key', 'AUTH_ENABLED=false', ''].join('\n')
       );
 
-      const result = spawnSync('docker', ['compose', '-p', 'squadrules-mcp-test', 'config'], {
+      const result = spawnSync('docker', ['compose', '-p', 'squadrules-mcp-test', '--env-file', join(tempDir, '.env'), '-f', 'compose/infra.yaml', 'config'], {
         cwd: tempDir,
         encoding: 'utf8',
         env: {

@@ -81,7 +81,7 @@ jobs:
         id: docker-infra-cache
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       - name: Load infra Docker images from cache
         if: steps.docker-infra-cache.outputs.cache-hit == 'true'
@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
+          docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
           npm ci &
           pid_npm=$!
@@ -105,7 +105,7 @@ jobs:
         run: |
           mkdir -p .cache/docker-infra
           # Only save images for services we start (valkey, qdrant, postgres, keycloak); config --images includes app image which is not pulled
-          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
+          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
           docker save -o .cache/docker-infra/images.tar "${images[@]}"
 
       - name: Cache infra Docker images
@@ -113,7 +113,7 @@ jobs:
         if: steps.docker-infra-cache.outputs.cache-hit != 'true'
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       # Keep artifact outside ./dist — integration tests expect ./dist/cli/index.js (see tests/integration/cli-commands-shared.ts).
       - name: Download npm package artifact
