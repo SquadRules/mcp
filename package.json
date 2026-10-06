@@ -125,7 +125,8 @@
     "test:package-local": "npm run build:tgz && npm run test:tgz",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.ui.json",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "release:verify-version": "node scripts/ci-verify-release-version.mjs"
   },
   "dependencies": {
     "@exodus/bytes": "^1.15.0",
