@@ -8,16 +8,6 @@ export const commitOptions = {
   ],
 };
 
-export const releaseGitAssets = [
-  'package.json',
-  'package-lock.json',
-  'compose.yaml',
-  '.agents/skills/**/SKILL.md',
-  '.agents/skills/**/references/SQUADRULES.md',
-  'src/embed-docs/mem/*.md',
-  'src/resources/embedded-mcp-resources.ts',
-];
-
 export default {
   branches: ['main'],
   repositoryUrl: 'https://github.com/SquadRules/mcp.git',
@@ -30,12 +20,8 @@ export default {
     ['@semantic-release/exec', {
       prepareCmd: 'npm run version:sync && npm run release:verify-version -- ${nextRelease.version} && npm run test:tgz && npm sbom --omit=dev --sbom-format cyclonedx > artifacts/npm-sbom.json',
     }],
-    ['@semantic-release/git', {
-      assets: releaseGitAssets,
-      message: 'chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}',
-    }],
-    // semantic-release computes gitHead before prepare; retarget the tag to the
-    // release commit that @semantic-release/git just created.
+    // Commit the synchronized source, push it to main and retarget the pending
+    // semantic-release tag to that release commit.
     './scripts/semantic-release-source-head.mjs',
     ['@semantic-release/github', {
       assets: ['artifacts/*.tgz', 'artifacts/npm-sbom.json'],
