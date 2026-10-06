@@ -81,17 +81,17 @@ assert.deepEqual(config.branches, ['main']);
 assert.deepEqual(config.plugins.map(pluginName), [
   '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
   '@semantic-release/npm', '@semantic-release/exec',
-  './scripts/semantic-release-source-head.mjs', '@semantic-release/github',
+  './scripts/semantic-release-persist-source.mjs', '@semantic-release/github',
 ]);
 const npmPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/npm');
 const execPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/exec');
-const sourceHeadPluginIndex = config.plugins.findIndex(p => pluginName(p) === './scripts/semantic-release-source-head.mjs');
+const sourceHeadPluginIndex = config.plugins.findIndex(p => pluginName(p) === './scripts/semantic-release-persist-source.mjs');
 assert.ok(npmPluginIndex < execPluginIndex && execPluginIndex < sourceHeadPluginIndex,
   'npm must version, repo files must sync/verify, then source must persist before tagging');
 const execPlugin = config.plugins[execPluginIndex][1];
 assert.match(execPlugin.prepareCmd, /npm run version:sync/);
 assert.match(execPlugin.prepareCmd, /npm run release:verify-version/);
-const sourceHook = readFileSync('scripts/semantic-release-source-head.mjs', 'utf8');
+const sourceHook = readFileSync('scripts/semantic-release-persist-source.mjs', 'utf8');
 for (const invariant of [
   'package\\.json', 'package-lock\\.json', 'compose\\.yaml',
   'src\\/embed-docs\\/mem', 'src\\/resources\\/embedded-mcp-resources',
