@@ -80,27 +80,26 @@ const pluginName = plugin => Array.isArray(plugin) ? plugin[0] : plugin;
 assert.deepEqual(config.branches, ['main']);
 assert.deepEqual(config.plugins.map(pluginName), [
   '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
-  '@semantic-release/npm', '@semantic-release/exec', '@semantic-release/git',
+  '@semantic-release/npm', '@semantic-release/exec',
   './scripts/semantic-release-source-head.mjs', '@semantic-release/github',
 ]);
 const npmPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/npm');
 const execPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/exec');
-const gitPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/git');
 const sourceHeadPluginIndex = config.plugins.findIndex(p => pluginName(p) === './scripts/semantic-release-source-head.mjs');
-assert.ok(npmPluginIndex < execPluginIndex && execPluginIndex < gitPluginIndex && gitPluginIndex < sourceHeadPluginIndex,
-  'npm must version, repo files must sync/verify, git must commit, then the tag head must retarget');
+assert.ok(npmPluginIndex < execPluginIndex && execPluginIndex < sourceHeadPluginIndex,
+  'npm must version, repo files must sync/verify, then source must persist before tagging');
 const execPlugin = config.plugins[execPluginIndex][1];
 assert.match(execPlugin.prepareCmd, /npm run version:sync/);
 assert.match(execPlugin.prepareCmd, /npm run release:verify-version/);
-const gitPlugin = config.plugins[gitPluginIndex][1];
-for (const asset of [
-  'package.json', 'package-lock.json', 'compose.yaml',
-  '.agents/skills/**/SKILL.md', '.agents/skills/**/references/SQUADRULES.md',
-  'src/embed-docs/mem/*.md', 'src/resources/embedded-mcp-resources.ts',
+const sourceHook = readFileSync('scripts/semantic-release-source-head.mjs', 'utf8');
+for (const invariant of [
+  'package\\.json', 'package-lock\\.json', 'compose\\.yaml',
+  'src\\/embed-docs\\/mem', 'src\\/resources\\/embedded-mcp-resources',
 ]) {
-  assert.ok(gitPlugin.assets.includes(asset), `Release commit must persist ${asset}`);
+  assert.match(sourceHook, new RegExp(invariant), `Release source hook must cover ${invariant}`);
 }
-assert.match(gitPlugin.message, /\[skip ci\]/, 'Release commit must not recursively trigger CI');
+assert.match(sourceHook, /\[skip ci\]/, 'Release commit must not recursively trigger CI');
+assert.match(sourceHook, /nextRelease\.gitHead = head/, 'Release tag must target persisted source commit');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
 assert.equal(pkg.scripts.prepack, 'npm run build');
