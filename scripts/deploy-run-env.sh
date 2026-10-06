@@ -585,8 +585,18 @@ test() {
             fi
 
             # Isolated CLI config for test run (CLI uses XDG_CONFIG_HOME; tests must not set it).
-            CLI_CONFIG_DIR="$(mktemp -d)"
+            # TEST_XDG_CONFIG_HOME pins ONE dir instead of a throwaway: an embedded-LanceDB run has
+            # to share a single store between the long-lived server and the stdio children Jest
+            # spawns, otherwise every child opens a fresh empty store and re-embeds at boot.
+            # Unset (local dev default) keeps the throwaway isolation, so tests never touch the
+            # developer's real ~/.config/squadrules.
+            CLI_CONFIG_DIR="${TEST_XDG_CONFIG_HOME:-$(mktemp -d)}"
             export XDG_CONFIG_HOME="$CLI_CONFIG_DIR"
+            # fastembed weights live under $XDG_CONFIG_HOME/squadrules/models, so the throwaway config
+            # dir above would make every run re-download hundreds of MB of ONNX weights. Pin the
+            # weights cache to the shared per-user models dir instead: config stays isolated, the
+            # (large, immutable, content-addressed) model cache is reused. CI caches the same path.
+            export FASTEMBED_CACHE_DIR="${FASTEMBED_CACHE_DIR:-${HOME:-/root}/.config/squadrules/models}"
             # Forward env so globalSetup and tests see same vars as server (Jest may run globalSetup in a separate process).
             export ENV="${ENV:-dev}"
             export SERVER_PORT="${SERVER_PORT:-3300}"

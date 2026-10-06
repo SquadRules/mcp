@@ -11,6 +11,7 @@ import { ALLOWED_ARTIFACT_MIMES } from '../../tools/artifact-mime.js';
 import { initializeQdrantStore } from './store-init.js';
 import { MemoryQdrantStoreAdapter } from './store-adapter.js';
 import type { StoreArtifactOptions } from './store-adapter.js';
+import { getPayloadAdapterVersion } from './memory-accessors.js';
 import type { LayerRecord } from '../vector-store/types.js';
 
 // `DEFAULT_COLLECTION` is env-driven with a built-in default (never throws), so it
@@ -200,9 +201,10 @@ export class MemoryQdrantStore {
       with_payload: true,
       with_vector: false
     } as Parameters<QdrantClient['scroll']>[1]);
-    const payload = page?.points?.[0]?.payload as Record<string, unknown> | undefined;
-    const version = payload?.['protocol_version'];
-    return typeof version === 'string' ? version : undefined;
+    // Writers carry the version inside `adapter`; the shared accessor keeps the depth rule in
+    // one place for both backends (docs/adr/0002).
+    const payload = page?.points?.[0]?.payload;
+    return getPayloadAdapterVersion(payload);
   }
 
   /** Attach a payload patch (e.g. content_sha256) to a set of layer points. */

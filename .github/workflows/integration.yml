@@ -1,14 +1,14 @@
 name: Integration
 
+# No secrets: every lane embeds with the local fastembed default (docs/adr/0004), so CI needs no
+# OpenAI key at all. `verify-openai-key.yml` is the only OpenAI surface left and it is a manual
+# diagnostic, not a test lane.
 on:
   pull_request:
     branches: [main]
   merge_group:
   workflow_dispatch:
   workflow_call:
-    secrets:
-      OPENAI_API_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -47,8 +47,10 @@ jobs:
           path: artifacts/*.tgz
           if-no-files-found: error
 
-  verify-integration-primary:
-    name: Infra + dev deploy + integration tests (AUTH on, Node 24)
+  # Cluster mode: the full-suite lane on the Docker fullstack substrate (Qdrant + Valkey/Redis +
+  # Keycloak + Postgres), AUTH on. Gated; see integration-pass.
+  verify-integration-cluster:
+    name: Integration tests (cluster mode, AUTH on, Node 24)
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -86,7 +88,7 @@ jobs:
           sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
           sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
           grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
-          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::primary lane must not select an external provider"; exit 1; fi
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::cluster lane must not select an external provider"; exit 1; fi
 
       - name: Verify .env exists
         run: ls -la .env
@@ -195,7 +197,7 @@ jobs:
       # pins FASTEMBED_MODEL, so changing the model invalidates the cache.
       - name: Restore fastembed model cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: fastembed-model-cache-primary
+        id: fastembed-model-cache-cluster
         with:
           path: ~/.config/squadrules/models
           key: ${{ runner.os }}-fastembed-models-${{ hashFiles('src/config/embedding-fastembed.ts') }}
@@ -204,11 +206,11 @@ jobs:
 
       - name: Start app (from installed package)
         env:
-          # The HTTP server binds only AFTER boot injection trains every shipped mem adapter
-          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). On a cold CI
-          # runner those embeddings run through CPU ONNX, so boot takes minutes vs the near-instant
-          # OpenAI path. Generous cap; the loop breaks on the first healthy response, so a fast
-          # boot costs nothing extra.
+          # The HTTP server binds only AFTER boot injection has trained the shipped mem adapters
+          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). The version
+          # reuse rule (docs/adr/0002) makes a warm store boot near-instantly, but a CI runner is
+          # ephemeral: its store is cold, so every run pays the CPU ONNX embedding of all adapters
+          # (minutes). Generous cap; the loop breaks on the first healthy response.
           HEALTH_CHECK_ATTEMPTS: 120
           KEYCLOAK_INTERNAL_URL: http://localhost:8080
           QDRANT_SNAPSHOT_DIR: var/snapshots
@@ -229,10 +231,10 @@ jobs:
 
       - name: Save fastembed model cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        if: steps.fastembed-model-cache-primary.outputs.cache-hit != 'true'
+        if: steps.fastembed-model-cache-cluster.outputs.cache-hit != 'true'
         with:
           path: ~/.config/squadrules/models
-          key: ${{ steps.fastembed-model-cache-primary.outputs.cache-primary-key }}
+          key: ${{ steps.fastembed-model-cache-cluster.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()
@@ -265,14 +267,20 @@ jobs:
           path: var/log/squadrules.log
           if-no-files-found: ignore
 
-  verify-integration-simple-smoke:
-    # Transport smoke only (HTTP, auth off). The full functional suite runs once on the AUTH
-    # stack (verify-integration-primary); this job just proves the simple/no-auth HTTP stack
-    # boots and serves MCP. Reuses build-primary's tgz (npm-package-node24) — no separate build.
-    name: Transport smoke (SIMPLE mode, HTTP no-auth, Node 24)
+  # Single mode: the zero-infrastructure product path, and now a GATE rather than an advisory lane.
+  # Runs the FULL integration suite twice — once over HTTP against one long-lived app, then over
+  # stdio (each MCP connection spawns its own server process) — on the embedded LanceDB backend,
+  # auth off, with nothing started in Docker. fastembed embeddings only (docs/adr/0004): no
+  # OpenAI key anywhere. Substrate and coverage deltas are recorded in docs/adr/0006.
+  verify-integration-single:
+    name: Integration tests (single mode, AUTH off, Node 24)
     needs: [build]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Two full-suite passes on CPU ONNX. The store is never cached (docs/adr/0003), so the first
+    # process start of each run re-embeds the shipped adapters; every later start (each stdio
+    # child) hits the version-reuse skip (docs/adr/0002) but still pays a model load. Raise this
+    # only with a measured reason.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -288,7 +296,17 @@ jobs:
           node-version: "24"
           cache: "npm"
 
-      # Cost policy (docs/adr/0004): key-free fastembed, same rationale as verify-integration-primary.
+      # One XDG base for the whole job. The app writes the embedded LanceDB store under it, and
+      # TEST_XDG_CONFIG_HOME hands the same dir to the test harness — otherwise deploy-run-env.sh
+      # isolates each run in a throwaway dir, hiding the app's store from the stdio children it
+      # spawns and making every child re-embed from scratch. $HOME/.config is also the product
+      # default, so the fastembed weights keep landing in the path the shared model cache reads.
+      - name: Resolve single-mode config home
+        run: echo "SINGLE_CONFIG_HOME=$HOME/.config" >> "$GITHUB_ENV"
+
+      # Cost policy (docs/adr/0004): the .env generator validates every SECRET_KEYS (incl.
+      # OPENAI_API_KEY) is non-empty after writing, so a throwaway value is supplied ONLY so
+      # generation passes; the guard step below blanks it and pins the local provider.
       - name: "Generate .env (base vars, overridden for simple mode)"
         env:
           OPENAI_API_KEY: ci-keyfree-placeholder
@@ -297,63 +315,33 @@ jobs:
       - name: Apply simple profile overrides
         run: cat .env.dev_simple >> .env
 
-      - name: Force key-free fastembed embeddings
+      - name: Force embedded backend and key-free fastembed
         run: |
           set -euo pipefail
-          # Runs after the profile overlay so nothing re-selects an external provider.
-          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
-          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
-          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
-          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::simple lane must not select an external provider"; exit 1; fi
+          # Blank QDRANT_URL in EVERY file a process reads: .env (the app loads it through dotenv)
+          # and both profiles (the harness sources .env then .env.<ENV>, and stdio children
+          # inherit that environment). Empty => isQdrantConfigured=false => embedded LanceDB, and
+          # Qdrant-substrate suites self-skip via describeQdrantBackend(); the cluster lane covers
+          # them. Runs after the profile overlay so nothing re-selects an external provider.
+          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple .env.dev_stdio
+          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env .env.dev_simple .env.dev_stdio
+          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env .env.dev_simple .env.dev_stdio
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env .env.dev_simple .env.dev_stdio; then
+            echo "::error::single lane must not select an external provider"; exit 1;
+          fi
+          if grep -qE '^QDRANT_URL=.' .env .env.dev_simple .env.dev_stdio; then
+            echo "::error::single lane must run the embedded backend (QDRANT_URL must stay blank)"; exit 1;
+          fi
+          grep -E '^(QDRANT_URL|OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env .env.dev_simple .env.dev_stdio
 
-      - name: Start Qdrant (binary) and npm ci (parallel)
-        run: |
-          set -euo pipefail
-          ec=0
-          QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
-          pid_qdrant=$!
-          npm ci &
-          pid_npm=$!
-          wait $pid_qdrant || ec=1
-          wait $pid_npm || ec=1
-          exit $ec
+      - name: Install dependencies
+        run: npm ci
 
       - name: Download npm package artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: npm-package-node24
           path: artifact-npm
-
-      - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: playwright-cache-simple
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers and wait for Qdrant (parallel)
-        id: playwright-install-simple
-        run: |
-          set -euo pipefail
-          ec=0
-          npx playwright install chromium &
-          pid_pw=$!
-          for i in $(seq 1 30); do
-            curl -sSf http://127.0.0.1:7633/healthz >/dev/null && break
-            [ "$i" -eq 30 ] && ec=1
-            sleep 2
-          done &
-          pid_wait=$!
-          wait $pid_pw || ec=1
-          wait $pid_wait || ec=1
-          exit $ec
-
-      - name: Save Playwright browsers cache
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        if: steps.playwright-cache-simple.outputs.cache-hit != 'true' && steps.playwright-install-simple.outcome == 'success'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Install package from tgz
         run: |
@@ -366,301 +354,61 @@ jobs:
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
+      # Same cache key and path as the cluster lane: one warm weights cache serves both lanes.
       - name: Restore fastembed model cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: fastembed-model-cache-simple
+        id: fastembed-model-cache-single
         with:
           path: ~/.config/squadrules/models
           key: ${{ runner.os }}-fastembed-models-${{ hashFiles('src/config/embedding-fastembed.ts') }}
           restore-keys: |
             ${{ runner.os }}-fastembed-models-
 
-      - name: Start app (from installed package, simple mode)
-        env:
-          # Cold ONNX boot injection (see verify-integration-primary for the mechanism); the loop
-          # breaks on the first healthy response, so a fast boot costs nothing extra.
-          HEALTH_CHECK_ATTEMPTS: 120
-          ENV: dev_simple
-          QDRANT_SNAPSHOT_DIR: var/snapshots
-          QDRANT_COLLECTION: squadrules_ci
-        run: |
-          mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/squadrules-simple.log 2>&1 &
-          for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
-            curl -sSf http://127.0.0.1:4300/health >/dev/null && break
-            [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
-            sleep 2
-          done
+      - name: Restore Playwright browsers cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: playwright-cache-single
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
 
-      - name: Run SIMPLE transport smoke tests
-        env:
-          ENV: dev_simple
-          QDRANT_COLLECTION: squadrules_ci
-        run: |
-          npm run dev_simple:test -- \
-            tests/integration/scenarios/spaces-tool.http-simple.test.ts \
-            tests/integration/readonly/mcp-list-tools.test.ts \
-            tests/integration/readonly/mcp-client-connection.test.ts
+      # The HTTP test pass installs Chromium itself (deploy-run-env.sh test() is idempotent); doing
+      # it here keeps the download out of the test step's clock, as the cluster lane does.
+      - name: Install Playwright browsers
+        id: playwright-install-single
+        run: npx playwright install chromium
 
-      - name: Save fastembed model cache
+      - name: Save Playwright browsers cache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        if: steps.fastembed-model-cache-simple.outputs.cache-hit != 'true'
+        if: steps.playwright-cache-single.outputs.cache-hit != 'true' && steps.playwright-install-single.outcome == 'success'
         with:
-          path: ~/.config/squadrules/models
-          key: ${{ steps.fastembed-model-cache-simple.outputs.cache-primary-key }}
-
-      - name: Show test failure
-        if: failure()
-        run: |
-          echo "--- Last test report (tail) ---"
-          latest=''
-          for report in reports/tests/*.log; do
-            if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then
-              latest=$report
-            fi
-          done
-          if [ -n "$latest" ]; then
-            tail -n 200 "$latest"
-          else
-            echo "No reports/tests/*.log found"
-          fi
-
-      - name: Upload squadrules simple log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-simple-log-node24
-          path: var/log/squadrules-simple.log
-          if-no-files-found: ignore
-
-      - name: Stop Qdrant (binary)
-        if: always()
-        run: npm run qdrant:binary:stop
-
-  verify-integration-stdio-smoke:
-    # Transport smoke only (stdio JSON-RPC). No HTTP server; tests spawn a stdio subprocess.
-    # Reuses build's tgz (npm-package-node24) — no separate build.
-    # EXCEPTION to the key-free fastembed policy (docs/adr/0004): every stdio test spawns its own
-    # server process, and boot injection runs before the transport connects (src/index.ts). With
-    # local ONNX that is minutes PER SPAWN, and the launch smoke test aborts the MCP handshake at
-    # 20s (tests/integration/mode/stdio/stdio-launch-smoke.test.ts), so this lane still uses OpenAI.
-    # Flipping it needs lazy/deferred injection or a per-spawn model reuse — tracked as an issue.
-    name: Transport smoke (STDIO mode, Node 24)
-    needs: [build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: "Generate .env (base vars, overridden for stdio mode)"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 scripts/deploy-generate-dev-secrets.py
-
-      - name: Apply stdio profile overrides
-        run: |
-          set -a
-          [ -f .env.dev_stdio ] && . ./.env.dev_stdio
-          set +a
-          while IFS= read -r line; do
-            key="${line%%=*}"
-            if [ -n "$key" ] && ! grep -q "^${key}=" .env 2>/dev/null; then
-              echo "$line" >> .env
-            fi
-          done < <(grep -v '^#' .env.dev_stdio 2>/dev/null | grep '=')
-
-      - name: Start Qdrant (binary) and npm ci (parallel)
-        run: |
-          set -euo pipefail
-          ec=0
-          QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
-          pid_qdrant=$!
-          npm ci &
-          pid_npm=$!
-          wait $pid_qdrant || ec=1
-          wait $pid_npm || ec=1
-          exit $ec
-
-      - name: Download npm package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: npm-package-node24
-          path: artifact-npm
-
-      - name: Wait for Qdrant
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 30); do
-            curl -sSf http://127.0.0.1:7633/healthz >/dev/null && exit 0
-            sleep 2
-          done
-          exit 1
-
-      - name: Install package from tgz
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          \
-            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
-
-      - name: Expose installed package dist for CLI tests
-        run: |
-          rm -rf dist
-          cp -R node_modules/@squadrules/mcp/dist ./dist
-
-      - name: Run STDIO transport smoke tests
-        env:
-          ENV: dev_stdio
-          QDRANT_COLLECTION: squadrules_simple_ci
-          CI: "true"
-        run: |
-          npm run dev_stdio:test -- \
-            tests/integration/mode/stdio/stdio-launch-smoke.test.ts \
-            tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
-
-      - name: Show test failure
-        if: failure()
-        run: |
-          echo "--- Last test report (tail) ---"
-          latest=''
-          for report in reports/tests/*.log; do
-            if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then
-              latest=$report
-            fi
-          done
-          if [ -n "$latest" ]; then
-            tail -n 200 "$latest"
-          else
-            echo "No reports/tests/*.log found"
-          fi
-
-      - name: Upload squadrules stdio log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-stdio-log-node24
-          path: var/log/squadrules-stdio.log
-          if-no-files-found: ignore
-
-      - name: Stop Qdrant (binary)
-        if: always()
-        run: npm run qdrant:binary:stop
-
-  # Service-free lane: SIMPLE mode with all built-in components and NO external data store.
-  # Installs the built package (npm-package-node24) and runs it on the embedded LanceDB backend
-  # by blanking QDRANT_URL (isQdrantConfigured=false). No Qdrant/Redis/Keycloak/Docker is started;
-  # cache is in-memory; auth is off. Embeddings are key-free on the local fastembed default
-  # (issue #11): no OPENAI_API_KEY is supplied. Proves `serve` boots on a zero-infrastructure host
-  # and that a real train->activate flow works against the embedded store, including the
-  # boot-injected built-in adapters. ADVISORY first (continue-on-error, not in integration-pass
-  # needs) to avoid blocking merges while it proves stable.
-  verify-integration-embedded-simple:
-    name: Service-free smoke (embedded LanceDB, no Qdrant/Redis, Node 24)
-    needs: [build]
-    runs-on: ubuntu-latest
-    # fastembed cold boot (model download + CPU ONNX injection of shipped adapters) plus the
-    # real train->activate smoke tests are far slower than the old near-instant OpenAI path.
-    timeout-minutes: 20
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: "Generate .env (base vars, key-free)"
-        env:
-          # The fullstack .env generator validates every SECRET_KEYS (incl. OPENAI_API_KEY) is
-          # non-empty after writing. Supply a throwaway value ONLY so generation passes; the next
-          # step blanks OPENAI_API_KEY and pins EMBEDDING_PROVIDER=fastembed, so the running lane
-          # stays genuinely key-free (no OpenAI call, no inference service).
-          OPENAI_API_KEY: ci-keyfree-placeholder
-        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
-
-      - name: Apply simple profile overrides
-        run: cat .env.dev_simple >> .env
-
-      - name: Force embedded backend + key-free fastembed (blank QDRANT_URL and the OpenAI key)
-        run: |
-          set -euo pipefail
-          # Empty QDRANT_URL => isQdrantConfigured=false => embedded LanceDB. Blank it in BOTH
-          # files so the server (.env) and the jest worker (which re-sources .env.dev_simple)
-          # see the same embedded signal, and Qdrant-substrate tests self-skip.
-          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple
-          grep -E '^QDRANT_URL=' .env .env.dev_simple
-          # Key-free embedding (issue #11): pin the local fastembed default so no OpenAI key is
-          # required. Strip the generated OPENAI_API_KEY and override the template's full-stack
-          # EMBEDDING_PROVIDER=openai, which would otherwise make the boot probe throw on a miss key.
-          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
-          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
-          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
-          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::embedded lane must not select an external provider"; exit 1; fi
-
-      - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
-
-      - name: Download npm package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: npm-package-node24
-          path: artifact-npm
-
-      - name: Install package from tgz
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
-            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
-
-      - name: Expose installed package dist for CLI tests
-        run: |
-          rm -rf dist
-          cp -R node_modules/@squadrules/mcp/dist ./dist
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Start app (installed package, embedded, no infra started)
         env:
-          # The HTTP server binds only AFTER boot injection trains every shipped mem adapter
-          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). On a cold
-          # CI runner each adapter's embeddings run through CPU ONNX (~10s), so boot can take a
-          # few minutes vs the old near-instant OpenAI path. Generous cap; the loop `break`s on
-          # the first healthy response, so a fast boot costs nothing extra.
+          # Boot injection runs before the HTTP transport binds (src/index.ts). The store is not
+          # cached between runs, so this boot embeds every shipped adapter through CPU ONNX.
           HEALTH_CHECK_ATTEMPTS: 120
           ENV: dev_simple
-          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
+          QDRANT_COLLECTION: squadrules_ci
+          XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
         run: |
           set -euo pipefail
           mkdir -p var/log
-          npm run dev:start:installed > var/log/squadrules-embedded.log 2>&1 &
+          npm run dev:start:installed > var/log/squadrules-single.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:4300/health >/dev/null && break
             if [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ]; then
-              echo "::error::embedded server did not become healthy"; tail -n 200 var/log/squadrules-embedded.log; exit 1
+              echo "::error::single-mode server did not become healthy"
+              tail -n 200 var/log/squadrules-single.log
+              exit 1
             fi
             sleep 2
           done
 
-      - name: Assert embedded backend + first-run data dir (no Qdrant present)
+      - name: Assert embedded backend and first-run data dirs
         env:
-          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
+          XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
         run: |
           set -euo pipefail
           health=$(curl -sS http://127.0.0.1:4300/health)
@@ -673,23 +421,45 @@ jobs:
           test -d "${XDG_CONFIG_HOME}/squadrules/models" || { echo "::error::fastembed model cache dir not created (key-free default not active?)"; exit 1; }
           echo "OK: embedded health + LanceDB data dir + fastembed model cache present"
 
-      - name: Run embedded smoke tests (transport + real train->activate on Lance)
+      # Full suite, no file list (docs/adr/0006): deploy-run-env.sh runs tests/integration/ with
+      # transport- and stack-specific suites self-skipping via isHttpTransport()/AUTH_ENABLED.
+      - name: Run integration tests (HTTP transport, full suite)
         env:
+          CI: "true"
           ENV: dev_simple
           QDRANT_COLLECTION: squadrules_ci
+          TEST_XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
+        run: npm run dev_simple:test
+
+      # The stdio pass spawns its own server processes and LanceDB tolerates one writer per table,
+      # so the long-lived HTTP app must be gone first. dev:start:installed bypasses start(), so no
+      # PID file exists for a stop target — match the process instead.
+      - name: Stop the HTTP app before the stdio pass
+        run: pkill -f "@squadrules/mcp/dist/index.js" || true
+
+      # TRANSPORT_TYPE=stdio comes from .env.dev_stdio; the HTTP-gated suites self-skip, the stdio
+      # suites run, and each spawned server reuses the same store dir (boot injection then hits the
+      # version-reuse skip instead of re-embedding).
+      - name: Run integration tests (stdio transport, full suite)
+        env:
           CI: "true"
-        run: |
-          npm run dev_simple:test -- \
-            tests/integration/readonly/mcp-client-connection.test.ts \
-            tests/integration/readonly/mcp-list-tools.test.ts \
-            tests/integration/scenarios/spaces-tool.http-simple.test.ts \
-            tests/integration/readonly/v4-squadrules-activate.test.ts
+          ENV: dev_stdio
+          QDRANT_COLLECTION: squadrules_ci
+          TEST_XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
+        run: npm run dev_stdio:test
+
+      - name: Save fastembed model cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        if: steps.fastembed-model-cache-single.outputs.cache-hit != 'true'
+        with:
+          path: ~/.config/squadrules/models
+          key: ${{ steps.fastembed-model-cache-single.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()
         run: |
-          echo "--- embedded app log (tail) ---"
-          tail -n 200 var/log/squadrules-embedded.log 2>/dev/null || true
+          echo "--- single-mode app log (tail) ---"
+          tail -n 200 var/log/squadrules-single.log 2>/dev/null || true
           echo "--- last test report (tail) ---"
           latest=''
           for report in reports/tests/*.log .local/reports/tests/*.log; do
@@ -697,20 +467,30 @@ jobs:
           done
           if [ -n "$latest" ]; then tail -n 200 "$latest"; else echo "No test report log found"; fi
 
-      - name: Upload embedded log
+      - name: Upload squadrules single log
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: squadrules-embedded-log-node24
-          path: var/log/squadrules-embedded.log
+          name: squadrules-single-log-node24
+          path: var/log/squadrules-single.log
           if-no-files-found: ignore
 
-  # Merge gate: the Node 24/26 build lane plus the Node 24 service lanes. The advisory
-  # verify-integration-embedded-simple lane is omitted from needs: so it cannot block a merge.
-  # Container image build/scan/publish is decoupled into SquadRules/containers, not a gate here.
+      - name: Upload single-mode test reports
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: squadrules-single-reports-node24
+          path: .local/reports/tests
+          if-no-files-found: ignore
+
+  # Merge gate: the Node 24/26 build lane plus the two Node 24 integration lanes. Both lanes run
+  # the FULL integration suite and both are gated (no continue-on-error): cluster mode proves the
+  # Docker fullstack substrate with AUTH on, single mode proves the zero-infrastructure product
+  # path over HTTP and stdio (docs/adr/0006). Container image build/scan/publish is decoupled into
+  # SquadRules/containers, not a gate here.
   integration-pass:
     name: Integration workflow passed
-    needs: [build, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke]
+    needs: [build, verify-integration-cluster, verify-integration-single]
     if: always()
     runs-on: ubuntu-latest
     steps:

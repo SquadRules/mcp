@@ -2,6 +2,7 @@ import { MemoryQdrantStore } from '../services/memory/store.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { SQUADRULES_APP_SPACE_ID } from '../config.js';
+import { MEM_BOOT_FORCE_INJECT } from '../config/mem-boot.js';
 import { MEM_FILE_SLUG_KEY, getMemDir, getMemDirFallback, readMemFiles } from './mem-dir-utils.js';
 import { deletePreexistingAppSpaceEntries, extractFrontmatterSlug } from './mem-uuid-mapper.js';
 import { sha256Hex } from '../tools/skill-export/sha256.js';
@@ -13,10 +14,12 @@ import { redisCacheService } from '../services/redis-cache.js';
 const CONTENT_SHA256_KEY = 'content_sha256';
 
 /**
- * Inject mem resources from filesystem into Qdrant at system boot.
- * Uses slug-based filenames. Each adapter file is deleted-then-retrained
- * to ensure clean state. SHA256 hashes are stored in payload for future
- * change detection use.
+ * Inject mem resources from filesystem into the store at system boot.
+ * Uses slug-based filenames. An adapter is retrained only when its stored version is
+ * older than the shipped one (or it is missing); otherwise the existing points are
+ * reused and nothing is embedded. `options.force` retrains everything — the documented
+ * repair path for a corrupted store. SHA256 hashes are stored in payload as a write-only
+ * breadcrumb (see docs/adr/0002: the reuse rule is semver, not content hash).
  */
 export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, options: { force?: boolean } = {}): Promise<void> {
   const primaryDir = getMemDir();
@@ -46,7 +49,9 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
   };
 
   await runWithSpaceContextAsync(appSpaceContext, async () => {
-    structuredLogger.info(`[mem-resources-boot] Injecting ${fileCount} mem resources into Qdrant (force: ${options.force || false})`);
+    // Explicit caller option wins; otherwise the operator switch (MEM_BOOT_FORCE_INJECT).
+    const force = options.force ?? MEM_BOOT_FORCE_INJECT;
+    structuredLogger.info(`[mem-resources-boot] Injecting ${fileCount} mem resources (force: ${force})`);
 
     const llmModelId = 'system-boot';
     let injectedCount = 0;
@@ -69,24 +74,32 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
       const shippedVersion = parseFrontmatter(markdownContent).version ?? undefined;
 
       try {
-        // Version-based skip: if stored adapter already matches or is newer, skip retraining
-        try {
-          const storedVersion = await memoryStore.getStoredAdapterVersion(slug);
-          if (storedVersion !== undefined && shippedVersion !== undefined) {
-            const cmp = compareSemver(shippedVersion, storedVersion);
-            if (cmp <= 0) {
+        // Version-based skip: if stored adapter already matches or is newer, skip retraining.
+        // `force` bypasses the check: it is the escape hatch that restores delete-then-retrain
+        // when a store must be repaired (duplicates, missing layers, changed embedding dimension).
+        if (force) {
+          structuredLogger.info(
+            `[mem-resources-boot] '${slug}' force set; retraining regardless of stored version`
+          );
+        } else {
+          try {
+            const storedVersion = await memoryStore.getStoredAdapterVersion(slug);
+            if (storedVersion !== undefined && shippedVersion !== undefined) {
+              const cmp = compareSemver(shippedVersion, storedVersion);
+              if (cmp <= 0) {
+                structuredLogger.info(
+                  `[mem-resources-boot] '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping`
+                );
+                injectedCount++;
+                continue;
+              }
               structuredLogger.info(
-                `[mem-resources-boot] '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping`
+                `[mem-resources-boot] '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
               );
-              injectedCount++;
-              continue;
             }
-            structuredLogger.info(
-              `[mem-resources-boot] '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
-            );
+          } catch {
+            // Version check is best-effort; proceed with delete-then-retrain
           }
-        } catch {
-          // Version check is best-effort; proceed with delete-then-retrain
         }
 
         // Delete any preexisting entries by slug/title filter

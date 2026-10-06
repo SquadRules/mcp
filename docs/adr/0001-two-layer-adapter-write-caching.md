@@ -38,16 +38,18 @@ for seeded CI fixtures. Any proposal to "fix the cache" must say which layer it 
 
 ## Consequences
 
-- Layer 2 runs *after* Layer 1 import in the same process, so a freshly imported
-  snapshot is partially re-written at boot while the Layer 2 skip is broken
-  ([#24](https://github.com/SquadRules/mcp/issues/24)). Importing a snapshot therefore
-  does not currently buy a boot its full time back.
+- Layer 2 runs *after* Layer 1 import in the same process. While the Layer 2 skip was
+  broken ([#24](https://github.com/SquadRules/mcp/issues/24)), a freshly imported snapshot
+  was partly re-written at boot, so importing bought no time back. #26 fixed the
+  readers ([0002](0002-boot-injection-reuse-rule.md)), so an imported store whose adapters
+  carry the current shipped version now survives its own boot.
 - Layer 1 is parked rather than re-wired: its original purpose was to save OpenAI
   quota, and once CI embeds locally (see [0004](0004-fastembed-default-for-testing.md))
   the remaining benefit is wall-clock only. Reopen with [#22](https://github.com/SquadRules/mcp/issues/22).
-- Until Layer 1 is decided one way or the other, `verify-integration-primary` keeps a
-  `cache/restore` step with no matching `cache/save`, which reads as "a cache exists"
-  while no `qdrant-snapshot-*` key has ever been written.
+- Until Layer 1 is decided one way or the other, `verify-integration-cluster`
+  ([0006](0006-two-integration-lanes.md); this was `verify-integration-primary` when the
+  record was written) keeps a `cache/restore` step with no matching `cache/save`, which
+  reads as "a cache exists" while no `qdrant-snapshot-*` key has ever been written.
 
 ## Alternatives considered
 

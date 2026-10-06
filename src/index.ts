@@ -147,9 +147,10 @@ export async function runSquadrulesServer(): Promise<void> {
             structuredLogger.info('Startup snapshot disabled (QDRANT_SNAPSHOT_ON_START=false)');
         }
 
-        // Inject mem resources from embedded-mcp-resources into Qdrant at boot
-        // Use --force flag to allow override in new versions
-        await injectMemResourcesAtBoot(memoryStore, { force: true });
+        // Inject mem resources from embedded-mcp-resources into the store at boot. Reuses
+        // stored adapters whose version is current; MEM_BOOT_FORCE_INJECT=true retrains every
+        // one of them (docs/adr/0002). Blocking: the transport binds only after this returns.
+        await injectMemResourcesAtBoot(memoryStore);
 
         // Metrics HTTP server: only when the app serves HTTP (stdio mode avoids any HTTP listeners).
         if (TRANSPORT_TYPE === 'http') {

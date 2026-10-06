@@ -39,3 +39,15 @@ export function getChainRoot(memory: Pick<Memory, 'adapter' | 'memory_uuid' | 'l
   const raw = getAdapterInfo(memory)?.chain_root;
   return typeof raw === 'string' && raw.trim().length > 0 ? raw.trim() : null;
 }
+
+/**
+ * Protocol version on a **stored record payload** (Qdrant point payload or the LanceDB row's
+ * payload JSON), used by the boot-injection reuse rule. Writers nest it under `adapter`
+ * (`store-adapter-default-handler.ts`, `lance-records-writes.ts`); the payload root has no
+ * `protocol_version` key, so reading the root always yields undefined. Both store backends
+ * resolve the version through here so the depth rule has one home (docs/adr/0002).
+ */
+export function getPayloadAdapterVersion(payload: unknown): string | undefined {
+  const raw = (payload as { adapter?: { protocol_version?: unknown } } | undefined)?.adapter?.protocol_version;
+  return typeof raw === 'string' ? raw : undefined;
+}

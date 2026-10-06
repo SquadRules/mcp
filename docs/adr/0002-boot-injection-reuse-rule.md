@@ -1,7 +1,7 @@
 # 0002 — Boot-injection reuse is decided by semver, not by content hash
 
-Status: Accepted (the implemented rule), defective in practice —
-[#24](https://github.com/SquadRules/mcp/issues/24)
+Status: Accepted, implemented. The reader defect that made the rule inert when this record
+was written is fixed by [#26](https://github.com/SquadRules/mcp/pull/26) ([#24](https://github.com/SquadRules/mcp/issues/24))
 Date: 2026-10-06 (retrospective; decided 2026-06-15 by `bec19de5`)
 
 ## Context
@@ -35,21 +35,34 @@ The content hash from `4f7ab6c3` was demoted, not deleted:
 `setPayloadOnLayers` "for future change detection", but **no code reads it**. The prune
 and invariant phases of the five-phase design are not present today.
 
+`options.force` is the structural-repair switch, and it is now honoured: when it is set the
+version check is not performed at all, so every shipped adapter is deleted and re-trained.
+Its default comes from `MEM_BOOT_FORCE_INJECT` (`src/config/mem-boot.ts`), so an operator
+with a dimension-mismatched or duplicated store has a documented way back without a code
+change.
+
 ## Consequences
 
 - The rule is correct only if a release always implies changed semantics. It does:
   `prebuild` stamps mem frontmatter from the package version, so a release moves the
   version even when the body of an adapter is untouched — every shipped adapter is
   re-trained on the first boot after an upgrade, once per install, not once per merge.
-- The skip currently **never fires**. `getStoredAdapterVersion()` reads
-  `payload.protocol_version`, while the canonical location is the promoted
-  `protocol_version` column / `payload.adapter.protocol_version`. It returns undefined
-  for every slug, so boot always deletes and re-trains. Measured: warm boot 84 s versus
-  cold 86 s, zero skip log lines. Tracked as
-  [#24](https://github.com/SquadRules/mcp/issues/24).
-- `injectMemResourcesAtBoot(store, { force: true })` is misleading: `options.force` is
-  interpolated into a log line and changes no behaviour. Either honour it or delete it
-  when #24 is fixed.
+- Until [#26](https://github.com/SquadRules/mcp/pull/26) the skip **never fired**:
+  `getStoredAdapterVersion()` read `payload.protocol_version`, while both writers store the
+  version under `payload.adapter.protocol_version` (and promote it to the LanceDB
+  `protocol_version` column), so every read returned `undefined` and every boot deleted and
+  re-trained everything. Measured then: warm boot 84 s versus cold 86 s, zero skip log
+  lines. Both readers now resolve the version through one accessor,
+  `getPayloadAdapterVersion()`. Measured after: 9 `skipping` log lines and a 2.4 s warm
+  boot, against 99.6 s for a forced cold pass on a CI runner
+  ([0003](0003-no-lancedb-store-snapshot.md) re-states the CI consequence).
+- The cost of a working skip: boot no longer self-heals a structurally corrupted system
+  adapter until its shipped version changes. That automatic recovery was the property
+  `c35918e0` (#487) relied on, which is why `options.force` became a real switch in the same
+  commit instead of being deleted: `MEM_BOOT_FORCE_INJECT=true` restores
+  delete-then-retrain for a corrupted or dimension-mismatched store, and
+  `tests/integration/mem-resources-boot-dedupe-regression.test.ts` keeps proving the repair
+  path against a deliberately duplicated app-space row.
 - Because the version line lives *inside* the hashed content, a future content-hash rule
   would not behave differently across releases. Any proposal to "just use the hash" must
   say whether it excludes the stamped version line; otherwise it re-states
@@ -59,15 +72,19 @@ and invariant phases of the five-phase design are not present today.
 
 - Content-hash change detection only (`4f7ab6c3`): rejected on 2026-06-15 in favour of
   the simpler semver rule, which also matches how skill/adapter versions are published.
-- Never skip (train every boot): what actually happens today because of #24; not chosen
+- Never skip (train every boot): what actually happened while #24 was open; not chosen
   deliberately, and unacceptable once embeddings became local and paid in CI wall-clock.
 
 ## Evidence
 
-`src/resources/mem-resources-boot.ts` (skip branch, `CONTENT_SHA256_KEY`),
-`src/services/memory/store.ts` and
+`src/resources/mem-resources-boot.ts` (skip branch, `force` branch, `CONTENT_SHA256_KEY`),
+`src/services/memory/memory-accessors.ts` (`getPayloadAdapterVersion`, the one place the
+payload shape is known), `src/services/memory/store.ts` and
 `src/services/vector-store/lancedb/lance-records-reads.ts` (both readers),
+`src/config/mem-boot.ts` (`MEM_BOOT_FORCE_INJECT`),
 `src/services/vector-store/lancedb/lance-records-schema.ts` (`toRow` promotes
-`protocol_version` to a column). Store inspection on 2026-10-06: 51 rows, column
-`protocol_version = "4.8.6"`, `payload.adapter.protocol_version = "4.8.6"`,
-`payload.protocol_version` undefined.
+`protocol_version` to a column),
+`tests/unit/boot-adapter-version-readers.test.ts` and
+`tests/unit/mem-resources-boot-reuse-rule.test.ts` (the rule, without ONNX or a server).
+Store inspection on 2026-10-06: 51 rows, column `protocol_version = "4.8.6"`,
+`payload.adapter.protocol_version = "4.8.6"`, `payload.protocol_version` undefined.

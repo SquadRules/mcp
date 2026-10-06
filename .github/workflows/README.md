@@ -9,7 +9,7 @@ other workflow runs, scheduled release reconciliation, or PR publication.
 
 | Workflow | Responsibility |
 |----------|----------------|
-| [Integration](integration.yml) | npm ci, lint, typecheck, Knip, UI/spec checks, build and consumer-package tests on Node 24 and 26; service tests on Node 24 |
+| [Integration](integration.yml) | npm ci, lint, typecheck, Knip, UI/spec checks, build and consumer-package tests on Node 24 and 26; cluster-mode and single-mode integration tests on Node 24 |
 | [Security](security.yml) | Read-only production npm audit, CodeQL, and dependency review on PRs |
 | [Automation policy](automation-policy.yml) | Conventional PR titles, automation regression tests, workflow and Renovate validation |
 | [Release](release.yml) | Standard semantic-release npm/GitHub plugins; npm OIDC/provenance; stable main only |
@@ -34,29 +34,34 @@ security-events permission for uploading analysis.
 
 ## Project-specific integration coverage
 
-The authenticated service job installs the Node 24 tarball, starts Qdrant, Valkey,
-Postgres and Keycloak, then runs unit and integration tests. Some tests under
-`tests/unit` require real services, so they run after deployment. HTTP without
-auth and stdio transport smoke jobs install that same artifact. The full suite
-uses key-free local fastembed embeddings (`EMBEDDING_PROVIDER=fastembed`, model
-weights cached per runner), so neither boot injection nor test writes consume
-OpenAI quota — see
-[`docs/adr/0004`](../../docs/adr/0004-fastembed-default-for-testing.md). The
-stdio smoke lane is the deliberate exception: boot injection runs before the
-transport connects and every stdio test spawns its own server process, so it
-still uses the restricted OpenAI embedding key. Fork PRs require maintainer
-review and validation from a trusted branch because GitHub does not expose
-secrets to forks.
+Service tests run in exactly two lanes, both gated and both executing the full
+`tests/integration/` directory — see
+[`docs/adr/0006`](../../docs/adr/0006-two-integration-lanes.md). Each installs the same
+Node 24 tarball.
+
+- **cluster mode** (`verify-integration-cluster`, AUTH on) starts Qdrant, Valkey, Postgres
+  and Keycloak in Docker, runs the `tests/unit` suites that need real services, then the
+  full integration suite over HTTP.
+- **single mode** (`verify-integration-single`, AUTH off) runs with no services and no
+  Docker: `QDRANT_URL` is blanked so the server, the Jest worker and every stdio child the
+  tests spawn resolve the embedded LanceDB store. One job, two passes — HTTP first, then
+  the stdio suite after the HTTP server process is stopped so no second writer holds the
+  table. It asserts `/health` reports `embedded-lancedb` before testing.
+
+Some tests under `tests/unit` require real services, so they run only in cluster mode,
+after deployment.
+
+Both lanes blank `OPENAI_API_KEY` and pin key-free local fastembed embeddings
+(`EMBEDDING_PROVIDER=fastembed`, model weights cached per runner), so neither boot
+injection nor test writes consume OpenAI quota — see
+[`docs/adr/0004`](../../docs/adr/0004-fastembed-default-for-testing.md). No lane can
+acquire a key by accident: the reusable-workflow contract no longer declares an
+`OPENAI_API_KEY` secret. `verify-openai-key.yml` (manual dispatch) is the only OpenAI
+surface in CI. Fork PRs require maintainer review and validation from a trusted branch
+because GitHub does not expose secrets to forks.
 UI tests use jsdom and do not require a browser download; the auth browser tests
 retain Playwright. No production image/Helm build or downstream dispatch belongs
 in this npm-only repository.
-
-One advisory lane proves the zero-infrastructure default: it installs the same Node 24
-tarball with `QDRANT_URL` blanked and `EMBEDDING_PROVIDER=fastembed`, so the server runs
-the embedded LanceDB store and local key-free embeddings without Qdrant, Redis, Keycloak
-or Docker, asserts `/health` reports `embedded-lancedb`, and runs one real
-`train`→`activate` flow. It is `continue-on-error` and excluded from the merge gate until
-it proves stable.
 
 The tarball is created outside `dist/`, preventing old tarballs from being packed
 into subsequent packages. `prepack` always cleans/rebuilds output, including UI,

@@ -14,6 +14,7 @@ import { buildSpaceFilter, buildAdapterSiblingScrollFilter } from '../../../util
 import { ALLOWED_ARTIFACT_MIMES } from '../../../tools/artifact-mime.js';
 import { structuredLogger } from '../../../utils/structured-logger.js';
 import { pointToMemory } from '../../memory/qdrant-point-to-memory.js';
+import { getPayloadAdapterVersion } from '../../memory/memory-accessors.js';
 import type { LayerRecord, SlugResolveOutcome, ArtifactResolveOutcome } from '../types.js';
 import type { LanceRecordEngine } from './lance-records-engine.js';
 import type { LanceRecordRow } from './lance-records-schema.js';
@@ -250,7 +251,8 @@ export class LanceRecordReader {
       ]
     }, 1);
     const payload = rows[0] ? payloadOf(rows[0]) : undefined;
-    const version = payload?.['protocol_version'];
-    return typeof version === 'string' ? version : undefined;
+    // Same depth as the Qdrant reader: the version lives inside `adapter`. The promoted
+    // `protocol_version` column is not part of the payload JSON, so it is not consulted here.
+    return getPayloadAdapterVersion(payload);
   }
 }

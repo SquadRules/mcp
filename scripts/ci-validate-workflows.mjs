@@ -31,12 +31,40 @@ for (const script of ['lint', 'typecheck', 'knip', 'test:ui', 'build:tgz', 'test
   assert.ok(integration.jobs.build.steps.some(s => s.run === `npm run ${script}`));
 }
 assert.deepEqual(integration.jobs.build.strategy.matrix.node, ['24', '26']);
-assert.ok(integration.jobs['verify-integration-primary'].steps.some(s => s.run === 'npm run dev:test -- tests/unit'));
-const embedded = integration.jobs['verify-integration-embedded-simple'];
-assert.deepEqual(embedded.needs, ['build'], 'Service-free lane consumes the build matrix artifact');
-assert.equal(embedded['continue-on-error'], true, 'Service-free lane is advisory until proven stable');
-assert.ok(!integration.jobs['integration-pass'].needs.includes('verify-integration-embedded-simple'));
-assert.ok(embedded.steps.some(s => /EMBEDDING_PROVIDER=fastembed/.test(s.run ?? '')), 'Service-free lane pins the key-free local embedding default');
+// Two integration lanes and no more (docs/adr/0006): cluster mode (Docker fullstack, AUTH on) and
+// single mode (service-free embedded LanceDB, AUTH off, HTTP + stdio). Both run the FULL suite and
+// both gate the merge; neither may reach an external embedding provider (docs/adr/0004).
+assert.ok(!Object.hasOwn(integration.on.workflow_call ?? {}, 'secrets'), 'Integration workflow takes no secrets');
+assert.doesNotMatch(JSON.stringify(integration), /secrets\.OPENAI_API_KEY/);
+const clusterLane = integration.jobs['verify-integration-cluster'];
+const singleLane = integration.jobs['verify-integration-single'];
+assert.ok(
+  clusterLane.steps.some(step => step.run === 'npm run dev:test -- tests/unit'),
+  'Cluster lane runs the unit suite against the deployed stack'
+);
+for (const [name, job] of [['verify-integration-cluster', clusterLane], ['verify-integration-single', singleLane]]) {
+  assert.deepEqual(job.needs, ['build'], `${name} consumes the build matrix artifact`);
+  assert.notEqual(job['continue-on-error'], true, `${name} is a merge gate, not an advisory lane`);
+  assert.ok(
+    job.steps.some(step => /EMBEDDING_PROVIDER=fastembed/.test(step.run ?? '')),
+    `${name} pins the key-free local embedding default`
+  );
+}
+assert.deepEqual(
+  integration.jobs['integration-pass'].needs,
+  ['build', 'verify-integration-cluster', 'verify-integration-single'],
+  'Merge gate requires both integration lanes'
+);
+assert.ok(
+  singleLane.steps.some(step => (step.run ?? '').includes("'s|^QDRANT_URL=.*|QDRANT_URL=|'")),
+  'Single lane blanks QDRANT_URL so the server and the tests run the embedded backend'
+);
+for (const run of ['npm run dev_simple:test', 'npm run dev_stdio:test']) {
+  assert.ok(
+    singleLane.steps.some(step => step.run === run),
+    `Single lane runs the full suite over both transports (${run})`
+  );
+}
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);
@@ -66,7 +94,7 @@ assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
 assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
 assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
 assert.equal(release.concurrency['cancel-in-progress'], false);
-assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch/);
+assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch|OPENAI_API_KEY/);
 const { default: config } = await import('../release.config.mjs');
 assert.deepEqual(config.branches, ['main']);
 assert.deepEqual(config.plugins.map(p => p[0]), [

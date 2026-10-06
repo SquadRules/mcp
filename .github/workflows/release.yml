@@ -21,9 +21,9 @@ concurrency:
 jobs:
   integration:
     if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+    # No secrets passed: every integration lane embeds on the key-free local fastembed default
+    # (docs/adr/0004), so the reusable workflow declares no secrets at all.
     uses: ./.github/workflows/integration.yml
-    secrets:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   security:
     if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
     permissions:
