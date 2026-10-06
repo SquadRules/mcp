@@ -17,7 +17,12 @@ command names as compatibility aliases that behave identically.
 
 ## Run the MCP server (`serve`)
 
-Start the SquadRules server process (same bootstrap as `node dist/bootstrap.js` / `node dist/index.js` after a build). You still need Qdrant and embedding-related variables in `.env` the same way as [Docker Compose — simple stack](install/docker-compose-simple.md).
+Start the SquadRules server process (`squadrules serve` from the globally
+installed package, equivalent to `node dist/bootstrap.js` / `node dist/index.js`
+after a source build). With no `QDRANT_URL` the server uses the embedded
+LanceDB store and the local fastembed backend, so no `.env` is required. See
+[install/prerequisites.md](install/prerequisites.md) for embedding-backend
+alternatives and opt-in Qdrant.
 
 Transport resolution:
 
@@ -51,7 +56,7 @@ squadrules-mcp serve --transport stdio
 - **`--metrics-port`** — sets `METRICS_PORT` for this process before configuration is read.
 - **`--server-port`** — sets the main HTTP listener (`SERVER_PORT`); see numbered list above.
 
-The root **`--url`** option applies to **client** commands (it sets `SQUADRULES_API_URL`); it does **not** change the HTTP bind address for `serve`. For supported full-stack installation, prefer **Docker Compose** in [install/README.md](install/README.md); use `serve` when you already run backing services and want a single Node entrypoint.
+The root **`--url`** option applies to **client** commands (it sets `SQUADRULES_API_URL`); it does **not** change the HTTP bind address for `serve`. For container image or Kubernetes deployment see the [install siblings](install/README.md#other-install-paths); use `serve` when you already run backing services and want a single Node entrypoint.
 
 **From a local clone (npm scripts):** build the publishable tarball and run the install smoke test:
 

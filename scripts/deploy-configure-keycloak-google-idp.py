@@ -127,7 +127,7 @@ def main() -> None:
     if not client_id or not client_secret:
         sys.exit(
             "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required for this script. "
-            "Set them in .env. See docs/install/google-auth-dev.md."
+            "Set them in .env. See docs/keycloak/google-auth-dev.md."
         )
 
     token = get_admin_token(base_url, admin_password)

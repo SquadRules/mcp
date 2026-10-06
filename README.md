@@ -120,7 +120,7 @@ Use one transport mode per process:
   **`TRANSPORT_TYPE`** if you set it in the environment (normally leave it unset for CLI-only use).
 
 - **`TRANSPORT_TYPE=http`**: serves `/mcp`, `/api/*`, `/ui`, and `/health`; this is
-  the default for Docker Compose deployments.
+  the mode used by container image and Helm chart deployments.
 - **`TRANSPORT_TYPE=stdio`**: runs MCP over stdin/stdout for local hosts such as
   Claude Desktop, Cursor, or Claude Code. In this mode, stdout is reserved for
   MCP protocol frames and logs go to stderr.
@@ -195,8 +195,11 @@ When executing over MCP, follow **[Protocol execution](#protocol-execution)**
 above and each tool result's `next_action`. The connected server's tool
 descriptions are the runtime authority if they differ from this file.
 
-> **Developers:** to run the full Docker Compose stack (Qdrant + app + optional
-> Keycloak / Redis / Postgres) for local development and testing, see
+> **Container or Kubernetes deployment?** Signed multi-arch images live in
+> [`SquadRules/containers`](https://github.com/SquadRules/containers); the Helm
+> chart lives in [`SquadRules/charts`](https://github.com/SquadRules/charts).
+> **Working on this repo?** Local development infrastructure (Qdrant, Valkey,
+> Postgres, Keycloak) is in `compose/infra.yaml` and driven by scripts in
 > [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## CLI
@@ -234,7 +237,7 @@ This repository ships its agent skills under
 | Skill | Audience | Purpose |
 |-------|----------|---------|
 | `squadrules` | Users | Run SquadRules protocols; install and update guidance; bug reports |
-| `squadrules-dev` | Developers | Docker Compose dev environment and maintainer workflows (internal; not installed by `npx skills add`) |
+| `squadrules-dev` | Developers | Local dev stack (Qdrant / Valkey / Postgres / Keycloak via `compose/infra.yaml`) and maintainer workflows (internal; not installed by `npx skills add`) |
 
 The former `squadrules` and `squadrules-dev` skill directories are retained for
 compatibility with existing installations; hosts prefer `squadrules` when both
@@ -262,13 +265,6 @@ Popular global installs:
 
 More detail: [.agents/skills/README.md](.agents/skills/README.md)
 
-## Helm (advanced)
-
-The Helm chart for Kubernetes deployment now lives in the
-[`SquadRules/charts`](https://github.com/SquadRules/charts) repository and is
-published to `oci://ghcr.io/squadrules/charts/mcp`. See that repository for
-installation, values, and chart-testing details.
-
 ## Container images
 
 Container images are built, scanned, signed and published from the
@@ -276,6 +272,13 @@ Container images are built, scanned, signed and published from the
 FROM the published `@squadrules/mcp` npm package, to Docker Hub
 (`docker.io/squadrules/mcp`) and quay.io. This repository publishes npm only;
 see that repository for the image pipeline, base-image OS scanning and signing.
+
+## Helm (advanced)
+
+The Helm chart for Kubernetes deployment lives in the
+[`SquadRules/charts`](https://github.com/SquadRules/charts) repository and is
+published to `oci://ghcr.io/squadrules/charts/mcp`. See that repository for
+installation, values, and chart-testing details.
 
 ## Documentation map
 
@@ -334,7 +337,11 @@ Use:
 squadrules token --validate
 ```
 
-> **Developers:** for Docker Compose, fullstack, and auth troubleshooting, see
+> **Container / Kubernetes operators:** for image verification see
+> [`SquadRules/containers`](https://github.com/SquadRules/containers); for
+> chart values and auth troubleshooting see
+> [`SquadRules/charts`](https://github.com/SquadRules/charts).
+> **Working on this repo:** for local dev infrastructure and auth troubleshooting, see
 > [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Support

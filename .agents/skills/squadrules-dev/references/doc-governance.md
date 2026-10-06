@@ -31,7 +31,8 @@ Every fact has exactly **one home**, chosen by *who derives it*:
 | Code-derivable (architecture, API, workflow engine, memory, auth internals, CLI surface, deployment, testing, UI, artifacts) | Qoder RepoWiki `.qoder/repowiki/en/content/` → GitHub Wiki |
 | Irreducible curated (install secrets/env, Keycloak+Google IdP, business use-cases, threat model, incident runbook, known issues, test-snapshot ops) | Slim `docs/` (allowlist in the rule) |
 | Agent operation / maintainer workflows | Skills + `AGENTS.md` |
-| Functional inputs (test fixtures, install-skill sources) | `docs/examples/**`, `docs/install/**`, `docs/CLI.md` |
+| Functional inputs (test fixtures, install-skill sources) | `docs/examples/**`, `docs/install/**` (npm-only), `docs/CLI.md` |
+| Container-image / Helm deployment guidance | Sibling repos: [`SquadRules/containers`](https://github.com/SquadRules/containers), [`SquadRules/charts`](https://github.com/SquadRules/charts) — **not** in `mcp/docs/` |
 | Root project docs | `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `TRADEMARK.md`, `AGENTS.md` |
 
 Other locations **link** to the home; they never restate it.
@@ -112,8 +113,10 @@ inaccuracies inline, or open a `reports/` note for larger corrections.
 These are *topically* covered by the Wiki but are **build inputs** and must stay:
 
 - `docs/examples/**` — read by `tests/integration/squadrules-train-docs-examples.test.ts`.
-- `docs/install/**` (except `helm.md`) + `docs/CLI.md` — referenced by source
-  error messages and by the `squadrules` skill's install reference.
+- `docs/install/**` + `docs/CLI.md` — referenced by source error messages and by
+  the `squadrules` skill's install reference. `docs/install/` covers the **npm
+  package only**; container-image and Helm content lives in the sibling repos
+  and must not be restated here.
 
 This is intentional, justified non-DRY at the doc-text level.
 

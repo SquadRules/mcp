@@ -197,21 +197,28 @@ targets (for example **SQUADRULES LIVE**), not against Git.
 `.gitignore`). Do not add hook scripts to version control unless the
 maintainers explicitly choose to track them.
 
-## Development environment (Docker Compose full stack)
+## Development environment (local dev stack)
 
-Users launch SquadRules over stdio with `npx` (see the root
-[README](README.md)). Contributors instead run the full **Docker Compose**
-stack locally: Qdrant, the app, and optionally Redis, Postgres, and Keycloak.
+Users install SquadRules from npm and let their agent host spawn
+`squadrules serve` (see the root [README](README.md) and
+[docs/install/](docs/install/README.md)). Contributors run the app itself via
+`npm run dev*` on the host, and start the backing infrastructure locally via
+`compose/infra.yaml`: Qdrant by default; optionally Valkey, Postgres, and
+Keycloak under the `fullstack` profile.
 
 Requirements: Docker + Docker Compose v2, Node.js 24+, and a `.env` at the repo
 root (from [`scripts/env/.env.template`](scripts/env/.env.template)).
 
 ```bash
 npm ci                 # install dependencies
-npm run infra:up       # start Qdrant, Redis, Postgres, Keycloak
-npm run dev:deploy     # build + (re)start the dev server
+npm run infra:up       # start Qdrant, Valkey, Postgres, Keycloak (fullstack)
+npm run dev:deploy     # build + (re)start the dev server (uses .env)
 npm run dev:test       # run the integration suite against the running server
 ```
+
+For the pure-npm / LanceDB / fastembed dev loop (no Docker required), use
+`npm run dev_simple:deploy` and `npm run dev_simple:test`; for stdio MCP host
+smoke testing use `npm run dev_stdio:deploy`.
 
 The `fullstack` Compose profile provides the optional cache / DB / OIDC
 services. **Keycloak / IdP configuration is your responsibility** — see the
@@ -241,7 +248,7 @@ release, QA, wiki publishing). Its reference files live under
 
 1. Create **`.env`** at the repository root from
    [`scripts/env/.env.template`](scripts/env/.env.template), then set variables
-   for your dev stack (embeddings, Qdrant, Redis, session, and any IdP secrets you
+   for your dev stack (embeddings, Qdrant, Valkey, session, and any IdP secrets you
    use). **IdP setup is not part of `docs/install/`** — see the
    Deployment and Operations topic in the [project Wiki](https://github.com/SquadRules/mcp/wiki).
 2. Start infrastructure (Compose `fullstack` profile and helpers as needed):
