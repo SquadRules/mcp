@@ -149,7 +149,6 @@ curl -sS "http://localhost:3000/health"
 
 - Discovery: `/.well-known/oauth-protected-resource`
 - Auth: [CLI](../CLI.md#authentication), [auth overview (project Wiki)](https://github.com/SquadRules/mcp/wiki)
-- Plugin: `integrations/cursor/plugin` often uses `http://localhost:3300/mcp`
 - Widgets: `spaces` and `forward` use MCP Apps on hosts that support them
 - Discovery scopes default to
   `openid,profile,email,squadrules-groups,offline_access`; set

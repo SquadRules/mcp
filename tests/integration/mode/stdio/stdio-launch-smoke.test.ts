@@ -5,6 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parse as parseDotenv } from 'dotenv';
+import { applyLocalStdioEnv } from '../../../utils/stdio-simple-env.js';
 
 const BOOTSTRAP_PATH = path.resolve(process.cwd(), 'dist/bootstrap.js');
 const SOURCE_BOOTSTRAP_PATH = path.resolve(process.cwd(), 'src/bootstrap.ts');
@@ -49,8 +50,7 @@ function createStdioEnv(): Record<string, string> {
     }
   }
   // Apply explicit overrides
-  result.TRANSPORT_TYPE = 'stdio';
-  result.AUTH_ENABLED = process.env.AUTH_ENABLED ?? FILE_ENV.AUTH_ENABLED ?? 'false';
+  applyLocalStdioEnv(result);
   result.REDIS_URL = process.env.REDIS_URL ?? FILE_ENV.REDIS_URL ?? '';
   return result;
 }
