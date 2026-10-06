@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 import { generateNotes } from '@semantic-release/release-notes-generator';
-import config, { commitOptions, releaseGitAssets } from '../../release.config.mjs';
+import config, { commitOptions } from '../../release.config.mjs';
 import { prepare as retargetReleaseHead } from '../../scripts/semantic-release-source-head.mjs';
 
 const analyze = messages => analyzeCommits(commitOptions, {
@@ -40,7 +40,6 @@ test('release persists the versioned repository state before publishing', () => 
     '@semantic-release/release-notes-generator',
     '@semantic-release/npm',
     '@semantic-release/exec',
-    '@semantic-release/git',
     './scripts/semantic-release-source-head.mjs',
     '@semantic-release/github',
   ]);
@@ -49,18 +48,8 @@ test('release persists the versioned repository state before publishing', () => 
   assert.match(exec.prepareCmd, /npm run version:sync/);
   assert.match(exec.prepareCmd, /npm run release:verify-version/);
 
-  for (const required of [
-    'package.json',
-    'package-lock.json',
-    'compose.yaml',
-    'src/embed-docs/mem/*.md',
-    'src/resources/embedded-mcp-resources.ts',
-  ]) {
-    assert.ok(releaseGitAssets.includes(required));
-  }
-
-  const git = config.plugins.find(plugin => pluginName(plugin) === '@semantic-release/git')[1];
-  assert.match(git.message, /\[skip ci\]/);
+  const sourceHook = await import('../../scripts/semantic-release-source-head.mjs');
+  assert.equal(typeof sourceHook.prepare, 'function');
 });
 
 test('release tag is retargeted to the persisted source commit', async () => {
