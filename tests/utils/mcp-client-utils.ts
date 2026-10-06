@@ -102,8 +102,7 @@ function createStdioChildEnv(): Record<string, string> {
       result[key] = value;
     }
   }
-  result.TRANSPORT_TYPE = 'stdio';
-  result.AUTH_ENABLED = process.env.AUTH_ENABLED ?? STDIO_FILE_ENV.AUTH_ENABLED ?? 'false';
+  applyLocalStdioEnv(result);
   result.PORT = process.env.PORT ?? STDIO_FILE_ENV.PORT ?? '4300';
   result.METRICS_PORT = 'disabled';
   result.REDIS_URL = process.env.REDIS_URL ?? STDIO_FILE_ENV.REDIS_URL ?? '';
