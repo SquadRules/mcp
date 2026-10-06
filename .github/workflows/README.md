@@ -43,10 +43,9 @@ Node 24 tarball.
   and Keycloak in Docker, runs the `tests/unit` suites that need real services, then the
   full integration suite over HTTP.
 - **single mode** (`verify-integration-single`, AUTH off) runs with no services and no
-  Docker: `QDRANT_URL` is blanked so the server, the Jest worker and every stdio child the
-  tests spawn resolve the embedded LanceDB store. One job, two passes — HTTP first, then
-  the stdio suite after the HTTP server process is stopped so no second writer holds the
-  table. It asserts `/health` reports `embedded-lancedb` before testing.
+  Docker: `QDRANT_URL` is blanked so the Jest worker and every stdio child the tests spawn
+  resolve the embedded LanceDB store. One job, one pass — the stdio suite (`npm run
+  dev_stdio:test`).
 
 Some tests under `tests/unit` require real services, so they run only in cluster mode,
 after deployment.

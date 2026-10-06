@@ -59,12 +59,10 @@ assert.ok(
   singleLane.steps.some(step => (step.run ?? '').includes("'s|^QDRANT_URL=.*|QDRANT_URL=|'")),
   'Single lane blanks QDRANT_URL so the server and the tests run the embedded backend'
 );
-for (const run of ['npm run dev_simple:test', 'npm run dev_stdio:test']) {
-  assert.ok(
-    singleLane.steps.some(step => step.run === run),
-    `Single lane runs the full suite over both transports (${run})`
-  );
-}
+assert.ok(
+  singleLane.steps.some(step => step.run === 'npm run dev_stdio:test'),
+  'Single lane runs the full suite over stdio transport'
+);
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);

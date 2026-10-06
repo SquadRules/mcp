@@ -21,26 +21,24 @@ Exactly two lanes, both running the full `tests/integration/` suite, both gating
 | Lane | Name | Substrate | Transport / auth | Timeout |
 | --- | --- | --- | --- | --- |
 | `verify-integration-cluster` | Integration tests (cluster mode, AUTH on, Node 24) | Qdrant + Valkey + Postgres + Keycloak in Docker | HTTP, `AUTH_ENABLED=true` | 30 min |
-| `verify-integration-single` | Integration tests (single mode, AUTH off, Node 24) | embedded LanceDB, no Docker, no services | HTTP pass then stdio pass, `AUTH_ENABLED=false` | 45 min |
+| `verify-integration-single` | Integration tests (single mode, AUTH off, Node 24) | embedded LanceDB, no Docker, no services | stdio only, `AUTH_ENABLED=false` | 30 min |
 
 - The cluster lane is today's `verify-integration-primary` renamed; its steps are
   unchanged, including the restore-only Qdrant snapshot cache parked by
   [#22](https://github.com/SquadRules/mcp/issues/22). It also runs `npm run dev:test --
   tests/unit` first, because some unit tests need the deployed services.
-- The single lane replaces the three deleted lanes. One job, two passes: `npm run
-  dev_simple:test` (HTTP), then `pkill -f "@squadrules/mcp/dist/index.js"` so no second
-  process holds the LanceDB table, then `npm run dev_stdio:test`. `QDRANT_URL` is blanked
-  in `.env`, `.env.dev_simple` **and** `.env.dev_stdio`, so the server, the Jest worker and
-  every stdio child the tests spawn all resolve the embedded backend. Since v5.1.0 the
-  harness enforces the same posture itself — `applyLocalStdioEnv()` blanks it for spawned
-  children, and `src/config/runtime-mode.ts` refuses to boot a stdio process that
-  contradicts local simple mode — so the lane-level blanking is what makes the *HTTP* pass
-  embedded, not a defence against a stray child.
-- One store directory per single-mode job: `XDG_CONFIG_HOME` on the app step and
-  `TEST_XDG_CONFIG_HOME` (see `scripts/deploy-run-env.sh`) on the test steps point at the
-  same path. `tests/utils/mcp-client-utils.ts` resets its shared stdio child between
-  connection lifecycles, so every lifecycle spawns a server that opens the store; separate
-  throwaway dirs would give each child an empty store and a fresh boot injection.
+- The single lane replaces the three deleted lanes. One job, one pass: `npm run dev_stdio:test`
+  (stdio transport, full suite). `QDRANT_URL` is blanked in `.env` and `.env.dev_stdio`, so the
+  Jest worker and every stdio child the tests spawn all resolve the embedded backend. Since v5.1.0
+  the harness enforces the same posture itself — `applyLocalStdioEnv()` blanks it for spawned
+  children, and `src/config/runtime-mode.ts` refuses to boot a stdio process that contradicts
+  local simple mode — so the lane-level blanking is what makes the *HTTP* pass in the cluster lane
+  use Qdrant, not a defence against a stray child.
+- One store directory per single-mode job: `TEST_XDG_CONFIG_HOME` (see
+  `scripts/deploy-run-env.sh`) on the test steps points at `$HOME/.config`. `tests/utils/mcp-client-utils.ts`
+  resets its shared stdio child between connection lifecycles, so every lifecycle spawns a server that
+  opens the store; separate throwaway dirs would give each child an empty store and a fresh boot
+  injection.
 - Both lanes blank `OPENAI_API_KEY` and pin `EMBEDDING_PROVIDER=fastembed`
   ([0004](0004-fastembed-default-for-testing.md)).
 - `integration-pass.needs` is `[build, verify-integration-cluster, verify-integration-single]`
@@ -65,8 +63,8 @@ Exactly two lanes, both running the full `tests/integration/` suite, both gating
   following the existing gates, not by deleting assertions.
 - Wall clock: the single lane pays one cold boot injection per run (later process starts
   hit the version-reuse skip, [0002](0002-boot-injection-reuse-rule.md), but still load the
-  model) and then two full suites, the stdio one serially (`--runInBand`) — hence 45 min
-  against the cluster lane's 30 min, which measured ~12 min at the time of writing.
+  model) and then one full suite serially (`--runInBand`) — hence 30 min against the cluster
+  lane's 30 min, which measured ~12 min at the time of writing.
 
 ## Alternatives considered
 

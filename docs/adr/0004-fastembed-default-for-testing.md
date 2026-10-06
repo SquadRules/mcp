@@ -51,10 +51,11 @@ workflow contract cannot pass one:
   references are a JSDoc example and a unit test that constructs its own fake), and
   `tests/unit/embedding-provider-selection.test.ts` is env-isolated, so pinning fastembed
   in the generated `.env` does not change its outcome.
-- Boot is minutes instead of seconds on a cold store, so both lanes set
+- Boot is minutes instead of seconds on a cold store, so the cluster lane sets
   `HEALTH_CHECK_ATTEMPTS: 120`. The wait loop breaks on the first healthy response, so the
   cap costs nothing when boot is fast — but a lane that kept the old 15 attempts (~30 s)
-  would have failed on an ephemeral runner.
+  would have failed on an ephemeral runner. The single lane has no long-lived HTTP server,
+  so no health check.
 - What makes that affordable is measured, not assumed: a forced cold injection of the 9
   shipped adapters takes 99.6 s on a CI runner (PR #26, job 112262537598), a warm boot
   takes 2.4 s, weights cost 208 MB and are cached per runner, and the test harness keeps

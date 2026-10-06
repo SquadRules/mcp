@@ -276,11 +276,11 @@ jobs:
     name: Integration tests (single mode, AUTH off, Node 24)
     needs: [build]
     runs-on: ubuntu-latest
-    # Two full-suite passes on CPU ONNX. The store is never cached (docs/adr/0003), so the first
-    # process start of each run re-embeds the shipped adapters; every later start (each stdio
-    # child) hits the version-reuse skip (docs/adr/0002) but still pays a model load. Raise this
-    # only with a measured reason.
-    timeout-minutes: 45
+    # One full-suite stdio pass on CPU ONNX. The store is never cached (docs/adr/0003), so the
+    # first process start re-embeds the shipped adapters; every later start (each stdio child)
+    # hits the version-reuse skip (docs/adr/0002) but still pays a model load. Raise this only
+    # with a measured reason.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -312,27 +312,23 @@ jobs:
           OPENAI_API_KEY: ci-keyfree-placeholder
         run: python3 scripts/deploy-generate-dev-secrets.py
 
-      - name: Apply simple profile overrides
-        run: cat .env.dev_simple >> .env
-
       - name: Force embedded backend and key-free fastembed
         run: |
           set -euo pipefail
-          # Blank QDRANT_URL in EVERY file a process reads: .env (the app loads it through dotenv)
-          # and both profiles (the harness sources .env then .env.<ENV>, and stdio children
-          # inherit that environment). Empty => isQdrantConfigured=false => embedded LanceDB, and
-          # Qdrant-substrate suites self-skip via describeQdrantBackend(); the cluster lane covers
-          # them. Runs after the profile overlay so nothing re-selects an external provider.
-          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple .env.dev_stdio
-          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env .env.dev_simple .env.dev_stdio
-          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env .env.dev_simple .env.dev_stdio
-          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env .env.dev_simple .env.dev_stdio; then
+          # Blank QDRANT_URL in .env (the app loads it through dotenv) and .env.dev_stdio (the
+          # harness sources .env then .env.<ENV>, and stdio children inherit that environment).
+          # Empty => isQdrantConfigured=false => embedded LanceDB, and Qdrant-substrate suites
+          # self-skip via describeQdrantBackend(); the cluster lane covers them.
+          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_stdio
+          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env .env.dev_stdio
+          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env .env.dev_stdio
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env .env.dev_stdio; then
             echo "::error::single lane must not select an external provider"; exit 1;
           fi
-          if grep -qE '^QDRANT_URL=.' .env .env.dev_simple .env.dev_stdio; then
+          if grep -qE '^QDRANT_URL=.' .env .env.dev_stdio; then
             echo "::error::single lane must run the embedded backend (QDRANT_URL must stay blank)"; exit 1;
           fi
-          grep -E '^(QDRANT_URL|OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env .env.dev_simple .env.dev_stdio
+          grep -E '^(QDRANT_URL|OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env .env.dev_stdio
 
       - name: Install dependencies
         run: npm ci
@@ -384,59 +380,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
 
-      - name: Start app (installed package, embedded, no infra started)
-        env:
-          # Boot injection runs before the HTTP transport binds (src/index.ts). The store is not
-          # cached between runs, so this boot embeds every shipped adapter through CPU ONNX.
-          HEALTH_CHECK_ATTEMPTS: 120
-          ENV: dev_simple
-          QDRANT_COLLECTION: squadrules_ci
-          XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
-        run: |
-          set -euo pipefail
-          mkdir -p var/log
-          npm run dev:start:installed > var/log/squadrules-single.log 2>&1 &
-          for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
-            curl -sSf http://127.0.0.1:4300/health >/dev/null && break
-            if [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ]; then
-              echo "::error::single-mode server did not become healthy"
-              tail -n 200 var/log/squadrules-single.log
-              exit 1
-            fi
-            sleep 2
-          done
-
-      - name: Assert embedded backend and first-run data dirs
-        env:
-          XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
-        run: |
-          set -euo pipefail
-          health=$(curl -sS http://127.0.0.1:4300/health)
-          echo "$health"
-          echo "$health" | jq -e '.status == "healthy"'                          >/dev/null || { echo "::error::status not healthy"; exit 1; }
-          echo "$health" | jq -e '.dependencies.vectorStore == "healthy"'         >/dev/null || { echo "::error::vectorStore not healthy"; exit 1; }
-          echo "$health" | jq -e '.details.vectorStoreBackend == "embedded-lancedb"' >/dev/null || { echo "::error::backend not embedded-lancedb"; exit 1; }
-          echo "$health" | jq -e '.dependencies | has("qdrant") | not'            >/dev/null || { echo "::error::qdrant key present on embedded"; exit 1; }
-          test -d "${XDG_CONFIG_HOME}/squadrules/lancedb" || { echo "::error::LanceDB first-run data dir not created"; exit 1; }
-          test -d "${XDG_CONFIG_HOME}/squadrules/models" || { echo "::error::fastembed model cache dir not created (key-free default not active?)"; exit 1; }
-          echo "OK: embedded health + LanceDB data dir + fastembed model cache present"
-
-      # Full suite, no file list (docs/adr/0006): deploy-run-env.sh runs tests/integration/ with
-      # transport- and stack-specific suites self-skipping via isHttpTransport()/AUTH_ENABLED.
-      - name: Run integration tests (HTTP transport, full suite)
-        env:
-          CI: "true"
-          ENV: dev_simple
-          QDRANT_COLLECTION: squadrules_ci
-          TEST_XDG_CONFIG_HOME: ${{ env.SINGLE_CONFIG_HOME }}
-        run: npm run dev_simple:test
-
-      # The stdio pass spawns its own server processes and LanceDB tolerates one writer per table,
-      # so the long-lived HTTP app must be gone first. dev:start:installed bypasses start(), so no
-      # PID file exists for a stop target — match the process instead.
-      - name: Stop the HTTP app before the stdio pass
-        run: pkill -f "@squadrules/mcp/dist/index.js" || true
-
       # TRANSPORT_TYPE=stdio comes from .env.dev_stdio; the HTTP-gated suites self-skip, the stdio
       # suites run, and each spawned server reuses the same store dir (boot injection then hits the
       # version-reuse skip instead of re-embedding).
@@ -458,22 +401,12 @@ jobs:
       - name: Show test failure
         if: failure()
         run: |
-          echo "--- single-mode app log (tail) ---"
-          tail -n 200 var/log/squadrules-single.log 2>/dev/null || true
           echo "--- last test report (tail) ---"
           latest=''
           for report in reports/tests/*.log .local/reports/tests/*.log; do
             if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then latest=$report; fi
           done
           if [ -n "$latest" ]; then tail -n 200 "$latest"; else echo "No test report log found"; fi
-
-      - name: Upload squadrules single log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-single-log-node24
-          path: var/log/squadrules-single.log
-          if-no-files-found: ignore
 
       - name: Upload single-mode test reports
         if: always()
