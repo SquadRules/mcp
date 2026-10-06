@@ -24,10 +24,11 @@ and does not dispatch notifications to other repositories.
   the commit subject. Review breaking changes before merging.
 - The npm plugin applies the next version and builds the package. The release
   prepare step then synchronizes every repository artifact derived from that
-  version and verifies the invariant. `@semantic-release/git` commits those
-  files back to `main` with `chore(release): X.Y.Z [skip ci]` before the tag
-  is created. The release tag therefore points at source whose `package.json`
-  already declares the published version.
+  version and verifies the invariant. The local semantic-release prepare hook
+  commits those files back to `main` with
+  `chore(release): X.Y.Z [skip ci]`, pushes that commit, and retargets the
+  pending release tag before semantic-release creates it. The tag therefore
+  points at source whose `package.json` already declares the published version.
 - A clean consumer installation checks the tarball before publication. The
   GitHub Release includes the npm tarball and a production CycloneDX SBOM.
 - Only `main` is a release branch, publishing to `latest`. Arbitrary branch
@@ -140,4 +141,3 @@ releases or custom recovery drafts.
 - [semantic-release GitHub Actions recipe](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions)
 - [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
 - [semantic-release npm plugin](https://github.com/semantic-release/npm)
-- [semantic-release git plugin](https://github.com/semantic-release/git)
