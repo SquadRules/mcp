@@ -104,7 +104,7 @@ jobs:
           test "$HEAD_SHA" = "$MAIN_SHA"
           test "$HEAD_SHA" = "$TAG_SHA"
 
-          for attempt in 1 2 3 4 5; do
+          for _ in 1 2 3 4 5; do
             NPM_VERSION="$(npm view "@squadrules/mcp@$VERSION" version 2>/dev/null || true)"
             [ "$NPM_VERSION" = "$VERSION" ] && break
             sleep 2

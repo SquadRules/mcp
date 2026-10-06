@@ -92,11 +92,12 @@ const execPlugin = config.plugins[execPluginIndex][1];
 assert.match(execPlugin.prepareCmd, /npm run version:sync/);
 assert.match(execPlugin.prepareCmd, /npm run release:verify-version/);
 const sourceHook = readFileSync('scripts/semantic-release-persist-source.mjs', 'utf8');
+// These are escaped regex fragments in the hook's source, so compare them literally.
 for (const invariant of [
   'package\\.json', 'package-lock\\.json', 'compose\\.yaml',
   'src\\/embed-docs\\/mem', 'src\\/resources\\/embedded-mcp-resources',
 ]) {
-  assert.match(sourceHook, new RegExp(invariant), `Release source hook must cover ${invariant}`);
+  assert.ok(sourceHook.includes(invariant), `Release source hook must cover ${invariant}`);
 }
 assert.match(sourceHook, /\[skip ci\]/, 'Release commit must not recursively trigger CI');
 assert.match(sourceHook, /nextRelease\.gitHead = head/, 'Release tag must target persisted source commit');
