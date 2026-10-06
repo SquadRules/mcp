@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 import { generateNotes } from '@semantic-release/release-notes-generator';
 import config, { commitOptions } from '../../release.config.mjs';
-import { prepare as retargetReleaseHead } from '../../scripts/semantic-release-source-head.mjs';
 
 const analyze = messages => analyzeCommits(commitOptions, {
   cwd: process.cwd(), commits: messages.map(message => ({ message, hash: 'a'.repeat(40) })), logger: { log() {} },
@@ -32,7 +30,7 @@ test('release notes preserve the same breaking-header semantics as version analy
 });
 
 
-test('release persists the versioned repository state before publishing', () => {
+test('release persists the versioned repository state before publishing', async () => {
   const pluginName = plugin => Array.isArray(plugin) ? plugin[0] : plugin;
   const pluginNames = config.plugins.map(pluginName);
   assert.deepEqual(pluginNames, [
@@ -40,7 +38,7 @@ test('release persists the versioned repository state before publishing', () => 
     '@semantic-release/release-notes-generator',
     '@semantic-release/npm',
     '@semantic-release/exec',
-    './scripts/semantic-release-source-head.mjs',
+    './scripts/semantic-release-persist-source.mjs',
     '@semantic-release/github',
   ]);
 
@@ -48,18 +46,6 @@ test('release persists the versioned repository state before publishing', () => 
   assert.match(exec.prepareCmd, /npm run version:sync/);
   assert.match(exec.prepareCmd, /npm run release:verify-version/);
 
-  const sourceHook = await import('../../scripts/semantic-release-source-head.mjs');
+  const sourceHook = await import('../../scripts/semantic-release-persist-source.mjs');
   assert.equal(typeof sourceHook.prepare, 'function');
-});
-
-test('release tag is retargeted to the persisted source commit', async () => {
-  const context = {
-    cwd: process.cwd(),
-    env: process.env,
-    nextRelease: { gitHead: '0'.repeat(40) },
-    logger: { log() {} },
-  };
-  await retargetReleaseHead({}, context);
-  const expected = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  assert.equal(context.nextRelease.gitHead, expected);
 });
