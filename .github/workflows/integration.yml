@@ -68,10 +68,25 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      # Cost policy (docs/adr/0004): test lanes embed locally with fastembed so neither boot
+      # injection nor test writes consume OpenAI quota. The fullstack .env generator validates
+      # every SECRET_KEYS (incl. OPENAI_API_KEY) is non-empty after writing, so a throwaway value
+      # is supplied ONLY so generation passes; the next step blanks it and pins fastembed.
       - name: "Generate .env (fullstack: infra + app + auth)"
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ci-keyfree-placeholder
         run: python3 scripts/deploy-generate-dev-secrets.py
+
+      - name: Force key-free fastembed embeddings
+        run: |
+          set -euo pipefail
+          # Blank the throwaway key and override the template's full-stack EMBEDDING_PROVIDER=openai,
+          # which would otherwise make the boot probe fail once the key is gone. Model weights use the
+          # default per-user path (~/.config/squadrules/models), cached by the step below.
+          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
+          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
+          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::primary lane must not select an external provider"; exit 1; fi
 
       - name: Verify .env exists
         run: ls -la .env
@@ -175,9 +190,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-qdrant-snapshot-
 
+      # Local embedding weights are ~hundreds of MB and are fetched from HuggingFace on first use.
+      # Cached so a cold ONNX boot does not also pay a download per run. Keyed on the module that
+      # pins FASTEMBED_MODEL, so changing the model invalidates the cache.
+      - name: Restore fastembed model cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: fastembed-model-cache-primary
+        with:
+          path: ~/.config/squadrules/models
+          key: ${{ runner.os }}-fastembed-models-${{ hashFiles('src/config/embedding-fastembed.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-fastembed-models-
+
       - name: Start app (from installed package)
         env:
-          HEALTH_CHECK_ATTEMPTS: 15
+          # The HTTP server binds only AFTER boot injection trains every shipped mem adapter
+          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). On a cold CI
+          # runner those embeddings run through CPU ONNX, so boot takes minutes vs the near-instant
+          # OpenAI path. Generous cap; the loop breaks on the first healthy response, so a fast
+          # boot costs nothing extra.
+          HEALTH_CHECK_ATTEMPTS: 120
           KEYCLOAK_INTERNAL_URL: http://localhost:8080
           QDRANT_SNAPSHOT_DIR: var/snapshots
         run: |
@@ -194,6 +226,13 @@ jobs:
 
       - name: Run integration tests (AUTH stack + Jest suite)
         run: npm run dev:test
+
+      - name: Save fastembed model cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        if: steps.fastembed-model-cache-primary.outputs.cache-hit != 'true'
+        with:
+          path: ~/.config/squadrules/models
+          key: ${{ steps.fastembed-model-cache-primary.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()
@@ -249,13 +288,23 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      # Cost policy (docs/adr/0004): key-free fastembed, same rationale as verify-integration-primary.
       - name: "Generate .env (base vars, overridden for simple mode)"
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ci-keyfree-placeholder
         run: python3 scripts/deploy-generate-dev-secrets.py
 
       - name: Apply simple profile overrides
         run: cat .env.dev_simple >> .env
+
+      - name: Force key-free fastembed embeddings
+        run: |
+          set -euo pipefail
+          # Runs after the profile overlay so nothing re-selects an external provider.
+          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
+          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
+          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
+          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::simple lane must not select an external provider"; exit 1; fi
 
       - name: Start Qdrant (binary) and npm ci (parallel)
         run: |
@@ -317,9 +366,20 @@ jobs:
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
+      - name: Restore fastembed model cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: fastembed-model-cache-simple
+        with:
+          path: ~/.config/squadrules/models
+          key: ${{ runner.os }}-fastembed-models-${{ hashFiles('src/config/embedding-fastembed.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-fastembed-models-
+
       - name: Start app (from installed package, simple mode)
         env:
-          HEALTH_CHECK_ATTEMPTS: 15
+          # Cold ONNX boot injection (see verify-integration-primary for the mechanism); the loop
+          # breaks on the first healthy response, so a fast boot costs nothing extra.
+          HEALTH_CHECK_ATTEMPTS: 120
           ENV: dev_simple
           QDRANT_SNAPSHOT_DIR: var/snapshots
           QDRANT_COLLECTION: squadrules_ci
@@ -341,6 +401,13 @@ jobs:
             tests/integration/scenarios/spaces-tool.http-simple.test.ts \
             tests/integration/readonly/mcp-list-tools.test.ts \
             tests/integration/readonly/mcp-client-connection.test.ts
+
+      - name: Save fastembed model cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        if: steps.fastembed-model-cache-simple.outputs.cache-hit != 'true'
+        with:
+          path: ~/.config/squadrules/models
+          key: ${{ steps.fastembed-model-cache-simple.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()
@@ -373,6 +440,11 @@ jobs:
   verify-integration-stdio-smoke:
     # Transport smoke only (stdio JSON-RPC). No HTTP server; tests spawn a stdio subprocess.
     # Reuses build's tgz (npm-package-node24) — no separate build.
+    # EXCEPTION to the key-free fastembed policy (docs/adr/0004): every stdio test spawns its own
+    # server process, and boot injection runs before the transport connects (src/index.ts). With
+    # local ONNX that is minutes PER SPAWN, and the launch smoke test aborts the MCP handshake at
+    # 20s (tests/integration/mode/stdio/stdio-launch-smoke.test.ts), so this lane still uses OpenAI.
+    # Flipping it needs lazy/deferred injection or a per-spawn model reuse — tracked as an issue.
     name: Transport smoke (STDIO mode, Node 24)
     needs: [build]
     runs-on: ubuntu-latest

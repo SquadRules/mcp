@@ -41,6 +41,8 @@ home; they never restate it ("rule of one").
 - `docs/keycloak/**` — Keycloak / Google IdP operator setup
 - `docs/business/**` — business use-cases
 - `docs/security/**` — threat model, incident runbook, code-security setup, audit log
+- `docs/adr/**` — architecture decision records (why a decision was taken and when it
+  expires); one decision per file, supersede rather than rewrite
 - `docs/known-issues-and-limitations.md`
 - `docs/kairos-bundles.md`
 - `docs/test-snapshot-*.md`

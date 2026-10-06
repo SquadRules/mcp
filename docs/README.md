@@ -60,6 +60,12 @@ Files under `examples/` are read by
 - [Audit log](security/audit-log.md)
 - [Known issues and limitations](known-issues-and-limitations.md)
 
+## Architecture decisions
+
+- [ADR index](adr/README.md) — why a decision was taken, what it costs, and which issue
+  can reopen it. Read before re-arguing caching, embedding-provider, or release-version
+  behaviour.
+
 ## Specs
 
 - [Artifact export parity spec](specs/artifact-export-parity-spec.md)

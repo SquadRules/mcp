@@ -38,8 +38,15 @@ The authenticated service job installs the Node 24 tarball, starts Qdrant, Valke
 Postgres and Keycloak, then runs unit and integration tests. Some tests under
 `tests/unit` require real services, so they run after deployment. HTTP without
 auth and stdio transport smoke jobs install that same artifact. The full suite
-uses a restricted OpenAI embedding key; fork PRs require maintainer review and
-validation from a trusted branch because GitHub does not expose secrets to forks.
+uses key-free local fastembed embeddings (`EMBEDDING_PROVIDER=fastembed`, model
+weights cached per runner), so neither boot injection nor test writes consume
+OpenAI quota — see
+[`docs/adr/0004`](../../docs/adr/0004-fastembed-default-for-testing.md). The
+stdio smoke lane is the deliberate exception: boot injection runs before the
+transport connects and every stdio test spawns its own server process, so it
+still uses the restricted OpenAI embedding key. Fork PRs require maintainer
+review and validation from a trusted branch because GitHub does not expose
+secrets to forks.
 UI tests use jsdom and do not require a browser download; the auth browser tests
 retain Playwright. No production image/Helm build or downstream dispatch belongs
 in this npm-only repository.
