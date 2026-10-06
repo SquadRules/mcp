@@ -7,6 +7,7 @@
 import path from 'path';
 import { parseOidcScopesSupported } from './http/oidc-scopes.js';
 import { normalizeRedisUrl } from './utils/normalize-redis-url.js';
+import { assertStdioConfigConsistency, AUTH_ENABLED, TRANSPORT_TYPE } from './config/runtime-mode.js';
 import {
   SQUADRULES_LOCAL_ARTIFACT_DIRS_DEFAULT,
   parseLocalArtifactDirHints
@@ -127,10 +128,15 @@ export const MCP_RATE_LIMIT_MAX = getEnvInt('MCP_RATE_LIMIT_MAX', 1000);
  * tool-result notifications (static chrome only). Use to isolate host crashes tied to the bridge.
  */
 export const SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY = getEnvBoolean('SQUADRULES_MCP_WIDGET_PRESENTATION_ONLY', false);
-// Auth (Keycloak OIDC). One Keycloak per env: each env file sets KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID.
-// AUTH_ENABLED defaults to true. If it is explicitly set to true, missing auth env is a startup error.
-// If it is left unset and auth env is incomplete, the server stays fail-closed at request time.
-export const AUTH_ENABLED = getEnvBoolean('AUTH_ENABLED', true);
+// ── Runtime mode ────────────────────────────────────────────────────────────────────
+// stdio = local simple mode (embedded LanceDB, no HTTP listener, single user); http =
+// clustered posture (REST + MCP + UI + metrics, auth on). Resolved in
+// ./config/runtime-mode.ts (max-lines); `squadrules serve` and the `squadrules-mcp`
+// bin select stdio, every other entrypoint keeps http.
+export { AUTH_ENABLED, isQdrantConfigured, TRANSPORT_TYPE } from './config/runtime-mode.js';
+// Checked first: a contradictory local profile should hear the mode error, not the
+// clustered auth-env error below.
+assertStdioConfigConsistency(TRANSPORT_TYPE, AUTH_ENABLED);
 export const KEYCLOAK_URL = getEnvString('KEYCLOAK_URL', '');
 /** When set, used for server-side calls (e.g. token exchange). When unset, KEYCLOAK_URL is used. Use keycloak:8080 in Docker. */
 export const KEYCLOAK_INTERNAL_URL = getEnvString('KEYCLOAK_INTERNAL_URL', '');
@@ -238,6 +244,10 @@ export const GROUP_SPACE_PATH_EXAMPLE: string = (() => {
 /** Main HTTP listener when `TRANSPORT_TYPE=http`: UI, REST API, and Streamable HTTP MCP. Ignored in stdio mode (no HTTP server). */
 export const SERVER_PORT = getEnvInt('SERVER_PORT', 3000);
 
+// Auth (Keycloak OIDC). One Keycloak per env: each env file sets KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID.
+// AUTH_ENABLED (resolved in the runtime-mode section) defaults to true for clustered
+// http and false for local stdio. Explicitly true with incomplete auth env is a startup
+// error; unset with incomplete auth env, the server stays fail-closed at request time.
 const AUTH_ENABLED_EXPLICIT = process.env['AUTH_ENABLED'] !== undefined;
 
 if (AUTH_ENABLED && AUTH_ENABLED_EXPLICIT) {
@@ -253,6 +263,7 @@ if (AUTH_ENABLED && AUTH_ENABLED_EXPLICIT) {
     );
   }
 }
+
 export const QDRANT_RESCORE_STRING = getEnvString('QDRANT_RESCORE', 'true');
 /** When non-empty, backup/snapshot is enabled; app creates dir if missing. Empty = not configured → 503 on POST /api/snapshot. */
 export const QDRANT_SNAPSHOT_ON_START = getEnvBoolean('QDRANT_SNAPSHOT_ON_START', false);
@@ -281,15 +292,6 @@ export const RUNS_FULL_CONFIDENCE = getEnvInt('RUNS_FULL_CONFIDENCE', 10);
 /** Max additive boost from attest (tiebreaker within RRF bands). */
 export const ATTEST_BOOST_MAX = getEnvFloat('ATTEST_BOOST_MAX', 0.08);
 
-// Transport: stdio | http. Default http for non-CLI entrypoints (Docker/CI/bootstrap).
-// `squadrules serve` sets SQUADRULES_CLI_SERVE=1 before spawning bootstrap so missing TRANSPORT_TYPE defaults to stdio there only.
-const _cliServeValue = process.env['SQUADRULES_CLI_SERVE'];
-const _transportDefault =
-  _cliServeValue === '1' && !process.env['TRANSPORT_TYPE']?.trim() ? 'stdio' : 'http';
-const TRANSPORT_TYPE_RAW = getEnvString('TRANSPORT_TYPE', _transportDefault);
-export const TRANSPORT_TYPE: 'stdio' | 'http' =
-  TRANSPORT_TYPE_RAW === 'http' ? 'http' : 'stdio';
-
 // Required (throw at startup if missing)
 export function getQdrantUrl(): string {
   return getEnvRequired('QDRANT_URL');
@@ -298,9 +300,6 @@ export function getQdrantUrl(): string {
 export function getQdrantCollection(defaultValue = 'squadrules'): string {
   return getEnvString('QDRANT_COLLECTION', defaultValue);
 }
-
-/** Whether an external Qdrant server is set (non-empty); else embedded LanceDB is selected. Mirrors `isRedisConfigured`. */
-export const isQdrantConfigured = (process.env['QDRANT_URL'] ?? '').trim().length > 0;
 
 // Trusted issuers: from env, or from KEYCLOAK_URL/REALM when unset. Add loopback alias (localhost <-> 127.0.0.1) so tokens match either.
 const _authIssuersFromEnv = AUTH_TRUSTED_ISSUERS_STRING.split(',')

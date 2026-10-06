@@ -22,6 +22,8 @@ import {
 } from './config.js';
 import { qdrantService } from './services/qdrant/index.js';
 import { getEmbeddedRecordStore } from './services/vector-store/embedded-store-singleton.js';
+import { resolveLanceDbDir } from './services/vector-store/lancedb-connection.js';
+import { composeStdioModeBanner } from './stdio/stdio-banner.js';
 import { triggerQdrantSnapshot } from './services/qdrant/snapshots.js';
 import { probeEmbeddingDimension } from './services/embedding/service.js';
 import { installQdrantFetchCompatibility } from './services/qdrant/undici-compat.js';
@@ -102,6 +104,13 @@ export async function runSquadrulesServer(): Promise<void> {
         structuredLogger.info(
           `SQUADRULES_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
         );
+
+        // Local simple mode stays silent for the first minutes of a fresh install while
+        // the embedding model downloads, and a host user cannot otherwise see which
+        // store the process is about to write to. stderr only - stdout is the MCP channel.
+        if (TRANSPORT_TYPE === 'stdio') {
+            process.stderr.write(composeStdioModeBanner(resolveLanceDbDir()));
+        }
 
         // Backend-selected store. On the embedded path this is the shared
         // LanceDB store double-cast to the `MemoryQdrantStore` shape (same

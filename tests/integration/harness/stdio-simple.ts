@@ -11,6 +11,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { SCENARIOS } from './scenario.js';
 import type { TestHarness } from './types.js';
 import { callToolJson } from './helpers/mcp-call-normalize.js';
+import { applyLocalStdioEnv } from '../../utils/stdio-simple-env.js';
 
 const BOOTSTRAP_PATH = path.resolve(process.cwd(), 'dist/bootstrap.js');
 const SOURCE_BOOTSTRAP_PATH = path.resolve(process.cwd(), 'src/bootstrap.ts');
@@ -41,15 +42,15 @@ function hasEmbeddingConfig(env: NodeJS.ProcessEnv): boolean {
 }
 
 function createStdioChildEnv(metricsPort: number): NodeJS.ProcessEnv {
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     ...FILE_ENV,
-    TRANSPORT_TYPE: 'stdio',
-    AUTH_ENABLED: process.env.AUTH_ENABLED ?? FILE_ENV.AUTH_ENABLED ?? 'false',
     PORT: process.env.PORT ?? FILE_ENV.PORT ?? '4300',
     METRICS_PORT: String(metricsPort),
     REDIS_URL: process.env.REDIS_URL ?? FILE_ENV.REDIS_URL ?? ''
   };
+  applyLocalStdioEnv(env);
+  return env;
 }
 
 export async function createStdioSimpleHarness(): Promise<TestHarness> {
