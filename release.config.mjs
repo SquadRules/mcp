@@ -22,7 +22,7 @@ export default {
     }],
     // Commit the synchronized source, push it to main and retarget the pending
     // semantic-release tag to that release commit.
-    './scripts/semantic-release-source-head.mjs',
+    './scripts/semantic-release-persist-source.mjs',
     ['@semantic-release/github', {
       assets: ['artifacts/*.tgz', 'artifacts/npm-sbom.json'],
       successComment: false,
