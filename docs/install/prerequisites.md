@@ -1,45 +1,30 @@
 # Installation prerequisites
 
-Use this page before you create `.env` or start the stack. First confirm the
-local requirements. Then choose the embedding backend that determines which
-variables you place in `.env` or Helm values.
+Use this page before you set `.env` or configure your MCP host. First confirm
+the local requirements, then choose the embedding backend that determines
+which variables you place in `mcp.json` `env` (stdio) or in the process
+environment (HTTP server).
+
+SquadRules ships as an **npm-only** package; the paths below apply to the
+`@squadrules/mcp` CLI and the `squadrules serve` process. Container-image and
+Kubernetes deployment prerequisites live in their respective sibling repos
+([containers](https://github.com/SquadRules/containers),
+[charts](https://github.com/SquadRules/charts)).
 
 ---
 
 ## Prerequisites
 
-### All installation paths
-
 | Requirement | Details |
 |-------------|---------|
-| **Node.js 25+** + **[SquadRules CLI](../CLI.md)** | Required. Primary interface for auth, bulk management, and verification. Enables SquadRules usage without MCP. |
+| **Node.js 24+** | Required. Node 24 is the supported LTS baseline; CI runs one advisory lane on Node Current (pin in `.github/workflows/`). |
+| **`@squadrules/mcp` CLI** | Required. Primary interface for auth, bulk management, verification, and starting the server (`squadrules serve`). |
+| **Python 3** | Optional. Only needed for repository helper scripts or advanced operator workflows. |
 
 ```sh
 npm install -g @squadrules/mcp
 squadrules --help
 ```
-
-### Docker Compose path
-
-| Requirement | Details |
-|-------------|---------|
-| **Docker Engine** + **Docker Compose v2** | Required for all Compose-based setups |
-| Working directory with **`compose.yaml`** and writable **`.env`** | Required; a local `git clone` is optional |
-| Source for **`compose.yaml`** | Use the file from the repository, a raw download, or another controlled copy |
-| **Qdrant** | Started by Compose; no separate installation is required for the simple stack |
-| **Identity provider** | Not part of the standard install path; manage it separately if your deployment needs one |
-| **Node.js 24+** + **[SquadRules CLI](../CLI.md)** | Required; the CLI is the primary interface for install, authentication, and verification. Node 24 is the supported LTS baseline; CI runs one advisory lane on Node Current (pin in `.github/workflows/`) |
-| **Python 3** | Required only for repository helper scripts or advanced operator workflows |
-
-### Helm chart path (Kubernetes)
-
-| Requirement | Details |
-|-------------|---------|
-| **Kubernetes** 1.28+ | Any conformant cluster |
-| **Helm** v3.14+ | Package manager for Kubernetes |
-| **kubectl** | Configured context targeting the cluster |
-| **Operators** | Install per [Helm prerequisites](helm.md#operators) |
-| **Gateway API CRDs** | Required when `gateway.enabled: true` |
 
 If any requirement is missing, fix it before you continue.
 
@@ -53,8 +38,10 @@ the presence of a non-empty `QDRANT_URL`:
 - **Default: embedded LanceDB.** With no `QDRANT_URL` the server runs a local,
   file-backed LanceDB store, so the CLI / `serve` path needs no Qdrant, Redis, or
   Docker.
-- **Qdrant is opt-in.** The Docker Compose and Helm paths below start Qdrant and set
-  `QDRANT_URL`, which selects the Qdrant backend with unchanged collections.
+- **Qdrant is opt-in.** Set `QDRANT_URL` (and `QDRANT_API_KEY` when the server
+  requires one) to select the Qdrant backend with unchanged collections. The
+  development infrastructure in `compose/infra.yaml` starts a local Qdrant on
+  `http://localhost:6333`.
 
 There is no silent fallback between them, and an embedding provider is required in
 both cases — the embedded store removes the database dependency, not the model. The
@@ -65,15 +52,16 @@ full selection rule and per-backend limitations are in
 
 ## Embedding backend
 
-Choose the embedding backend before you populate `.env` or configure Helm
-values. The application needs a text-embedding service to convert text into
-vectors for the active store, and each backend uses a different set of variables.
+Choose the embedding backend before you populate `.env` or configure your
+MCP host's `env` block. The application needs a text-embedding service to
+convert text into vectors for the active store, and each backend uses a
+different set of variables.
 
 By default SquadRules embeds **locally** with
 [fastembed](#local-fastembed-default) — no API key and no inference service — so
-simple mode and `npx @squadrules/mcp serve` run with zero external dependencies.
-Configure OpenAI or Ollama only when you want to override that default; TEI is
-deprecated.
+`npm install -g @squadrules/mcp && squadrules serve` runs with zero external
+dependencies. Configure OpenAI or Ollama only when you want to override that
+default; TEI is deprecated.
 
 ### Why an embedding model?
 
@@ -122,7 +110,8 @@ flowchart TB
 With no external provider configured, SquadRules embeds **locally** using
 [fastembed](https://github.com/qdrant/fastembed) (`BAAI/bge-base-en-v1.5`, 768
 dimensions). It needs **no API key and no inference service**, which is why
-simple mode and `npx @squadrules/mcp serve` run with zero external dependencies.
+`npm install` followed by `squadrules serve` runs with zero external
+dependencies.
 
 ```ini
 # No configuration required for the default. Override only if needed:
@@ -154,23 +143,12 @@ Use OpenAI when you want a managed cloud embedding service.
 
 ![Restricted key: Embeddings on, rest minimal](openai-key-embeddings-only.png)
 
-**Docker Compose `.env`:**
+**Environment variables (stdio host `env` or shell before `serve`):**
 
 ```ini
 OPENAI_API_KEY=sk-...
 # optional:
 # OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-```
-
-**Helm values:**
-
-```yaml
-app:
-  embedding:
-    openai:
-      existingSecret: squadrules-mcp-embedding
-      secretKey: OPENAI_API_KEY
-      model: text-embedding-3-small
 ```
 
 If you use a local repository checkout, validate the key with
@@ -190,39 +168,22 @@ ollama pull nomic-embed-text
 - `OPENAI_EMBEDDING_MODEL` is typically `nomic-embed-text`
 - `OPENAI_API_KEY` must be `ollama`
 
-| App location | Ollama location | `OPENAI_API_URL` |
-|--------------|-----------------|------------------|
-| Compose on macOS or Windows | Host machine | `http://host.docker.internal:11434` |
-| Compose on Linux | Host machine | Host IP or published port |
-| `npm run dev:*` on the host | Same machine | `http://127.0.0.1:11434` |
-| Helm (in-cluster Ollama) | Same namespace | `http://ollama:11434` |
+| Server location | Ollama location | `OPENAI_API_URL` |
+|-----------------|-----------------|------------------|
+| `squadrules serve` on your laptop | Same machine | `http://127.0.0.1:11434` |
+| HTTP server on a remote host | Same host | `http://127.0.0.1:11434` |
+| HTTP server in a container | Host machine | Host IP or published port |
 
-**Docker Compose `.env`:**
+**Environment variables:**
 
 ```ini
-OPENAI_API_URL=http://host.docker.internal:11434
+OPENAI_API_URL=http://127.0.0.1:11434
 OPENAI_EMBEDDING_MODEL=nomic-embed-text
 OPENAI_API_KEY=ollama
 ```
 
-**Helm values** (chart deploys Ollama StatefulSet):
-
-```yaml
-ollama:
-  enabled: true
-app:
-  embedding:
-    openai:
-      model: nomic-embed-text
-  extraEnv:
-    - name: OPENAI_API_URL
-      value: http://ollama:11434
-    - name: OPENAI_API_KEY
-      value: "ollama"
-```
-
 Switching between OpenAI and Ollama can change vector size, which may require a
-Qdrant migration.
+store migration.
 
 ---
 
@@ -235,29 +196,20 @@ Qdrant migration.
 
 Use TEI when you already operate a text-embedding inference service.
 
-**Docker Compose `.env`:**
+**Environment variables:**
 
 ```ini
 TEI_BASE_URL=http://your-tei:8080
 # TEI_MODEL=...
 ```
 
-**Helm values:**
-
-```yaml
-app:
-  extraEnv:
-    - name: TEI_BASE_URL
-      value: http://your-tei:8080
-```
-
 ---
 
 ## Next steps
 
-After you choose the backend, continue with your deployment path:
-
-| Path | Next page |
-|------|-----------|
-| Docker Compose | [Simple stack §3](docker-compose-simple.md#3-environment-file) |
-| Helm chart | [Helm installation](helm.md#3-create-a-values-file) |
+- **npm install path:** continue with
+  [Install § Configure your MCP host](README.md#configure-your-mcp-host).
+- **Container image path:** see
+  [SquadRules/containers](https://github.com/SquadRules/containers).
+- **Kubernetes (Helm) path:** see
+  [SquadRules/charts](https://github.com/SquadRules/charts).

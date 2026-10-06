@@ -259,7 +259,7 @@ if (AUTH_ENABLED && AUTH_ENABLED_EXPLICIT) {
   if (!SESSION_SECRET.trim()) missing.push('SESSION_SECRET');
   if (missing.length > 0) {
     throw new Error(
-      `AUTH_ENABLED=true requires non-empty env: ${missing.join(', ')}. Set them in .env. See docs/install/README.md.`
+      `AUTH_ENABLED=true requires non-empty env: ${missing.join(', ')}. Set them in .env or the process environment. See docs/keycloak/README.md.`
     );
   }
 }

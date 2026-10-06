@@ -8,7 +8,8 @@ below adds Google as a broker in the **`squadrules`** realm. Layout and ports:
 ## Prerequisites
 
 - Keycloak reachable and **`squadrules`** (or your target realm) under your control
-- Optional Compose context: [`fullstack` operator note](../install/docker-compose-full-stack.md), `npm run infra:up`, or your own deployment
+- Local dev stack running (`npm run infra:up` — brings up Qdrant, Valkey,
+  Postgres, Keycloak via `compose/infra.yaml`), or your own deployment
 - Admin access to the local Keycloak realm
 - A Google OAuth client created in Google Cloud
 
@@ -25,7 +26,7 @@ Copy the resulting client ID and client secret.
 
 ## 2. Put the Google credentials in `.env`
 
-Add these values to the **`.env`** next to your **`compose.yaml`** for the full-stack setup:
+Add these values to the **`.env`** next to your **`compose/infra.yaml`** for the full-stack setup:
 
 ```ini
 GOOGLE_CLIENT_ID=...

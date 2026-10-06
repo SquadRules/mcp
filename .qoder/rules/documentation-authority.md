@@ -12,10 +12,11 @@ home; they never restate it ("rule of one").
 
 | Content class | Home (single source of truth) | How it is maintained |
 |---|---|---|
-| Architecture, HTTP/MCP API, workflow engine, memory, auth internals, CLI surface, deployment topology, testing, UI, artifacts | Qoder RepoWiki (`.qoder/repowiki/en/content/`, generated) → published to GitHub Wiki | Auto (Qoder regenerates from code) |
-| Install secrets/env, Keycloak + Google IdP setup, business use-cases, threat model, incident runbook, known issues, test-snapshot ops | Slim `docs/` (curated; enumerated in the allowlist below) | DRY/structure enforced by agent + CI; content decisions by human/AI |
-| Agent operation, execution model, maintainer workflows | Skills (`.agents/skills/` — `kairos`, `kairos-dev`) + `AGENTS.md` | Human/AI |
-| Test fixtures, install and CLI functional inputs | `docs/examples/`, `docs/install/`, `docs/CLI.md` (functional inputs, not prose docs) | Tied to code/tests |
+| Architecture, HTTP/MCP API, workflow engine, memory, auth internals, CLI surface, testing, UI, artifacts | Qoder RepoWiki (`.qoder/repowiki/en/content/`, generated) → published to GitHub Wiki | Auto (Qoder regenerates from code) |
+| Container-image pipeline (Dockerfile, build/scan/sign/publish), Docker Compose deployment, Helm chart values and operators | Sibling repos [`SquadRules/containers`](https://github.com/SquadRules/containers) and [`SquadRules/charts`](https://github.com/SquadRules/charts) — **not** in this repo | Owned per repo; parent `../AGENTS.md` documents the split |
+| Install secrets/env (npm path), Keycloak + Google IdP setup, business use-cases, threat model, incident runbook, known issues, test-snapshot ops | Slim `docs/` (curated; enumerated in the allowlist below) | DRY/structure enforced by agent + CI; content decisions by human/AI |
+| Agent operation, execution model, maintainer workflows | Skills (`.agents/skills/` — `squadrules`, `squadrules-dev`) + `AGENTS.md` | Human/AI |
+| Test fixtures, install and CLI functional inputs | `docs/examples/`, `docs/install/` (npm path only — no `docker-compose-*.md` or `helm.md`), `docs/CLI.md` | Tied to code/tests |
 | Root project docs | `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `TRADEMARK.md`, `AGENTS.md` | Human/AI |
 
 ### Must always
@@ -42,14 +43,14 @@ home; they never restate it ("rule of one").
 - `docs/business/**` — business use-cases
 - `docs/security/**` — threat model, incident runbook, code-security setup, audit log
 - `docs/known-issues-and-limitations.md`
-- `docs/kairos-bundles.md`
+- `docs/squadrules-bundles.md`
 - `docs/test-snapshot-*.md`
 - `docs/specs/**`
 - `docs/README.md` — thin router only (links to wiki + the entries above)
 
-Functional inputs (kept, but not prose docs): `docs/install/**`, `docs/CLI.md`,
-`docs/examples/**`. `docs/install/helm.md` is curated docs (it is not part of the
-install-skill `COPIES` set).
+Functional inputs (kept, but not prose docs): `docs/install/**` (npm path
+only), `docs/CLI.md`, `docs/examples/**`. Container-image and Helm deployment
+docs are **not** allowed in this repo — link to the sibling repos instead.
 
 ### Colocated README shape contract (AI-first audience)
 
@@ -62,10 +63,10 @@ and `docs/`) must:
 - contain only **directory-local** facts needed by someone operating in that
   directory;
 - contain **no** restatement of wiki or root-doc content — link out instead;
-- carry an explicit marker `<!-- kairos-doc-keep: <reason> -->` when its
+- carry an explicit marker `<!-- squadrules-doc-keep: <reason> -->` when its
   existence is intentional but a heuristic might flag it.
 
-The two shipped skills (`.agents/skills/kairos`, `.agents/skills/kairos-dev`)
+The two shipped skills (`.agents/skills/squadrules`, `.agents/skills/squadrules-dev`)
 are hand-authored; keep depth in each skill's `references/`, not restated in
 root docs. The only auto-generated documentation is the Qoder RepoWiki (see
 **Must never** above) — never hand-edit it.
@@ -74,6 +75,6 @@ root docs. The only auto-generated documentation is the Qoder RepoWiki (see
 
 - `scripts/lint-docs-links.mjs` (`npm run lint:docs`) fails on dangling relative
   links and links to retired paths, and checks the colocated-README contract.
-- `.agents/skills/kairos-dev/references/doc-governance.md` audits and
+- `.agents/skills/squadrules-dev/references/doc-governance.md` audits and
   auto-repairs drift, and hands wiki regeneration to Qoder + the
   `sync-qoder-repowiki-to-github-wiki` workflow (`scripts/sync-wiki.sh`).
