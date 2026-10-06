@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
       - run: npm ci
       - name: Release (or preview)
@@ -78,3 +78,40 @@ jobs:
           else
             npm run release
           fi
+
+      - name: Verify published release identity
+        if: github.event_name != 'workflow_dispatch' || inputs.dry-run == false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # A non-releasable push leaves HEAD at the event SHA. A real release
+          # advances HEAD with @semantic-release/git before semantic-release tags it.
+          if [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ]; then
+            echo "No release was produced for this push."
+            exit 0
+          fi
+
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+          HEAD_SHA="$(git rev-parse HEAD)"
+
+          git fetch origin main --tags
+          MAIN_SHA="$(git rev-parse origin/main)"
+          TAG_SHA="$(git rev-list -n 1 "$TAG")"
+
+          test "$HEAD_SHA" = "$MAIN_SHA"
+          test "$HEAD_SHA" = "$TAG_SHA"
+
+          for _ in 1 2 3 4 5; do
+            NPM_VERSION="$(npm view "@squadrules/mcp@$VERSION" version 2>/dev/null || true)"
+            [ "$NPM_VERSION" = "$VERSION" ] && break
+            sleep 2
+          done
+          test "$NPM_VERSION" = "$VERSION"
+
+          gh release view "$TAG" --json tagName,isDraft,isPrerelease >/tmp/release.json
+          test "$(node -p "JSON.parse(require('node:fs').readFileSync('/tmp/release.json','utf8')).tagName")" = "$TAG"
+
+          echo "Verified source/main/tag/GitHub/npm release identity: $VERSION @ $HEAD_SHA"

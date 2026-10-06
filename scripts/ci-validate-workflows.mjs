@@ -48,6 +48,8 @@ for (const [job, file] of [['integration', 'integration'], ['security', 'securit
 }
 assert.equal(release.jobs.publish.environment, 'release');
 assert.equal(release.jobs.publish.permissions['id-token'], 'write');
+const setupNode = release.jobs.publish.steps.find(s => s.uses?.startsWith('actions/setup-node@'));
+assert.equal(setupNode?.with?.['node-version'], '26', 'Publisher must satisfy current release-plugin engines');
 // `prepare: husky` installs this repository's tag-blocking pre-push hook into the publisher's own
 // checkout on `npm ci` and again on the `npm pack` inside semantic-release, so a pre-step
 // `git config core.hooksPath` is rewritten before the tag push. Only command-line git config
@@ -66,13 +68,39 @@ assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
 assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
 assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
 assert.equal(release.concurrency['cancel-in-progress'], false);
+const identityStep = publishSteps.find(s => s.name === 'Verify published release identity');
+assert.ok(identityStep, 'Publisher must verify source/tag/npm identity after a real release');
+assert.match(identityStep.run ?? '', /git rev-parse origin\/main/);
+assert.match(identityStep.run ?? '', /git rev-list -n 1 "\$TAG"/);
+assert.match(identityStep.run ?? '', /npm view "@squadrules\/mcp@\$VERSION" version/);
+assert.match(identityStep.run ?? '', /gh release view "\$TAG"/);
 assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch/);
 const { default: config } = await import('../release.config.mjs');
+const pluginName = plugin => Array.isArray(plugin) ? plugin[0] : plugin;
 assert.deepEqual(config.branches, ['main']);
-assert.deepEqual(config.plugins.map(p => p[0]), [
+assert.deepEqual(config.plugins.map(pluginName), [
   '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
-  '@semantic-release/npm', '@semantic-release/exec', '@semantic-release/github',
+  '@semantic-release/npm', '@semantic-release/exec',
+  './scripts/semantic-release-persist-source.mjs', '@semantic-release/github',
 ]);
+const npmPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/npm');
+const execPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/exec');
+const sourceHeadPluginIndex = config.plugins.findIndex(p => pluginName(p) === './scripts/semantic-release-persist-source.mjs');
+assert.ok(npmPluginIndex < execPluginIndex && execPluginIndex < sourceHeadPluginIndex,
+  'npm must version, repo files must sync/verify, then source must persist before tagging');
+const execPlugin = config.plugins[execPluginIndex][1];
+assert.match(execPlugin.prepareCmd, /npm run version:sync/);
+assert.match(execPlugin.prepareCmd, /npm run release:verify-version/);
+const sourceHook = readFileSync('scripts/semantic-release-persist-source.mjs', 'utf8');
+// These are escaped regex fragments in the hook's source, so compare them literally.
+for (const invariant of [
+  'package\\.json', 'package-lock\\.json', 'compose\\.yaml',
+  'src\\/embed-docs\\/mem', 'src\\/resources\\/embedded-mcp-resources',
+]) {
+  assert.ok(sourceHook.includes(invariant), `Release source hook must cover ${invariant}`);
+}
+assert.match(sourceHook, /\[skip ci\]/, 'Release commit must not recursively trigger CI');
+assert.match(sourceHook, /nextRelease\.gitHead = head/, 'Release tag must target persisted source commit');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
 assert.equal(pkg.scripts.prepack, 'npm run build');

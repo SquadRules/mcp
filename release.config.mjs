@@ -1,7 +1,6 @@
 /** npm-only releases; semantic-release owns versions, tags and publication. */
 export const commitOptions = {
   preset: 'conventionalcommits',
-  // Preserve historical dependency commit semantics used by the update bots.
   releaseRules: [
     { type: 'chore', scope: 'deps', release: 'patch' },
     { type: 'chore', scope: 'deps-dev', release: 'patch' },
@@ -15,11 +14,15 @@ export default {
   plugins: [
     ['@semantic-release/commit-analyzer', commitOptions],
     ['@semantic-release/release-notes-generator', { preset: 'conventionalcommits' }],
-    // npm updates the workspace version before prepack builds embedded resources.
+    // npm applies nextRelease.version and creates the release tarball first.
     ['@semantic-release/npm', { tarballDir: 'artifacts' }],
+    // Persist every repo artifact derived from package.json.version before tagging.
     ['@semantic-release/exec', {
-      prepareCmd: 'npm run test:tgz && npm sbom --omit=dev --sbom-format cyclonedx > artifacts/npm-sbom.json',
+      prepareCmd: 'npm run version:sync && npm run release:verify-version -- ${nextRelease.version} && npm run test:tgz && npm sbom --omit=dev --sbom-format cyclonedx > artifacts/npm-sbom.json',
     }],
+    // Commit the synchronized source, push it to main and retarget the pending
+    // semantic-release tag to that release commit.
+    './scripts/semantic-release-persist-source.mjs',
     ['@semantic-release/github', {
       assets: ['artifacts/*.tgz', 'artifacts/npm-sbom.json'],
       successComment: false,

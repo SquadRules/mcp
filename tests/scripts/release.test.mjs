@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 import { generateNotes } from '@semantic-release/release-notes-generator';
-import { commitOptions } from '../../release.config.mjs';
+import config, { commitOptions } from '../../release.config.mjs';
 
 const analyze = messages => analyzeCommits(commitOptions, {
   cwd: process.cwd(), commits: messages.map(message => ({ message, hash: 'a'.repeat(40) })), logger: { log() {} },
@@ -27,4 +27,25 @@ test('release notes preserve the same breaking-header semantics as version analy
   });
   assert.match(notes, /BREAKING CHANGES/);
   assert.match(notes, /remove obsolete API/);
+});
+
+
+test('release persists the versioned repository state before publishing', async () => {
+  const pluginName = plugin => Array.isArray(plugin) ? plugin[0] : plugin;
+  const pluginNames = config.plugins.map(pluginName);
+  assert.deepEqual(pluginNames, [
+    '@semantic-release/commit-analyzer',
+    '@semantic-release/release-notes-generator',
+    '@semantic-release/npm',
+    '@semantic-release/exec',
+    './scripts/semantic-release-persist-source.mjs',
+    '@semantic-release/github',
+  ]);
+
+  const exec = config.plugins.find(plugin => pluginName(plugin) === '@semantic-release/exec')[1];
+  assert.match(exec.prepareCmd, /npm run version:sync/);
+  assert.match(exec.prepareCmd, /npm run release:verify-version/);
+
+  const sourceHook = await import('../../scripts/semantic-release-persist-source.mjs');
+  assert.equal(typeof sourceHook.prepare, 'function');
 });
