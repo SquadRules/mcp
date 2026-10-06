@@ -59,7 +59,7 @@ Follow these steps in order.
 
 ## 3. Environment file
 
-Create `.env` next to `compose.yaml`. Set `AUTH_ENABLED=false`, then choose one
+Create `.env` next to `compose/infra.yaml`. Set `AUTH_ENABLED=false`, then choose one
 embedding block.
 
 ### OpenAI

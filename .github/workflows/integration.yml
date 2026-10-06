@@ -81,7 +81,7 @@ jobs:
         id: docker-infra-cache
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       - name: Load infra Docker images from cache
         if: steps.docker-infra-cache.outputs.cache-hit == 'true'
@@ -113,7 +113,7 @@ jobs:
         if: steps.docker-infra-cache.outputs.cache-hit != 'true'
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       # Keep artifact outside ./dist — integration tests expect ./dist/cli/index.js (see tests/integration/cli-commands-shared.ts).
       - name: Download npm package artifact

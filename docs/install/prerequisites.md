@@ -24,8 +24,8 @@ squadrules --help
 | Requirement | Details |
 |-------------|---------|
 | **Docker Engine** + **Docker Compose v2** | Required for all Compose-based setups |
-| Working directory with **`compose.yaml`** and writable **`.env`** | Required; a local `git clone` is optional |
-| Source for **`compose.yaml`** | Use the file from the repository, a raw download, or another controlled copy |
+| Working directory with **`compose/infra.yaml`** and writable **`.env`** | Required; a local `git clone` is optional |
+| Source for **`compose/infra.yaml`** | Use the file from the repository, a raw download, or another controlled copy |
 | **Qdrant** | Started by Compose; no separate installation is required for the simple stack |
 | **Identity provider** | Not part of the standard install path; manage it separately if your deployment needs one |
 | **Node.js 24+** + **[SquadRules CLI](../CLI.md)** | Required; the CLI is the primary interface for install, authentication, and verification. Node 24 is the supported LTS baseline; CI runs one advisory lane on Node Current (pin in `.github/workflows/`) |

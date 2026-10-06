@@ -35,12 +35,12 @@ Typical reasons:
 
 ## Environment file
 
-Create `.env` next to `compose.yaml`. The required variables depend on which
+Create `.env` next to `compose/infra.yaml`. The required variables depend on which
 services you enable and how you wire authentication, storage, and networking.
 
 At minimum, keep the embedding variables aligned with your chosen
 [embedding backend](prerequisites.md#embedding-backend). For the rest of the
-profile, use the repository `compose.yaml`, your secret management approach,
+profile, use the repository `compose/infra.yaml`, your secret management approach,
 and your infrastructure requirements as the source of truth.
 
 ---
@@ -86,4 +86,4 @@ healthy. Add MCP only for hosts that require a streamable HTTP endpoint.
 | [Simple stack](docker-compose-simple.md) | Recommended local path (app + Qdrant only) |
 | [Helm chart](helm.md) | Kubernetes production deployment |
 | [CLI](../CLI.md) | Primary interface for operations |
-| [`compose.yaml`](https://github.com/SquadRules/mcp/blob/main/compose.yaml) | Source Compose file |
+| [`compose/infra.yaml`](https://github.com/SquadRules/mcp/blob/main/compose/infra.yaml) | Source Compose file |

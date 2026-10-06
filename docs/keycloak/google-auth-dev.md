@@ -25,7 +25,7 @@ Copy the resulting client ID and client secret.
 
 ## 2. Put the Google credentials in `.env`
 
-Add these values to the **`.env`** next to your **`compose.yaml`** for the full-stack setup:
+Add these values to the **`.env`** next to your **`compose/infra.yaml`** for the full-stack setup:
 
 ```ini
 GOOGLE_CLIENT_ID=...
