@@ -22,9 +22,12 @@ and does not dispatch notifications to other repositories.
   produce patches. Other housekeeping commits do not release on their own.
 - Use Conventional Commit PR titles and squash merges with the PR title as
   the commit subject. Review breaking changes before merging.
-- The standard npm plugin sets the workspace version; `prepack` cleans and
-  builds the package, synchronizing embedded documentation and skills first.
-  The generated version is never committed back to `main`.
+- The npm plugin applies the next version and builds the package. The release
+  prepare step then synchronizes every repository artifact derived from that
+  version and verifies the invariant. `@semantic-release/git` commits those
+  files back to `main` with `chore(release): X.Y.Z [skip ci]` before the tag
+  is created. The release tag therefore points at source whose `package.json`
+  already declares the published version.
 - A clean consumer installation checks the tarball before publication. The
   GitHub Release includes the npm tarball and a production CycloneDX SBOM.
 - Only `main` is a release branch, publishing to `latest`. Arbitrary branch
@@ -48,22 +51,22 @@ Configure these **before merging** because a releasable main push publishes:
    environment `release`. Confirm the package exists and is public.
 4. Create/restrict the GitHub `release` environment to `main`. Optional
    required reviewers pause publication if the maintainers want approval.
-   Allow `GITHUB_TOKEN` to create tags, semantic-release notes and GitHub
-   Releases; tag rules must permit this. No branch protection bypass is needed.
+   The release job needs `contents: write` for two related writes: the
+   `[skip ci]` release commit back to `main`, and the release tag/GitHub
+   Release. Branch/ruleset policy must allow that GitHub Actions release write
+   while normal development still goes through PR checks.
 5. Remove legacy `NPM_TOKEN`/`NODE_AUTH_TOKEN` release configuration. npm
    Trusted Publishing uses short-lived OIDC and automatically supplies
-   provenance. The manifest also explicitly requests provenance. The release
-   runner uses Node 24; the lockfile includes the npm 11 CLI used by the npm
-   plugin (above npm's required 11.5.1 and Node 22.14 minimums).
+   provenance. The manifest also explicitly requests provenance. The publisher
+   runs Node 26 so the current release-plugin engine requirements are satisfied.
 6. Retain the restricted `OPENAI_API_KEY` for the existing real embedding tests.
    Fork PRs do not receive secrets: review the change, then test a trusted
    same-repository branch. Do not introduce `pull_request_target` execution
    of untrusted code or bypass the required integration gate.
-7. Reconcile old draft releases, tags, npm versions and semantic-release notes
-   before enabling the new publisher. Confirm the last stable tag is reachable
-   from `main` and matches npm. Do not move/delete published tags to force a
-   version. The existing `v5.0.0-beta.1` tag is not a stable baseline;
-   accumulated breaking changes since `v4.8.6` may produce `5.0.0`.
+7. Treat release identity as an invariant, not a convention. For every real
+   release, `main/package.json`, `package-lock.json`, synchronized generated
+   source, `vX.Y.Z`, the GitHub Release and npm `X.Y.Z` must agree. The
+   workflow checks this after publication and fails visibly on divergence.
 
 The dependency producers retain their existing `AUTOMATION_ENABLED`, `GH_PAT`
 and `AUTOMATION_USER_ID` configuration. These are unrelated to publication;
@@ -81,9 +84,10 @@ gh workflow run release.yml --ref main -f dry-run=true
 
 Manual dispatch defaults to preview and rejects other branches via job guards.
 A semantic-release dry run verifies configuration and calculates notes/version,
-but skips prepare/publish: it does not prove npm publishing authorization or
-validate the final release-version tarball. The preceding CI jobs build and test
-the baseline package. A real release builds and tests again after versioning.
+but skips prepare/publish: it does not prove the version commit, branch update,
+npm publishing authorization or final release identity. The preceding CI jobs
+build and test the baseline package. A real release builds again after versioning,
+synchronizes source, verifies it, commits it, then tags and publishes.
 Use `dry-run=false` only when intentionally retrying or releasing validated main.
 No release was published as part of this migration PR.
 
@@ -96,8 +100,9 @@ and `npm run dev:test`.
 
 ## Failures and verification
 
-npm publication, git tags and GitHub Releases are not an atomic transaction.
-Before retrying a failed publisher, inspect its logs and all three remote states:
+The release commit, npm publication, git tag and GitHub Release are not one atomic
+transaction. Before retrying a failed publisher, inspect its logs and all remote
+states:
 
 ```bash
 gh run list --workflow=release.yml --limit 3
@@ -106,9 +111,11 @@ npm view @squadrules/mcp@<version> version gitHead dist.integrity dist.attestati
 npm dist-tag ls @squadrules/mcp
 ```
 
-If no tag or package was published, fix the cause and rerun. If publication was
-partial, repair the missing GitHub Release/assets or resolve the tag/npm mismatch
-at the original source as a maintainer before running another release. An existing
+If no tag or package was published, fix the cause and rerun. If a release commit
+was pushed but publication failed, do not rewrite it: fix the cause and let
+semantic-release recover from the remote state. If publication was partial,
+repair the missing GitHub Release/assets or resolve the source/tag/npm mismatch
+before running another release. An existing
 tag can make semantic-release consider that version released; rerunning is not
 an automatic rollback or recovery. Never overwrite an immutable npm version or
 relabel newer source as an old version. Keep Actions logs/artifacts during repair.
@@ -133,3 +140,4 @@ releases or custom recovery drafts.
 - [semantic-release GitHub Actions recipe](https://semantic-release.gitbook.io/semantic-release/recipes/ci-configurations/github-actions)
 - [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
 - [semantic-release npm plugin](https://github.com/semantic-release/npm)
+- [semantic-release git plugin](https://github.com/semantic-release/git)

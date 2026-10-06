@@ -130,7 +130,8 @@
     "test:package-local": "npm run build:tgz && npm run test:tgz",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.ui.json",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "release:verify-version": "node scripts/ci-verify-release-version.mjs"
   },
   "dependencies": {
     "@exodus/bytes": "^1.15.0",
@@ -211,7 +212,8 @@
     "typescript": "^5.9.3",
     "undici": "8.10.2",
     "vite": "^8.0.14",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "@semantic-release/git": "11.0.1"
   },
   "engines": {
     "node": ">=24.0.0"

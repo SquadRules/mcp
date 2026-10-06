@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Sync or check versions with one target: the package.json version (the in-repo
- * synced baseline). semantic-release bumps package.json in the release job
- * workspace and re-runs this script there; git tags are NOT a target because
- * they advance past the in-repo baseline after every semantic-release run.
+ * Sync or check versions with one target: package.json.
+ * semantic-release bumps package.json in the release workspace, re-runs this
+ * script, and commits the synchronized source back to main before creating the
+ * release tag. package.json, generated versioned source, the tag and npm must
+ * therefore describe the same released version.
  * - src/embed-docs/mem/*.md frontmatter = package.json version.
  * - .agents/skills/** (SKILL.md metadata.version + references/SQUADRULES.md frontmatter)
  *   = package.json version.
