@@ -44,7 +44,7 @@ async function freshService() {
  * Fresh service with the embedding dimension primed (getConfig() reads it via the
  * `embeddingDimension` getter, which throws until a probe resolves it).
  */
-async function freshServiceWithDimension(dim = 768) {
+async function freshServiceWithDimension(dim = 384) {
   const svc = await freshService();
   const cfgMod = await import('../../src/services/embedding/config.js');
   cfgMod.setResolvedEmbeddingDimension(dim);
@@ -96,14 +96,22 @@ describe('embedding provider selection (issue #11)', () => {
   });
 
   describe('getConfig()', () => {
-    test('reports the fastembed model when fastembed is the default', async () => {
-      applyEnv({ FASTEMBED_MODEL: 'fast-bge-base-en-v1.5' });
+    test('reports the shipped fastembed default model when FASTEMBED_MODEL is unset', async () => {
+      applyEnv({});
       const { embeddingService } = await freshServiceWithDimension();
       const cfg = embeddingService.getConfig();
       expect(cfg.provider).toBe('fastembed');
       // getModelName must not leak the OpenAI model on the fastembed path.
-      expect(cfg.model).toBe('fast-bge-base-en-v1.5');
+      expect(cfg.model).toBe('fast-bge-small-en-v1.5');
       expect(cfg.apiKeyConfigured).toBe(false);
+    });
+
+    test('reports an explicit FASTEMBED_MODEL override verbatim', async () => {
+      applyEnv({ FASTEMBED_MODEL: 'fast-bge-base-en-v1.5' });
+      const { embeddingService } = await freshServiceWithDimension(768);
+      const cfg = embeddingService.getConfig();
+      expect(cfg.provider).toBe('fastembed');
+      expect(cfg.model).toBe('fast-bge-base-en-v1.5');
     });
 
     test('reports the OpenAI model on the openai path', async () => {
@@ -120,19 +128,19 @@ describe('embedding provider selection (issue #11)', () => {
     test('resolves dimension without any API key by delegating to fastembed', async () => {
       applyEnv({});
       jest.resetModules();
-      // Mock fastembed so no real model download occurs; init -> embed yields 768d.
+      // Mock fastembed so no real model download occurs; init -> embed yields 384d.
       jest.unstable_mockModule('fastembed', () => ({
         FlagEmbedding: {
           init: jest.fn(async () => ({
             embed: async function* (texts: string[]) {
-              yield texts.map(() => Array.from({ length: 768 }, (_, i) => 0.001 * i));
+              yield texts.map(() => Array.from({ length: 384 }, (_, i) => 0.001 * i));
             },
           })),
         },
-        EmbeddingModel: { BGEBaseENV15: 'fast-bge-base-en-v1.5' },
+        EmbeddingModel: { BGESmallENV15: 'fast-bge-small-en-v1.5' },
       }));
       const { probeEmbeddingDimension } = await import('../../src/services/embedding/service.js');
-      await expect(probeEmbeddingDimension()).resolves.toBe(768);
+      await expect(probeEmbeddingDimension()).resolves.toBe(384);
     });
   });
 });

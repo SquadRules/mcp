@@ -108,14 +108,14 @@ flowchart TB
 ### Local fastembed (default)
 
 With no external provider configured, SquadRules embeds **locally** using
-[fastembed](https://github.com/qdrant/fastembed) (`BAAI/bge-base-en-v1.5`, 768
+[fastembed](https://github.com/qdrant/fastembed) (`BAAI/bge-small-en-v1.5`, 384
 dimensions). It needs **no API key and no inference service**, which is why
 `npm install` followed by `squadrules serve` runs with zero external
 dependencies.
 
 ```ini
 # No configuration required for the default. Override only if needed:
-# FASTEMBED_MODEL=fast-bge-base-en-v1.5
+# FASTEMBED_MODEL=fast-bge-small-en-v1.5
 # FASTEMBED_CACHE_DIR=/custom/path   # default: <config dir>/models
 ```
 
@@ -125,7 +125,7 @@ dependencies.
   LanceDB data dir.
 - The download is performed by fastembed's own downloader and **needs network
   access on first run**. Air-gapped installs must pre-seed that cache directory.
-- The 768-d vectors differ in size from OpenAI `text-embedding-3-small` (1536)
+- The 384-d vectors differ in size from OpenAI `text-embedding-3-small` (1536)
   and TEI models, so switching providers on an existing collection can require a
   vector migration.
 - Leave `EMBEDDING_PROVIDER=auto` (the default) and provide no external
