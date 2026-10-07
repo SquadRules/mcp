@@ -1,6 +1,7 @@
 import type { ExecutionTrace } from '../../src/types/memory.js';
 import { ExecutionTraceStore } from '../../src/services/execution-trace-store.js';
 import { buildLayerUri } from '../../src/tools/squadrules-uri.js';
+import { describeQdrantBackend } from '../utils/vector-backend.js';
 
 function buildTrace(params: {
   executionId: string;
@@ -26,7 +27,9 @@ function buildTrace(params: {
 
 const TEST_COLLECTION = `squadrules_test_traces_${Date.now()}`;
 
-describe('ExecutionTraceStore (Qdrant-backed)', () => {
+// ExecutionTraceStore is Qdrant-only (constructed with a Qdrant URL); it has no embedded-LanceDB
+// form, so this suite self-skips under SINGLE (empty QDRANT_URL) and runs on the CLUSTER Qdrant backend.
+describeQdrantBackend('ExecutionTraceStore (Qdrant-backed)', () => {
   let store: ExecutionTraceStore;
 
   beforeAll(() => {
