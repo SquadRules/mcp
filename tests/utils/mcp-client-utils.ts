@@ -17,6 +17,7 @@ import {
   refreshTestAuthToken,
   serverRequiresAuth
 } from './auth-headers.js';
+import { applyLocalStdioEnv } from './stdio-simple-env.js';
 
 /** True when the test runner should use stdio transport (dev_stdio profile). */
 function isStdioTransport(): boolean {

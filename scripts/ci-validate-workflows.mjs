@@ -31,12 +31,12 @@ for (const script of ['lint', 'typecheck', 'knip', 'test:ui', 'build:tgz', 'test
   assert.ok(integration.jobs.build.steps.some(s => s.run === `npm run ${script}`));
 }
 assert.deepEqual(integration.jobs.build.strategy.matrix.node, ['24', '26']);
-assert.ok(integration.jobs['verify-integration-primary'].steps.some(s => s.run === 'npm run dev:test -- tests/unit'));
-const embedded = integration.jobs['verify-integration-embedded-simple'];
-assert.deepEqual(embedded.needs, ['build'], 'Service-free lane consumes the build matrix artifact');
-assert.equal(embedded['continue-on-error'], true, 'Service-free lane is advisory until proven stable');
-assert.ok(!integration.jobs['integration-pass'].needs.includes('verify-integration-embedded-simple'));
-assert.ok(embedded.steps.some(s => /EMBEDDING_PROVIDER=fastembed/.test(s.run ?? '')), 'Service-free lane pins the key-free local embedding default');
+assert.ok(integration.jobs['verify-integration-cluster'].steps.some(s => s.run === 'TRANSPORT_TYPE=http npm test -- tests/unit'));
+const single = integration.jobs['verify-integration-single'];
+assert.deepEqual(single.needs, ['build'], 'Single lane consumes the build matrix artifact');
+assert.equal(single['continue-on-error'], undefined, 'Single lane is required (not advisory)');
+assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
+assert.ok(single.steps.some(s => s.run === 'npm test'), 'Single lane runs bare npm test (zero-config defaults)');
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);
