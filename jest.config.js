@@ -16,7 +16,7 @@ export default {
         '**/*.spec.ts',
         '**/*.spec.js',
     ],
-    testPathIgnorePatterns: ['/node_modules/', '/tests/ui/'],
+    testPathIgnorePatterns: ['/node_modules/', '/tests/ui/', '/tests/load/'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     transform: {
         '^.+\\.tsx?$': ['ts-jest', {
