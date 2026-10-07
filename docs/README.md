@@ -62,6 +62,7 @@ Files under `examples/` are read by
 
 ## Specs
 
+- [Dependency risk policy proposal](specs/dependency-risk-policy/PLAN.md) — research, draft assessments and implementation plan
 - [Artifact export parity spec](specs/artifact-export-parity-spec.md)
 
 ## Skills and contributor guidance

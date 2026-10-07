@@ -1,0 +1,7 @@
+{
+  "npm": "11.21.0",
+  "httpCacheSemantics": "4.2.0",
+  "actualNpmCacheShared": false,
+  "priorReproductionShared": true,
+  "conclusion": "Prior shared-cache reproduction does not reproduce the npm private-cache configuration; no npm exploit established."
+}
