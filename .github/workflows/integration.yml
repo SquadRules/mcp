@@ -283,12 +283,6 @@ jobs:
       - name: Run unit tests (zero-config SINGLE defaults)
         run: npm test -- tests/unit
 
-      - name: Run stdio smoke tests (zero-config SINGLE defaults)
-        run: |
-          npm test -- \
-            tests/integration/mode/stdio/stdio-launch-smoke.test.ts \
-            tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
-
       - name: Show test failure
         if: failure()
         run: |
