@@ -28,7 +28,8 @@ function git(args, { cwd, env, input } = {}) {
     encoding: 'utf8',
     input,
     stdio: input === undefined ? ['ignore', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'],
-  }).trim();
+  // Leading spaces are status columns in porcelain output, not padding.
+  }).trimEnd();
 }
 
 function changedFiles(cwd, env) {
