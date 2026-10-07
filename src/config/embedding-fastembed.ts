@@ -11,8 +11,8 @@ function getEnvString(key: string, defaultValue: string): string {
   return process.env[key] || defaultValue;
 }
 
-/** fastembed `EmbeddingModel` enum value (NOT a HuggingFace repo id; default is 768 dims). */
-export const FASTEMBED_MODEL = getEnvString('FASTEMBED_MODEL', 'fast-bge-base-en-v1.5');
+/** fastembed `EmbeddingModel` enum value (NOT a HuggingFace repo id; default is 384 dims). */
+export const FASTEMBED_MODEL = getEnvString('FASTEMBED_MODEL', 'fast-bge-small-en-v1.5');
 /**
  * Directory fastembed downloads/loads model weights from (its `cacheDir`). Defaults to the
  * shared per-user models dir (sibling of config/keyring/lancedb); the first-run download is
