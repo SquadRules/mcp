@@ -283,6 +283,11 @@ jobs:
       - name: Run unit tests (zero-config SINGLE defaults)
         run: npm test -- tests/unit
 
+      - name: Run stdio integration test (verify SINGLE mode end-to-end)
+        # Cold fastembed initialization on CI runners takes 30-60s; use generous timeout.
+        # This verifies stdio transport + LanceDB + fastembed work together in zero-config mode.
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --forceExit --testTimeout=120000 tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
+
       - name: Show test failure
         if: failure()
         run: |
