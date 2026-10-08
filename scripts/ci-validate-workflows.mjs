@@ -41,66 +41,54 @@ assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);
 assert.ok(!release.on.workflow_run && !release.on.schedule && !release.on.pull_request);
-assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, true);
-assert.deepEqual(release.jobs.publish.needs, ['integration', 'security', 'policy']);
-for (const [job, file] of [['integration', 'integration'], ['security', 'security'], ['policy', 'automation-policy']]) {
-  assert.equal(release.jobs[job].uses, `./.github/workflows/${file}.yml`);
-}
-assert.equal(release.jobs.publish.environment, 'release');
-assert.equal(release.jobs.publish.permissions['id-token'], 'write');
-const setupNode = release.jobs.publish.steps.find(s => s.uses?.startsWith('actions/setup-node@'));
-assert.equal(setupNode?.with?.['node-version'], '26', 'Publisher must satisfy current release-plugin engines');
-// `prepare: husky` installs this repository's tag-blocking pre-push hook into the publisher's own
-// checkout on `npm ci` and again on the `npm pack` inside semantic-release, so a pre-step
-// `git config core.hooksPath` is rewritten before the tag push. Only command-line git config
-// (GIT_CONFIG_*, which outranks the file) survives. HUSKY=0 is worse: husky then writes
-// "HUSKY=0 skip install" to stdout and @semantic-release/npm reads npm pack stdout as the tarball
-// name, so the release fails before the push.
-const publishSteps = release.jobs.publish.steps;
-assert.ok(!JSON.stringify(release.jobs.publish).includes('HUSKY'), 'Publisher must not use HUSKY: it leaks into npm pack stdout');
-assert.ok(!publishSteps.some(s => /core\.hooksPath/.test(s.run ?? '')), 'A pre-step core.hooksPath change is undone by npm pack; override it on the release step env');
-const releaseStep = publishSteps.find(s => /npm run release/.test(s.run ?? ''));
-assert.ok(releaseStep, 'Publisher must run semantic-release');
-assert.equal(releaseStep.env?.GIT_CONFIG_COUNT, '1', 'Release step must supply git config through the environment');
-assert.equal(releaseStep.env?.GIT_CONFIG_KEY_0, 'core.hooksPath', 'Release step must override core.hooksPath so the tag push skips husky');
-assert.match(String(releaseStep.env?.GIT_CONFIG_VALUE_0 ?? ''), /\.git\/hooks$/, 'core.hooksPath override must point at the stock empty hook directory');
-assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
-assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
-assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
+assert.equal(release.on.workflow_dispatch.inputs.tag.required, true);
+
+const releasePlease = release.jobs['release-please'];
+assert.match(releasePlease.if, /github\.event_name == 'push'/);
+assert.equal(releasePlease.permissions.contents, 'write');
+assert.equal(releasePlease.permissions['pull-requests'], 'write');
+const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
+assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
+assert.equal(releasePleaseStep.with.token, '${{ secrets.GH_PAT }}');
+assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
+assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
+
+const syncReleasePr = release.jobs['sync-release-pr'];
+assert.equal(syncReleasePr.needs, 'release-please');
+const syncCheckout = syncReleasePr.steps.find(s => s.uses?.startsWith('actions/checkout@'));
+assert.equal(syncCheckout.with.token, '${{ secrets.GH_PAT }}');
+const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
+assert.match(syncStep.run ?? '', /npm run version:sync/);
+assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
+assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
+assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
+
+const publish = release.jobs.publish;
+assert.equal(publish.environment, 'release');
+assert.equal(publish.permissions['id-token'], 'write');
+assert.match(publish.if, /release_created/);
+const publishCheckout = publish.steps.find(s => s.name === 'Checkout released source');
+assert.equal(publishCheckout.with['persist-credentials'], false);
+const setupNode = publish.steps.find(s => s.uses?.startsWith('actions/setup-node@'));
+assert.equal(setupNode?.with?.['node-version'], '26');
+const identityStep = publish.steps.find(s => s.name === 'Verify released source identity');
+assert.match(identityStep.run ?? '', /gh release view/);
+assert.match(identityStep.run ?? '', /git rev-list -n 1/);
+assert.match(identityStep.run ?? '', /git merge-base --is-ancestor/);
+const npmPublishStep = publish.steps.find(s => s.name === 'Publish npm package with Trusted Publishing');
+assert.match(npmPublishStep.run ?? '', /npm publish "artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
+assert.match(npmPublishStep.run ?? '', /--provenance/);
 assert.equal(release.concurrency['cancel-in-progress'], false);
-const identityStep = publishSteps.find(s => s.name === 'Verify published release identity');
-assert.ok(identityStep, 'Publisher must verify source/tag/npm identity after a real release');
-assert.match(identityStep.run ?? '', /git rev-parse origin\/main/);
-assert.match(identityStep.run ?? '', /git rev-list -n 1 "\$TAG"/);
-assert.match(identityStep.run ?? '', /npm view "@squadrules\/mcp@\$VERSION" version/);
-assert.match(identityStep.run ?? '', /gh release view "\$TAG"/);
-assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch/);
-const { default: config } = await import('../release.config.mjs');
-const pluginName = plugin => Array.isArray(plugin) ? plugin[0] : plugin;
-assert.deepEqual(config.branches, ['main']);
-assert.deepEqual(config.plugins.map(pluginName), [
-  '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
-  '@semantic-release/npm', '@semantic-release/exec',
-  './scripts/semantic-release-persist-source.mjs', '@semantic-release/github',
-]);
-const npmPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/npm');
-const execPluginIndex = config.plugins.findIndex(p => pluginName(p) === '@semantic-release/exec');
-const sourceHeadPluginIndex = config.plugins.findIndex(p => pluginName(p) === './scripts/semantic-release-persist-source.mjs');
-assert.ok(npmPluginIndex < execPluginIndex && execPluginIndex < sourceHeadPluginIndex,
-  'npm must version, repo files must sync/verify, then source must persist before tagging');
-const execPlugin = config.plugins[execPluginIndex][1];
-assert.match(execPlugin.prepareCmd, /npm run version:sync/);
-assert.match(execPlugin.prepareCmd, /npm run release:verify-version/);
-const sourceHook = readFileSync('scripts/semantic-release-persist-source.mjs', 'utf8');
-// These are escaped regex fragments in the hook's source, so compare them literally.
-for (const invariant of [
-  'package\\.json', 'package-lock\\.json', 'compose\\.yaml',
-  'src\\/embed-docs\\/mem', 'src\\/resources\\/embedded-mcp-resources',
-]) {
-  assert.ok(sourceHook.includes(invariant), `Release source hook must cover ${invariant}`);
-}
-assert.match(sourceHook, /\[skip ci\]/, 'Release commit must not recursively trigger CI');
-assert.match(sourceHook, /nextRelease\.gitHead = head/, 'Release tag must target persisted source commit');
+assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|repository_dispatch|semantic-release/);
+assert.doesNotMatch(JSON.stringify(release), /git push[^\n]*(HEAD:main|refs\/heads\/main)/);
+
+const releasePleaseConfig = JSON.parse(readFileSync('release-please-config.json', 'utf8'));
+const releasePleaseManifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8'));
+assert.equal(releasePleaseConfig['release-type'], 'node');
+assert.equal(releasePleaseConfig['include-component-in-tag'], false);
+assert.equal(releasePleaseConfig.packages['.']['package-name'], '@squadrules/mcp');
+assert.equal(releasePleaseManifest['.'], '5.1.0');
+
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
 assert.equal(pkg.scripts.prepack, 'npm run build');
