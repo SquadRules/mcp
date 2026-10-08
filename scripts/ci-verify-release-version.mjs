@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 /**
- * Verify the release workspace after @semantic-release/npm has applied the
- * next version and the repo's version-derived files have been synchronized.
- *
- * This runs before @semantic-release/git creates the release commit. Any
- * mismatch aborts the release before the tag or npm publication.
+ * Verify that the committed Release Please source tree is internally version
+ * consistent before npm publication. The Release PR must already contain the
+ * package/lock version and synchronized version-derived source.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
