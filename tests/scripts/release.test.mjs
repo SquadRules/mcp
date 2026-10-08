@@ -22,20 +22,33 @@ test('release workflow never mutates protected main directly', () => {
   assert.doesNotMatch(text, /semantic-release/);
   assert.doesNotMatch(text, /git push[^\n]*(HEAD:main|refs\/heads\/main|\bmain\b)/);
   assert.match(text, /googleapis\/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071/);
-  assert.match(text, /token:\s*\$\{\{ secrets\.GH_PAT \}\}/);
+  assert.match(text, /token:\s*\$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(text, /secrets\.GH_PAT/);
 });
 
 test('Release Please PR is synchronized before normal PR checks gate its merge', () => {
   const sync = workflow.jobs['sync-release-pr'];
   assert.equal(sync.needs, 'release-please');
   const checkout = sync.steps.find(step => step.uses?.startsWith('actions/checkout@'));
-  assert.equal(checkout.with.token, '${{ secrets.GH_PAT }}');
+  assert.equal(checkout.with.token, '${{ github.token }}');
+  assert.equal(sync.permissions.contents, 'write');
   const step = sync.steps.find(step => step.name === 'Synchronize version-derived source on the Release PR');
   assert.match(step.run, /npm run version:sync/);
   assert.match(step.run, /build-embed-docs\.ts/);
   assert.match(step.run, /release:verify-version/);
   assert.match(step.run, /git add --force \.agents\/skills src\/embed-docs\/mem src\/resources\/embedded-mcp-resources\.ts/);
   assert.match(step.run, /git push origin "HEAD:\$RELEASE_BRANCH"/);
+});
+
+test('Release PR checks are explicitly dispatched without a personal token', () => {
+  const validate = workflow.jobs['validate-release-pr'];
+  assert.deepEqual(validate.needs, ['release-please', 'sync-release-pr']);
+  assert.equal(validate.permissions.actions, 'write');
+  const step = validate.steps.find(step => step.name === 'Dispatch required checks on Release PR head');
+  assert.match(step.run, /gh workflow run "\$workflow" --ref "\$RELEASE_BRANCH"/);
+  for (const required of ['integration.yml', 'security.yml', 'automation-policy.yml']) {
+    assert.match(step.run, new RegExp(required.replace('.', '\\.') ));
+  }
 });
 
 test('npm publication happens only from a Release Please GitHub Release', () => {
