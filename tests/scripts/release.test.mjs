@@ -68,7 +68,7 @@ test('npm publication happens only from a Release Please GitHub Release', () => 
   assert.match(identity.run, /git merge-base --is-ancestor/);
 
   const npmPublish = publish.steps.find(step => step.name === 'Publish npm package with Trusted Publishing');
-  assert.match(npmPublish.run, /npm publish "artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
+  assert.match(npmPublish.run, /npm publish "\.\/artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
   assert.match(npmPublish.run, /--provenance/);
 
   assert.doesNotMatch(JSON.stringify(publish), /NPM_TOKEN|NODE_AUTH_TOKEN/);

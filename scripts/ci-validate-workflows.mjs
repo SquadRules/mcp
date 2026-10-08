@@ -87,7 +87,7 @@ assert.match(identityStep.run ?? '', /gh release view/);
 assert.match(identityStep.run ?? '', /git rev-list -n 1/);
 assert.match(identityStep.run ?? '', /git merge-base --is-ancestor/);
 const npmPublishStep = publish.steps.find(s => s.name === 'Publish npm package with Trusted Publishing');
-assert.match(npmPublishStep.run ?? '', /npm publish "artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
+assert.match(npmPublishStep.run ?? '', /npm publish "\.\/artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
 assert.match(npmPublishStep.run ?? '', /--provenance/);
 assert.equal(release.concurrency['cancel-in-progress'], false);
 assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|repository_dispatch|semantic-release/);
