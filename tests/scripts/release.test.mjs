@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { test } from 'node:test';
 import { load } from 'js-yaml';
 
@@ -70,5 +70,20 @@ test('semantic-release is no longer an application dependency or script', () => 
     'conventional-changelog-conventionalcommits',
   ]) {
     assert.equal(pkg.devDependencies[name], undefined);
+  }
+});
+
+
+test('every shipped built-in adapter is release-versioned', () => {
+  const builtinDir = 'src/embed-docs/mem';
+  const files = readdirSync(builtinDir)
+    .filter(name => name.endsWith('.md') && name.toLowerCase() !== 'readme.md');
+
+  assert.ok(files.length > 0, 'expected at least one shipped built-in adapter');
+  for (const name of files) {
+    const content = readFileSync(`${builtinDir}/${name}`, 'utf8');
+    const match = content.match(/^version:\s*["']?([^"'\s]+)["']?\s*$/m);
+    assert.ok(match, `${name} must carry frontmatter version`);
+    assert.equal(match[1], pkg.version, `${name} version must equal package.json`);
   }
 });
