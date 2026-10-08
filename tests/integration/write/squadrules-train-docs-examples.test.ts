@@ -29,14 +29,15 @@ describe('Squadrules Train Docs Examples (docs/examples)', () => {
     return parseMcpJson(result, '[train docs/examples] raw MCP result');
   }
 
-  const examplesDir = join(process.cwd(), 'docs', 'examples');
+  // Pending documentation review; retain import coverage at the staged location.
+  const examplesDir = join(process.cwd(), 'docs-to-be-reviewed', 'docs', 'examples');
   const testFiles = readdirSync(examplesDir)
     .filter((name) => name.startsWith('adapter-example-') && name.toLowerCase().endsWith('.md'))
     .map((name) => join(examplesDir, name));
 
   beforeAll(() => {
     if (testFiles.length === 0) {
-      throw new Error('docs/examples has no adapter-example-*.md files');
+      throw new Error(`${examplesDir} has no adapter-example-*.md files`);
     }
   });
 
