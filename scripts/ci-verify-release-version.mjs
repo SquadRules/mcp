@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 /**
- * Verify the release workspace after @semantic-release/npm has applied the
- * next version and the repo's version-derived files have been synchronized.
- *
- * This runs before @semantic-release/git creates the release commit. Any
- * mismatch aborts the release before the tag or npm publication.
+ * Verify that the committed Release Please source tree is internally version
+ * consistent before npm publication. The Release PR must already contain the
+ * package/lock version and synchronized version-derived source.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const expected = process.argv[2];
@@ -50,8 +48,23 @@ if (existsSync('compose.yaml')) {
 }
 
 const embedded = readFileSync('src/resources/embedded-mcp-resources.ts', 'utf8');
-if (!embedded.includes(`version: \\\"${expected}\\\"`)) {
-  fail(`generated embedded resources do not contain version ${expected}`);
+const builtinDir = 'src/embed-docs/mem';
+for (const name of readdirSync(builtinDir).filter(name => name.endsWith('.md') && name.toLowerCase() !== 'readme.md')) {
+  const source = readFileSync(`${builtinDir}/${name}`, 'utf8');
+  const versionMatch = source.match(/^version:\s*["']?([^"'\s]+)["']?\s*$/m);
+  if (!versionMatch) {
+    fail(`${builtinDir}/${name} is a shipped built-in adapter without frontmatter version`);
+  }
+  if (versionMatch[1] !== expected) {
+    fail(`${builtinDir}/${name} is v${versionMatch[1]}, expected ${expected}`);
+  }
+
+  // build-embed-docs.ts serializes each meta adapter as a JSON string value.
+  // Verify the generated source contains the exact release-stamped markdown,
+  // not merely one matching version string somewhere in the generated file.
+  if (!embedded.includes(JSON.stringify(source))) {
+    fail(`generated embedded resources do not contain exact built-in adapter ${name}`);
+  }
 }
 
 console.log(`Release source version invariant verified: ${expected}`);

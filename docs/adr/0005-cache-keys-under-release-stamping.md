@@ -12,15 +12,13 @@ every file in `src/embed-docs/mem/` and in `.agents/skills/**` to match the
 source tree whenever the version differs from the in-repo baseline.
 
 That baseline was not the published version when this record was written. Verified on
-2026-10-06: npm `latest` was `5.0.1`, the tag `v5.0.1` points at `bfbf9750`, and
-`package.json` in that commit and at `origin/main` (`bac79b0d`) both said `4.8.6`. No
-commit on main had ever contained `5.0.1`, because the release plugin chain published and
-tagged without committing the bump back. That drift is handled separately and is **out of
-scope for this record** — and has since been addressed by
-[#27](https://github.com/SquadRules/mcp/pull/27) ("persist published version in source",
-via `scripts/semantic-release-persist-source.mjs`), so later releases commit the bumped
-version back to git. What matters here is what stamping does to caching, and that is
-unchanged.
+2026-10-06: npm `latest` was `5.0.1`, the tag `v5.0.1` pointed at source whose
+`package.json` still said `4.8.6`. The first attempted repair (#27) tried to commit the
+release bump from the publisher, but protected `main` correctly rejected that direct push.
+The release architecture now resolves the drift with a Release Please PR: the version bump
+and all version-derived source are committed and validated **through the protected PR path
+before** the release tag and npm publication are created. What matters here is what
+stamping does to caching, and that is unchanged.
 
 ## Decision
 
@@ -49,10 +47,10 @@ No cache key, and no reuse rule, may be derived from a release-stamped value:
 - Any future work on [#22](https://github.com/SquadRules/mcp/issues/22) or on the boot
   skip in [#24](https://github.com/SquadRules/mcp/issues/24) inherits this rule: fix the
   reuse *inputs*, do not widen the version comparison.
-- While the git-vs-npm drift was unresolved, `npm run version:check-skills` could not
-  detect it: it compares mem frontmatter against `package.json`, and both move together in
-  git. [#27](https://github.com/SquadRules/mcp/pull/27) now persists the published version
-  in source, which is the separate fix this record deferred to.
+- `npm run version:check-skills` checks internal source consistency; release identity is
+  established separately by committing the Release Please version PR before tagging and
+  publication. Release verification additionally checks every shipped built-in adapter and
+  the generated embedded-resource copy against that committed package version.
 
 ## Alternatives considered
 

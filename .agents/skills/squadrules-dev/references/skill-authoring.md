@@ -75,10 +75,19 @@ driven by **`scripts/lint-agent-skills.py`**.
 
 ## Version metadata
 
-`npm run version:sync-skills` (via `scripts/build-sync-skill-versions.mjs`) sets
-`metadata.version` in each **direct-child** `.agents/skills/<name>/SKILL.md`
-(e.g. `squadrules`) to the last stable tag; `squadrules-dev` has no version field and is
-skipped. See [`release-semver.md`](release-semver.md) §4 for the full contract.
+`package.json` is the release-version source of truth committed by the Release
+Please PR. `npm run version:sync-skills` (via
+`scripts/build-sync-skill-versions.mjs`) propagates that exact version to:
+
+- `metadata.version` in each versioned direct-child
+  `.agents/skills/<name>/SKILL.md` (for example `squadrules`);
+- every shipped built-in adapter under `src/embed-docs/mem/*.md` except the
+  directory README.
+
+`squadrules-dev` intentionally has no version field and is skipped. A bundled
+adapter without frontmatter `version:` is a validation error; release automation
+must never silently ship an unversioned built-in. See
+[`release-semver.md`](release-semver.md) for the full contract.
 
 ## Relation to existing docs
 
