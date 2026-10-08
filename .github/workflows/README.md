@@ -65,8 +65,10 @@ source tree, GitHub Release and npm package therefore carry the same version.
 ## Release and migration settings
 
 See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md)
-for the full flow. Release Please uses the existing automation PAT so its Release PR
-and synchronization commits trigger normal PR workflows. npm publication uses Trusted
+for the full flow. Release Please and Release PR synchronization use only the
+repository-scoped `GITHUB_TOKEN`; because token-generated events do not normally
+recurse into Actions, the Release workflow explicitly dispatches the three required
+validation workflows on the Release PR branch. npm publication uses Trusted
 Publishing/OIDC and never needs a long-lived npm token. A manual `release.yml`
 dispatch takes an existing `vX.Y.Z` tag and is only a retry path for a partial
 publication; it does not calculate a new version or bypass the Release PR.
