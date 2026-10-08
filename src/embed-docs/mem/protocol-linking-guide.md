@@ -1,5 +1,5 @@
 ---
-version: "4.8.6"
+version: "5.2.0"
 slug: protocol-linking-guide
 title: Protocol Linking Guide
 ---
