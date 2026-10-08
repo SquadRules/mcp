@@ -43,12 +43,15 @@ export function listPromptOfferings(): Prompt[] {
 }
 
 /**
- * Register all prompts from embedded-mcp-resources
+ * Register all prompts from embedded-mcp-resources.
+ * Always installs prompts/list and prompts/get handlers, even when no prompts
+ * are registered, so the server can respond to those MCP methods without error.
  */
 export function registerPromptResources(server: any) {
   logger.debug('registering prompts from embedded resources');
 
   const prompts = getPrompts() as Record<string, string>;
+  let anyRegistered = false;
 
   for (const [key, text] of Object.entries(prompts)) {
     const prompt = buildRegisteredPrompt(key, text);
@@ -77,5 +80,21 @@ export function registerPromptResources(server: any) {
         return result;
       }
     );
+    anyRegistered = true;
+  }
+
+  // Ensure prompts/list and prompts/get handlers are always installed, even
+  // when no prompts are registered. The SDK lazily installs these handlers on
+  // the first registerPrompt call; without this bootstrap the server would
+  // advertise prompts capability but return Method not found.
+  if (!anyRegistered) {
+    const placeholder = server.registerPrompt(
+      '__squadrules_internal_bootstrap_prompt__',
+      { title: 'bootstrap', description: 'internal bootstrap prompt' },
+      async (): Promise<GetPromptResult> => ({
+        messages: [{ role: 'user', content: { type: 'text', text: '' } }]
+      })
+    );
+    placeholder.remove();
   }
 }

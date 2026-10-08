@@ -6,6 +6,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parse as parseDotenv } from 'dotenv';
 import { applyLocalStdioEnv } from '../../../utils/stdio-simple-env.js';
+import { withRawOnFail } from '../../../utils/expect-with-raw.js';
 
 const BOOTSTRAP_PATH = path.resolve(process.cwd(), 'dist/bootstrap.js');
 const SOURCE_BOOTSTRAP_PATH = path.resolve(process.cwd(), 'src/bootstrap.ts');
@@ -153,16 +154,15 @@ describe('STDIO launch smoke', () => {
     });
   }, 30000);
 
-  test('initialize and listTools work over stdio client transport', async () => {
+  test('stdio transport exposes full MCP server capabilities per spec', async () => {
     const env = createStdioEnv();
     if (!hasEmbeddingConfig(env)) {
-      // This integration requires the same embedding prerequisites as the server startup path.
       return;
     }
     const args = fs.existsSync(BOOTSTRAP_PATH)
       ? [BOOTSTRAP_PATH]
       : ['--loader', 'ts-node/esm', SOURCE_BOOTSTRAP_PATH];
-    const client = new Client({ name: 'stdio-smoke-test', version: '1.0.0' });
+    const client = new Client({ name: 'stdio-capabilities-test', version: '1.0.0' });
     const transport = new StdioClientTransport({
       command: process.execPath,
       args,
@@ -170,21 +170,165 @@ describe('STDIO launch smoke', () => {
       cwd: process.cwd()
     });
 
-    // Connect with a timeout so the test fails fast if the server hangs during startup
     await Promise.race([
       client.connect(transport),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('stdio client connect timed out after 20000ms')), 20000)
       ),
     ]);
-    const toolsResult = await client.listTools();
 
-    expect(Array.isArray(toolsResult.tools)).toBe(true);
-    expect(toolsResult.tools.length).toBeGreaterThan(0);
+    try {
+      // ── 1. Server capabilities (initialize response) ──────────────
+      let caps;
+      try {
+        caps = client.getServerCapabilities();
+      } catch (e: any) {
+        throw new Error(`[step 1: getServerCapabilities] ${e?.message ?? e}`);
+      }
+      withRawOnFail(caps, () => {
+        expect(caps).toBeDefined();
+        expect(caps!.tools).toBeDefined();
+        expect(caps!.resources).toBeDefined();
+        expect(caps!.prompts).toBeDefined();
+      }, 'server capabilities');
 
-    await client.close();
-    // Give the transport a moment to clean up the child process.
-    // If the child lingers, SIGKILL it after 5s.
-    await sleep(500);
-  }, 30000);
+      // ── 2. Server version info ────────────────────────────────────
+      let serverVersion;
+      try {
+        serverVersion = client.getServerVersion();
+      } catch (e: any) {
+        throw new Error(`[step 2: getServerVersion] ${e?.message ?? e}`);
+      }
+      withRawOnFail(serverVersion, () => {
+        expect(serverVersion).toBeDefined();
+        expect(serverVersion!.name).toBe('SquadRules');
+        expect(typeof serverVersion!.version).toBe('string');
+        expect(serverVersion!.version.length).toBeGreaterThan(0);
+      }, 'server version');
+
+      // ── 3. tools/list ─────────────────────────────────────────────
+      let toolsResult;
+      try {
+        toolsResult = await client.listTools();
+      } catch (e: any) {
+        throw new Error(`[step 3: tools/list] ${e?.message ?? e}`);
+      }
+      withRawOnFail(toolsResult, () => {
+        expect(Array.isArray(toolsResult.tools)).toBe(true);
+        expect(toolsResult.tools.length).toBeGreaterThan(0);
+
+        const names = toolsResult.tools.map((t) => t.name);
+        // Core workflow tools
+        expect(names).toContain('activate');
+        expect(names).toContain('forward');
+        expect(names).toContain('reward');
+        expect(names).toContain('train');
+        expect(names).toContain('tune');
+        // Utility tools
+        expect(names).toContain('delete');
+        expect(names).toContain('export');
+        expect(names).toContain('spaces');
+
+        // Every tool must have a name, title, description, and valid inputSchema
+        for (const tool of toolsResult.tools) {
+          expect(typeof tool.name).toBe('string');
+          expect(tool.name.length).toBeGreaterThan(0);
+          expect(tool).toHaveProperty('inputSchema');
+          expect(tool.inputSchema).toBeDefined();
+          expect(tool.inputSchema.type).toBe('object');
+          if (tool.description !== undefined) {
+            expect(typeof tool.description).toBe('string');
+          }
+        }
+
+        // Caching hints (2026-07-28 spec): ttlMs must be >= 0 if present
+        if ('ttlMs' in toolsResult && toolsResult.ttlMs !== undefined) {
+          expect(Number(toolsResult.ttlMs)).toBeGreaterThanOrEqual(0);
+        }
+        if ('cacheScope' in toolsResult && toolsResult.cacheScope !== undefined) {
+          expect(['public', 'private']).toContain(toolsResult.cacheScope);
+        }
+      }, 'tools/list');
+
+      // ── 4. resources/list ─────────────────────────────────────────
+      let resourcesResult;
+      try {
+        resourcesResult = await client.listResources();
+      } catch (e: any) {
+        throw new Error(`[step 4: resources/list] ${e?.message ?? e}`);
+      }
+      withRawOnFail(resourcesResult, () => {
+        expect(Array.isArray(resourcesResult.resources)).toBe(true);
+        expect(resourcesResult.resources.length).toBeGreaterThan(0);
+
+        for (const res of resourcesResult.resources) {
+          expect(typeof res.uri).toBe('string');
+          expect(res.uri.length).toBeGreaterThan(0);
+          expect(typeof res.name).toBe('string');
+          expect(res.name.length).toBeGreaterThan(0);
+        }
+
+        // Caching hints
+        if ('ttlMs' in resourcesResult && resourcesResult.ttlMs !== undefined) {
+          expect(Number(resourcesResult.ttlMs)).toBeGreaterThanOrEqual(0);
+        }
+        if ('cacheScope' in resourcesResult && resourcesResult.cacheScope !== undefined) {
+          expect(['public', 'private']).toContain(resourcesResult.cacheScope);
+        }
+      }, 'resources/list');
+
+      // ── 5. resources/templates/list ───────────────────────────────
+      let templatesResult;
+      try {
+        templatesResult = await client.listResourceTemplates();
+      } catch (e: any) {
+        throw new Error(`[step 5: resources/templates/list] ${e?.message ?? e}`);
+      }
+      withRawOnFail(templatesResult, () => {
+        expect(Array.isArray(templatesResult.resourceTemplates)).toBe(true);
+        // May be empty (no templates registered), but the call must succeed
+        for (const tmpl of templatesResult.resourceTemplates) {
+          expect(typeof tmpl.uriTemplate).toBe('string');
+          expect(tmpl.uriTemplate.length).toBeGreaterThan(0);
+          expect(typeof tmpl.name).toBe('string');
+          expect(tmpl.name.length).toBeGreaterThan(0);
+        }
+
+        // Caching hints
+        if ('ttlMs' in templatesResult && templatesResult.ttlMs !== undefined) {
+          expect(Number(templatesResult.ttlMs)).toBeGreaterThanOrEqual(0);
+        }
+        if ('cacheScope' in templatesResult && templatesResult.cacheScope !== undefined) {
+          expect(['public', 'private']).toContain(templatesResult.cacheScope);
+        }
+      }, 'resources/templates/list');
+
+      // ── 6. prompts/list ───────────────────────────────────────────
+      let promptsResult;
+      try {
+        promptsResult = await client.listPrompts();
+      } catch (e: any) {
+        throw new Error(`[step 6: prompts/list] ${e?.message ?? e}`);
+      }
+      withRawOnFail(promptsResult, () => {
+        expect(Array.isArray(promptsResult.prompts)).toBe(true);
+        // May be empty, but the call must succeed
+        for (const prompt of promptsResult.prompts) {
+          expect(typeof prompt.name).toBe('string');
+          expect(prompt.name.length).toBeGreaterThan(0);
+        }
+
+        // Caching hints
+        if ('ttlMs' in promptsResult && promptsResult.ttlMs !== undefined) {
+          expect(Number(promptsResult.ttlMs)).toBeGreaterThanOrEqual(0);
+        }
+        if ('cacheScope' in promptsResult && promptsResult.cacheScope !== undefined) {
+          expect(['public', 'private']).toContain(promptsResult.cacheScope);
+        }
+      }, 'prompts/list');
+    } finally {
+      await client.close();
+      await sleep(500);
+    }
+  }, 45000);
 });
