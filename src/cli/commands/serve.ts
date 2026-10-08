@@ -66,7 +66,7 @@ function findPackageRoot(): string {
     if (existsSync(pkgJson)) {
       try {
         const pkg = JSON.parse(readFileSync(pkgJson, 'utf8')) as { name?: string };
-        if (pkg.name === '@jakub-plichcinski/squadrules-mcp') {
+        if (pkg.name === '@squadrules/mcp') {
           return dir;
         }
       } catch {
@@ -111,7 +111,7 @@ export function serveCommand(program: Command): void {
       }) => {
         const envPath = options.envFile ?? '.env';
         if (existsSync(envPath)) {
-          dotenvConfig({ path: envPath });
+          dotenvConfig({ path: envPath, quiet: true });
         }
         if (options.metricsPort !== undefined && options.metricsPort !== '') {
           const n = parseInt(options.metricsPort, 10);

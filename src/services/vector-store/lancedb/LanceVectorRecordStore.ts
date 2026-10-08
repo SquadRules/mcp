@@ -48,7 +48,7 @@ export class LanceVectorRecordStore implements IVectorRecordStore {
   // --- lifecycle ---
   async init(): Promise<void> {
     await this.connection();
-    logger.info('[LanceVectorRecordStore] Embedded LanceDB record store ready');
+    logger.debug('LanceDB record store ready');
   }
 
   async checkHealth(_timeoutMs?: number): Promise<boolean> {

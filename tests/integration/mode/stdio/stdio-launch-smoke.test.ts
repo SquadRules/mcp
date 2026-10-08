@@ -6,9 +6,12 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parse as parseDotenv } from 'dotenv';
 import { applyLocalStdioEnv } from '../../../utils/stdio-simple-env.js';
+import { verifyMcpServerCapabilities } from '../../../utils/mcp-capabilities-verify.js';
 
 const BOOTSTRAP_PATH = path.resolve(process.cwd(), 'dist/bootstrap.js');
 const SOURCE_BOOTSTRAP_PATH = path.resolve(process.cwd(), 'src/bootstrap.ts');
+const CLI_PATH = path.resolve(process.cwd(), 'dist/cli/index.js');
+const SOURCE_CLI_PATH = path.resolve(process.cwd(), 'src/cli/index.ts');
 const ROOT_ENV_PATH = path.resolve(process.cwd(), '.env');
 const ACTIVE_PROFILE_ENV_PATH = (() => {
   const envName = process.env.ENV;
@@ -67,7 +70,57 @@ function spawnStdioServer(): ChildProcessWithoutNullStreams {
   });
 }
 
+/**
+ * Spawn the CLI entry (`dist/cli/index.js`) with no subcommand — the path
+ * `npx -y @squadrules/mcp` takes.  The bare-invocation guard injects `serve`,
+ * which defaults to stdio transport.
+ */
+function spawnCliBare(): ChildProcessWithoutNullStreams {
+  const args = fs.existsSync(CLI_PATH)
+    ? [CLI_PATH]
+    : ['--loader', 'ts-node/esm', SOURCE_CLI_PATH];
+
+  return spawn(process.execPath, args, {
+    cwd: process.cwd(),
+    env: createStdioEnv(),
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+}
+
 describe('STDIO launch smoke', () => {
+  test('CLI bare invocation emits no non-protocol bytes to stdout', async () => {
+    const child = spawnCliBare();
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+
+    // Wait long enough for the CLI → serve → bootstrap chain to complete boot.
+    await sleep(8000);
+
+    if (child.exitCode !== null) {
+      const stderrText = Buffer.concat(stderrChunks).toString('utf8');
+      throw new Error(`CLI stdio server exited early (code=${child.exitCode}): ${stderrText}`);
+    }
+
+    const startupStdout = Buffer.concat(stdoutChunks).toString('utf8').trim();
+    expect(startupStdout).toBe('');
+
+    child.kill('SIGTERM');
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        if (child.exitCode === null) {
+          child.kill('SIGKILL');
+        }
+      }, 5000);
+      child.once('exit', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }, 45000);
+
   test('startup does not emit non-protocol bytes to stdout', async () => {
     const child = spawnStdioServer();
     const stdoutChunks: Buffer[] = [];
@@ -101,16 +154,15 @@ describe('STDIO launch smoke', () => {
     });
   }, 30000);
 
-  test('initialize and listTools work over stdio client transport', async () => {
+  test('stdio transport exposes full MCP server capabilities per spec', async () => {
     const env = createStdioEnv();
     if (!hasEmbeddingConfig(env)) {
-      // This integration requires the same embedding prerequisites as the server startup path.
       return;
     }
     const args = fs.existsSync(BOOTSTRAP_PATH)
       ? [BOOTSTRAP_PATH]
       : ['--loader', 'ts-node/esm', SOURCE_BOOTSTRAP_PATH];
-    const client = new Client({ name: 'stdio-smoke-test', version: '1.0.0' });
+    const client = new Client({ name: 'stdio-capabilities-test', version: '1.0.0' });
     const transport = new StdioClientTransport({
       command: process.execPath,
       args,
@@ -118,21 +170,18 @@ describe('STDIO launch smoke', () => {
       cwd: process.cwd()
     });
 
-    // Connect with a timeout so the test fails fast if the server hangs during startup
     await Promise.race([
       client.connect(transport),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('stdio client connect timed out after 20000ms')), 20000)
       ),
     ]);
-    const toolsResult = await client.listTools();
 
-    expect(Array.isArray(toolsResult.tools)).toBe(true);
-    expect(toolsResult.tools.length).toBeGreaterThan(0);
-
-    await client.close();
-    // Give the transport a moment to clean up the child process.
-    // If the child lingers, SIGKILL it after 5s.
-    await sleep(500);
-  }, 30000);
+    try {
+      await verifyMcpServerCapabilities(client);
+    } finally {
+      await client.close();
+      await sleep(500);
+    }
+  }, 45000);
 });

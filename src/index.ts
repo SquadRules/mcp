@@ -18,7 +18,8 @@ import {
   QDRANT_SNAPSHOT_DIR,
   SQUADRULES_LOCAL_ARTIFACT_DIRS,
   TRANSPORT_TYPE,
-  isQdrantConfigured
+  isQdrantConfigured,
+  EMBEDDING_PROVIDER
 } from './config.js';
 import { qdrantService } from './services/qdrant/index.js';
 import { getEmbeddedRecordStore } from './services/vector-store/embedded-store-singleton.js';
@@ -101,8 +102,8 @@ export async function runSquadrulesServer(): Promise<void> {
         installGlobalErrorHandlers();
         installSignalHandlers();
 
-        structuredLogger.info(
-          `SQUADRULES_LOCAL_ARTIFACT_DIRS (client-resolvable hints): ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
+        structuredLogger.debug(
+          `artifact dirs: ${SQUADRULES_LOCAL_ARTIFACT_DIRS.join(', ')}`
         );
 
         // Local simple mode stays silent for the first minutes of a fresh install while
@@ -127,11 +128,12 @@ export async function runSquadrulesServer(): Promise<void> {
         }
 
         const embeddingDim = await probeEmbeddingDimension();
-        structuredLogger.info(`Embedding dimension resolved: ${embeddingDim}`);
+        structuredLogger.debug(`embedding dimension: ${embeddingDim}`);
 
-        structuredLogger.info('Initializing Qdrant memory store...');
+        structuredLogger.info(`vector store: ${isQdrantConfigured ? 'Qdrant' : 'LanceDB (embedded)'}`);
+        structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER}`);
         await memoryStore.init();
-        structuredLogger.info('Memory store ready');
+        structuredLogger.debug('vector store: ready');
 
         if (isQdrantConfigured && QDRANT_SNAPSHOT_ON_START) {
             const snapshotResult = await triggerQdrantSnapshot(qdrantService, {
@@ -144,10 +146,10 @@ export async function runSquadrulesServer(): Promise<void> {
                 structuredLogger.warn(`Startup snapshot failed: ${snapshotResult.message || 'unknown error'}`);
             }
         } else {
-            structuredLogger.info('Startup snapshot disabled (QDRANT_SNAPSHOT_ON_START=false)');
+            structuredLogger.debug('startup snapshot: skipped (embedded store)');
         }
 
-        // Inject mem resources from embedded-mcp-resources into Qdrant at boot
+        // Inject mem resources from embedded-mcp-resources into the vector store at boot
         // Use --force flag to allow override in new versions
         await injectMemResourcesAtBoot(memoryStore, { force: true });
 
@@ -164,14 +166,11 @@ export async function runSquadrulesServer(): Promise<void> {
         }
 
         if (TRANSPORT_TYPE === 'http') {
-            structuredLogger.info(`Application server: ${SERVER_PORT}`);
+            structuredLogger.info(`server: HTTP :${SERVER_PORT}`);
+            structuredLogger.info(`metrics: HTTP :${METRICS_PORT}`);
         } else {
-            structuredLogger.info('Application server: stdio (no HTTP listener)');
-        }
-        if (TRANSPORT_TYPE === 'http') {
-            structuredLogger.info(`Metrics server: ${METRICS_PORT} (isolated)`);
-        } else {
-            structuredLogger.info('Metrics server: disabled in stdio mode (no HTTP listeners)');
+            structuredLogger.debug('server: stdio (no HTTP listener)');
+            structuredLogger.debug('metrics: disabled in stdio mode');
         }
 
         if (TRANSPORT_TYPE === 'http') {

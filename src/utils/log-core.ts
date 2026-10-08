@@ -30,7 +30,9 @@ function textFormatStream(transportType: 'stdio' | 'http'): Writable {
         }
         const data = JSON.parse(line) as Record<string, unknown>;
         const time = typeof data['time'] === 'string' ? data['time'].slice(11, 19) : '00:00:00';
-        const level = (String(data['level'] ?? 'info')).toUpperCase().padEnd(7);
+        const rawLevel = Number(data['level']);
+        const levelLabel = pino.levels.labels[rawLevel] ?? String(data['level'] ?? 'info');
+        const level = levelLabel.toUpperCase().padEnd(5);
         const msg = (data['msg'] ?? '').toString();
         out.write(`[${time}] [${level}] ${msg}\n`);
       } catch {

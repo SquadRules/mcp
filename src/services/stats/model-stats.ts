@@ -93,9 +93,9 @@ export class ModelStatsService {
             this.statsState.healerBonuses = this.statsState.healerBonuses || {};
 
             this.initialized = true;
-            logger.info('ModelStatsService initialized with Redis persistence');
+            logger.info('model stats: persistent');
         } catch (error) {
-            logger.error('Failed to initialize ModelStatsService with Redis:', error);
+            logger.error('model stats: persistent init failed', error);
             // proceed with in-memory defaults
         }
     }
