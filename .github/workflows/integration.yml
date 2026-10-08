@@ -280,8 +280,29 @@ jobs:
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
+      - name: Restore fastembed model cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: fastembed-model-cache
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-fastembed-model-
+
       - name: Run unit tests (zero-config SINGLE defaults)
         run: npm test -- tests/unit
+
+      - name: Run stdio integration test (verify SINGLE mode end-to-end)
+        # Verifies stdio transport + LanceDB + fastembed work together in zero-config mode.
+        # Model cache ensures fastembed initialization is fast even on cold CI runners.
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --forceExit --testTimeout=120000 tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
+
+      - name: Save fastembed model cache
+        if: always() && steps.fastembed-model-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ steps.fastembed-model-cache.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()

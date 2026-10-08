@@ -37,6 +37,7 @@ assert.deepEqual(single.needs, ['build'], 'Single lane consumes the build matrix
 assert.equal(single['continue-on-error'], undefined, 'Single lane is required (not advisory)');
 assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
 assert.ok(single.steps.some(s => s.run === 'npm test -- tests/unit'), 'Single lane runs unit tests under zero-config defaults');
+assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.ts')), 'Single lane runs stdio integration test to verify SINGLE mode end-to-end');
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);

@@ -31,6 +31,7 @@ Rules of use:
 | [0001](0001-two-layer-adapter-write-caching.md) | Adapter writes are cached at two independent layers: CI snapshot import, and runtime boot injection | Accepted (design is on `main`; Layer 1 parked, [#22](https://github.com/SquadRules/mcp/issues/22)) |
 | [0002](0002-boot-injection-reuse-rule.md) | Boot-injection reuse is decided by semver, not by content hash | Recorded — rule is on `main`, but defect [#24](https://github.com/SquadRules/mcp/issues/24) is **open** (the #26 fix closed unmerged) |
 | [0003](0003-no-lancedb-store-snapshot.md) | No LanceDB store snapshot/export in CI | Accepted, still in force — revisit condition ([#24](https://github.com/SquadRules/mcp/issues/24)) remains open |
-| [0004](0004-fastembed-default-for-testing.md) | fastembed is the only embedding provider in CI | **Proposed** — recorded in #26 (closed unmerged); `main` CI still uses OpenAI |
+| [0004](0004-fastembed-default-for-testing.md) | fastembed is the only embedding provider in CI | Accepted — PR #33 landed on `main` |
 | [0005](0005-cache-keys-under-release-stamping.md) | Cache identity must not be derived from release-stamped values | Accepted |
-| [0006](0006-two-integration-lanes.md) | Exactly two integration lanes — cluster and single — both full-suite, both gating | **Proposed** — recorded in #26 (closed unmerged); `main` still runs the four-lane topology |
+| [0006](0006-two-integration-lanes.md) | Exactly two integration lanes — cluster and single — both full-suite, both gating | Accepted — PR #30 landed on `main` |
+| [0007](0007-single-lane-stdio-integration-with-model-cache.md) | SINGLE lane CI runs stdio integration test with cached fastembed model | Accepted — PR #37 |
