@@ -1,4 +1,4 @@
-# ADR 0007: SINGLE lane CI runs stdio integration test with cached fastembed model
+# ADR 0007: SINGLE lane CI runs stdio integration test with user-shared embedding model cache
 
 ## Status
 
@@ -24,13 +24,25 @@ The team considered three options:
 
 Option 3 was chosen because it aligns with the existing CI caching strategy (Playwright browsers, Qdrant snapshots, npm packages) and eliminates the cold-start penalty without changing runtime behavior.
 
+A second question arose: **where should the model cache live?** The initial implementation placed it under `~/.config/squadrules/models` (app-specific). This was wrong because:
+
+- Embedding model weights are a **library-managed resource**, not application-specific data
+- Placing them under the app config dir duplicates models if other apps also use fastembed
+- The app config dir (`~/.config/squadrules/`) is appropriate for JSON config and LanceDB data (application-owned), but not for large re-downloadable model binaries
+
+The correct location follows the XDG cache directory convention (`~/.cache/` on Unix, `%LOCALAPPDATA%` on Windows): user-shared across all embedding libraries, scoped to the library name (`embedding-models`), matching the pattern used by tools like Ollama — download once, reuse everywhere.
+
 ## Decision
 
-Add GitHub Actions cache for `~/.cache/embedding-models` (the user-shared embedding models cache, XDG style) and run the stdio integration test (`spaces-tool.stdio-simple.test.ts`) in the SINGLE lane with a 120s Jest timeout.
+1. **CI cache**: Add GitHub Actions cache for `~/.cache/embedding-models` and run the stdio integration test (`spaces-tool.stdio-simple.test.ts`) in the SINGLE lane with a 120s Jest timeout. The cache key is `${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}` with restore-keys fallback, so the model is downloaded once per dependency change and reused across runs.
 
-The cache key is `${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}` with restore-keys fallback, so the model is downloaded once per dependency change and reused across runs.
+2. **User-shared embedding models cache**: Replace the app-specific `getSquadrulesModelsDir()` (`~/.config/squadrules/models`) with `getEmbeddingModelsCacheDir()` (`~/.cache/embedding-models` on Unix, `%LOCALAPPDATA%\embedding-models` on Windows). This location is:
+   - **User-shared**: all embedding libraries (fastembed, transformers.js, etc.) use the same directory, avoiding duplicate downloads
+   - **XDG-compliant**: follows the XDG cache directory convention for re-downloadable artifacts
+   - **Ollama-style**: download once, reuse everywhere — no per-project duplication
+   - **Library-scoped**: the `embedding-models` subdirectory name keeps it scoped to embedding models without being a generic bucket
 
-The embedding models cache location (`~/.cache/embedding-models` on Unix, `%LOCALAPPDATA%\embedding-models` on Windows) is user-shared across all embedding libraries (fastembed, transformers.js, etc.) to avoid duplicate downloads. This follows the XDG cache directory convention and matches the pattern used by tools like Ollama: download once, reuse everywhere.
+3. **Responsibility split**: GitHub Actions manages only the cache layer (restore/save steps). The fastembed library retains full control over download, directory structure, and model loading. The project does not pre-run npm or manage model files explicitly.
 
 ## Consequences
 
@@ -39,12 +51,15 @@ The embedding models cache location (`~/.cache/embedding-models` on Unix, `%LOCA
 - **SINGLE lane completes in ~1m16s** (unit tests + stdio integration test)
 - **Zero-config mode validated end-to-end**: proves stdio transport + LanceDB + fastembed work together without any env configuration
 - **Model cache persists between runs**: eliminates cold-start penalty after the first run
+- **User-shared cache**: embedding model weights live in `~/.cache/embedding-models`, shared across all embedding libraries — no duplicate downloads per project
+- **Clean separation of concerns**: app config (`~/.config/squadrules/`) holds application-owned data (config, LanceDB); XDG cache holds library-managed re-downloadable artifacts
 - **No runtime changes**: fastembed library manages download, directory structure, and model loading; GitHub Actions only caches the directory
 
 ### Negative
 
 - **First run after dependency change is slow**: cache miss triggers model download (~30-60s), but the 120s timeout accommodates this
 - **Cache storage cost**: ~65 MB per OS (fast-bge-small-en-v1.5 model weights), acceptable for GitHub Actions
+- **Shared directory coupling**: if a future embedding library uses the same directory with incompatible file naming, collisions are possible (mitigated by library-scoped subdirectory names)
 
 ## Alternatives Considered
 
@@ -78,6 +93,8 @@ Increase the MCP SDK client's per-request timeout beyond 60s. Rejected because:
 - Subsequent runs (cache hit): test completes in ~10s
 - Model directory: `~/.cache/embedding-models/Qdrant_bge-small-en-v1.5-onnx-Q` (~65 MB)
 - Cache location is user-shared (XDG style), not app-specific
+- `getSquadrulesModelsDir()` removed from `src/utils/squadrules-user-dirs.ts`; replaced by `getEmbeddingModelsCacheDir()`
+- `FASTEMBED_CACHE_DIR` in `src/config/embedding-fastembed.ts` now resolves to the user-shared location
 
 ## Related
 
