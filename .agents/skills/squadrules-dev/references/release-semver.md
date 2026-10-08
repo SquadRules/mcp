@@ -49,8 +49,10 @@ The authoritative released version must agree across:
 
 - `package.json`;
 - root/workspace versions in `package-lock.json`;
-- synchronized skills and embedded source docs;
-- generated `src/resources/embedded-mcp-resources.ts`;
+- the user-facing skill metadata and every shipped built-in adapter under
+  `src/embed-docs/mem/*.md` (except README);
+- generated `src/resources/embedded-mcp-resources.ts`, containing the exact
+  version-stamped built-in adapter markdown;
 - git tag `vX.Y.Z`;
 - GitHub Release;
 - npm `@squadrules/mcp@X.Y.Z`.
@@ -58,6 +60,13 @@ The authoritative released version must agree across:
 `.release-please-manifest.json` is Release Please's last-released-version state.
 It is bootstrapped at the last valid GitHub/npm release when the mechanism is
 introduced and thereafter maintained in Release PRs.
+
+
+This built-in adapter stamping is runtime behavior, not cosmetic documentation.
+At boot, `mem-resources-boot.ts` compares each shipped adapter frontmatter
+`version` with the stored adapter version and updates the app-space adapter only
+when the shipped version is newer. Losing the stamp would therefore break built-in
+adapter upgrades even if the npm package itself published successfully.
 
 ## GitHub authentication
 
