@@ -49,19 +49,30 @@ assert.equal(releasePlease.permissions.contents, 'write');
 assert.equal(releasePlease.permissions['pull-requests'], 'write');
 const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
 assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
-assert.equal(releasePleaseStep.with.token, '${{ secrets.GH_PAT }}');
+assert.equal(releasePleaseStep.with.token, '${{ github.token }}');
 assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
 assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
 
 const syncReleasePr = release.jobs['sync-release-pr'];
 assert.equal(syncReleasePr.needs, 'release-please');
 const syncCheckout = syncReleasePr.steps.find(s => s.uses?.startsWith('actions/checkout@'));
-assert.equal(syncCheckout.with.token, '${{ secrets.GH_PAT }}');
+assert.equal(syncCheckout.with.token, '${{ github.token }}');
+assert.equal(syncReleasePr.permissions.contents, 'write');
 const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
 assert.match(syncStep.run ?? '', /npm run version:sync/);
 assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
 assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
 assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
+
+const validateReleasePr = release.jobs['validate-release-pr'];
+assert.deepEqual(validateReleasePr.needs, ['release-please', 'sync-release-pr']);
+assert.equal(validateReleasePr.permissions.actions, 'write');
+const dispatchChecks = validateReleasePr.steps.find(s => s.name === 'Dispatch required checks on Release PR head');
+assert.match(dispatchChecks.run ?? '', /gh workflow run "\$workflow" --ref "\$RELEASE_BRANCH"/);
+for (const workflowName of ['integration.yml', 'security.yml', 'automation-policy.yml']) {
+  assert.match(dispatchChecks.run ?? '', new RegExp(workflowName.replace('.', '\\.')));
+}
+assert.doesNotMatch(JSON.stringify(release), /secrets\.GH_PAT/);
 
 const publish = release.jobs.publish;
 assert.equal(publish.environment, 'release');
