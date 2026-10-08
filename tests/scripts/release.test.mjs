@@ -34,6 +34,7 @@ test('Release Please PR is synchronized before normal PR checks gate its merge',
   assert.match(step.run, /npm run version:sync/);
   assert.match(step.run, /build-embed-docs\.ts/);
   assert.match(step.run, /release:verify-version/);
+  assert.match(step.run, /git add --force \.agents\/skills src\/embed-docs\/mem src\/resources\/embedded-mcp-resources\.ts/);
   assert.match(step.run, /git push origin "HEAD:\$RELEASE_BRANCH"/);
 });
 
