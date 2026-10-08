@@ -14,7 +14,7 @@ test('Release Please owns committed versions through a protected-main PR', () =>
   assert.equal(config['always-update'], true);
   assert.equal(config.packages['.']['release-type'], 'node');
   assert.equal(config.packages['.']['package-name'], '@squadrules/mcp');
-  assert.equal(manifest['.'], '5.1.0');
+  assert.equal(manifest['.'], pkg.version);
 });
 
 test('release workflow never mutates protected main directly', () => {
