@@ -1,0 +1,777 @@
+{
+  "schemaVersion": 1,
+  "status": "proposal-not-active-policy",
+  "assessedAt": "2026-10-07",
+  "sourceHead": "58603d5afc4aaeb9e4c6247f8a4c90efc6abedef",
+  "notes": [
+    "Do not load draft records as approved exceptions.",
+    "Recompute proposed expiry from actual approval date; shown dates assume approval on assessment date.",
+    "Scope only inspected project npm@11.21.0 paths. Runner/global npm require separate inventory and matching evidence.",
+    "Package counts differ from advisory-instance counts."
+  ],
+  "findings": [
+    {
+      "advisory": "GHSA-q2hr-2g5m-vwhr",
+      "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+      "package": "brace-expansion",
+      "upstreamSeverity": "moderate",
+      "affectedRange": ">=4.0.0 <5.0.12",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/brace-expansion",
+          "version": "5.0.9",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "moderate",
+      "confidence": "low",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "npm minimatch/glob/workspace/query/pack paths are wider than the configured linter paths. Availability impact is plausible; complete attacker-input tracing is outstanding. Do not mark not affected.",
+      "conditions": [
+        "Use locked dependencies and reviewed manifest/workspace/query inputs",
+        "Untrusted install/pack jobs have bounded duration and no publish credentials",
+        "Complete additional input-path review within 3 working days"
+      ],
+      "evidence": [
+        "npm@11.21.0/lib/utils/get-workspaces.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/query-selector-all.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/release-age-exclude.js"
+      ],
+      "proposedDurationDays": 14,
+      "proposedExpiresAt": "2026-10-21T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-qhr7-859c-m2p7",
+      "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+      "package": "brace-expansion",
+      "upstreamSeverity": "high",
+      "affectedRange": ">=4.0.0 <5.0.11",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/brace-expansion",
+          "version": "5.0.9",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "moderate",
+      "confidence": "low",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "npm minimatch/glob/workspace/query/pack paths are wider than the configured linter paths. Availability impact is plausible; complete attacker-input tracing is outstanding. Do not mark not affected.",
+      "conditions": [
+        "Use locked dependencies and reviewed manifest/workspace/query inputs",
+        "Untrusted install/pack jobs have bounded duration and no publish credentials",
+        "Complete additional input-path review within 3 working days"
+      ],
+      "evidence": [
+        "npm@11.21.0/lib/utils/get-workspaces.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/query-selector-all.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/release-age-exclude.js"
+      ],
+      "proposedDurationDays": 14,
+      "proposedExpiresAt": "2026-10-21T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-6j4f-fj2g-mc7p",
+      "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+      "package": "brace-expansion",
+      "upstreamSeverity": "high",
+      "affectedRange": ">=4.0.0 <5.0.10",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/brace-expansion",
+          "version": "5.0.9",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "moderate",
+      "confidence": "low",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "npm minimatch/glob/workspace/query/pack paths are wider than the configured linter paths. Availability impact is plausible; complete attacker-input tracing is outstanding. Do not mark not affected.",
+      "conditions": [
+        "Use locked dependencies and reviewed manifest/workspace/query inputs",
+        "Untrusted install/pack jobs have bounded duration and no publish credentials",
+        "Complete additional input-path review within 3 working days"
+      ],
+      "evidence": [
+        "npm@11.21.0/lib/utils/get-workspaces.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/query-selector-all.js",
+        "npm@11.21.0/node_modules/@npmcli/arborist/lib/release-age-exclude.js"
+      ],
+      "proposedDurationDays": 14,
+      "proposedExpiresAt": "2026-10-21T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "upstreamSeverity": "high",
+      "affectedRange": "<=3.0.3",
+      "instances": [
+        {
+          "path": "node_modules/braces",
+          "version": "3.0.3",
+          "integrity": "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==",
+          "containerPackage": null
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Observed micromatch patterns come from repository-controlled Markdown CLI/config globs and release branch/rule configuration. Markdown bodies and commit messages are candidate data, not the configured glob patterns.",
+      "conditions": [
+        "Reviewed lint/config inputs remain bounded and repository-controlled",
+        "Untrusted PR lint jobs have no publish credentials",
+        "No public service passes attacker-controlled patterns to braces"
+      ],
+      "evidence": [
+        "semantic-release@25.0.9/lib/branches/expand.js",
+        "@semantic-release/commit-analyzer@13.0.1/lib/analyze-commit.js",
+        "markdownlint-cli2@0.23.3/markdownlint-cli2.mjs:filterByGlobs",
+        "release.config.mjs"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-ch52-4w7c-c8xp",
+      "url": "https://github.com/advisories/GHSA-ch52-4w7c-c8xp",
+      "package": "http-cache-semantics",
+      "upstreamSeverity": "high",
+      "affectedRange": "<=4.2.0",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/http-cache-semantics",
+          "version": "4.2.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "The exact npm bundle constructs its cache policy with shared:false. Earlier reproduction used shared:true. No npm cross-user exploit was established; private cache and trust separation must be verified.",
+      "conditions": [
+        "make-fetch-happen remains configured with shared:false",
+        "Do not reuse private/authenticated caches across trust boundaries",
+        "No shared proxy cache is built from this dependency by project code"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/make-fetch-happen/lib/cache/policy.js",
+        "evidence/reassessment/cache-context.json"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-rpw4-54j3-4h4q",
+      "url": "https://github.com/advisories/GHSA-rpw4-54j3-4h4q",
+      "package": "ip-address",
+      "upstreamSeverity": "moderate",
+      "affectedRange": "<=10.5.0",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/ip-address",
+          "version": "10.5.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected npm socks consumer serializes IP addresses, validates IPv6 strings with net.isIPv6 and decodes fixed 16-byte addresses. No inspected external calls to affected classifier methods were found.",
+      "conditions": [
+        "Affected classifiers are not used for security decisions in this npm path",
+        "Address6 inputs remain validated or fixed-length",
+        "New consumers or custom proxy configuration trigger review"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/socks/build/common/helpers.js",
+        "npm@11.21.0/node_modules/socks/build/client/socksclient.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-2vr4-cq9g-pvrc",
+      "url": "https://github.com/advisories/GHSA-2vr4-cq9g-pvrc",
+      "package": "ip-address",
+      "upstreamSeverity": "moderate",
+      "affectedRange": ">=10.2.0 <=10.5.0",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/ip-address",
+          "version": "10.5.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected npm socks consumer serializes IP addresses, validates IPv6 strings with net.isIPv6 and decodes fixed 16-byte addresses. No inspected external calls to affected classifier methods were found.",
+      "conditions": [
+        "Affected classifiers are not used for security decisions in this npm path",
+        "Address6 inputs remain validated or fixed-length",
+        "New consumers or custom proxy configuration trigger review"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/socks/build/common/helpers.js",
+        "npm@11.21.0/node_modules/socks/build/client/socksclient.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-j6r3-76f7-8jcv",
+      "url": "https://github.com/advisories/GHSA-j6r3-76f7-8jcv",
+      "package": "ip-address",
+      "upstreamSeverity": "moderate",
+      "affectedRange": "<=10.7.0",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/ip-address",
+          "version": "10.5.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected npm socks consumer serializes IP addresses, validates IPv6 strings with net.isIPv6 and decodes fixed 16-byte addresses. No inspected external calls to affected classifier methods were found.",
+      "conditions": [
+        "Affected classifiers are not used for security decisions in this npm path",
+        "Address6 inputs remain validated or fixed-length",
+        "New consumers or custom proxy configuration trigger review"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/socks/build/common/helpers.js",
+        "npm@11.21.0/node_modules/socks/build/client/socksclient.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-h3mg-xc3c-68pw",
+      "url": "https://github.com/advisories/GHSA-h3mg-xc3c-68pw",
+      "package": "ip-address",
+      "upstreamSeverity": "moderate",
+      "affectedRange": "<=10.7.0",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/ip-address",
+          "version": "10.5.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected npm socks consumer serializes IP addresses, validates IPv6 strings with net.isIPv6 and decodes fixed 16-byte addresses. No inspected external calls to affected classifier methods were found.",
+      "conditions": [
+        "Affected classifiers are not used for security decisions in this npm path",
+        "Address6 inputs remain validated or fixed-length",
+        "New consumers or custom proxy configuration trigger review"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/socks/build/common/helpers.js",
+        "npm@11.21.0/node_modules/socks/build/client/socksclient.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-rj75-hqrm-r3gf",
+      "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+      "package": "postcss-selector-parser",
+      "upstreamSeverity": "moderate",
+      "affectedRange": "<7.1.6",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/postcss-selector-parser",
+          "version": "7.1.4",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "npm query uses the parser and npm sbom also reaches it. Current SBOM selector is generated internally; no untrusted CSS/query endpoint was identified. The parser is not unused.",
+      "conditions": [
+        "No attacker-controlled npm query selectors",
+        "Existing generated SBOM selectors remain bounded",
+        "Workspace/query configuration changes trigger review"
+      ],
+      "evidence": [
+        "npm@11.21.0/lib/commands/sbom.js",
+        "npm@11.21.0/lib/commands/query.js",
+        "npm@11.21.0/node_modules/@npmcli/query/lib/index.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-3wwx-pv8p-q78v",
+      "url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+      "package": "undici",
+      "upstreamSeverity": "moderate",
+      "affectedRange": ">=6.25.0 <6.28.1",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/undici",
+          "version": "6.28.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected bundle consumer node-gyp downloads over HTTP(S), not WebSocket. It uses RetryAgent, but does not act as the downstream HTTP response forwarder required by the response-splitting advisory.",
+      "conditions": [
+        "No WebSocket use through the npm-bundled undici",
+        "No forwarding of downloaded response framing to downstream HTTP clients",
+        "Artifact origin/integrity checks and bounded install jobs remain in force"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/node-gyp/lib/download.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-r53p-7pc4-xj5r",
+      "url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+      "package": "undici",
+      "upstreamSeverity": "low",
+      "affectedRange": "<6.28.1",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/undici",
+          "version": "6.28.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected bundle consumer node-gyp downloads over HTTP(S), not WebSocket. It uses RetryAgent, but does not act as the downstream HTTP response forwarder required by the response-splitting advisory.",
+      "conditions": [
+        "No WebSocket use through the npm-bundled undici",
+        "No forwarding of downloaded response framing to downstream HTTP clients",
+        "Artifact origin/integrity checks and bounded install jobs remain in force"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/node-gyp/lib/download.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    },
+    {
+      "advisory": "GHSA-rfgv-xxqx-mfg5",
+      "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+      "package": "undici",
+      "upstreamSeverity": "high",
+      "affectedRange": ">=6.7.0 <6.28.1",
+      "instances": [
+        {
+          "path": "node_modules/npm/node_modules/undici",
+          "version": "6.28.0",
+          "integrity": null,
+          "containerPackage": {
+            "name": "npm",
+            "version": "11.21.0",
+            "integrity": "sha512-Zov8KhamNneiLdELtj5YALtNmJW4L4fCLTzjfpzXG2w6MSHcf0UxgdlK5uloCuksWT+7mGUU7wi79cO6RqivPg=="
+          }
+        }
+      ],
+      "contextualRisk": "low",
+      "confidence": "medium",
+      "status": "proposed",
+      "disposition": "temporary-risk-acceptance",
+      "rationale": "Inspected bundle consumer node-gyp downloads over HTTP(S), not WebSocket. It uses RetryAgent, but does not act as the downstream HTTP response forwarder required by the response-splitting advisory.",
+      "conditions": [
+        "No WebSocket use through the npm-bundled undici",
+        "No forwarding of downloaded response framing to downstream HTTP clients",
+        "Artifact origin/integrity checks and bounded install jobs remain in force"
+      ],
+      "evidence": [
+        "npm@11.21.0/node_modules/node-gyp/lib/download.js"
+      ],
+      "proposedDurationDays": 30,
+      "proposedExpiresAt": "2026-11-06T23:59:59.000Z",
+      "reviewBy": "2026-10-14T23:59:59Z",
+      "ownerRole": "repository maintainer",
+      "owner": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "trackingIssue": null,
+      "recheckTriggers": [
+        "matching package version or dependency route changes",
+        "relevant consumer/config/control changes",
+        "upstream advisory or exploitation intelligence changes",
+        "fixed compatible parent/tool release available"
+      ]
+    }
+  ],
+  "packageFindingMappings": [
+    {
+      "package": "@semantic-release/commit-analyzer",
+      "nodes": [
+        "node_modules/@semantic-release/commit-analyzer"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "@semantic-release/exec",
+      "nodes": [
+        "node_modules/@semantic-release/exec"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "@semantic-release/github",
+      "nodes": [
+        "node_modules/@semantic-release/github"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "@semantic-release/npm",
+      "nodes": [
+        "node_modules/@semantic-release/npm"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "@semantic-release/release-notes-generator",
+      "nodes": [
+        "node_modules/@semantic-release/release-notes-generator"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "nodes": [
+        "node_modules/npm/node_modules/brace-expansion"
+      ],
+      "rootAdvisories": [
+        "GHSA-6j4f-fj2g-mc7p",
+        "GHSA-q2hr-2g5m-vwhr",
+        "GHSA-qhr7-859c-m2p7"
+      ]
+    },
+    {
+      "package": "braces",
+      "nodes": [
+        "node_modules/braces"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "fast-glob",
+      "nodes": [
+        "node_modules/fast-glob"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "globby",
+      "nodes": [
+        "node_modules/globby"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "http-cache-semantics",
+      "nodes": [
+        "node_modules/npm/node_modules/http-cache-semantics"
+      ],
+      "rootAdvisories": [
+        "GHSA-ch52-4w7c-c8xp"
+      ]
+    },
+    {
+      "package": "ip-address",
+      "nodes": [
+        "node_modules/npm/node_modules/ip-address"
+      ],
+      "rootAdvisories": [
+        "GHSA-2vr4-cq9g-pvrc",
+        "GHSA-h3mg-xc3c-68pw",
+        "GHSA-j6r3-76f7-8jcv",
+        "GHSA-rpw4-54j3-4h4q"
+      ]
+    },
+    {
+      "package": "markdownlint-cli2",
+      "nodes": [
+        "node_modules/markdownlint-cli2"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "micromatch",
+      "nodes": [
+        "node_modules/micromatch"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "postcss-selector-parser",
+      "nodes": [
+        "node_modules/npm/node_modules/postcss-selector-parser"
+      ],
+      "rootAdvisories": [
+        "GHSA-rj75-hqrm-r3gf"
+      ]
+    },
+    {
+      "package": "semantic-release",
+      "nodes": [
+        "node_modules/semantic-release"
+      ],
+      "rootAdvisories": [
+        "GHSA-vfj7-8cjw-p6xm"
+      ]
+    },
+    {
+      "package": "undici",
+      "nodes": [
+        "node_modules/npm/node_modules/undici"
+      ],
+      "rootAdvisories": [
+        "GHSA-3wwx-pv8p-q78v",
+        "GHSA-r53p-7pc4-xj5r",
+        "GHSA-rfgv-xxqx-mfg5"
+      ]
+    }
+  ]
+}
