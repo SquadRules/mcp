@@ -70,14 +70,20 @@ adapter upgrades even if the npm package itself published successfully.
 
 ## GitHub authentication
 
-Release Please uses `secrets.GH_PAT`, the repository automation identity, rather
-than the default `GITHUB_TOKEN`. This is intentional: GitHub suppresses workflow
-events caused by `GITHUB_TOKEN`, which would prevent the generated Release PR
-from receiving normal CI checks. The automation token creates/updates only the
-Release Please branch/PR; it does not bypass protected `main`.
+The release workflow uses only the repository-scoped `GITHUB_TOKEN` for GitHub
+mutations. Release Please creates/updates the Release PR and the synchronization
+job commits only to that non-protected Release PR branch.
 
-The Release PR synchronization job also uses `GH_PAT` so its follow-up push
-triggers the PR workflows.
+GitHub intentionally suppresses most workflow recursion caused by
+`GITHUB_TOKEN`. The release workflow therefore does not rely on the Release PR
+event or synchronization push to start required CI. After synchronization it
+explicitly dispatches `integration.yml`, `security.yml`, and
+`automation-policy.yml` on the Release PR branch. `workflow_dispatch` is an
+allowed recursive-event exception, so these runs attach to the Release PR head
+without a long-lived GitHub PAT.
+
+Protected `main` remains PR-only; the release workflow never receives or uses a
+main-branch bypass credential.
 
 ## npm Trusted Publishing
 
@@ -126,9 +132,11 @@ Keep `main` protected:
 - no force pushes or deletion;
 - no release-workflow bypass.
 
-`GH_PAT` must have enough repository permission to create/update Release Please
-branches and PRs and to push synchronization commits to those non-protected
-branches. Existing automation already uses this token for repository PR producers.
+Repository Actions settings must allow `GITHUB_TOKEN` to create pull requests.
+The Release job grants write permission only to the jobs that create/update the
+Release Please branch/PR, and grants `actions: write` only to the job that
+dispatches the three required validation workflows. No personal access token is
+required for releases.
 
 ## Files
 
