@@ -40,6 +40,16 @@ function hasEmbeddingConfig(env: NodeJS.ProcessEnv): boolean {
   );
 }
 
+/** Validate caching hints (ttlMs, cacheScope) per 2026-07-28 spec if present. */
+function assertCachingHints(result: Record<string, unknown>): void {
+  if ('ttlMs' in result && result.ttlMs !== undefined) {
+    expect(Number(result.ttlMs)).toBeGreaterThanOrEqual(0);
+  }
+  if ('cacheScope' in result && result.cacheScope !== undefined) {
+    expect(['public', 'private']).toContain(result.cacheScope);
+  }
+}
+
 function createStdioEnv(): Record<string, string> {
   const result: Record<string, string> = {};
   // Copy process.env, converting undefined to empty string
@@ -241,13 +251,8 @@ describe('STDIO launch smoke', () => {
           }
         }
 
-        // Caching hints (2026-07-28 spec): ttlMs must be >= 0 if present
-        if ('ttlMs' in toolsResult && toolsResult.ttlMs !== undefined) {
-          expect(Number(toolsResult.ttlMs)).toBeGreaterThanOrEqual(0);
-        }
-        if ('cacheScope' in toolsResult && toolsResult.cacheScope !== undefined) {
-          expect(['public', 'private']).toContain(toolsResult.cacheScope);
-        }
+        // Caching hints (2026-07-28 spec)
+        assertCachingHints(toolsResult as Record<string, unknown>);
       }, 'tools/list');
 
       // ── 4. resources/list ─────────────────────────────────────────
@@ -268,14 +273,32 @@ describe('STDIO launch smoke', () => {
           expect(res.name.length).toBeGreaterThan(0);
         }
 
-        // Caching hints
-        if ('ttlMs' in resourcesResult && resourcesResult.ttlMs !== undefined) {
-          expect(Number(resourcesResult.ttlMs)).toBeGreaterThanOrEqual(0);
-        }
-        if ('cacheScope' in resourcesResult && resourcesResult.cacheScope !== undefined) {
-          expect(['public', 'private']).toContain(resourcesResult.cacheScope);
-        }
+        assertCachingHints(resourcesResult as Record<string, unknown>);
       }, 'resources/list');
+
+      // ── 4b. resources/read ────────────────────────────────────────
+      // Read the first resource from the list to verify resources/read works.
+      // Note: server/discover (2026-07-28 spec) is not yet available in the
+      // current SDK (protocol 2025-11-25); skip until the SDK upgrades.
+      if (resourcesResult.resources.length > 0) {
+        const firstUri = resourcesResult.resources[0].uri;
+        let readResult;
+        try {
+          readResult = await client.readResource({ uri: firstUri });
+        } catch (e: any) {
+          throw new Error(`[step 4b: resources/read uri=${firstUri}] ${e?.message ?? e}`);
+        }
+        withRawOnFail(readResult, () => {
+          expect(Array.isArray(readResult.contents)).toBe(true);
+          expect(readResult.contents.length).toBeGreaterThan(0);
+          for (const content of readResult.contents) {
+            expect(typeof content.uri).toBe('string');
+            expect(content.uri.length).toBeGreaterThan(0);
+          }
+
+          assertCachingHints(readResult as Record<string, unknown>);
+        }, 'resources/read');
+      }
 
       // ── 5. resources/templates/list ───────────────────────────────
       let templatesResult;
@@ -294,13 +317,7 @@ describe('STDIO launch smoke', () => {
           expect(tmpl.name.length).toBeGreaterThan(0);
         }
 
-        // Caching hints
-        if ('ttlMs' in templatesResult && templatesResult.ttlMs !== undefined) {
-          expect(Number(templatesResult.ttlMs)).toBeGreaterThanOrEqual(0);
-        }
-        if ('cacheScope' in templatesResult && templatesResult.cacheScope !== undefined) {
-          expect(['public', 'private']).toContain(templatesResult.cacheScope);
-        }
+        assertCachingHints(templatesResult as Record<string, unknown>);
       }, 'resources/templates/list');
 
       // ── 6. prompts/list ───────────────────────────────────────────
@@ -318,13 +335,7 @@ describe('STDIO launch smoke', () => {
           expect(prompt.name.length).toBeGreaterThan(0);
         }
 
-        // Caching hints
-        if ('ttlMs' in promptsResult && promptsResult.ttlMs !== undefined) {
-          expect(Number(promptsResult.ttlMs)).toBeGreaterThanOrEqual(0);
-        }
-        if ('cacheScope' in promptsResult && promptsResult.cacheScope !== undefined) {
-          expect(['public', 'private']).toContain(promptsResult.cacheScope);
-        }
+        assertCachingHints(promptsResult as Record<string, unknown>);
       }, 'prompts/list');
     } finally {
       await client.close();
