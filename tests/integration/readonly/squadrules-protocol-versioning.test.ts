@@ -7,6 +7,7 @@ import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { getTestSpaceId } from '../../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
+import { getBuildVersion } from '../../../src/utils/build-version.js';
 
 function protocolWithFrontmatter(title: string, version: string): string {
   return `---
@@ -168,9 +169,10 @@ describe('Squadrules protocol versioning', () => {
     // Footer rows mirror stored adapter protocol_version (embedded boot mem); not tied to user matches.
     expect(refineChoice).toHaveProperty('adapter_version');
     expect(createChoice).toHaveProperty('adapter_version');
-    expect(typeof refineChoice!.adapter_version).toBe('string');
-    expect(typeof createChoice!.adapter_version).toBe('string');
-    expect(refineChoice!.adapter_version!.length).toBeGreaterThan(0);
-    expect(createChoice!.adapter_version!.length).toBeGreaterThan(0);
+
+    const packageVersion = getBuildVersion().match(/^v([^+]+)/)?.[1];
+    expect(packageVersion).toBeDefined();
+    expect(refineChoice!.adapter_version).toBe(packageVersion);
+    expect(createChoice!.adapter_version).toBe(packageVersion);
   });
 });
