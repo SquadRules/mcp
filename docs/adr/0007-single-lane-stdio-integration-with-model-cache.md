@@ -26,9 +26,11 @@ Option 3 was chosen because it aligns with the existing CI caching strategy (Pla
 
 ## Decision
 
-Add GitHub Actions cache for `~/.config/squadrules/models` (the fastembed model directory) and run the stdio integration test (`spaces-tool.stdio-simple.test.ts`) in the SINGLE lane with a 120s Jest timeout.
+Add GitHub Actions cache for `~/.cache/embedding-models` (the user-shared embedding models cache, XDG style) and run the stdio integration test (`spaces-tool.stdio-simple.test.ts`) in the SINGLE lane with a 120s Jest timeout.
 
 The cache key is `${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}` with restore-keys fallback, so the model is downloaded once per dependency change and reused across runs.
+
+The embedding models cache location (`~/.cache/embedding-models` on Unix, `%LOCALAPPDATA%\embedding-models` on Windows) is user-shared across all embedding libraries (fastembed, transformers.js, etc.) to avoid duplicate downloads. This follows the XDG cache directory convention and matches the pattern used by tools like Ollama: download once, reuse everywhere.
 
 ## Consequences
 
@@ -74,7 +76,8 @@ Increase the MCP SDK client's per-request timeout beyond 60s. Rejected because:
 - PR #37 CI run: SINGLE lane completes in 1m16s with cache hit
 - First run (cache miss): model download takes ~30-60s, test completes within 120s timeout
 - Subsequent runs (cache hit): test completes in ~10s
-- Model directory: `~/.config/squadrules/models/Qdrant_bge-small-en-v1.5-onnx-Q` (~65 MB)
+- Model directory: `~/.cache/embedding-models/Qdrant_bge-small-en-v1.5-onnx-Q` (~65 MB)
+- Cache location is user-shared (XDG style), not app-specific
 
 ## Related
 
