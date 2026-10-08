@@ -29,7 +29,8 @@
   ],
   "bin": {
     "squadrules": "dist/cli/index.js",
-    "squadrules-mcp": "dist/cli/index.js"
+    "sq": "dist/cli/index.js",
+    "sqr": "dist/cli/index.js"
   },
   "files": [
     "dist/",
@@ -39,7 +40,7 @@
   "scripts": {
     "cli": "node dist/cli/index.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --forceExit --testTimeout=30000",
-    "start": "node dist/cli/index.js serve",
+    "start": "node dist/cli/index.js",
     "dev:node": "./scripts/dev-node-use.sh",
     "dev:test-embedding-key": "node scripts/test-embedding-key.mjs",
     "build": "npm run ui:build && tsc && chmod +x dist/cli/index.js",

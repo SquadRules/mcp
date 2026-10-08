@@ -27,7 +27,7 @@ export class RedisCacheService {
   static readonly MEMORY_CACHE_TTL_SECONDS = 3600;
 
   constructor() {
-    logger.info('[RedisCacheService] Initialized with RedisService');
+    // Backend is determined by keyValueStore; capability line emitted by the factory.
   }
 
   private getCacheKey(query: string, limit: number, opts?: { collapse?: boolean }): string {

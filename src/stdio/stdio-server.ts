@@ -4,9 +4,7 @@ import { createServer } from '../server.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 
 export async function startStdioTransport(memoryStore: MemoryQdrantStore): Promise<void> {
-  structuredLogger.success('SQUADRULES MCP Server starting', 'stdio transport');
-  structuredLogger.info('STDIO transport: enabled');
-  structuredLogger.info('STDOUT reserved for MCP protocol frames');
+  structuredLogger.debug('Starting stdio MCP server (stdout reserved for protocol frames)');
 
   const server = createServer(memoryStore);
   const transport = new StdioServerTransport();

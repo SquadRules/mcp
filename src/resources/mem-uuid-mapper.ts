@@ -54,7 +54,7 @@ export async function deletePreexistingAppSpaceEntries(
   }
   await redisCacheService.invalidateAfterUpdate();
 
-  structuredLogger.warn(
-    `[mem-resources-boot] Removed preexisting app-space points for '${contextLabel}'`
+  structuredLogger.debug(
+    `boot injection: removed preexisting entries for '${contextLabel}'`
   );
 }

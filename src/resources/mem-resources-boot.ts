@@ -13,27 +13,27 @@ import { redisCacheService } from '../services/redis-cache.js';
 const CONTENT_SHA256_KEY = 'content_sha256';
 
 /**
- * Inject mem resources from filesystem into Qdrant at system boot.
+ * Inject mem resources from filesystem into the vector store at system boot.
  * Uses slug-based filenames. Each adapter file is deleted-then-retrained
  * to ensure clean state. SHA256 hashes are stored in payload for future
  * change detection use.
  */
 export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, options: { force?: boolean } = {}): Promise<void> {
   const primaryDir = getMemDir();
-  structuredLogger.info(`[mem-resources-boot] Mem dir: ${primaryDir}`);
+  structuredLogger.debug(`boot injection: mem dir ${primaryDir}`);
 
   let memResources = await readMemFiles(primaryDir);
   if (Object.keys(memResources).length === 0) {
     const fallbackDir = getMemDirFallback();
-    structuredLogger.info(`[mem-resources-boot] No files in primary dir, trying fallback: ${fallbackDir}`);
+    structuredLogger.debug(`boot injection: no files in primary dir, trying fallback: ${fallbackDir}`);
     memResources = await readMemFiles(fallbackDir);
   }
 
   const fileCount = Object.keys(memResources).length;
-  structuredLogger.info(`[mem-resources-boot] Mem files found: ${fileCount}`);
+  structuredLogger.info(`boot injection: ${fileCount} mem file(s) found`);
 
   if (fileCount === 0) {
-    structuredLogger.info('[mem-resources-boot] No mem resources to inject');
+    structuredLogger.info('boot injection: no mem resources to inject');
     return;
   }
 
@@ -46,7 +46,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
   };
 
   await runWithSpaceContextAsync(appSpaceContext, async () => {
-    structuredLogger.info(`[mem-resources-boot] Injecting ${fileCount} mem resources into Qdrant (force: ${options.force || false})`);
+    structuredLogger.info(`boot injection: processing ${fileCount} adapter(s) (force: ${options.force || false})`);
 
     const llmModelId = 'system-boot';
     let injectedCount = 0;
@@ -54,14 +54,14 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
     for (const [slug, markdownContent] of Object.entries(memResources)) {
       if (typeof markdownContent !== 'string') continue;
       if (!MEM_FILE_SLUG_KEY.test(slug)) {
-        structuredLogger.debug(`[mem-resources-boot] Skip non-slug mem key: ${slug}`);
+        structuredLogger.debug(`boot injection: skip non-slug mem key: ${slug}`);
         continue;
       }
 
       const frontmatterSlug = extractFrontmatterSlug(markdownContent);
       if (frontmatterSlug && frontmatterSlug !== slug) {
         structuredLogger.warn(
-          `[mem-resources-boot] Filename slug '${slug}' differs from frontmatter slug '${frontmatterSlug}'; using filename`
+          `boot injection: filename slug '${slug}' differs from frontmatter slug '${frontmatterSlug}'; using filename`
         );
       }
 
@@ -75,14 +75,14 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
           if (storedVersion !== undefined && shippedVersion !== undefined) {
             const cmp = compareSemver(shippedVersion, storedVersion);
             if (cmp <= 0) {
-              structuredLogger.info(
-                `[mem-resources-boot] '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping`
+              structuredLogger.debug(
+                `boot injection: '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping`
               );
               injectedCount++;
               continue;
             }
-            structuredLogger.info(
-              `[mem-resources-boot] '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
+            structuredLogger.debug(
+              `boot injection: '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
             );
           }
         } catch {
@@ -102,18 +102,18 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
           const layerIds = memories.map(m => m.memory_uuid);
           await memoryStore.setPayloadOnLayers(layerIds, { [CONTENT_SHA256_KEY]: shippedSha });
           injectedCount++;
-          structuredLogger.info(
-            `[mem-resources-boot] Trained adapter '${slug}' (${memories.length} layer(s), SHA=${shippedSha.slice(0, 12)}...)`
+          structuredLogger.debug(
+            `boot injection: trained adapter '${slug}' (${memories.length} layer(s), SHA=${shippedSha.slice(0, 12)}...)`
           );
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        structuredLogger.error(`[mem-resources-boot] Failed to inject adapter '${slug}': ${message}`);
+        structuredLogger.error(`boot injection: failed to inject adapter '${slug}': ${message}`);
       }
     }
 
     structuredLogger.info(
-      `[mem-resources-boot] Boot injection complete: ${injectedCount} adapter(s) trained out of ${fileCount} file(s)`
+      `boot injection: ${injectedCount} adapter(s) processed out of ${fileCount} file(s)`
     );
 
     const { methods } = (memoryStore as any);

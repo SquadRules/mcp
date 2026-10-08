@@ -46,7 +46,7 @@ export function listPromptOfferings(): Prompt[] {
  * Register all prompts from embedded-mcp-resources
  */
 export function registerPromptResources(server: any) {
-  logger.info('Registering prompts dynamically from embedded resources');
+  logger.debug('registering prompts from embedded resources');
 
   const prompts = getPrompts() as Record<string, string>;
 
