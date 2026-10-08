@@ -98,7 +98,7 @@ const releasePleaseManifest = JSON.parse(readFileSync('.release-please-manifest.
 assert.equal(releasePleaseConfig['release-type'], 'node');
 assert.equal(releasePleaseConfig['include-component-in-tag'], false);
 assert.equal(releasePleaseConfig.packages['.']['package-name'], '@squadrules/mcp');
-assert.equal(releasePleaseManifest['.'], '5.1.0');
+assert.equal(releasePleaseManifest['.'], pkg.version);
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
