@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.3.0](https://github.com/SquadRules/mcp/compare/v5.2.0...v5.3.0) (2026-10-09)
+
+
+### Features
+
+* **ci:** add fastembed model cache and stdio integration test to SINGLE lane ([#37](https://github.com/SquadRules/mcp/issues/37)) ([c4f81c4](https://github.com/SquadRules/mcp/commit/c4f81c42bc70106694b0e08c55f8d118b2f5b2d4))
+* **cli:** bare invocation defaults to stdio server; capability-oriented boot logs ([#39](https://github.com/SquadRules/mcp/issues/39)) ([671f3ba](https://github.com/SquadRules/mcp/commit/671f3ba45c3eeb893eaeac2f4002cd80fc9b53b9))
+
 ## [5.2.0](https://github.com/SquadRules/mcp/compare/v5.1.0...v5.2.0) (2026-10-08)
 
 
