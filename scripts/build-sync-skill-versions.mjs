@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Sync or check versions with one target: the package.json version (the in-repo
- * synced baseline). semantic-release bumps package.json in the release job
- * workspace and re-runs this script there; git tags are NOT a target because
- * they advance past the in-repo baseline after every semantic-release run.
- * - src/embed-docs/mem/*.md frontmatter = package.json version.
+ * Sync or check versions with one target: package.json.
+ * semantic-release bumps package.json in the release workspace, re-runs this
+ * script, and commits the synchronized source back to main before creating the
+ * release tag. package.json, generated versioned source, the tag and npm must
+ * therefore describe the same released version.
+ * - Every shipped built-in adapter under src/embed-docs/mem/*.md (except README)
+ *   must carry frontmatter version = package.json version.
  * - .agents/skills/** (SKILL.md metadata.version + references/SQUADRULES.md frontmatter)
  *   = package.json version.
  * - Default: update files to the target.
@@ -71,6 +73,28 @@ function replaceSquadrulesVersionLine(content, newVersion) {
   return leadingWhitespace + trimmed.slice(0, 3) + newBlock + rest;
 }
 
+/** Ensure frontmatter has a release version; insert it when frontmatter exists but version is absent. */
+function ensureSquadrulesVersionLine(content, newVersion) {
+  const current = getSquadrulesVersionFromContent(content);
+  if (current !== null) return replaceSquadrulesVersionLine(content, newVersion);
+
+  const trimmed = content.trimStart();
+  const leadingWhitespace = content.slice(0, content.length - trimmed.length);
+  if (!trimmed.startsWith('---')) {
+    throw new Error('bundled adapter is missing YAML frontmatter');
+  }
+  const afterFirst = trimmed.slice(3);
+  const second = afterFirst.indexOf('\n---');
+  if (second === -1) {
+    throw new Error('bundled adapter has unterminated YAML frontmatter');
+  }
+  const block = afterFirst.slice(0, second);
+  const rest = afterFirst.slice(second);
+  const separator = block.endsWith('\n') ? '' : '\n';
+  const newBlock = `${block}${separator}version: "${newVersion}"`;
+  return leadingWhitespace + trimmed.slice(0, 3) + newBlock + rest;
+}
+
 async function main() {
   const target = await getPackageVersion();
   const skillDirs = await fs.readdir(SKILLS_DIR, { withFileTypes: true }).then((entries) =>
@@ -123,22 +147,29 @@ async function main() {
     }
   }
 
-  // src/embed-docs/mem/*.md frontmatter version -> package.json version
+  // Built-in adapters: every shipped mem markdown except README must carry
+  // package.json's release version. Missing version metadata is a release error,
+  // not something to silently skip.
   try {
-    const memFiles = await fs.readdir(MEM_DIR).then((names) => names.filter((n) => n.endsWith('.md')));
+    const memFiles = await fs.readdir(MEM_DIR).then((names) =>
+      names.filter((n) => n.endsWith('.md') && n.toLowerCase() !== 'readme.md')
+    );
     for (const name of memFiles) {
       const memPath = path.join(MEM_DIR, name);
       const content = await fs.readFile(memPath, 'utf8');
       const current = getSquadrulesVersionFromContent(content);
-      if (current !== null) {
-        if (CHECK) {
-          if (current !== target) mismatches.push(`src/embed-docs/mem/${name}: ${current} (expected ${target}, mem=package.json)`);
-        } else {
-          const newContent = replaceSquadrulesVersionLine(content, target);
-          if (newContent !== content) {
-            await fs.writeFile(memPath, newContent, 'utf8');
-            updated.push(`src/embed-docs/mem/${name}`);
-          }
+
+      if (CHECK) {
+        if (current === null) {
+          mismatches.push(`src/embed-docs/mem/${name}: missing frontmatter version (expected ${target})`);
+        } else if (current !== target) {
+          mismatches.push(`src/embed-docs/mem/${name}: ${current} (expected ${target}, builtin=package.json)`);
+        }
+      } else {
+        const newContent = ensureSquadrulesVersionLine(content, target);
+        if (newContent !== content) {
+          await fs.writeFile(memPath, newContent, 'utf8');
+          updated.push(`src/embed-docs/mem/${name}`);
         }
       }
     }

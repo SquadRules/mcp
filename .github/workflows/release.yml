@@ -5,40 +5,136 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      dry-run:
-        description: Preview the next version without publishing
-        type: boolean
-        default: true
+      tag:
+        description: Existing release tag to retry publication (for example v5.2.0)
+        type: string
+        required: true
 
 permissions:
   contents: read
 
-# Never cancel a publisher halfway through npm/tag/GitHub Release publication.
 concurrency:
-  group: release-main
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || 'main' }}
   cancel-in-progress: false
 
 jobs:
-  integration:
-    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/integration.yml
-    secrets:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  security:
-    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+  release-please:
+    if: github.event_name == 'push' && github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      release_sha: ${{ steps.release.outputs.sha }}
+      version: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
+      pr_branch: ${{ steps.pr-meta.outputs.branch }}
+      pr_number: ${{ steps.pr-meta.outputs.number }}
+    steps:
+      - name: Create or update Release PR / create GitHub Release
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        with:
+          token: ${{ github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Expose Release PR metadata
+        id: pr-meta
+        if: steps.release.outputs.prs_created == 'true' && steps.release.outputs.pr != ''
+        env:
+          PR_JSON: ${{ steps.release.outputs.pr }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pr = JSON.parse(process.env.PR_JSON);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `branch=${pr.headBranchName}\nnumber=${pr.number}\n`);
+          NODE
+
+  sync-release-pr:
+    needs: release-please
+    if: needs.release-please.outputs.pr_branch != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Release PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.release-please.outputs.pr_branch }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Synchronize version-derived source on the Release PR
+        env:
+          RELEASE_BRANCH: ${{ needs.release-please.outputs.pr_branch }}
+        run: |
+          set -euo pipefail
+
+          npm run version:sync
+          npx ts-node scripts/build-embed-docs.ts
+          VERSION="$(node -p "require('./package.json').version")"
+          npm run release:verify-version -- "$VERSION"
+
+          UNEXPECTED="$(git status --porcelain=v1 | awk '{print $2}' | grep -Ev '^(\.agents/skills/.+/SKILL\.md|\.agents/skills/.+/references/SQUADRULES\.md|src/embed-docs/mem/.+\.md|src/resources/embedded-mcp-resources\.ts)$' || true)"
+          if [ -n "$UNEXPECTED" ]; then
+            echo "::error::Release PR synchronization modified unexpected files:"
+            echo "$UNEXPECTED"
+            exit 1
+          fi
+
+          git add --force .agents/skills src/embed-docs/mem src/resources/embedded-mcp-resources.ts
+          if git diff --cached --quiet; then
+            echo "Release PR version-derived source is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(release): sync versioned sources"
+          git push origin "HEAD:$RELEASE_BRANCH"
+
+  validate-release-pr:
+    needs: [release-please, sync-release-pr]
+    if: needs.release-please.outputs.pr_branch != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
       contents: read
-      actions: read
-      pull-requests: read
-      security-events: write
-    uses: ./.github/workflows/security.yml
-  policy:
-    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/automation-policy.yml
+    steps:
+      - name: Dispatch required checks on Release PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ needs.release-please.outputs.pr_branch }}
+        run: |
+          set -euo pipefail
+          for workflow in integration.yml security.yml automation-policy.yml; do
+            echo "Dispatching $workflow for $RELEASE_BRANCH"
+            gh workflow run "$workflow" --ref "$RELEASE_BRANCH"
+          done
 
   publish:
-    needs: [integration, security, policy]
-    if: github.repository == 'SquadRules/mcp' && github.ref == 'refs/heads/main'
+    needs: release-please
+    if: >-
+      always() &&
+      github.repository == 'SquadRules/mcp' &&
+      (
+        (github.event_name == 'push' && needs.release-please.outputs.release_created == 'true') ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: release
@@ -46,35 +142,105 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Resolve release ref
+        id: release-ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CREATED_TAG: ${{ needs.release-please.outputs.tag_name }}
+          CREATED_SHA: ${{ needs.release-please.outputs.release_sha }}
+          RETRY_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "ref=$RETRY_TAG" >> "$GITHUB_OUTPUT"
+            echo "tag=$RETRY_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$CREATED_SHA" >> "$GITHUB_OUTPUT"
+            echo "tag=$CREATED_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout released source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ steps.release-ref.outputs.ref }}
           fetch-depth: 0
           persist-credentials: false
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '26'
           cache: npm
+
       - run: npm ci
-      - name: Release (or preview)
+
+      - name: Verify released source identity
+        id: identity
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
-          # The repository's pre-push hook refuses any push of refs/tags/v* so developers cannot
-          # cut release tags by hand, but `prepare: husky` installs that hook into this checkout
-          # (on npm ci AND again on the npm pack inside semantic-release), which also blocks
-          # semantic-release's own sanctioned tag push (runs 37313583239, 37324905156, 37327188173).
-          # Point core.hooksPath at git's stock sample-only directory via GIT_CONFIG_* command-line
-          # scope, which outranks the file husky rewrites mid-run, so the re-install cannot undo it.
-          # Do not use HUSKY=0: husky's install then writes "HUSKY=0 skip install" to stdout and
-          # @semantic-release/npm reads npm pack stdout as the tarball name, failing before the push
-          # (run 37320320913). The developer guard in .husky/pre-push stays in force everywhere else.
-          GIT_CONFIG_COUNT: '1'
-          GIT_CONFIG_KEY_0: core.hooksPath
-          GIT_CONFIG_VALUE_0: ${{ github.workspace }}/.git/hooks
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: |
-          if [ "$DRY_RUN" = true ]; then
-            npm run release -- --dry-run
+          set -euo pipefail
+
+          VERSION="$(node -p "require('./package.json').version")"
+          test "$RELEASE_TAG" = "v$VERSION"
+
+          npm run version:check-skills
+          npm run release:verify-version -- "$VERSION"
+
+          gh release view "$RELEASE_TAG" --json tagName,isDraft,isPrerelease >/tmp/release.json
+          test "$(node -p "JSON.parse(require('node:fs').readFileSync('/tmp/release.json','utf8')).tagName")" = "$RELEASE_TAG"
+          test "$(node -p "JSON.parse(require('node:fs').readFileSync('/tmp/release.json','utf8')).isDraft")" = "false"
+          test "$(node -p "JSON.parse(require('node:fs').readFileSync('/tmp/release.json','utf8')).isPrerelease")" = "false"
+
+          git fetch origin main --tags
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TAG_SHA="$(git rev-list -n 1 "$RELEASE_TAG")"
+          test "$HEAD_SHA" = "$TAG_SHA"
+          git merge-base --is-ancestor "$HEAD_SHA" origin/main
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Verified released source: $RELEASE_TAG @ $HEAD_SHA"
+
+      - name: Build and validate publication artifact
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          npm run build:tgz
+          npm run test:tgz
+          npm sbom --omit=dev --sbom-format cyclonedx > artifacts/npm-sbom.json
+          test -f "artifacts/squadrules-mcp-$VERSION.tgz"
+
+      - name: Publish npm package with Trusted Publishing
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          CURRENT="$(npm view "@squadrules/mcp@$VERSION" version 2>/dev/null || true)"
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "@squadrules/mcp@$VERSION is already published; skipping npm publish."
           else
-            npm run release
+            npm publish "./artifacts/squadrules-mcp-$VERSION.tgz" --access public --provenance
           fi
+
+      - name: Attach package and SBOM to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG"             "artifacts/squadrules-mcp-$VERSION.tgz"             artifacts/npm-sbom.json             --clobber
+
+      - name: Verify npm publication
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+        run: |
+          set -euo pipefail
+          for _ in 1 2 3 4 5; do
+            PUBLISHED="$(npm view "@squadrules/mcp@$VERSION" version 2>/dev/null || true)"
+            [ "$PUBLISHED" = "$VERSION" ] && exit 0
+            sleep 2
+          done
+          echo "::error::npm did not report @squadrules/mcp@$VERSION after publication"
+          exit 1

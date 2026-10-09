@@ -35,37 +35,31 @@ const FILE_ENV = {
   ...(ACTIVE_PROFILE_ENV_PATH ? readDotEnv(ACTIVE_PROFILE_ENV_PATH) : {})
 };
 
-function hasEmbeddingConfig(env: NodeJS.ProcessEnv): boolean {
-  return Boolean(
-    env.OPENAI_API_KEY || env.TEI_BASE_URL || (env.OPENAI_API_URL && env.OPENAI_EMBEDDING_MODEL)
-  );
-}
-
-function createStdioChildEnv(metricsPort: number): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    ...FILE_ENV,
-    PORT: process.env.PORT ?? FILE_ENV.PORT ?? '4300',
-    METRICS_PORT: String(metricsPort),
-    REDIS_URL: process.env.REDIS_URL ?? FILE_ENV.REDIS_URL ?? ''
-  };
+function createStdioChildEnv(metricsPort: number): Record<string, string> {
+  // StdioClientTransport requires Record<string, string>, so coerce undefined -> '' while copying
+  // the ambient env (same shape as tests/utils/mcp-client-utils.ts createStdioChildEnv).
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    env[key] = value ?? '';
+  }
+  for (const [key, value] of Object.entries(FILE_ENV)) {
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+  env.PORT = process.env.PORT ?? FILE_ENV.PORT ?? '4300';
+  env.METRICS_PORT = String(metricsPort);
+  env.REDIS_URL = process.env.REDIS_URL ?? FILE_ENV.REDIS_URL ?? '';
   applyLocalStdioEnv(env);
   return env;
 }
 
 export async function createStdioSimpleHarness(): Promise<TestHarness> {
-  if (process.env.ENV !== 'dev_stdio') {
-    throw new Error(
-      'createStdioSimpleHarness expects ENV=dev_stdio (use npm run test:integration:contracts:stdio-simple).'
-    );
-  }
+  // SINGLE mode is the zero-config default: stdio transport, embedded LanceDB, auth off and
+  // key-free fastembed embeddings. No ENV profile or external embedding key is required —
+  // applyLocalStdioEnv (via createStdioChildEnv) pins the spawned child to that single-node shape.
   const metricsPort = 19990 + Math.floor(Math.random() * 200);
   const env = createStdioChildEnv(metricsPort);
-  if (!hasEmbeddingConfig(env)) {
-    throw new Error(
-      'createStdioSimpleHarness requires embedding config (OPENAI_API_KEY, TEI_BASE_URL, or OPENAI_API_URL+OPENAI_EMBEDDING_MODEL) so the server can complete MCP startup.'
-    );
-  }
 
   const args = fs.existsSync(BOOTSTRAP_PATH)
     ? [BOOTSTRAP_PATH]

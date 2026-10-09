@@ -32,13 +32,13 @@ export async function readMemFiles(memDir?: string): Promise<Record<string, stri
       const key = file.replace(/\.md$/, ''); // slug-based key
       const content = await readFile(filePath, 'utf-8');
       memResources[key] = content;
-      structuredLogger.debug(`[mem-resources-boot] Loaded mem file: ${file} -> slug=${key}`);
+      structuredLogger.debug(`boot injection: loaded mem file: ${file} -> slug=${key}`);
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      structuredLogger.warn(`[mem-resources-boot] Mem directory not found: ${dir}`);
+      structuredLogger.warn(`boot injection: mem directory not found: ${dir}`);
     } else {
-      structuredLogger.error(`[mem-resources-boot] Failed to read mem directory ${dir}: ${err instanceof Error ? err.message : String(err)}`);
+      structuredLogger.error(`boot injection: failed to read mem directory ${dir}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   return memResources;

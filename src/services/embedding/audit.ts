@@ -58,7 +58,7 @@ function recordAnomaly(params: {
 }
 
 export function logEmbeddingAuditSuccess(payload: EmbeddingAuditPayload): void {
-  structuredLogger.info({
+  structuredLogger.debug({
     category: 'audit.embedding',
     status: 'success',
     tenant_id: payload.tenantId,

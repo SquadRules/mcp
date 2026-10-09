@@ -31,48 +31,77 @@ for (const script of ['lint', 'typecheck', 'knip', 'test:ui', 'build:tgz', 'test
   assert.ok(integration.jobs.build.steps.some(s => s.run === `npm run ${script}`));
 }
 assert.deepEqual(integration.jobs.build.strategy.matrix.node, ['24', '26']);
-assert.ok(integration.jobs['verify-integration-primary'].steps.some(s => s.run === 'npm run dev:test -- tests/unit'));
-const embedded = integration.jobs['verify-integration-embedded-simple'];
-assert.deepEqual(embedded.needs, ['build'], 'Service-free lane consumes the build matrix artifact');
-assert.equal(embedded['continue-on-error'], true, 'Service-free lane is advisory until proven stable');
-assert.ok(!integration.jobs['integration-pass'].needs.includes('verify-integration-embedded-simple'));
-assert.ok(embedded.steps.some(s => /EMBEDDING_PROVIDER=fastembed/.test(s.run ?? '')), 'Service-free lane pins the key-free local embedding default');
+assert.ok(integration.jobs['verify-integration-cluster'].steps.some(s => s.run === 'TRANSPORT_TYPE=http npm test -- tests/unit'));
+const single = integration.jobs['verify-integration-single'];
+assert.deepEqual(single.needs, ['build'], 'Single lane consumes the build matrix artifact');
+assert.equal(single['continue-on-error'], undefined, 'Single lane is required (not advisory)');
+assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
+assert.ok(single.steps.some(s => s.run === 'npm test -- tests/unit'), 'Single lane runs unit tests under zero-config defaults');
+assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.ts')), 'Single lane runs stdio integration test to verify SINGLE mode end-to-end');
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);
 assert.ok(!release.on.workflow_run && !release.on.schedule && !release.on.pull_request);
-assert.equal(release.on.workflow_dispatch.inputs['dry-run'].default, true);
-assert.deepEqual(release.jobs.publish.needs, ['integration', 'security', 'policy']);
-for (const [job, file] of [['integration', 'integration'], ['security', 'security'], ['policy', 'automation-policy']]) {
-  assert.equal(release.jobs[job].uses, `./.github/workflows/${file}.yml`);
+assert.equal(release.on.workflow_dispatch.inputs.tag.required, true);
+
+const releasePlease = release.jobs['release-please'];
+assert.match(releasePlease.if, /github\.event_name == 'push'/);
+assert.equal(releasePlease.permissions.contents, 'write');
+assert.equal(releasePlease.permissions['pull-requests'], 'write');
+const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
+assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
+assert.equal(releasePleaseStep.with.token, '${{ github.token }}');
+assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
+assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
+
+const syncReleasePr = release.jobs['sync-release-pr'];
+assert.equal(syncReleasePr.needs, 'release-please');
+const syncCheckout = syncReleasePr.steps.find(s => s.uses?.startsWith('actions/checkout@'));
+assert.equal(syncCheckout.with.token, '${{ github.token }}');
+assert.equal(syncReleasePr.permissions.contents, 'write');
+const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
+assert.match(syncStep.run ?? '', /npm run version:sync/);
+assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
+assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
+assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
+
+const validateReleasePr = release.jobs['validate-release-pr'];
+assert.deepEqual(validateReleasePr.needs, ['release-please', 'sync-release-pr']);
+assert.equal(validateReleasePr.permissions.actions, 'write');
+const dispatchChecks = validateReleasePr.steps.find(s => s.name === 'Dispatch required checks on Release PR head');
+assert.match(dispatchChecks.run ?? '', /gh workflow run "\$workflow" --ref "\$RELEASE_BRANCH"/);
+for (const workflowName of ['integration.yml', 'security.yml', 'automation-policy.yml']) {
+  assert.match(dispatchChecks.run ?? '', new RegExp(workflowName.replace('.', '\\.')));
 }
-assert.equal(release.jobs.publish.environment, 'release');
-assert.equal(release.jobs.publish.permissions['id-token'], 'write');
-// `prepare: husky` installs this repository's tag-blocking pre-push hook into the publisher's own
-// checkout on `npm ci` and again on the `npm pack` inside semantic-release, so a pre-step
-// `git config core.hooksPath` is rewritten before the tag push. Only command-line git config
-// (GIT_CONFIG_*, which outranks the file) survives. HUSKY=0 is worse: husky then writes
-// "HUSKY=0 skip install" to stdout and @semantic-release/npm reads npm pack stdout as the tarball
-// name, so the release fails before the push.
-const publishSteps = release.jobs.publish.steps;
-assert.ok(!JSON.stringify(release.jobs.publish).includes('HUSKY'), 'Publisher must not use HUSKY: it leaks into npm pack stdout');
-assert.ok(!publishSteps.some(s => /core\.hooksPath/.test(s.run ?? '')), 'A pre-step core.hooksPath change is undone by npm pack; override it on the release step env');
-const releaseStep = publishSteps.find(s => /npm run release/.test(s.run ?? ''));
-assert.ok(releaseStep, 'Publisher must run semantic-release');
-assert.equal(releaseStep.env?.GIT_CONFIG_COUNT, '1', 'Release step must supply git config through the environment');
-assert.equal(releaseStep.env?.GIT_CONFIG_KEY_0, 'core.hooksPath', 'Release step must override core.hooksPath so the tag push skips husky');
-assert.match(String(releaseStep.env?.GIT_CONFIG_VALUE_0 ?? ''), /\.git\/hooks$/, 'core.hooksPath override must point at the stock empty hook directory');
-assert.match(release.jobs.publish.if, /github.ref == 'refs\/heads\/main'/);
-assert.equal(release.jobs.publish.steps[0].with.ref, '${{ github.sha }}');
-assert.equal(release.jobs.publish.steps[0].with['fetch-depth'], 0);
+assert.doesNotMatch(JSON.stringify(release), /secrets\.GH_PAT/);
+
+const publish = release.jobs.publish;
+assert.equal(publish.environment, 'release');
+assert.equal(publish.permissions['id-token'], 'write');
+assert.match(publish.if, /release_created/);
+const publishCheckout = publish.steps.find(s => s.name === 'Checkout released source');
+assert.equal(publishCheckout.with['persist-credentials'], false);
+const setupNode = publish.steps.find(s => s.uses?.startsWith('actions/setup-node@'));
+assert.equal(setupNode?.with?.['node-version'], '26');
+const identityStep = publish.steps.find(s => s.name === 'Verify released source identity');
+assert.match(identityStep.run ?? '', /gh release view/);
+assert.match(identityStep.run ?? '', /git rev-list -n 1/);
+assert.match(identityStep.run ?? '', /git merge-base --is-ancestor/);
+const npmPublishStep = publish.steps.find(s => s.name === 'Publish npm package with Trusted Publishing');
+assert.match(npmPublishStep.run ?? '', /npm publish "\.\/artifacts\/squadrules-mcp-\$VERSION\.tgz"/);
+assert.match(npmPublishStep.run ?? '', /--provenance/);
 assert.equal(release.concurrency['cancel-in-progress'], false);
-assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|GH_PAT|repository_dispatch/);
-const { default: config } = await import('../release.config.mjs');
-assert.deepEqual(config.branches, ['main']);
-assert.deepEqual(config.plugins.map(p => p[0]), [
-  '@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator',
-  '@semantic-release/npm', '@semantic-release/exec', '@semantic-release/github',
-]);
+assert.doesNotMatch(JSON.stringify(release), /NPM_TOKEN|NODE_AUTH_TOKEN|repository_dispatch|semantic-release/);
+assert.doesNotMatch(JSON.stringify(release), /git push[^\n]*(HEAD:main|refs\/heads\/main)/);
+
+const releasePleaseConfig = JSON.parse(readFileSync('release-please-config.json', 'utf8'));
+const releasePleaseManifest = JSON.parse(readFileSync('.release-please-manifest.json', 'utf8'));
+assert.equal(releasePleaseConfig['release-type'], 'node');
+assert.equal(releasePleaseConfig['include-component-in-tag'], false);
+assert.equal(releasePleaseConfig.packages['.']['package-name'], '@squadrules/mcp');
+const releasePackage = JSON.parse(readFileSync('package.json', 'utf8'));
+assert.equal(releasePleaseManifest['.'], releasePackage.version);
+
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
 assert.equal(pkg.scripts.prepack, 'npm run build');

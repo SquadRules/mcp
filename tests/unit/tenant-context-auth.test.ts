@@ -1,9 +1,15 @@
 import { describe, expect, it } from '@jest/globals';
 import { getSpaceContext } from '../../src/utils/tenant-context.js';
+import { serverRequiresAuth } from '../utils/auth-headers.js';
 
 const UUID_V5_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-describe('tenant-context auth-derived spaces', () => {
+// getSpaceContext only derives user/group spaces from req.auth when AUTH_ENABLED (config const);
+// with auth off it returns the single-tenant default. This suite therefore requires the CLUSTER
+// (auth-on) mode and self-skips under SINGLE, mirroring spaces-tool.http-auth.test.ts.
+const describeAuth = serverRequiresAuth() ? describe : describe.skip;
+
+describeAuth('tenant-context auth-derived spaces', () => {
   it('derives deterministic user/group space ids from iss + sub/group path', () => {
     const req = {
       auth: {

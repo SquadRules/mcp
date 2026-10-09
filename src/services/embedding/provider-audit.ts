@@ -24,7 +24,7 @@ export type AuditPayload = {
 
 /** Emit one structured audit line describing a single embedding provider call. */
 export function auditProviderCall(payload: AuditPayload): void {
-    structuredLogger.info({
+    structuredLogger.debug({
         category: 'audit.embedding',
         stage: 'provider',
         provider: payload.provider,

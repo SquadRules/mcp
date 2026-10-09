@@ -327,7 +327,7 @@ export class LanceRecordWriter {
 
   private async enginePut(points: QdrantPointLike[]): Promise<void> {
     const count = await this.engine.putPoints(points);
-    logger.tool('lance-store', 'upsert', `points=${count}`);
+    logger.debug(`[lance-store] upsert points=${count}`);
     await redisCacheService.invalidateAfterUpdate();
   }
 

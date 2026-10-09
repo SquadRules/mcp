@@ -41,6 +41,11 @@ authoritative execution contract).
 - **Code-derivable reference** (architecture, auth, storage, search, workflow
   engine, testing topology): the
   [project Wiki](https://github.com/SquadRules/mcp/wiki).
+- **Architecture Decision Records** ([`docs/adr/`](docs/adr/)): when making
+  significant architectural decisions (CI topology, runtime model, embedding
+  provider, storage backend, etc.), create or update an ADR. One decision per
+  file; state the context, decision, consequences, and evidence. Update the
+  ADR index (`docs/adr/README.md`) when adding new records.
 
 ## Runtime authority split
 

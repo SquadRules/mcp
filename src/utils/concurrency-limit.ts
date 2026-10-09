@@ -56,18 +56,17 @@ function getAvailableCpus(): number {
  */
 export function resolveMaxConcurrentRequests(envValue: number): number {
   if (envValue === -1) {
-    structuredLogger.info('Concurrency limit: disabled (-1)');
+    structuredLogger.info('concurrency: disabled');
     return Infinity;
   }
   if (envValue > 0) {
-    structuredLogger.info(`Concurrency limit: explicit override ${envValue}`);
+    structuredLogger.info(`concurrency: ${envValue} (override)`);
     return envValue;
   }
 
   // Auto-detect
   const cgroupMem = readCgroupMemoryLimit();
   const totalMem = cgroupMem ?? os.totalmem();
-  const source = cgroupMem !== null ? 'cgroup' : 'os.totalmem';
   const cpus = getAvailableCpus();
   const baselineRss = process.memoryUsage().rss;
   const usable = totalMem * MEMORY_HEADROOM_FACTOR - baselineRss;
@@ -75,13 +74,7 @@ export function resolveMaxConcurrentRequests(envValue: number): number {
   const maxCpu = cpus * 50;
   const limit = Math.max(MIN_LIMIT, Math.min(fromMemory, maxCpu));
 
-  structuredLogger.info(
-    `Concurrency limit: auto-detected ${limit} ` +
-      `(mem source: ${source}, total: ${Math.round(totalMem / 1048576)} MB, ` +
-      `baseline RSS: ${Math.round(baselineRss / 1048576)} MB, ` +
-      `per-req est: ${Math.round(PER_REQUEST_ESTIMATE_BYTES / 1048576)} MB, ` +
-      `cpus: ${cpus}, mem-derived: ${fromMemory}, cpu-cap: ${maxCpu})`
-  );
+  structuredLogger.info(`concurrency: ${limit} (auto)`);
 
   return limit;
 }

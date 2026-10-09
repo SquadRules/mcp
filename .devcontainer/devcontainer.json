@@ -1,0 +1,31 @@
+{
+  "name": "SquadRules MCP",
+  "dockerComposeFile": ["../compose/infra.yaml"],
+  "service": "dev",
+  "runServices": ["dev", "qdrant", "valkey", "postgres", "keycloak"],
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "initializeCommand": "docker compose -p squadrules-mcp -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack up -d",
+  "postCreateCommand": "npm ci",
+  "postStartCommand": "npm run dev_simple:deploy",
+  "forwardPorts": [3300, 4300, 6333, 6344, 8080, 9090, 9490],
+  "remoteUser": "root",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "26" },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "editorconfig.editorconfig",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+      }
+    }
+  },
+  "shutdownAction": "stopCompose"
+}

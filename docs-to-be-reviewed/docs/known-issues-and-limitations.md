@@ -61,7 +61,7 @@ non-empty `QDRANT_URL`:
 
 ## Embedding backends
 
-Embeddings default to **local fastembed** (`BAAI/bge-base-en-v1.5`, 768 dims) when no
+Embeddings default to **local fastembed** (`BAAI/bge-small-en-v1.5`, 384 dims) when no
 external provider is configured; OpenAI (including Ollama via `OPENAI_API_URL`) and TEI
 are opt-in alternatives. See [install/prerequisites.md#embedding-backend](install/prerequisites.md#embedding-backend)
 for configuration.
@@ -70,9 +70,12 @@ for configuration.
   into a shared per-user cache dir (`<config dir>/models`, sibling of the LanceDB data
   dir). This needs network on first use; **air-gapped installs must pre-seed that
   directory**. `FASTEMBED_MODEL` / `FASTEMBED_CACHE_DIR` override the model and location.
-- **Model dimensions are a migration boundary.** fastembed is 768-d, OpenAI
+- **Model dimensions are a migration boundary.** fastembed is 384-d, OpenAI
   `text-embedding-3-small` is 1536-d, and TEI models vary. Changing the provider on an
   existing collection can require a vector migration because stored vectors are fixed-size.
+  Changing the *default fastembed model* crosses the same boundary: an install that wrote
+  768-d vectors under the previous default re-indexes on boot against Qdrant, while the
+  embedded LanceDB store keys its vector columns by size (`vs768` -> `vs384`).
 - **Deferred limitation — download integrity and cross-instance races.** The download is
   delegated to fastembed, so this release does **not** verify a boot checksum, does not
   lock the cache across instances, and does not atomically move a completed download. Two

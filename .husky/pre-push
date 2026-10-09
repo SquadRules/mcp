@@ -1,20 +1,16 @@
 #!/bin/sh
-# Developer guard: version tags are cut only by the Release workflow, never pushed by hand.
-# `prepare: husky` installs this hook into the publisher's checkout too, on npm ci and again on
-# the npm pack inside semantic-release; that job therefore overrides core.hooksPath from its
-# release-step environment (GIT_CONFIG_*, see .github/workflows/release.yml) so the tag lands.
-# Do not "fix" a failing release run with HUSKY=0 - it leaks into npm pack stdout.
+# Developer guard: version tags are created by Release Please after a protected
+# Release PR is merged. Developers must never push v* tags by hand.
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   if echo "$remote_ref" | grep -q "^refs/tags/v"; then
     echo >&2 ""
     echo >&2 "  ERROR: Do not push release tags manually."
     echo >&2 ""
-    echo >&2 "  This repo creates version tags in the Release workflow only."
-    echo >&2 "  A push to main runs it automatically (Integration -> Security -> Policy -> publish),"
-    echo >&2 "  or dispatch it by hand with dry-run=true to preview the next version first."
-    echo >&2 "  semantic-release computes the version and pushes the tag itself; main is the"
-    echo >&2 "  only release branch, so a tag pushed from another branch never has a channel."
-    echo >&2 "  Procedure and required settings: .agents/skills/squadrules-dev/references/release-semver.md"
+    echo >&2 "  Merge normal work through PRs. Release Please maintains a separate Release PR"
+    echo >&2 "  containing package.json/package-lock/changelog/version-source updates."
+    echo >&2 "  After that Release PR passes the normal required checks and is merged,"
+    echo >&2 "  Release Please creates the vX.Y.Z tag/GitHub Release and release.yml publishes npm."
+    echo >&2 "  Procedure: .agents/skills/squadrules-dev/references/release-semver.md"
     echo >&2 ""
     exit 1
   fi

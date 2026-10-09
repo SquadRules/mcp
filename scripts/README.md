@@ -54,7 +54,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/env/create-env.sh` | Thin wrapper: creates `.env` via secrets generator when you use this entrypoint | Invokes `deploy-generate-dev-secrets.py` |
 | `scripts/ci-wait-for-infra.sh` | Polls Redis, Qdrant, Postgres, and Keycloak in Docker Compose (CI) | `.github/workflows/integration.yml` |
 | `scripts/deploy-add-keycloak-demo-user.sh` | Adds `demo` user to `squadrules-dev` via `kcadm` inside the Keycloak container | Documented in `scripts/keycloak/import/README.md` |
-| `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/install/README.md` and `compose.yaml` comments |
+| `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/keycloak/README.md` and `compose/infra.yaml` comments |
 | `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `npm run infra:up`, `deploy-run-env.sh`, `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts` |
 | `scripts/deploy-add-keycloak-user` | Adds a realm user with auto-generated password via Admin REST API | `scripts/keycloak/import/README.md` (examples) |
 | `scripts/lint-agent-skills.py` | Validates agent skills layout against repo rules | `npm run lint:skills` |
@@ -62,7 +62,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/build-embed-docs.ts` | Bundles `src/embed-docs/**` into generated TS resources for the server | `npm run prebuild` (`npx ts-node scripts/build-embed-docs.ts`) |
 | `scripts/build-embed-docs-slug-meta.ts` | Slug/frontmatter helpers for `build-embed-docs.ts` | Imported by `build-embed-docs.ts` only |
 | `scripts/build-vite-ui-env-define.ts` | Exposes package version to Vite/Vitest via `import.meta.env` | `vite.config.ts`, `vitest.config.ts` |
-| `scripts/build-sync-skill-versions.mjs` | Keeps skill metadata versions aligned with `package.json` | `npm run prebuild`, `npm run version:sync-skills`, `npm run version:check-skills`, release `npm version` scripts |
+| `scripts/build-sync-skill-versions.mjs` | Propagates `package.json` version into versioned agent skills and every shipped built-in adapter under `src/embed-docs/mem/`; check mode rejects missing/stale built-in versions | `npm run prebuild`, `npm run version:sync-skills`, `npm run version:check-skills`, Release Please PR synchronization |
 | `scripts/ci-test-tgz-install.mjs` | Installs the built tarball into a temp dir to verify packaging | `npm run test:tgz` |
 | `scripts/ci-github-step-summary.mjs` | Runs a subprocess and appends a Vitest-style block to `$GITHUB_STEP_SUMMARY` | `.github/workflows/integration.yml` (many steps) |
 | `scripts/test-embedding-key.mjs` | Quick check that `OPENAI_API_KEY` can call the configured embedding model | `npm run dev:test-embedding-key` |

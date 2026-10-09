@@ -47,8 +47,12 @@ jobs:
           path: artifacts/*.tgz
           if-no-files-found: error
 
-  verify-integration-primary:
-    name: Infra + dev deploy + integration tests (AUTH on, Node 24)
+  # CLUSTER lane: full-stack infra (Qdrant, Redis, Keycloak, Postgres) + AUTH on + HTTP transport.
+  # Proves the deployed-services path (docker compose --profile fullstack) with all components
+  # overridden via shell env. The .env template supplies QDRANT_URL, AUTH_ENABLED=true, etc.;
+  # TRANSPORT_TYPE=http overrides the serve default (stdio) so the HTTP server binds.
+  verify-integration-cluster:
+    name: Cluster (AUTH on, HTTP, full infra, Node 24)
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -81,7 +85,7 @@ jobs:
         id: docker-infra-cache
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       - name: Load infra Docker images from cache
         if: steps.docker-infra-cache.outputs.cache-hit == 'true'
@@ -92,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           ec=0
-          docker compose -p squadrules-mcp --env-file .env --profile fullstack up -d valkey qdrant postgres keycloak &
+          docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
           npm ci &
           pid_npm=$!
@@ -105,7 +109,7 @@ jobs:
         run: |
           mkdir -p .cache/docker-infra
           # Only save images for services we start (valkey, qdrant, postgres, keycloak); config --images includes app image which is not pulled
-          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
+          mapfile -t images < <(docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack config --format json | jq -r '.services | to_entries[] | select(.key | test("^(valkey|qdrant|postgres|keycloak)$")) | .value.image')
           docker save -o .cache/docker-infra/images.tar "${images[@]}"
 
       - name: Cache infra Docker images
@@ -113,7 +117,7 @@ jobs:
         if: steps.docker-infra-cache.outputs.cache-hit != 'true'
         with:
           path: .cache/docker-infra
-          key: infra-docker-${{ hashFiles('compose.yaml') }}
+          key: infra-docker-${{ hashFiles('compose/infra.yaml') }}
 
       # Keep artifact outside ./dist — integration tests expect ./dist/cli/index.js (see tests/integration/cli-commands-shared.ts).
       - name: Download npm package artifact
@@ -175,14 +179,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-qdrant-snapshot-
 
-      - name: Start app (from installed package)
+      - name: Start app (from installed package, HTTP transport)
         env:
           HEALTH_CHECK_ATTEMPTS: 15
           KEYCLOAK_INTERNAL_URL: http://localhost:8080
           QDRANT_SNAPSHOT_DIR: var/snapshots
+          TRANSPORT_TYPE: http
         run: |
           mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/squadrules.log 2>&1 &
+          npm start > var/log/squadrules.log 2>&1 &
           for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
             curl -sSf http://127.0.0.1:3300/health >/dev/null && break
             [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
@@ -190,10 +195,12 @@ jobs:
           done
 
       - name: Run unit tests against the deployed test services
-        run: npm run dev:test -- tests/unit
+        run: TRANSPORT_TYPE=http npm test -- tests/unit
 
       - name: Run integration tests (AUTH stack + Jest suite)
-        run: npm run dev:test
+        env:
+          TRANSPORT_TYPE: http
+        run: npm test
 
       - name: Show test failure
         if: failure()
@@ -226,14 +233,19 @@ jobs:
           path: var/log/squadrules.log
           if-no-files-found: ignore
 
-  verify-integration-simple-smoke:
-    # Transport smoke only (HTTP, auth off). The full functional suite runs once on the AUTH
-    # stack (verify-integration-primary); this job just proves the simple/no-auth HTTP stack
-    # boots and serves MCP. Reuses build-primary's tgz (npm-package-node24) — no separate build.
-    name: Transport smoke (SIMPLE mode, HTTP no-auth, Node 24)
+  # SINGLE lane: zero-config (no .env, no infra, no env overrides). Proves the npm package boots
+  # and runs the full test suite on the embedded defaults: stdio transport, LanceDB vector store,
+  # key-free fastembed embeddings, no auth, no Redis. The setup.ts test harness supplies hermetic
+  # XDG_CONFIG_HOME isolation so the lane is clean even on a runner with stale state.
+  verify-integration-single:
+    name: Single (zero-config, stdio + LanceDB + fastembed, Node 24)
     needs: [build]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Cold fastembed model download + CPU ONNX inference of shipped adapters is slow (~10-15min).
+    # The full suite under SINGLE runs the same tests as CLUSTER but with env-coupled suites
+    # self-skipping (Qdrant-backed, auth-gated). Generous timeout for the first run; subsequent
+    # runs benefit from the fastembed model cache if the runner is reused.
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -248,304 +260,9 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-
-      - name: "Generate .env (base vars, overridden for simple mode)"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 scripts/deploy-generate-dev-secrets.py
-
-      - name: Apply simple profile overrides
-        run: cat .env.dev_simple >> .env
-
-      - name: Start Qdrant (binary) and npm ci (parallel)
-        run: |
-          set -euo pipefail
-          ec=0
-          QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
-          pid_qdrant=$!
-          npm ci &
-          pid_npm=$!
-          wait $pid_qdrant || ec=1
-          wait $pid_npm || ec=1
-          exit $ec
-
-      - name: Download npm package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: npm-package-node24
-          path: artifact-npm
-
-      - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: playwright-cache-simple
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers and wait for Qdrant (parallel)
-        id: playwright-install-simple
-        run: |
-          set -euo pipefail
-          ec=0
-          npx playwright install chromium &
-          pid_pw=$!
-          for i in $(seq 1 30); do
-            curl -sSf http://127.0.0.1:7633/healthz >/dev/null && break
-            [ "$i" -eq 30 ] && ec=1
-            sleep 2
-          done &
-          pid_wait=$!
-          wait $pid_pw || ec=1
-          wait $pid_wait || ec=1
-          exit $ec
-
-      - name: Save Playwright browsers cache
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        if: steps.playwright-cache-simple.outputs.cache-hit != 'true' && steps.playwright-install-simple.outcome == 'success'
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-ms-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install package from tgz
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          \
-            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
-
-      - name: Expose installed package dist for CLI tests
-        run: |
-          rm -rf dist
-          cp -R node_modules/@squadrules/mcp/dist ./dist
-
-      - name: Start app (from installed package, simple mode)
-        env:
-          HEALTH_CHECK_ATTEMPTS: 15
-          ENV: dev_simple
-          QDRANT_SNAPSHOT_DIR: var/snapshots
-          QDRANT_COLLECTION: squadrules_ci
-        run: |
-          mkdir -p var/log var/snapshots
-          npm run dev:start:installed > var/log/squadrules-simple.log 2>&1 &
-          for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
-            curl -sSf http://127.0.0.1:4300/health >/dev/null && break
-            [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ] && exit 1
-            sleep 2
-          done
-
-      - name: Run SIMPLE transport smoke tests
-        env:
-          ENV: dev_simple
-          QDRANT_COLLECTION: squadrules_ci
-        run: |
-          npm run dev_simple:test -- \
-            tests/integration/scenarios/spaces-tool.http-simple.test.ts \
-            tests/integration/readonly/mcp-list-tools.test.ts \
-            tests/integration/readonly/mcp-client-connection.test.ts
-
-      - name: Show test failure
-        if: failure()
-        run: |
-          echo "--- Last test report (tail) ---"
-          latest=''
-          for report in reports/tests/*.log; do
-            if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then
-              latest=$report
-            fi
-          done
-          if [ -n "$latest" ]; then
-            tail -n 200 "$latest"
-          else
-            echo "No reports/tests/*.log found"
-          fi
-
-      - name: Upload squadrules simple log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-simple-log-node24
-          path: var/log/squadrules-simple.log
-          if-no-files-found: ignore
-
-      - name: Stop Qdrant (binary)
-        if: always()
-        run: npm run qdrant:binary:stop
-
-  verify-integration-stdio-smoke:
-    # Transport smoke only (stdio JSON-RPC). No HTTP server; tests spawn a stdio subprocess.
-    # Reuses build's tgz (npm-package-node24) — no separate build.
-    name: Transport smoke (STDIO mode, Node 24)
-    needs: [build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: "Generate .env (base vars, overridden for stdio mode)"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 scripts/deploy-generate-dev-secrets.py
-
-      - name: Apply stdio profile overrides
-        run: |
-          set -a
-          [ -f .env.dev_stdio ] && . ./.env.dev_stdio
-          set +a
-          while IFS= read -r line; do
-            key="${line%%=*}"
-            if [ -n "$key" ] && ! grep -q "^${key}=" .env 2>/dev/null; then
-              echo "$line" >> .env
-            fi
-          done < <(grep -v '^#' .env.dev_stdio 2>/dev/null | grep '=')
-
-      - name: Start Qdrant (binary) and npm ci (parallel)
-        run: |
-          set -euo pipefail
-          ec=0
-          QDRANT_HTTP_PORT=7633 QDRANT_GRPC_PORT=7634 npm run qdrant:binary:start &
-          pid_qdrant=$!
-          npm ci &
-          pid_npm=$!
-          wait $pid_qdrant || ec=1
-          wait $pid_npm || ec=1
-          exit $ec
-
-      - name: Download npm package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: npm-package-node24
-          path: artifact-npm
-
-      - name: Wait for Qdrant
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 30); do
-            curl -sSf http://127.0.0.1:7633/healthz >/dev/null && exit 0
-            sleep 2
-          done
-          exit 1
-
-      - name: Install package from tgz
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          \
-            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
-
-      - name: Expose installed package dist for CLI tests
-        run: |
-          rm -rf dist
-          cp -R node_modules/@squadrules/mcp/dist ./dist
-
-      - name: Run STDIO transport smoke tests
-        env:
-          ENV: dev_stdio
-          QDRANT_COLLECTION: squadrules_simple_ci
-          CI: "true"
-        run: |
-          npm run dev_stdio:test -- \
-            tests/integration/mode/stdio/stdio-launch-smoke.test.ts \
-            tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
-
-      - name: Show test failure
-        if: failure()
-        run: |
-          echo "--- Last test report (tail) ---"
-          latest=''
-          for report in reports/tests/*.log; do
-            if [ -f "$report" ] && { [ -z "$latest" ] || [ "$report" -nt "$latest" ]; }; then
-              latest=$report
-            fi
-          done
-          if [ -n "$latest" ]; then
-            tail -n 200 "$latest"
-          else
-            echo "No reports/tests/*.log found"
-          fi
-
-      - name: Upload squadrules stdio log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-stdio-log-node24
-          path: var/log/squadrules-stdio.log
-          if-no-files-found: ignore
-
-      - name: Stop Qdrant (binary)
-        if: always()
-        run: npm run qdrant:binary:stop
-
-  # Service-free lane: SIMPLE mode with all built-in components and NO external data store.
-  # Installs the built package (npm-package-node24) and runs it on the embedded LanceDB backend
-  # by blanking QDRANT_URL (isQdrantConfigured=false). No Qdrant/Redis/Keycloak/Docker is started;
-  # cache is in-memory; auth is off. Embeddings are key-free on the local fastembed default
-  # (issue #11): no OPENAI_API_KEY is supplied. Proves `serve` boots on a zero-infrastructure host
-  # and that a real train->activate flow works against the embedded store, including the
-  # boot-injected built-in adapters. ADVISORY first (continue-on-error, not in integration-pass
-  # needs) to avoid blocking merges while it proves stable.
-  verify-integration-embedded-simple:
-    name: Service-free smoke (embedded LanceDB, no Qdrant/Redis, Node 24)
-    needs: [build]
-    runs-on: ubuntu-latest
-    # fastembed cold boot (model download + CPU ONNX injection of shipped adapters) plus the
-    # real train->activate smoke tests are far slower than the old near-instant OpenAI path.
-    timeout-minutes: 20
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: "Generate .env (base vars, key-free)"
-        env:
-          # The fullstack .env generator validates every SECRET_KEYS (incl. OPENAI_API_KEY) is
-          # non-empty after writing. Supply a throwaway value ONLY so generation passes; the next
-          # step blanks OPENAI_API_KEY and pins EMBEDDING_PROVIDER=fastembed, so the running lane
-          # stays genuinely key-free (no OpenAI call, no inference service).
-          OPENAI_API_KEY: ci-keyfree-placeholder
-        run: node scripts/ci-github-step-summary.mjs "Generate .env (dev secrets)" -- python3 scripts/deploy-generate-dev-secrets.py
-
-      - name: Apply simple profile overrides
-        run: cat .env.dev_simple >> .env
-
-      - name: Force embedded backend + key-free fastembed (blank QDRANT_URL and the OpenAI key)
-        run: |
-          set -euo pipefail
-          # Empty QDRANT_URL => isQdrantConfigured=false => embedded LanceDB. Blank it in BOTH
-          # files so the server (.env) and the jest worker (which re-sources .env.dev_simple)
-          # see the same embedded signal, and Qdrant-substrate tests self-skip.
-          sed -i 's|^QDRANT_URL=.*|QDRANT_URL=|' .env .env.dev_simple
-          grep -E '^QDRANT_URL=' .env .env.dev_simple
-          # Key-free embedding (issue #11): pin the local fastembed default so no OpenAI key is
-          # required. Strip the generated OPENAI_API_KEY and override the template's full-stack
-          # EMBEDDING_PROVIDER=openai, which would otherwise make the boot probe throw on a miss key.
-          sed -i 's|^OPENAI_API_KEY=.*|OPENAI_API_KEY=|' .env
-          sed -i 's|^EMBEDDING_PROVIDER=.*|EMBEDDING_PROVIDER=fastembed|' .env
-          grep -E '^(OPENAI_API_KEY|EMBEDDING_PROVIDER)=' .env
-          if grep -qE '^EMBEDDING_PROVIDER=(openai|tei)$' .env; then echo "::error::embedded lane must not select an external provider"; exit 1; fi
 
       - name: Install dependencies
-        run: node scripts/ci-github-step-summary.mjs "Install dependencies" -- npm ci
+        run: npm ci
 
       - name: Download npm package artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -556,68 +273,40 @@ jobs:
       - name: Install package from tgz
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          node scripts/ci-github-step-summary.mjs "Install package from tgz" -- \
-            npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
+          npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
 
       - name: Expose installed package dist for CLI tests
         run: |
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
-      - name: Start app (installed package, embedded, no infra started)
-        env:
-          # The HTTP server binds only AFTER boot injection trains every shipped mem adapter
-          # (src/index.ts awaits injectMemResourcesAtBoot before startHttpTransport). On a cold
-          # CI runner each adapter's embeddings run through CPU ONNX (~10s), so boot can take a
-          # few minutes vs the old near-instant OpenAI path. Generous cap; the loop `break`s on
-          # the first healthy response, so a fast boot costs nothing extra.
-          HEALTH_CHECK_ATTEMPTS: 120
-          ENV: dev_simple
-          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
-        run: |
-          set -euo pipefail
-          mkdir -p var/log
-          npm run dev:start:installed > var/log/squadrules-embedded.log 2>&1 &
-          for i in $(seq 1 "${HEALTH_CHECK_ATTEMPTS}"); do
-            curl -sSf http://127.0.0.1:4300/health >/dev/null && break
-            if [ "$i" -eq "${HEALTH_CHECK_ATTEMPTS}" ]; then
-              echo "::error::embedded server did not become healthy"; tail -n 200 var/log/squadrules-embedded.log; exit 1
-            fi
-            sleep 2
-          done
+      - name: Restore fastembed model cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: fastembed-model-cache
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-fastembed-model-
 
-      - name: Assert embedded backend + first-run data dir (no Qdrant present)
-        env:
-          XDG_CONFIG_HOME: ${{ runner.temp }}/embedded-config
-        run: |
-          set -euo pipefail
-          health=$(curl -sS http://127.0.0.1:4300/health)
-          echo "$health"
-          echo "$health" | jq -e '.status == "healthy"'                          >/dev/null || { echo "::error::status not healthy"; exit 1; }
-          echo "$health" | jq -e '.dependencies.vectorStore == "healthy"'         >/dev/null || { echo "::error::vectorStore not healthy"; exit 1; }
-          echo "$health" | jq -e '.details.vectorStoreBackend == "embedded-lancedb"' >/dev/null || { echo "::error::backend not embedded-lancedb"; exit 1; }
-          echo "$health" | jq -e '.dependencies | has("qdrant") | not'            >/dev/null || { echo "::error::qdrant key present on embedded"; exit 1; }
-          test -d "${XDG_CONFIG_HOME}/squadrules/lancedb" || { echo "::error::LanceDB first-run data dir not created"; exit 1; }
-          test -d "${XDG_CONFIG_HOME}/squadrules/models" || { echo "::error::fastembed model cache dir not created (key-free default not active?)"; exit 1; }
-          echo "OK: embedded health + LanceDB data dir + fastembed model cache present"
+      - name: Run unit tests (zero-config SINGLE defaults)
+        run: npm test -- tests/unit
 
-      - name: Run embedded smoke tests (transport + real train->activate on Lance)
-        env:
-          ENV: dev_simple
-          QDRANT_COLLECTION: squadrules_ci
-          CI: "true"
-        run: |
-          npm run dev_simple:test -- \
-            tests/integration/readonly/mcp-client-connection.test.ts \
-            tests/integration/readonly/mcp-list-tools.test.ts \
-            tests/integration/scenarios/spaces-tool.http-simple.test.ts \
-            tests/integration/readonly/v4-squadrules-activate.test.ts
+      - name: Run stdio integration test (verify SINGLE mode end-to-end)
+        # Verifies stdio transport + LanceDB + fastembed work together in zero-config mode.
+        # Model cache ensures fastembed initialization is fast even on cold CI runners.
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --forceExit --testTimeout=120000 tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
+
+      - name: Save fastembed model cache
+        if: always() && steps.fastembed-model-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ steps.fastembed-model-cache.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()
         run: |
-          echo "--- embedded app log (tail) ---"
-          tail -n 200 var/log/squadrules-embedded.log 2>/dev/null || true
           echo "--- last test report (tail) ---"
           latest=''
           for report in reports/tests/*.log .local/reports/tests/*.log; do
@@ -625,20 +314,11 @@ jobs:
           done
           if [ -n "$latest" ]; then tail -n 200 "$latest"; else echo "No test report log found"; fi
 
-      - name: Upload embedded log
-        if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: squadrules-embedded-log-node24
-          path: var/log/squadrules-embedded.log
-          if-no-files-found: ignore
-
-  # Merge gate: the Node 24/26 build lane plus the Node 24 service lanes. The advisory
-  # verify-integration-embedded-simple lane is omitted from needs: so it cannot block a merge.
+  # Merge gate: the Node 24/26 build lane plus the two integration lanes (CLUSTER + SINGLE).
   # Container image build/scan/publish is decoupled into SquadRules/containers, not a gate here.
   integration-pass:
     name: Integration workflow passed
-    needs: [build, verify-integration-primary, verify-integration-simple-smoke, verify-integration-stdio-smoke]
+    needs: [build, verify-integration-cluster, verify-integration-single]
     if: always()
     runs-on: ubuntu-latest
     steps:

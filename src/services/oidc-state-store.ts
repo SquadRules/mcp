@@ -67,8 +67,8 @@ class KeyValueOidcStateStore implements OidcStateStore {
 
 logger.info(
   isRedisConfigured
-    ? '[oidc-state] Using shared key-value store for OIDC state (Redis configured)'
-    : '[oidc-state] Using in-memory key-value store for OIDC state (Redis not configured)'
+    ? 'OIDC state: shared (Redis)'
+    : 'OIDC state: in-memory'
 );
 
 /** Singleton OIDC state store. Backend is determined by isRedisConfigured in config. */

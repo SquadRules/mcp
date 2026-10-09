@@ -36,7 +36,7 @@ import { resolveSquadrulesAppBaseUrl } from './test-integration-app-base-url.mjs
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const EXAMPLES_DIR = path.join(ROOT, 'docs', 'examples');
+const EXAMPLES_DIR = path.join(ROOT, 'docs-to-be-reviewed', 'docs', 'examples');
 const REPORTS_DIR = path.join(ROOT, 'reports');
 
 const BASE_URL = resolveSquadrulesAppBaseUrl();

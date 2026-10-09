@@ -8,7 +8,7 @@ function mdOrFallback(uri: any, text?: string, notFound: string = 'Document not 
 }
 
 export function registerDocsResources(server: any) {
-  logger.info('Registering docs resources dynamically from embedded resources (excluding templates)');
+  logger.debug('registering docs resources from embedded resources');
 
   const resources = getResources();
   const toTitle = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
