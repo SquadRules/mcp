@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { load } from 'js-yaml';
 
@@ -48,6 +51,44 @@ test('Release PR checks are explicitly dispatched without a personal token', () 
   assert.match(step.run, /gh workflow run "\$workflow" --ref "\$RELEASE_BRANCH"/);
   for (const required of ['integration.yml', 'security.yml', 'automation-policy.yml']) {
     assert.match(step.run, new RegExp(required.replace('.', '\\.') ));
+  }
+});
+
+test('Release PR check dispatch works outside a Git checkout', () => {
+  const step = workflow.jobs['validate-release-pr'].steps.find(
+    step => step.name === 'Dispatch required checks on Release PR head',
+  );
+  const dir = mkdtempSync(join(tmpdir(), 'release-dispatch-'));
+  try {
+    writeFileSync(join(dir, 'gh'), `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const repoIndex = args.indexOf('--repo');
+if (repoIndex < 0 || args[repoIndex + 1] !== process.env.GITHUB_REPOSITORY) {
+  console.error('Repository must be explicit outside a checkout');
+  process.exit(1);
+}
+require('node:fs').appendFileSync(process.env.DISPATCH_LOG, JSON.stringify(args) + '\\n');
+`, { mode: 0o755 });
+    const log = join(dir, 'dispatch.jsonl');
+    const result = spawnSync('bash', ['-e', '-c', step.run], {
+      cwd: dir,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${dir}:${process.env.PATH}`,
+        GITHUB_REPOSITORY: 'SquadRules/mcp',
+        RELEASE_BRANCH: 'release-please--branches--main--components--mcp',
+        DISPATCH_LOG: log,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const calls = readFileSync(log, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(calls, ['integration.yml', 'security.yml', 'automation-policy.yml'].map(name => [
+      'workflow', 'run', name, '--ref', 'release-please--branches--main--components--mcp',
+      '--repo', 'SquadRules/mcp',
+    ]));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 
