@@ -233,14 +233,25 @@ jobs:
           gh release upload "$RELEASE_TAG"             "artifacts/squadrules-mcp-$VERSION.tgz"             artifacts/npm-sbom.json             --clobber
 
       - name: Verify npm publication
+        timeout-minutes: 30
         env:
           VERSION: ${{ steps.identity.outputs.version }}
         run: |
           set -euo pipefail
-          for _ in 1 2 3 4 5; do
-            PUBLISHED="$(npm view "@squadrules/mcp@$VERSION" version 2>/dev/null || true)"
-            [ "$PUBLISHED" = "$VERSION" ] && exit 0
-            sleep 2
+          # The registry processes accepted publishes asynchronously ("may take a
+          # few minutes to become available"); poll with backoff up to ~20 min.
+          DEADLINE=$((SECONDS + 1200))
+          DELAY=5
+          while :; do
+            PUBLISHED="$(npm view "@squadrules/mcp@$VERSION" version --prefer-online 2>/dev/null || true)"
+            if [ "$PUBLISHED" = "$VERSION" ]; then
+              echo "npm reports @squadrules/mcp@$VERSION"
+              exit 0
+            fi
+            [ "$SECONDS" -ge "$DEADLINE" ] && break
+            echo "Not yet visible on npm; retrying in ${DELAY}s..."
+            sleep "$DELAY"
+            DELAY=$((DELAY * 2 > 60 ? 60 : DELAY * 2))
           done
-          echo "::error::npm did not report @squadrules/mcp@$VERSION after publication"
+          echo "::error::npm did not report @squadrules/mcp@$VERSION within 20 minutes after publication"
           exit 1
