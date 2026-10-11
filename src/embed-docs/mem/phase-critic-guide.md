@@ -1,5 +1,5 @@
 ---
-version: "5.2.0"
+version: "5.3.0"
 slug: phase-critic-guide
 title: Phase Critic Integration and Mutation Gate Guide
 ---
