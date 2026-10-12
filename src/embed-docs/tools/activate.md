@@ -23,9 +23,9 @@ Response row (match/refine):
 ```json
 {
   "role": "match",
-  "uri": "squadrules://adapter/phase-critic",
+  "uri": "squadrules://adapter/critic-loop",
   "forward_first_call": {
-    "uri": "squadrules://adapter/phase-critic"
+    "uri": "squadrules://adapter/critic-loop"
   }
 }
 ```
@@ -33,7 +33,7 @@ Response row (match/refine):
 Next call:
 
 ```json
-{ "uri": "squadrules://adapter/phase-critic" }
+{ "uri": "squadrules://adapter/critic-loop" }
 ```
 
 **Input**

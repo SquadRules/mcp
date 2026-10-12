@@ -15,7 +15,7 @@ validation for deterministic cross-protocol linking.
 ## Activation Patterns
 
 **Typically invoked by:** `create-new-protocol` and
-`phase-critic`.
+`critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "layers vs chains" / "when to split into multiple adapters"
@@ -53,7 +53,7 @@ cohesive concern.
 - the adapter exceeds 350 lines
 - weaker models cannot follow the full adapter in one pass
 - runtime routing to different adapters is needed (Router pattern)
-- a step is reusable across multiple parent adapters (e.g. `phase-critic`)
+- a step is reusable across multiple parent adapters (e.g. `critic-loop`)
 
 Chaining is NOT a replacement for layers. A 6-step protocol that fits in 350
 lines should stay as one adapter with 6 H2 layers.
@@ -142,7 +142,7 @@ contracts.
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with squadrules://adapter/phase-critic ...
+call forward with squadrules://adapter/critic-loop ...
 call forward with squadrules://adapter/implement-terraform ...
 ```
 

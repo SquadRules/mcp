@@ -18,7 +18,7 @@ is `skill`.
 ## Activation Patterns
 
 **Typically invoked by:** `create-new-protocol` and
-`phase-critic`.
+`critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "SKILL.md format reference" / "how to write a skill"

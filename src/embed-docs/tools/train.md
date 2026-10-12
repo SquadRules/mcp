@@ -12,7 +12,7 @@ Register a new **adapter** from markdown (one H1 = one adapter; each verifiable 
 - `artifact_name` (required when `mime` is not `text/markdown`) — file name shown when listing adapter artifacts.
 - `adapter_uri` (required when `mime` is not `text/markdown`) — `squadrules://adapter/{uuid}` or `squadrules://adapter/{slug}` target adapter for the artifact attachment.
 - `relative_path` (optional, non-markdown artifacts only) — path relative to the skill bundle root (forward slashes; no `..` segments). When set, **`export`** **`skill_zip`** and **`skill_tree`** place the file at this path instead of the default **`artifacts/<sanitized artifact name>`** layout.
-- `review_evidence` (required for adapter/markdown trains) — phase-critic verdict proof. Run phase-critic before **`train`**; provide the verdict file as proof. Object with `verdict_file` (absolute path), `exit_code` (must be 0), and `stdout` (line 1 must be PASS). Not required for artifact trains (non-markdown mime).
+- `review_evidence` (required for adapter/markdown trains) — critic-loop verdict proof. Run critic-loop before **`train`**; provide the verdict file as proof. Object with `verdict_file` (absolute path), `exit_code` (must be 0), and `stdout` (line 1 must be PASS). Not required for artifact trains (non-markdown mime).
 
 **Required structure (validated before store)**
 

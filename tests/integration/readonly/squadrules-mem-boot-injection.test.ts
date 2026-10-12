@@ -15,7 +15,7 @@ const STATIC_SYSTEM_ADAPTERS: Array<{ slug: string }> = [
   { slug: 'create-new-protocol' },
   { slug: 'refine-search' },
   { slug: 'challenge-type-guide' },
-  { slug: 'phase-critic' },
+  { slug: 'critic-loop' },
   { slug: 'protocol-linking-guide' },
 ];
 
