@@ -1,6 +1,6 @@
 ---
 slug: create-new-protocol
-version: "5.3.0"
+version: "5.3.1"
 title: Create / Review / Refactor SQUADRULES Protocol
 ---
 
