@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.4.1](https://github.com/SquadRules/mcp/compare/v5.4.0...v5.4.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **release:** automate release PR checks and protected merge ([#53](https://github.com/SquadRules/mcp/issues/53)) ([1a55920](https://github.com/SquadRules/mcp/commit/1a55920996401095846a8f903348ddf476ea84a6))
+* **release:** use App identity and protected auto-merge for unattended releases ([1a55920](https://github.com/SquadRules/mcp/commit/1a55920996401095846a8f903348ddf476ea84a6))
+
 ## [5.4.0](https://github.com/SquadRules/mcp/compare/v5.3.1...v5.4.0) (2026-10-12)
 
 
