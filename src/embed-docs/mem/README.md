@@ -49,6 +49,16 @@ create-new-protocol (Author) → forward(squadrules://adapter/critic-loop) → c
 | [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chaining back/forward, multi-layer conductor vs extension URI, chain-root collapsing, MCP argument validation |
 | [critic-loop-guide.md](critic-loop-guide.md) | `critic-loop-guide` | Critic-loop integration rules, mutation gates, solution check vs critic decision table |
 
+## Redirect tombstones
+
+Retired slugs kept as thin one-layer redirects so stored adapters that still
+reference them resolve instead of dangling (see ADR 0012):
+
+| File | Slug | Redirects to |
+|------|------|--------------|
+| [phase-critic.md](phase-critic.md) | `phase-critic` | `critic-loop` |
+| [phase-critic-guide.md](phase-critic-guide.md) | `phase-critic-guide` | `critic-loop-guide` |
+
 ## Cross-Protocol Linking
 
 ### Layers vs chains
