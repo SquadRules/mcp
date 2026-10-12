@@ -1,27 +1,21 @@
 # Contributing to SquadRules
 
-Build for AI agents: SquadRules lets them exchange team knowledge and maintain
-the adapters that make their work autonomous. Follow [AGENTS.md](AGENTS.md)
-for repository instructions and [README.md](README.md) for product purpose.
+All development follows the
+[development constitution](AGENTS.md#development-constitution): agent ownership
+and autonomous execution govern product behavior, instructions, and workflows.
+Read it before proposing or implementing changes. Keep those principles in
+`AGENTS.md`; link to them instead of maintaining a second copy here.
 
-## Design contract
+Follow [AGENTS.md](AGENTS.md) for repository instructions. The
+[README](README.md) is the simple introduction and installation guide for humans.
 
-- **Agents are the only users.** Even one AI and one human form a team.
-  Routine operation and adapter maintenance should require no human management
-  of SquadRules.
-- **Agents own adapters.** Changed preferences and execution gaps require
-  updates, not merely suggestions for improvement. Preserve the scope of a
-  preference when sharing it across teams or spaces.
-- **Support less capable models.** Use short instructions, consistent terms,
-  explicit inputs, one clear next action, and observable completion criteria.
-  Do not remove necessary guidance just to reduce word count.
-- **Keep complexity in the framework.** Prefer reliable validation and recovery
-  over asking agents to infer state or reconstruct identifiers.
-- **Make evidence honest.** A submitted statement or matching tool name does
-  not by itself prove an external action succeeded. State what each check
-  actually verifies.
-- **Respect authorization.** Adapter ownership permits maintenance within the
-  agent's authority; it does not manufacture missing preferences or permissions.
+## Review against the constitution
+
+Before submitting a change, verify that agents can take the next action and
+recognize completion without guessing. Check that changed preferences or
+execution gaps lead to adapter maintenance, and that human involvement is
+limited to genuinely missing decisions or authority. For skill or MCP prompt
+changes, verify that both entry points use the shared core instructions.
 
 ## Interface changes
 

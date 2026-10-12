@@ -1,16 +1,8 @@
 # SquadRules
 
-Repository-specific agent guidance for this codebase. This file is a **thin
-router**: it states what SquadRules is, points to the single sources of truth, and
-keeps only the notes agents need at **runtime**.
-
-SquadRules MCP is a Model Context Protocol server for persistent memory and
-deterministic adapter execution. It stores workflows as linked adapters whose
-layers can carry proof-of-work challenges. You execute an adapter run by calling
-**`activate`** (semantic match), then **`forward`** for each layer's contract
-(loop until `next_action` directs you to **`reward`**), then **`reward`** to
-finalize the run. Every hash, nonce, and identifier is server-generated; echo
-them verbatim — never compute them.
+Repository guidance for agents developing SquadRules. The development
+constitution below governs all product, code, documentation, and workflow
+changes. Operational instructions live in the linked skills.
 
 ## Core functionality
 
@@ -22,13 +14,51 @@ that routing guidance here; keep it in one place.
 
 If SquadRules MCP is **unavailable or unauthenticated**, treat that as a **critical
 error** and stop; fix the host connection per
-**[docs/install/README.md#cursor-and-mcp](docs/install/README.md#cursor-and-mcp)**
+**[README.md#manual-installation](README.md#manual-installation)**
 and **[`.agents/skills/squadrules-dev/references/mcp-host-bridge.md`](.agents/skills/squadrules-dev/references/mcp-host-bridge.md)**.
 
 For **real MCP calls**, follow the **connected server's** tool names, schemas,
 and descriptions; for **implementation in this repository**, follow this
 worktree's source, tests, and embedded docs (`src/embed-docs/tools/` is the
 authoritative execution contract).
+
+## Development constitution
+
+**Agent ownership and autonomous execution are the organizing principles of
+SquadRules.** Apply them to every development decision.
+
+1. **Build for agents.** SquadRules is a framework where AI agents exchange
+   knowledge of user and team preferences and procedures. Agents are its only
+   operational users. One AI and one human already form a team. Ideally, humans
+   never need to know SquadRules exists; installation material may address them.
+2. **Agents own their workflows.** Agents must create, repair, and maintain
+   adapters when preferences change or execution exposes missing, ambiguous,
+   or outdated instructions. Repairing an inadequate adapter is part of finishing
+   the task. Keep shared knowledge within its intended team and scope.
+3. **Consult team knowledge before acting.** Familiarity with a task, including
+   a simple Git commit, does not establish this team's preferences. The skill
+   must establish this habit and require maintenance when execution exposes gaps.
+4. **Make built-in adapters teach autonomy.** Teach agents to find, execute,
+   create, repair, and share workflows. Use semantic search to discover related
+   knowledge. Use explicit links for required steps or dependencies, with clear
+   inputs, results, and continuation; avoid forced related-reading chains.
+5. **Keep entry points aligned.** The skill and MCP prompt must expose the same
+   core instructions from a shared source. Changes must not let them drift.
+6. **Support less capable models.** Write brief, precise instructions with
+   explicit conditions, exact next actions, and observable completion criteria.
+   Remove repetition, not necessary guidance. Keep state handling, validation,
+   and recovery in the framework rather than asking agents to infer them.
+7. **Respect real boundaries.** Avoid unnecessary human involvement. Use existing
+   authorization, but never invent a preference or permission to avoid a necessary
+   question. Ask only for genuinely missing decisions or authority.
+8. **Verify the real outcome.** Completing a tool sequence does not prove the
+   user's task succeeded. Report evidence honestly, repair recoverable failures,
+   and identify unresolved blockers.
+
+These are development requirements, not a claim that every current adapter or
+runtime path already complies. Review changes against them and fix conflicting
+instructions within the change's scope. Keep this section as the single source
+of truth; other contributor documents should link here.
 
 ## Development
 
@@ -68,7 +98,7 @@ When using Cursor's **agent MCP bridge** (`call_mcp_tool`), the **server**
 argument is **not** always the same string as the key in `.cursor/mcp.json`.
 
 - **Config key (human / `mcp.json`):** e.g. `SQUADRULES-DEVELOPMENT` for local dev
-  at `http://localhost:3300/mcp` (see `docs/install/README.md#cursor-and-mcp`).
+  at `http://localhost:3300/mcp`.
 - **Agent-visible id:** Cursor prefixes or transforms the key. Examples:
   **`project-<n>-<workspace-folder-slug>-<key>`** for workspace-scoped MCP,
   **`user-<Name>`** for user-level servers (e.g. Context7), **`plugin-…`** for
