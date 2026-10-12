@@ -29,8 +29,8 @@ describe('Squadrules Train Docs Examples (docs/examples)', () => {
     return parseMcpJson(result, '[train docs/examples] raw MCP result');
   }
 
-  // Pending documentation review; retain import coverage at the staged location.
-  const examplesDir = join(process.cwd(), 'docs-to-be-reviewed', 'docs', 'examples');
+  // Canonical, reviewed example adapters (see docs/examples/README.md).
+  const examplesDir = join(process.cwd(), 'docs', 'examples');
   const testFiles = readdirSync(examplesDir)
     .filter((name) => name.startsWith('adapter-example-') && name.toLowerCase().endsWith('.md'))
     .map((name) => join(examplesDir, name));

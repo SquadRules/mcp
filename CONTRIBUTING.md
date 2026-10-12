@@ -87,10 +87,7 @@ Validate skill changes with `npm run lint:skills` and report if the validator
 was unavailable rather than treating a skipped validation as proof.
 
 Record significant architecture decisions in [docs/adr/](docs/adr/).
-`docs-to-be-reviewed/` contains unreviewed historical documentation, not current
-requirements. Do not restore it as authoritative guidance without checking
-the code and the agreed product direction. Do not hand-edit generated wiki
-content under `.qoder/repowiki/`.
+Do not hand-edit generated wiki content under `.qoder/repowiki/`.
 
 ## Pull requests and releases
 
