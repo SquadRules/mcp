@@ -79,9 +79,14 @@ _d('mime fixture export parity via CLI transport', () => {
     const contract = loadMimeArtifactContract();
     const fixtureRows = loadFixtureSums();
 
-    const { stdout: treeStdout } = await execAsync(
-      `node ${CLI_PATH} export --url ${BASE_URL} --format skill_tree ${adapterUri}`
+    // B2: skill_tree content is written to --out as <name>.json; stdout (auto→json when piped)
+    // carries the compact manifest. Read the tree JSON back from the written file.
+    const treeOutDir = mkdtempSync(join(tmpdir(), 'mime-fixture-cli-tree-'));
+    const { stdout: treeManifestStdout } = await execAsync(
+      `node ${CLI_PATH} export --url ${BASE_URL} --as skill_tree --out ${treeOutDir} ${adapterUri}`
     );
+    const treeManifest = JSON.parse(treeManifestStdout) as { written: Array<{ path: string }> };
+    const treeStdout = readFileSync(treeManifest.written[0]!.path, 'utf8');
     const treeParsed = JSON.parse(treeStdout) as {
       skills: Array<{ slug: string; files: Array<{ path: string; content: string }> }>;
     };
@@ -102,7 +107,7 @@ _d('mime fixture export parity via CLI transport', () => {
 
     const outDir = mkdtempSync(join(tmpdir(), 'mime-fixture-cli-'));
     const zipOut = join(outDir, 'bundle.zip');
-    await execAsync(`node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip --zip-out ${zipOut} ${adapterUri}`);
+    await execAsync(`node ${CLI_PATH} export --url ${BASE_URL} --as skill_zip --zip-out ${zipOut} ${adapterUri}`);
     const zipBytes = readFileSync(zipOut);
     const zip = extractSumsFromZip(zipBytes, slug);
     assertArtifactSumsMatchFixture(zip.rows, fixtureRows, contract.artifactPaths);

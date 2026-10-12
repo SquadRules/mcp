@@ -25,6 +25,23 @@ export function describeFetchError(err: unknown): string {
 }
 
 /**
+ * True when a fetch failure looks transient and is worth retrying: an abort (timeout) or a
+ * connect-level socket/DNS error surfaced either as `err.code` or as an opaque undici
+ * `TypeError: fetch failed`.
+ */
+export function isRetryableNetworkError(err: unknown): boolean {
+    if (err instanceof Error) {
+        if (err.name === 'AbortError') return true;
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code && ['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'ENOTFOUND', 'UND_ERR_CONNECT_TIMEOUT'].includes(code)) {
+            return true;
+        }
+        if (err.name === 'TypeError' && /fetch|network/i.test(err.message)) return true;
+    }
+    return false;
+}
+
+/**
  * Build a network Error whose message carries the underlying cause plus a reachability hint, and
  * whose `cause` preserves the original error for programmatic access.
  */

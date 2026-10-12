@@ -54,7 +54,12 @@ const NO_CONTEXT_SENTINEL: SpaceContext = {
 
 const spaceStorage = new AsyncLocalStorage<SpaceContext>();
 
-function defaultSpaceContext(): SpaceContext {
+/**
+ * Single-tenant default context (personal write space + Squadrules app read space).
+ * Used when AUTH is disabled and by the CLI local backend, which always runs
+ * auth-disabled regardless of ambient AUTH_ENABLED so local writes land in personal.
+ */
+export function defaultSpaceContext(): SpaceContext {
   const personalSpaceId = defaultPersonalSpaceIdForNoAuth();
   const appSpaceId = SQUADRULES_APP_SPACE_ID;
   return {

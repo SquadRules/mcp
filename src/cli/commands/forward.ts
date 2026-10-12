@@ -1,12 +1,13 @@
 /**
- * forward command
+ * forward command — run the first or next adapter layer.
  */
 
 import { Command } from 'commander';
 import { handleApiError, isBrowserDisabled } from '../auth-error.js';
-import { writeJson } from '../output.js';
-import { formatNextCallBlock } from '../format-next-call.js';
-import { createClientFromProgram } from '../client-factory.js';
+import { emitResult } from '../output.js';
+import { resolveOutputFormat } from '../format.js';
+import { nextCallHint, renderForwardPretty, renderForwardText } from '../render.js';
+import { createBackendFromProgram } from '../backend/resolve-backend.js';
 
 export function forwardCommand(program: Command): void {
     program
@@ -16,14 +17,16 @@ export function forwardCommand(program: Command): void {
         .option('--solution <json>', 'Forward solution as JSON string')
         .action(async (uri: string, options: { solution?: string }) => {
             try {
-                const client = createClientFromProgram(program);
+                const backend = await createBackendFromProgram(program);
                 const solution = options.solution ? JSON.parse(options.solution) : undefined;
-                const response = await client.forward(uri, solution);
-                const nextCall = formatNextCallBlock(response);
-                writeJson(nextCall ? { ...response, cli_next_call: nextCall } : response);
+                const response = await backend.forward(uri, solution);
+                emitResult(resolveOutputFormat(program), response, {
+                    pretty: renderForwardPretty,
+                    text: renderForwardText,
+                    nextCall: nextCallHint
+                });
             } catch (error) {
                 handleApiError(error, !isBrowserDisabled());
             }
         });
 }
-

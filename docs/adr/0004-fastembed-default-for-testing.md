@@ -1,12 +1,18 @@
 # 0004 — fastembed is the only embedding provider in CI
 
-Status: **Proposed** — recorded in [#26](https://github.com/SquadRules/mcp/pull/26), closed
-unmerged. On `main` the CI lanes still hold an OpenAI key and the stdio exception
-([#25](https://github.com/SquadRules/mcp/issues/25)) still stands. The decision below —
-every CI lane embeds locally with fastembed — and all measurements cited were implemented on
-the #26 branch only; read the Decision and Consequences as describing that branch, not
-`main`. It supersedes nothing until it is re-landed.
-Date: 2026-10-06
+Status: Accepted — the embedding provider is resolved at runtime on `main`: a process embeds
+with OpenAI (or Ollama/TEI) only when the matching key/env is set, and otherwise falls back to
+the embedded fastembed model. Every lane therefore uses the embedded model **by default** unless
+a key/Ollama is set. The Single lane ([0007](0007-single-lane-stdio-integration-with-model-cache.md))
+is key-free by construction. The cluster lane passes `OPENAI_API_KEY` into `.env` generation only
+when that repository secret exists; the secret is still present today, so that lane currently
+embeds with OpenAI until the secret is deleted — deleting it flips the lane to the embedded model
+with no workflow change. [#33](https://github.com/SquadRules/mcp/pull/33) set the shipped default
+model (`fast-bge-small-en-v1.5`, 384-d). The record below was written on the
+[#26](https://github.com/SquadRules/mcp/pull/26) branch (closed unmerged) and described a hard
+"no lane may hold a key" gate; read its Decision and Consequences as that branch's design,
+superseded by the env-resolved default now on `main`.
+Date: 2026-10-06 (status refreshed 2026-10-12)
 
 ## Context
 

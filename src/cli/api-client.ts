@@ -6,7 +6,7 @@
 import { AuthRequiredError, isBrowserDisabled } from './auth-error.js';
 import { getApiUrl } from './config.js';
 import { getDefaultApiUrlFromFile, readConfig, writeConfig } from './config-file.js';
-import { describeFetchError, networkErrorWithHint } from './fetch-error.js';
+import { describeFetchError, isRetryableNetworkError, networkErrorWithHint } from './fetch-error.js';
 import { loginWithBrowser } from './commands/login.js';
 import { jwtExpiresInSeconds, refreshAccessToken } from './oauth-refresh.js';
 import { rewriteLoginUrlRedirectToApiBase } from './rewrite-login-url.js';
@@ -42,18 +42,6 @@ type SpacesOutput = {
         adapters?: Array<{ adapter_id: string; title: string; layer_count: number; artifacts?: Array<{ name: string; slug: string; uri: string; uuid_uri: string; content_type: string; sha256: string; relative_path: string | null }> }>;
     }>;
 };
-
-function isRetryableNetworkError(err: unknown): boolean {
-    if (err instanceof Error) {
-        if (err.name === 'AbortError') return true;
-        const code = (err as NodeJS.ErrnoException).code;
-        if (code && ['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'ENOTFOUND', 'UND_ERR_CONNECT_TIMEOUT'].includes(code)) {
-            return true;
-        }
-        if (err.name === 'TypeError' && /fetch|network/i.test(err.message)) return true;
-    }
-    return false;
-}
 
 export class ApiClient {
     private baseUrl: string;
@@ -260,8 +248,11 @@ export class ApiClient {
             ? networkErrorWithHint(`Request to ${url} failed after ${maxAttempts} attempts`, lastErr)
             : new Error(`Request to ${url} failed after ${maxAttempts} attempts`);
     }
-    async activate(query: string): Promise<ActivateOutput> {
-        return this.request<ActivateOutput>('/api/activate', { method: 'POST', body: JSON.stringify({ query }) });
+    async activate(query: string, options?: { space?: string }): Promise<ActivateOutput> {
+        const body: Record<string, unknown> = { query };
+        const sp = typeof options?.space === 'string' ? options.space.trim() : '';
+        if (sp.length > 0) body['space'] = sp;
+        return this.request<ActivateOutput>('/api/activate', { method: 'POST', body: JSON.stringify(body) });
     }
 
     async forward(uri: string, solution?: unknown): Promise<ForwardOutput> {

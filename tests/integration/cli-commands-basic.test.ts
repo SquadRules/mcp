@@ -58,7 +58,8 @@ _d('CLI Commands Basic --url Tests', () => {
       // V2 unified response shape
       expect(result).toHaveProperty('must_obey');
       expect(result).toHaveProperty('choices');
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: JSON mode emits the raw activate result verbatim — no injected `cli_next_call`.
+      expect(result).not.toHaveProperty('cli_next_call');
     }, 30000);
 
     test('activate uses -u short form', async () => {
@@ -73,7 +74,8 @@ _d('CLI Commands Basic --url Tests', () => {
       // V2 unified response shape
       expect(result).toHaveProperty('must_obey');
       expect(result).toHaveProperty('choices');
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: JSON mode emits the raw activate result verbatim — no injected `cli_next_call`.
+      expect(result).not.toHaveProperty('cli_next_call');
     }, 30000);
   });
 
@@ -92,7 +94,8 @@ _d('CLI Commands Basic --url Tests', () => {
       expect(result).toHaveProperty('next_action');
       expect(result).toHaveProperty('contract');
       expect(result.current_layer).toBeDefined();
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: forward JSON carries the schema-native `next_call` (no injected `cli_next_call`).
+      expect(result).toHaveProperty('next_call');
     }, 30000);
 
     test('forward uses -u short form with URI', async () => {
@@ -109,7 +112,8 @@ _d('CLI Commands Basic --url Tests', () => {
       expect(result).toHaveProperty('next_action');
       expect(result).toHaveProperty('contract');
       expect(result.current_layer).toBeDefined();
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: forward JSON carries the schema-native `next_call` (no injected `cli_next_call`).
+      expect(result).toHaveProperty('next_call');
     }, 30000);
   });
 

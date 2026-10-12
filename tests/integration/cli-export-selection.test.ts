@@ -85,7 +85,7 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
   test('rejects no selection at all', async () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
     await expect(
-      execAsync(`node ${CLI_PATH} export --url ${BASE_URL} --format markdown`)
+      execAsync(`node ${CLI_PATH} export --url ${BASE_URL} --as markdown`)
     ).rejects.toMatchObject({
       stderr: expect.stringMatching(/selection/i)
     });
@@ -96,33 +96,33 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     const fakeUri = 'squadrules://adapter/fake-adapter-aa';
     await expect(
       execAsync(
-        `node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip ${fakeUri} --adapters ${fakeUri}`
+        `node ${CLI_PATH} export --url ${BASE_URL} --as skill_zip ${fakeUri} --adapters ${fakeUri}`
       )
     ).rejects.toMatchObject({
       stderr: expect.stringMatching(/exactly one selection/i)
     });
   }, 15000);
 
-  test('rejects --all-adapters without --space-name', async () => {
+  test('rejects --all-adapters without --space', async () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
     await expect(
       execAsync(
-        `node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip --all-adapters`
+        `node ${CLI_PATH} export --url ${BASE_URL} --as skill_zip --all-adapters`
       )
     ).rejects.toMatchObject({
-      stderr: expect.stringMatching(/space-name/i)
+      stderr: expect.stringMatching(/--space/i)
     });
   }, 15000);
 
-  test('rejects --space-name without --all-adapters', async () => {
+  test('rejects --space without --all-adapters', async () => {
     requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
     const fakeUri = 'squadrules://adapter/fake-adapter-bb';
     await expect(
       execAsync(
-        `node ${CLI_PATH} export --url ${BASE_URL} --format markdown ${fakeUri} --space-name personal`
+        `node ${CLI_PATH} export --url ${BASE_URL} --as markdown ${fakeUri} --space personal`
       )
     ).rejects.toMatchObject({
-      stderr: expect.stringMatching(/--space-name is only valid with --all-adapters/)
+      stderr: expect.stringMatching(/--space is only valid with --all-adapters/)
     });
   }, 15000);
 
@@ -138,8 +138,13 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cli-export-'));
     const zipOut = join(tmpDir, 'bundle.zip');
 
-    const { stderr } = await execAsync(
-      `node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip --adapters ${a.adapterUri} --adapters ${b.adapterUri} --zip-out ${zipOut}`
+    // B2: export writes the bundle to --zip-out and, in JSON mode, prints a compact manifest of
+    // what was written — never the bundle bytes. `--as` is the content format; the global
+    // `--format json` selects the machine manifest. The manifest reports export_adapter_count
+    // (the bundle-membership signal the CLI surfaces); slug presence is read from the ZIP's
+    // plaintext central-directory entries below.
+    const { stdout, stderr } = await execAsync(
+      `node ${CLI_PATH} export --url ${BASE_URL} --as skill_zip --format json --adapters ${a.adapterUri} --adapters ${b.adapterUri} --zip-out ${zipOut}`
     );
     expect(stderr).toBe('');
 
@@ -147,17 +152,16 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     expect(buf.length).toBeGreaterThan(64);
     expect(buf.subarray(0, 2).toString('binary')).toBe('PK');
 
-    // The CLI text path writes only the ZIP bytes — to verify slug presence we re-run with --output json
-    // which prints the structured response including skill_bundle_manifest.
-    const { stdout: jsonStdout } = await execAsync(
-      `node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip --output json --adapters ${a.adapterUri} --adapters ${b.adapterUri}`
-    );
-    const response = JSON.parse(jsonStdout);
-    expect(response.format).toBe('skill_zip');
-    expect(response.export_adapter_count).toBe(2);
-    const manifest = JSON.parse(response.skill_bundle_manifest);
-    const slugs = manifest.skills.map((s: { slug: string }) => s.slug);
-    expect(slugs).toEqual(expect.arrayContaining([slugA, slugB]));
+    const manifest = JSON.parse(stdout);
+    expect(manifest.format).toBe('skill_zip');
+    expect(manifest.export_adapter_count).toBe(2);
+    expect(manifest.written).toEqual([
+      expect.objectContaining({ path: zipOut, format: 'skill_zip' })
+    ]);
+    // ZIP entry names are stored uncompressed, so both slugs appear in the raw bytes.
+    const zipListing = buf.toString('binary');
+    expect(zipListing).toContain(slugA);
+    expect(zipListing).toContain(slugB);
   }, 60000);
 
   test('positional <uri> still works for single-uri markdown export', async () => {
@@ -166,11 +170,18 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     const slug = `cli-single-${ts}`;
     const a = await trainAdapterMarkdown(buildAdapterMarkdown(slug, `CLI Single ${ts}`));
 
+    // B2: markdown content is written to --out as <name>.md; stdout (auto→json when piped)
+    // carries the compact manifest, not the content bytes.
+    const outDir = mkdtempSync(join(tmpdir(), 'cli-export-md-'));
     const { stdout, stderr } = await execAsync(
-      `node ${CLI_PATH} export --url ${BASE_URL} --format markdown ${a.adapterUri}`
+      `node ${CLI_PATH} export --url ${BASE_URL} --as markdown --out ${outDir} ${a.adapterUri}`
     );
     expect(stderr).toBe('');
-    expect(stdout).toContain('First step body');
+    const manifest = JSON.parse(stdout);
+    expect(manifest.format).toBe('markdown');
+    const writtenPath = manifest.written[0].path as string;
+    expect(writtenPath.startsWith(outDir)).toBe(true);
+    expect(readFileSync(writtenPath, 'utf8')).toContain('First step body');
   }, 30000);
 
   test('--adapters with markdown format is rejected by the schema (selection / format mismatch)', async () => {
@@ -181,7 +192,7 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
 
     await expect(
       execAsync(
-        `node ${CLI_PATH} export --url ${BASE_URL} --format markdown --adapters ${a.adapterUri}`
+        `node ${CLI_PATH} export --url ${BASE_URL} --as markdown --adapters ${a.adapterUri}`
       )
     ).rejects.toMatchObject({
       stderr: expect.stringMatching(/markdown.*single.*uri|requires a single `uri`/i)
@@ -198,11 +209,15 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     const zipOut = join(tmpDir, 'single.zip');
 
     const { stdout, stderr } = await execAsync(
-      `node ${CLI_PATH} export --url ${BASE_URL} --format skill_zip --zip-out ${zipOut} ${a.adapterUri}`
+      `node ${CLI_PATH} export --url ${BASE_URL} --as skill_zip --format json --zip-out ${zipOut} ${a.adapterUri}`
     );
     expect(stderr).toBe('');
-    // Text path with --zip-out should be silent on stdout (binary handled via file).
-    expect(stdout.trim()).toBe('');
+    // B2: --zip-out pins the bundle path; the compact manifest reports exactly what was written
+    // (the ZIP bytes never go to stdout).
+    const manifest = JSON.parse(stdout);
+    expect(manifest.written).toEqual([
+      expect.objectContaining({ path: zipOut, format: 'skill_zip' })
+    ]);
     const buf = readFileSync(zipOut);
     expect(buf.length).toBeGreaterThan(64);
     expect(buf.subarray(0, 2).toString('binary')).toBe('PK');

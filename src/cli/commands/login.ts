@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import { createServer } from 'http';
 import { createHash, randomBytes } from 'crypto';
 import { getCliApiUrlDefault } from '../config.js';
+import { isLocalTarget } from '../local-target.js';
 
 function escapeHtml(s: string): string {
     return s
@@ -20,6 +21,24 @@ import { readConfig, writeConfig, normalizeApiUrl } from '../config-file.js';
 import { getToken, isKeyringAvailable } from '../keyring.js';
 import { fetchOAuthProtectedResourceMetadata, SQUADRULES_CLI_CLIENT_ID } from '../oauth-refresh.js';
 import { writeError, writeStdout, writeStderr } from '../output.js';
+import { resolveTimeoutMsOrDefault } from '../resolve-timeout.js';
+
+/** Default timeout for auth validation/exchange fetches when `--timeout` is not set. */
+const DEFAULT_AUTH_TIMEOUT_MS = 15_000;
+
+/**
+ * `fetch` with an AbortController timeout so the http-only auth calls honor the shared
+ * `--timeout`/`SQUADRULES_TIMEOUT_MS` resolution instead of hanging on a dead host.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...init, signal: ac.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
 
 /** Describe where the current token is stored (no path). Used for "Already authenticated. Token …" message. */
 async function getTokenStorageHint(baseUrl: string, token: string): Promise<string> {
@@ -31,25 +50,47 @@ async function getTokenStorageHint(baseUrl: string, token: string): Promise<stri
     return 'Token in config file.';
 }
 
-/** Resolve current API base URL (same order as docs: env after preAction sync, then config file, then default). Exported for logout. */
+/**
+ * Auth commands (login/token/logout) are http-only: OAuth needs an http(s) server, but the
+ * CLI is local-by-default. When the resolved target is the local sentinel, fall back to the
+ * localhost HTTP default so `squadrules login` still works against a local `serve --transport http`.
+ */
+const LOCALHOST_HTTP_FALLBACK = 'http://localhost:3000';
+
+/** True when the resolved CLI target is local (auth commands fall back to localhost). */
+export function isLocalAuthTarget(): boolean {
+    return isLocalTarget(getCliApiUrlDefault());
+}
+
+/** Guidance printed when an auth command falls back from the local target to localhost. */
+export function writeLocalAuthFallbackHint(baseUrl: string): void {
+    writeStderr(
+        `[i] Local mode has no auth server. Using ${baseUrl} for this auth command;\n` +
+        `    pass --url http://<host>:<port> to target a specific server.`
+    );
+}
+
+/** Resolve current API base URL for auth commands (env after preAction sync, then config file, then localhost fallback for local target). Exported for logout/token. */
 export function getBaseUrl(): string {
-    return getCliApiUrlDefault().replace(/\/$/, '');
+    const configured = getCliApiUrlDefault();
+    if (isLocalTarget(configured)) return LOCALHOST_HTTP_FALLBACK;
+    return configured.replace(/\/$/, '');
 }
 
 /** Check if token is valid (GET /api/me). Used by login to skip relogin and by ApiClient. */
-export async function isTokenValid(baseUrl: string, token: string): Promise<boolean> {
+export async function isTokenValid(baseUrl: string, token: string, timeoutMs: number = DEFAULT_AUTH_TIMEOUT_MS): Promise<boolean> {
     // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
-    const res = await fetch(`${baseUrl}/api/me`, {
+    const res = await fetchWithTimeout(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
-    });
+    }, timeoutMs);
     return res.ok;
 }
 
-async function loginWithToken(baseUrl: string, token: string): Promise<boolean> {
+async function loginWithToken(baseUrl: string, token: string, timeoutMs: number = DEFAULT_AUTH_TIMEOUT_MS): Promise<boolean> {
     // codeql[js/file-access-to-http]: CLI uses configured API base URL (env or saved config) for Squadrules requests by design.
-    const res = await fetch(`${baseUrl}/api/me`, {
+    const res = await fetchWithTimeout(`${baseUrl}/api/me`, {
         headers: { Authorization: `Bearer ${token}` },
-    });
+    }, timeoutMs);
     if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { message?: string };
         writeError(body.message || `HTTP ${res.status}: token invalid or expired`);
@@ -63,6 +104,8 @@ async function loginWithToken(baseUrl: string, token: string): Promise<boolean> 
 export interface LoginWithBrowserOptions {
     /** If true, only print auth URL to stdout; do not open browser. */
     noBrowser?: boolean;
+    /** Timeout (ms) for the token-exchange POST after the browser callback. Default 30s. */
+    timeoutMs?: number;
 }
 
 /** Run browser PKCE login and store token. Exported for 401+--open retry from ApiClient. */
@@ -76,6 +119,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
     }
     const { authEndpoint, tokenEndpoint } = endpoints;
     const clientId = SQUADRULES_CLI_CLIENT_ID;
+    const exchangeTimeoutMs = options?.timeoutMs ?? 30_000;
 
     const codeVerifier = randomBytes(32).toString('base64url');
     const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url').replace(/=/g, '');
@@ -123,7 +167,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
             try {
                 const redirectUri = `http://localhost:${listenPort}${expectedPath}`;
                 const tokenAc = new AbortController();
-                const tokenTimeout = setTimeout(() => tokenAc.abort(), 30_000);
+                const tokenTimeout = setTimeout(() => tokenAc.abort(), exchangeTimeoutMs);
                 let tokenRes: Response;
                 try {
                     tokenRes = await fetch(tokenEndpoint, {
@@ -167,7 +211,7 @@ export async function loginWithBrowser(baseUrl: string, options?: LoginWithBrows
                 resolve(true);
             } catch (e) {
                 if (e instanceof DOMException && e.name === 'AbortError') {
-                    writeError('Token exchange timed out after 30 seconds. Check your network connection and try again.');
+                    writeError(`Token exchange timed out after ${Math.round(exchangeTimeoutMs / 1000)} seconds. Check your network connection and try again.`);
                 } else {
                     writeError(e instanceof Error ? e.message : String(e));
                 }
@@ -217,13 +261,15 @@ export function loginCommand(program: Command): void {
         .action(async (opts: { token?: string; browser?: boolean }) => {
             try {
                 const baseUrl = getBaseUrl();
+                if (isLocalAuthTarget()) writeLocalAuthFallbackHint(baseUrl);
+                const timeoutMs = resolveTimeoutMsOrDefault(program);
                 if (opts.token) {
-                    const ok = await loginWithToken(baseUrl, opts.token);
+                    const ok = await loginWithToken(baseUrl, opts.token, timeoutMs);
                     process.exit(ok ? 0 : 1);
                     return;
                 }
                 const config = await readConfig(baseUrl);
-                if (config.bearerToken && (await isTokenValid(baseUrl, config.bearerToken))) {
+                if (config.bearerToken && (await isTokenValid(baseUrl, config.bearerToken, timeoutMs))) {
                     const storage = await getTokenStorageHint(baseUrl, config.bearerToken);
                     writeStdout(`Already authenticated. ${storage}`);
                     process.exit(0);
@@ -231,7 +277,7 @@ export function loginCommand(program: Command): void {
                 }
                 // --no-browser can be on program or login command; preAction sets SQUADRULES_NO_BROWSER when on program
                 const noBrowser = opts.browser === false || process.env['SQUADRULES_NO_BROWSER'] === '1';
-                const ok = await loginWithBrowser(baseUrl, noBrowser ? { noBrowser: true } : undefined);
+                const ok = await loginWithBrowser(baseUrl, { noBrowser, timeoutMs });
                 process.exit(ok ? 0 : 1);
             } catch (error) {
                 writeError(error instanceof Error ? error.message : String(error));
