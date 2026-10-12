@@ -65,10 +65,15 @@ source tree, GitHub Release and npm package therefore carry the same version.
 ## Release and migration settings
 
 See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md)
-for the full flow. Release Please and Release PR synchronization use only the
-repository-scoped `GITHUB_TOKEN`; because token-generated events do not normally
-recurse into Actions, the Release workflow explicitly dispatches the three required
-validation workflows on the Release PR branch. npm publication uses Trusted
+for the full flow. Release Please, version synchronization and auto-merge use a
+short-lived repository-scoped GitHub App installation token. Normal `pull_request`
+events run the required checks without a human approval step. After synchronization,
+the workflow enables protected auto-merge on the exact Release PR head. GitHub waits
+for the required checks and merges; the App-authored merge triggers publication.
+`workflow_dispatch` checks do not satisfy required PR checks and are not used as a
+substitute. Configure `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` once, following
+the runbook; absent credentials fail early instead of falling back to approvals.
+npm publication uses Trusted
 Publishing/OIDC and never needs a long-lived npm token. A manual `release.yml`
 dispatch takes an existing `vX.Y.Z` tag and is only a retry path for a partial
 publication; it does not calculate a new version or bypass the Release PR.
