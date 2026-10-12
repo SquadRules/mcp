@@ -113,7 +113,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with {"uri":"squadrules://adapter/<slug>"} copied from activate `choices[].forward_first_call.uri`.',
       invalid_fields: paths,
-      example: { uri: 'squadrules://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/critic-loop' }
     });
   }
   if (uriProblem && memUriMisuse) {
@@ -124,7 +124,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with an adapter slug URI for start calls or a layer URI with execution_id for continuation calls.',
       invalid_fields: paths,
-      example: { uri: 'squadrules://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/critic-loop' }
     });
   }
   if (uriProblem) {
@@ -136,7 +136,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with {"uri":"squadrules://adapter/<slug>"} for start, or the exact layer URI from the previous forward response.',
       invalid_fields: paths,
-      example: { uri: 'squadrules://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/critic-loop' }
     });
   }
   if (solutionProblem && forbiddenSolutionOnStart) {
@@ -147,7 +147,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
       next_action:
         'Retry forward with {"uri":"<adapter-slug-or-layer-uri-without-execution_id>"} only. Omit `solution` on start.',
       invalid_fields: paths,
-      example: { uri: 'squadrules://adapter/phase-critic' }
+      example: { uri: 'squadrules://adapter/critic-loop' }
     });
   }
   if (solutionProblem && missingSolutionType) {
@@ -186,7 +186,7 @@ function teachingForward(error: ZodError, raw: unknown): Record<string, unknown>
     message: 'Input validation error: Invalid arguments for tool forward.',
     next_action: 'Retry forward with valid JSON matching the schema.',
     invalid_fields: paths,
-    example: { uri: 'squadrules://adapter/phase-critic' }
+    example: { uri: 'squadrules://adapter/critic-loop' }
   });
 }
 
@@ -237,7 +237,7 @@ function teachingTune(error: ZodError, raw: unknown): Record<string, unknown> {
     next_action:
       'Call tune with {"uris":["squadrules://adapter/<slug>"],"content":["..."]} or {"uris":[...],"space":"personal"}.',
     invalid_fields: paths,
-    example: { uris: ['squadrules://adapter/phase-critic'], content: ['# Updated adapter markdown'] }
+    example: { uris: ['squadrules://adapter/critic-loop'], content: ['# Updated adapter markdown'] }
   });
 }
 
@@ -250,7 +250,7 @@ function teachingDelete(error: ZodError, raw: unknown): Record<string, unknown> 
       'Input validation error: `delete` requires `uris`: a non-empty array of adapter-slug or layer URIs.',
     next_action: 'Retry delete with {"uris":["squadrules://adapter/<slug>"]} or layer URIs you intend to remove.',
     invalid_fields: paths,
-    example: { uris: ['squadrules://adapter/phase-critic'] }
+    example: { uris: ['squadrules://adapter/critic-loop'] }
   });
 }
 
@@ -264,7 +264,7 @@ function teachingExport(error: ZodError, raw: unknown): Record<string, unknown> 
     next_action:
       'Call export with {"uri":"squadrules://adapter/<slug>","format":"skill_zip"} or for flat Markdown {"uri":"squadrules://adapter/<slug>","format":"markdown"}.',
     invalid_fields: paths,
-    example: { uri: 'squadrules://adapter/phase-critic', format: 'skill_zip' }
+    example: { uri: 'squadrules://adapter/critic-loop', format: 'skill_zip' }
   });
 }
 

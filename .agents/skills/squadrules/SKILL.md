@@ -13,7 +13,7 @@ description: >-
   → respond. Also covers first-time install and updates for end users.
 
 metadata:
-  version: "5.3.1"
+  version: "5.4.0"
   author: squadrules-mcp
   always_active: true
 allowed-tools: activate forward reward train tune export delete spaces

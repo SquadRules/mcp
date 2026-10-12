@@ -56,7 +56,7 @@ describe('mcp-tool-input-teaching', () => {
   });
 
   test('forward start call with solution teaches omit solution on start', () => {
-    const ADAPTER_URI = 'squadrules://adapter/phase-critic';
+    const ADAPTER_URI = 'squadrules://adapter/critic-loop';
     const parsed = forwardInputSchema.safeParse({
       uri: ADAPTER_URI,
       solution: { type: 'comment', comment: { text: 'x' } }

@@ -1,6 +1,6 @@
 ---
 slug: create-new-protocol
-version: "5.3.1"
+version: "5.4.0"
 title: Create / Review / Refactor SQUADRULES Protocol
 ---
 
@@ -67,7 +67,7 @@ as synonyms. Supports three operations:
 - "No match found; I want to create a new protocol" → run this protocol (create)
 - "Review all v4 protocol families for missing cross-references" → run this protocol (review)
 - "Update the MR adapter to include a review step" → run this protocol (update)
-- "Edit the phase-critic adapter triggers" → run this protocol (update)
+- "Edit the critic-loop adapter triggers" → run this protocol (update)
 - "Refactor the MR adapter to be less ambiguous" → run this protocol (update)
 
 **Bad trigger examples:**
@@ -178,11 +178,11 @@ Export target adapter(s). For each adapter, check:
     use explicit `forward` when the next adapter slug is already known; reserve
     `activate` for ambiguous runtime discovery (see `protocol-linking-guide`,
     **Chaining Back and Forward**).
-12. **Phase-critic integration** — does the adapter include phase-critic chain
-    links at major phase boundaries? Does each phase-critic invocation have a
+12. **Critic-loop integration** — does the adapter include critic-loop chain
+    links at major phase boundaries? Does each critic-loop invocation have a
     FAIL gate shell contract (`grep -qi '^PASS$'` on the verdict file)? Are
     solution checks restricted to irreversible remote mutations (see
-    `phase-critic-guide`)?
+    `critic-loop-guide`)?
 
 ### For `update` — identify the specific issue
 
@@ -270,8 +270,8 @@ H2 Reward Signal. Frontmatter: `slug` (required), `version` (optional),
 **Challenge types:** Load `challenge-type-guide` for decision rules and JSON
 formats (`forward` with `squadrules://adapter/challenge-type-guide`).
 
-**Phase-critic and mutation gates:** Load `phase-critic-guide` for placement,
-FAIL gate, and solution check rules (`forward` with `squadrules://adapter/phase-critic-guide`).
+**Critic-loop and mutation gates:** Load `critic-loop-guide` for placement,
+FAIL gate, and solution check rules (`forward` with `squadrules://adapter/critic-loop-guide`).
 
 **If Router pattern:** draft the router and each extension as separate files.
 
@@ -281,13 +281,13 @@ Post the full drafted markdown.
 {"contract":{"type":"comment","comment":{"min_length":120},"required":true}}
 ```
 
-## Phase-Critic Review (create and update only)
+## Critic-Loop Review (create and update only)
 
-For `create` and `update`: run phase-critic against the drafted markdown. This is an
+For `create` and `update`: run critic-loop against the drafted markdown. This is an
 autonomous quality loop — the agent owns content, the critic owns quality, and no
 human approval is requested at any point.
 
-1. Invoke phase-critic via `forward` with `squadrules://adapter/phase-critic`.
+1. Invoke critic-loop via `forward` with `squadrules://adapter/critic-loop`.
    Provide the drafted markdown as `input_file`, the slug as
    `calling_protocol_slug`, and "structural compliance and agent behaviour"
    as `verification_target`.
@@ -297,7 +297,7 @@ human approval is requested at any point.
 {"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","timeout_seconds":5},"required":true}}
 ```
 
-3. If FAIL: address every finding, then re-invoke phase-critic and re-run the FAIL
+3. If FAIL: address every finding, then re-invoke critic-loop and re-run the FAIL
    gate. **Loop automatically until the verdict is PASS** — do not proceed and do
    not ask the user whether to continue.
 4. If PASS: capture the verdict file path for the `review_evidence` field
@@ -311,10 +311,10 @@ For `review`: skip this step (read-only operation).
 
 ## Autonomous Review Gate
 
-No human approval step. The phase-critic PASS verdict from the previous step is the
+No human approval step. The critic-loop PASS verdict from the previous step is the
 sole quality gate; once it is PASS, proceed directly to finalise.
 
-For `create`: record the drafted adapter slug(s) and the phase-critic verdict, then
+For `create`: record the drafted adapter slug(s) and the critic-loop verdict, then
 continue to `train`.
 
 For `review`: record the findings and the actions taken, then continue.
@@ -329,13 +329,13 @@ verdict, then continue.
 ## FinaliseOperation
 
 For `create`: call `train` with the drafted markdown and `review_evidence`
-from the phase-critic step. Use `force_update: false` unless overwrite was
+from the critic-loop step. Use `force_update: false` unless overwrite was
 explicitly requested.
 
 For `review`: do not call `train`. Save the findings report only if requested.
 
 For `update`: call `train` with `force_update: true`, `review_evidence` from
-the phase-critic step, and update the corresponding repo file.
+the critic-loop step, and update the corresponding repo file.
 
 Report the outcome: adapter URI(s) for create / update, or findings summary for
 review.

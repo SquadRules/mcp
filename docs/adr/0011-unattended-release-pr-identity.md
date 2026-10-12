@@ -1,4 +1,4 @@
-# 0010 — An App identity for unattended Release PRs
+# 0011 — An App identity for unattended Release PRs
 
 - Status: Proposed — implementation prepared; external App provisioning and an
   unattended end-to-end release are still required.

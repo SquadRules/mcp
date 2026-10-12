@@ -1,5 +1,5 @@
 ---
-version: "5.3.1"
+version: "5.4.0"
 slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---
@@ -15,7 +15,7 @@ drafting and review.
 ## Activation Patterns
 
 **Typically invoked by:** `create-new-protocol` and
-`phase-critic`.
+`critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "challenge type reference" / "which challenge type to use"
@@ -39,7 +39,7 @@ drafting and review.
 
 **Bad trigger examples:**
 - "Create a new protocol" → use `create-new-protocol`
-- "Review my protocol draft" → use `phase-critic`
+- "Review my protocol draft" → use `critic-loop`
 
 ## Core Rules
 
@@ -243,7 +243,7 @@ to avoid collisions between parallel sessions.
 **Phase-batch with critic**
 - batch related TODO items into one phase
 - verify hard artifacts with shell
-- then call `phase-critic` for adversarial review
+- then call `critic-loop` for adversarial review
 
 **Dry-run before execution**
 - dry-run command

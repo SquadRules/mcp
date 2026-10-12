@@ -1,5 +1,5 @@
 ---
-version: "5.3.1"
+version: "5.4.0"
 slug: adapter-migration
 title: Adapter Migration Protocol
 ---
@@ -99,8 +99,8 @@ For each exported adapter, perform structural analysis and apply migrations.
    existing `chain_root` when present.
 5. **Line count** — adapters exceeding 350 lines must be flagged for splitting
    (do NOT auto-split; report as manual review needed).
-6. **Phase-critic integration** — check whether the adapter includes at least
-   one `phase-critic` chain link. If not, add a recommendation (do NOT
+6. **Critic-loop integration** — check whether the adapter includes at least
+   one `critic-loop` chain link. If not, add a recommendation (do NOT
    auto-add; report as suggestion).
 
 ### Transformation rules
@@ -181,7 +181,7 @@ After executing all migrations:
 | Flagged for manual review | N |
 
 3. For each failure, report the error message and suggested fix.
-4. Recommend running `phase-critic` on migrated adapters to verify semantic
+4. Recommend running `critic-loop` on migrated adapters to verify semantic
    integrity after structural changes.
 
 ```json

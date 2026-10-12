@@ -37,4 +37,5 @@ Rules of use:
 | [0007](0007-single-lane-stdio-integration-with-model-cache.md) | SINGLE lane CI runs stdio integration test with cached fastembed model | Accepted — PR #37 |
 | [0008](0008-bare-cli-defaults-to-stdio-and-console-log-hygiene.md) | Bare CLI invocation defaults to stdio; console logs must not leak to stdout | Accepted |
 | [0009](0009-autonomous-adapter-execution-no-human-gates.md) | Bundled adapters execute autonomously; human confirmation gates removed | Accepted |
-| [0010](0010-unattended-release-pr-identity.md) | App-authored Release PRs and protected auto-merge without per-release approval | Proposed — provisioning and end-to-end acceptance pending |
+| [0010](0010-critic-loop-and-proof-splitting.md) | Rename phase-critic to critic-loop; proofs split by reversibility cost and batched | Accepted (extends 0009) |
+| [0011](0011-unattended-release-pr-identity.md) | App-authored Release PRs and protected auto-merge without per-release approval | Proposed — end-to-end acceptance pending |

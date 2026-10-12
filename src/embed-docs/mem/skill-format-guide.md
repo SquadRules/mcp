@@ -1,5 +1,5 @@
 ---
-version: "5.3.1"
+version: "5.4.0"
 slug: skill-format-guide
 title: Skill Format and Local Authoring Guide
 ---
@@ -18,7 +18,7 @@ is `skill`.
 ## Activation Patterns
 
 **Typically invoked by:** `create-new-protocol` and
-`phase-critic`.
+`critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "SKILL.md format reference" / "how to write a skill"
