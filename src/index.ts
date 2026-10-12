@@ -10,6 +10,7 @@ import { MemoryQdrantStore } from './services/memory/store.js';
 import { startHttpTransport } from './http/http-server.js';
 import { startStdioTransport } from './stdio/stdio-server.js';
 import { injectMemResourcesAtBoot } from './resources/mem-resources-boot.js';
+import { MEM_BOOT_FORCE_INJECT } from './config/mem-boot.js';
 import { startMetricsServer } from './metrics-server.js';
 import {
   SERVER_PORT,
@@ -149,9 +150,11 @@ export async function runSquadrulesServer(): Promise<void> {
             structuredLogger.debug('startup snapshot: skipped (embedded store)');
         }
 
-        // Inject mem resources from embedded-mcp-resources into the vector store at boot
-        // Use --force flag to allow override in new versions
-        await injectMemResourcesAtBoot(memoryStore, { force: true });
+        // Inject mem resources from embedded-mcp-resources into the vector store at boot.
+        // Adapters already stored at (or newer than) their shipped version are reused, so a
+        // normal restart does no re-embedding; set MEM_BOOT_FORCE_INJECT=true to force a
+        // delete-then-retrain (structural-repair path for a corrupted/duplicated store).
+        await injectMemResourcesAtBoot(memoryStore, { force: MEM_BOOT_FORCE_INJECT });
 
         // Metrics HTTP server: only when the app serves HTTP (stdio mode avoids any HTTP listeners).
         if (TRANSPORT_TYPE === 'http') {

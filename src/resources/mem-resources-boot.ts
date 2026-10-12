@@ -50,6 +50,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
 
     const llmModelId = 'system-boot';
     let injectedCount = 0;
+    let skippedCount = 0;
 
     for (const [slug, markdownContent] of Object.entries(memResources)) {
       if (typeof markdownContent !== 'string') continue;
@@ -69,24 +70,28 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
       const shippedVersion = parseFrontmatter(markdownContent).version ?? undefined;
 
       try {
-        // Version-based skip: if stored adapter already matches or is newer, skip retraining
-        try {
-          const storedVersion = await memoryStore.getStoredAdapterVersion(slug);
-          if (storedVersion !== undefined && shippedVersion !== undefined) {
-            const cmp = compareSemver(shippedVersion, storedVersion);
-            if (cmp <= 0) {
+        // Version-based skip: if the stored adapter already matches or is newer than the
+        // shipped version, reuse it (zero writes). `options.force` is the structural-repair
+        // switch (ADR 0002): when set, bypass the version check and delete-then-retrain.
+        if (!options.force) {
+          try {
+            const storedVersion = await memoryStore.getStoredAdapterVersion(slug);
+            if (storedVersion !== undefined && shippedVersion !== undefined) {
+              const cmp = compareSemver(shippedVersion, storedVersion);
+              if (cmp <= 0) {
+                structuredLogger.info(
+                  `boot injection: '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping (in sync)`
+                );
+                skippedCount++;
+                continue;
+              }
               structuredLogger.debug(
-                `boot injection: '${slug}' stored v${storedVersion} >= shipped v${shippedVersion}, skipping`
+                `boot injection: '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
               );
-              injectedCount++;
-              continue;
             }
-            structuredLogger.debug(
-              `boot injection: '${slug}' shipped v${shippedVersion} > stored v${storedVersion}, updating`
-            );
+          } catch {
+            // Version check is best-effort; proceed with delete-then-retrain
           }
-        } catch {
-          // Version check is best-effort; proceed with delete-then-retrain
         }
 
         // Delete any preexisting entries by slug/title filter
@@ -113,7 +118,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
     }
 
     structuredLogger.info(
-      `boot injection: ${injectedCount} adapter(s) processed out of ${fileCount} file(s)`
+      `boot injection: ${injectedCount} adapter(s) trained, ${skippedCount} in sync (skipped), out of ${fileCount} file(s)`
     );
 
     const { methods } = (memoryStore as any);
