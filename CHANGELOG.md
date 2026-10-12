@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.0](https://github.com/SquadRules/mcp/compare/v5.3.1...v5.4.0) (2026-10-12)
+
+
+### Features
+
+* **mem:** make bundled adapters fully autonomous (drop human gates) ([#48](https://github.com/SquadRules/mcp/issues/48)) ([77d46d0](https://github.com/SquadRules/mcp/commit/77d46d0001c20b0f5ad936ec1eab2d9f59d42231))
+
 ## [5.3.1](https://github.com/SquadRules/mcp/compare/v5.3.0...v5.3.1) (2026-10-12)
 
 
