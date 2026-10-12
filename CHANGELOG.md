@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.1](https://github.com/SquadRules/mcp/compare/v5.3.0...v5.3.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **mem:** fire boot-injection reuse skip by reading nested adapter version ([#45](https://github.com/SquadRules/mcp/issues/45)) ([ed97b46](https://github.com/SquadRules/mcp/commit/ed97b467ad1e2144fadcd49e862b9c663eb17256))
+
 ## [5.3.0](https://github.com/SquadRules/mcp/compare/v5.2.0...v5.3.0) (2026-10-11)
 
 
