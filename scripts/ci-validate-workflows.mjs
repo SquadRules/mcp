@@ -46,33 +46,41 @@ assert.equal(release.on.workflow_dispatch.inputs.tag.required, true);
 
 const releasePlease = release.jobs['release-please'];
 assert.match(releasePlease.if, /github\.event_name == 'push'/);
-assert.equal(releasePlease.permissions.contents, 'write');
-assert.equal(releasePlease.permissions['pull-requests'], 'write');
+assert.equal(releasePlease.permissions.contents, 'read');
 const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
 assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
-assert.equal(releasePleaseStep.with.token, '${{ github.token }}');
+assert.equal(releasePleaseStep.with.token, '${{ steps.app-token.outputs.token }}');
 assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
 assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
 
 const syncReleasePr = release.jobs['sync-release-pr'];
 assert.equal(syncReleasePr.needs, 'release-please');
 const syncCheckout = syncReleasePr.steps.find(s => s.uses?.startsWith('actions/checkout@'));
-assert.equal(syncCheckout.with.token, '${{ github.token }}');
-assert.equal(syncReleasePr.permissions.contents, 'write');
+assert.equal(syncCheckout.with.token, '${{ steps.app-token.outputs.token }}');
+assert.equal(syncReleasePr.permissions.contents, 'read');
 const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
 assert.match(syncStep.run ?? '', /npm run version:sync/);
 assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
 assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
 assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
 
-const validateReleasePr = release.jobs['validate-release-pr'];
-assert.deepEqual(validateReleasePr.needs, ['release-please', 'sync-release-pr']);
-assert.equal(validateReleasePr.permissions.actions, 'write');
-const dispatchChecks = validateReleasePr.steps.find(s => s.name === 'Dispatch required checks on Release PR head');
-assert.match(dispatchChecks.run ?? '', /gh workflow run "\$workflow" --ref "\$RELEASE_BRANCH"/);
-for (const workflowName of ['integration.yml', 'security.yml', 'automation-policy.yml']) {
-  assert.match(dispatchChecks.run ?? '', new RegExp(workflowName.replace('.', '\\.')));
+assert.equal(release.jobs['validate-release-pr'], undefined);
+const autoMerge = release.jobs['auto-merge-release-pr'];
+assert.deepEqual(autoMerge.needs, ['release-please', 'sync-release-pr']);
+assert.equal(syncReleasePr.outputs.head_sha, '${{ steps.sync.outputs.head_sha }}');
+for (const job of [releasePlease, syncReleasePr, autoMerge]) {
+  const token = job.steps.find(s => s.id === 'app-token');
+  assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
+  assert.equal(token.with['app-id'], '${{ vars.RELEASE_APP_ID }}');
+  assert.equal(token.with['private-key'], '${{ secrets.RELEASE_APP_PRIVATE_KEY }}');
+  assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
+  assert.equal(token.with['permission-administration'], undefined);
+  assert.equal(job.permissions.contents, 'read');
 }
+const mergeStep = autoMerge.steps.find(s => s.run);
+assert.equal(mergeStep.env.GH_TOKEN, '${{ steps.app-token.outputs.token }}');
+assert.match(mergeStep.run, /--auto --squash --match-head-commit/);
+assert.doesNotMatch(JSON.stringify(release), /gh workflow run|--admin/);
 assert.doesNotMatch(JSON.stringify(release), /secrets\.GH_PAT/);
 
 const publish = release.jobs.publish;

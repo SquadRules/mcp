@@ -23,9 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       release_sha: ${{ steps.release.outputs.sha }}
@@ -35,11 +33,34 @@ jobs:
       pr_branch: ${{ steps.pr-meta.outputs.branch }}
       pr_number: ${{ steps.pr-meta.outputs.number }}
     steps:
+      - name: Require unattended release credentials
+        env:
+          RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID }}
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_APP_ID" ] || [ -z "$RELEASE_APP_PRIVATE_KEY" ]; then
+            echo "::error::Configure RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY for the release GitHub App. GITHUB_TOKEN cannot produce unattended PR checks."
+            exit 1
+          fi
+
+      - name: Create repository-scoped release App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
       - name: Create or update Release PR / create GitHub Release
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -61,14 +82,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      head_sha: ${{ steps.sync.outputs.head_sha }}
     steps:
+      - name: Create repository-scoped release App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
       - name: Checkout Release PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.release-please.outputs.pr_branch }}
           fetch-depth: 0
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -78,6 +111,7 @@ jobs:
       - run: npm ci
 
       - name: Synchronize version-derived source on the Release PR
+        id: sync
         env:
           RELEASE_BRANCH: ${{ needs.release-please.outputs.pr_branch }}
         run: |
@@ -97,6 +131,7 @@ jobs:
 
           git add --force .agents/skills src/embed-docs/mem src/resources/embedded-mcp-resources.ts
           if git diff --cached --quiet; then
+            echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             echo "Release PR version-derived source is already synchronized."
             exit 0
           fi
@@ -105,26 +140,46 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(release): sync versioned sources"
           git push origin "HEAD:$RELEASE_BRANCH"
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-  validate-release-pr:
+  auto-merge-release-pr:
     needs: [release-please, sync-release-pr]
     if: needs.release-please.outputs.pr_branch != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      actions: write
       contents: read
     steps:
-      - name: Dispatch required checks on Release PR head
+      - name: Create repository-scoped release App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-checks: read
+          permission-statuses: read
+
+      - name: Enable protected auto-merge on synchronized Release PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_PR: ${{ needs.release-please.outputs.pr_number }}
           RELEASE_BRANCH: ${{ needs.release-please.outputs.pr_branch }}
+          RELEASE_HEAD: ${{ needs.sync-release-pr.outputs.head_sha }}
         run: |
           set -euo pipefail
-          for workflow in integration.yml security.yml automation-policy.yml; do
-            echo "Dispatching $workflow for $RELEASE_BRANCH"
-            gh workflow run "$workflow" --ref "$RELEASE_BRANCH" --repo "$GITHUB_REPOSITORY"
-          done
+          test -n "$RELEASE_HEAD"
+          test "$RELEASE_BRANCH" = 'release-please--branches--main--components--mcp'
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$RELEASE_PR" | jq -e \
+            --arg repo "$GITHUB_REPOSITORY" --arg branch "$RELEASE_BRANCH" --arg sha "$RELEASE_HEAD" \
+            '.state == "open" and .draft == false and .base.ref == "main" and
+             .base.repo.full_name == $repo and .head.repo.full_name == $repo and
+             .head.ref == $branch and .head.sha == $sha and
+             any(.labels[]; .name == "autorelease: pending")' >/dev/null
+          gh pr merge "$RELEASE_PR" --repo "$GITHUB_REPOSITORY" --auto --squash --match-head-commit "$RELEASE_HEAD"
 
   publish:
     needs: release-please
