@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.2](https://github.com/SquadRules/mcp/compare/v5.4.1...v5.4.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **mem:** keep redirect tombstones for retired phase-critic slugs ([#55](https://github.com/SquadRules/mcp/issues/55)) ([e461d90](https://github.com/SquadRules/mcp/commit/e461d90ae3a3a3828c683074ae63ce446002bae2))
+
 ## [5.4.1](https://github.com/SquadRules/mcp/compare/v5.4.0...v5.4.1) (2026-10-12)
 
 
