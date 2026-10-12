@@ -10,6 +10,7 @@ import { buildSpaceFilter } from '../../utils/space-filter.js';
 import { ALLOWED_ARTIFACT_MIMES } from '../../tools/artifact-mime.js';
 import { initializeQdrantStore } from './store-init.js';
 import { MemoryQdrantStoreAdapter } from './store-adapter.js';
+import { getPayloadAdapterVersion } from './memory-accessors.js';
 import type { StoreArtifactOptions } from './store-adapter.js';
 import type { LayerRecord } from '../vector-store/types.js';
 
@@ -201,8 +202,7 @@ export class MemoryQdrantStore {
       with_vector: false
     } as Parameters<QdrantClient['scroll']>[1]);
     const payload = page?.points?.[0]?.payload as Record<string, unknown> | undefined;
-    const version = payload?.['protocol_version'];
-    return typeof version === 'string' ? version : undefined;
+    return getPayloadAdapterVersion(payload);
   }
 
   /** Attach a payload patch (e.g. content_sha256) to a set of layer points. */

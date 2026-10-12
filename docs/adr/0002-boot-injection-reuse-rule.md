@@ -1,11 +1,12 @@
 # 0002 — Boot-injection reuse is decided by semver, not by content hash
 
 Status: Recorded (from the [#26](https://github.com/SquadRules/mcp/pull/26) branch, closed
-unmerged). The semver reuse rule is on `main`, but the reader defect that makes it inert
-([#24](https://github.com/SquadRules/mcp/issues/24)) is **open on `main`** — the fix, the
-`getPayloadAdapterVersion()` accessor and the "after" measurements below all live on that
-branch and did not merge.
-Date: 2026-10-06 (retrospective; decided 2026-06-15 by `bec19de5`)
+unmerged). The semver reuse rule is on `main`. The reader defect that made it inert
+([#24](https://github.com/SquadRules/mcp/issues/24)) is now **fixed on `main`**: the
+`getPayloadAdapterVersion()` accessor, both readers retyped through it, the honoured
+`options.force` bypass and the `MEM_BOOT_FORCE_INJECT` escape hatch described below have
+all landed, so a warm boot skips every adapter that is already in sync.
+Date: 2026-10-06 (retrospective; decided 2026-06-15 by `bec19de5`; reader defect fixed 2026-10-12)
 
 ## Context
 
@@ -38,12 +39,12 @@ The content hash from `4f7ab6c3` was demoted, not deleted:
 `setPayloadOnLayers` "for future change detection", but **no code reads it**. The prune
 and invariant phases of the five-phase design are not present today.
 
-`options.force` is the structural-repair switch and is honoured on `main`: when it is set the
-version check is not performed at all, so every shipped adapter is deleted and re-trained.
-The [#26](https://github.com/SquadRules/mcp/pull/26) branch additionally defaulted it from
-`MEM_BOOT_FORCE_INJECT` (`src/config/mem-boot.ts`) — a file that is **not on `main`** — so an
-operator with a dimension-mismatched or duplicated store would have a documented way back
-without a code change.
+`options.force` is the structural-repair switch: when it is set the version check is
+bypassed entirely, so every shipped adapter is deleted and re-trained. It defaults from
+`MEM_BOOT_FORCE_INJECT` (`src/config/mem-boot.ts`), so an operator with a
+dimension-mismatched or duplicated store has a documented way back without a code change.
+`src/index.ts` no longer hardcodes `{ force: true }`; a normal boot passes
+`{ force: MEM_BOOT_FORCE_INJECT }` (false unless the operator opts in).
 
 ## Consequences
 
@@ -51,16 +52,16 @@ without a code change.
   `prebuild` stamps mem frontmatter from the package version, so a release moves the
   version even when the body of an adapter is untouched — every shipped adapter is
   re-trained on the first boot after an upgrade, once per install, not once per merge.
-- On `main` the skip **never fires**: `getStoredAdapterVersion()` reads
-  `payload.protocol_version`, while both writers store the version under
+- The skip **now fires on `main`** (fixed 2026-10-12). Historically `getStoredAdapterVersion()`
+  read `payload.protocol_version`, while both writers store the version under
   `payload.adapter.protocol_version` (and promote it to the LanceDB `protocol_version`
-  column), so every read returns `undefined` and every boot deletes and re-trains
-  everything. Measured on `main`: warm boot 84 s versus cold 86 s, zero skip log lines.
-  The [#26](https://github.com/SquadRules/mcp/pull/26) branch resolved both readers through
-  one accessor, `getPayloadAdapterVersion()`, and measured 9 `skipping` log lines and a
-  2.4 s warm boot against 99.6 s for a forced cold pass on a CI runner — but that PR closed
-  unmerged, so the defect stands ([0003](0003-no-lancedb-store-snapshot.md) re-states the
-  CI consequence).
+  column), so every read returned `undefined` and every boot deleted and re-trained
+  everything (measured warm boot 84 s versus cold 86 s, zero skip log lines). Both readers
+  now resolve the version through one accessor, `getPayloadAdapterVersion()`, which reads the
+  nested path first and falls back to the top level for older rows. A warm boot against an
+  in-sync store now logs one `skipping (in sync)` line per adapter and does zero writes;
+  `src/index.ts` passes `{ force: MEM_BOOT_FORCE_INJECT }` (false by default) instead of the
+  old hardcoded `{ force: true }`.
 - The cost of a working skip: boot no longer self-heals a structurally corrupted system
   adapter until its shipped version changes. That automatic recovery was the property
   `c35918e0` (#487) relied on, which is why `options.force` became a real switch in the same
@@ -77,24 +78,22 @@ without a code change.
 
 - Content-hash change detection only (`4f7ab6c3`): rejected on 2026-06-15 in favour of
   the simpler semver rule, which also matches how skill/adapter versions are published.
-- Never skip (train every boot): what happens on `main` while #24 is open; not chosen
+- Never skip (train every boot): what happened on `main` while #24 was open; not chosen
   deliberately, and unacceptable once embeddings became local and paid in CI wall-clock.
 
 ## Evidence
 
-`src/resources/mem-resources-boot.ts` (skip branch, `force` branch, `CONTENT_SHA256_KEY`),
+`src/resources/mem-resources-boot.ts` (skip branch guarded by `!options.force`, `CONTENT_SHA256_KEY`),
 `src/services/memory/memory-accessors.ts` (`getPayloadAdapterVersion`, the one place the
 payload shape is known), `src/services/memory/store.ts` and
-`src/services/vector-store/lancedb/lance-records-reads.ts` (both readers),
-`src/config/mem-boot.ts` (`MEM_BOOT_FORCE_INJECT`),
-`src/services/vector-store/lancedb/lance-records-schema.ts` (`toRow` promotes
-`protocol_version` to a column),
-`tests/unit/boot-adapter-version-readers.test.ts` and
-`tests/unit/mem-resources-boot-reuse-rule.test.ts` (the rule, without ONNX or a server).
-Store inspection on 2026-10-06: 51 rows, column `protocol_version = "4.8.6"`,
-`payload.adapter.protocol_version = "4.8.6"`, `payload.protocol_version` undefined.
+`src/services/vector-store/lancedb/lance-records-reads.ts` (both readers, retyped through the
+accessor), `src/config/mem-boot.ts` (`MEM_BOOT_FORCE_INJECT`), `src/index.ts` (the boot call
+site), `src/services/vector-store/lancedb/lance-records-schema.ts` (`toRow` promotes
+`protocol_version` to a column), and
+`tests/unit/boot-adapter-version-readers.test.ts` (the nested read path, without ONNX or a
+server). Store inspection on 2026-10-12: 50 rows, column `protocol_version = "5.3.0"`,
+`payload.adapter.protocol_version = "5.3.0"`, `payload.protocol_version` undefined.
 
-Of these, `getPayloadAdapterVersion` (in `memory-accessors.ts`), `src/config/mem-boot.ts`,
-the `lance-records-reads.ts` reader change and both `tests/unit/*` files exist only on the
-[#26](https://github.com/SquadRules/mcp/pull/26) branch. On `main` the readers still use the
-defective top-level path and there is no `MEM_BOOT_FORCE_INJECT`.
+All of the above now exist on `main`. The original fix was designed on the
+[#26](https://github.com/SquadRules/mcp/pull/26) branch, which closed unmerged; it was
+re-landed directly on `main` on 2026-10-12, closing [#24](https://github.com/SquadRules/mcp/issues/24).
