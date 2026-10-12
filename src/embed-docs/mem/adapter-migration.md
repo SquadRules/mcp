@@ -8,7 +8,7 @@ title: Adapter Migration Protocol
 
 Batch-migrate all adapters in a space to the current structural scheme. Exports
 every adapter, applies conservative structural transformations, reports changes
-per adapter, and re-trains only after user approval.
+per adapter, and re-trains the conforming subset autonomously.
 
 This protocol handles structural migrations only — it preserves semantic content
 (steps, intent, examples) while updating format, headings, and contract shapes
@@ -30,7 +30,7 @@ to match the latest SQUADRULES requirements.
 
 **Must Never:**
 - Alter semantic content (step text, trigger phrases, examples, intent).
-- Auto-train without showing the user a change report first.
+- Auto-train an adapter without first producing a per-adapter change report.
 - Guess transformations when the adapter structure is ambiguous.
 - Delete adapters or layers during migration.
 - Migrate adapters that already conform (report them as "no changes needed").
@@ -39,7 +39,7 @@ to match the latest SQUADRULES requirements.
 - Export every adapter before making any changes.
 - Apply only conservative, reversible structural transformations.
 - Flag ambiguous cases for manual review instead of guessing.
-- Show a per-adapter change report before executing any writes.
+- Produce a per-adapter change report before executing any writes.
 - Preserve the adapter's slug, version, and chain_root fields.
 
 **Good trigger examples:**
@@ -59,9 +59,10 @@ Before running migration, verify readiness:
 1. `export` tool is available and callable.
 2. `tune` and `train` tools are available for writes.
 3. Target space is identified (personal or a named group space).
-4. User understands this is a structural-only migration.
+4. The migration is structural-only (no semantic changes).
 
-If any tool is unavailable, stop and ask the user to fix the connection.
+If any tool is unavailable, stop and report the connection blocker with
+remediation guidance.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
@@ -106,8 +107,8 @@ For each exported adapter, perform structural analysis and apply migrations.
 
 - **Conservative only:** If a transformation might change meaning, skip it and
   flag for manual review.
-- **Reversible:** Every change must be expressible as a diff so the user can
-  reject individual changes.
+- **Reversible:** Every change must be expressible as a diff so it is auditable
+  and reversible.
 - **Idempotent:** Running migration twice on the same adapter produces no
   additional changes.
 
@@ -123,7 +124,7 @@ For each adapter, produce:
 
 ## Report Changes
 
-Present a summary table to the user:
+Record a summary table:
 
 | Adapter slug | Status | Changes | Warnings |
 |-------------|--------|---------|----------|
@@ -138,18 +139,18 @@ For each adapter with `needs_changes`, show the specific transformations:
 For each adapter with `needs_manual_review`, explain what needs human
 attention and why the protocol cannot auto-fix it.
 
-Ask the user to choose:
-- **Apply all** — train all `needs_changes` adapters.
-- **Select individually** — choose which adapters to update.
-- **Abort** — cancel the migration without changes.
+Apply the migration autonomously:
+- **Apply all** `needs_changes` adapters.
+- **Leave untouched** every `needs_manual_review` adapter and report it with the
+  reason it cannot be auto-fixed.
 
 ```json
-{"contract":{"type":"user_input","user_input":{"prompt":"Review the migration report above. Choose: apply all, select individually, or abort."},"required":true}}
+{"contract":{"type":"comment","comment":{"min_length":120},"required":true}}
 ```
 
 ## Execute Migration
 
-For each approved adapter, apply the structural changes:
+For each `needs_changes` adapter, apply the structural changes:
 
 1. For adapters needing only content-level fixes (heading reorder, fence
    conversion, field rename): use `tune` with the transformed content and
@@ -166,7 +167,7 @@ Do NOT change the adapter's space assignment during migration.
 
 ## Verify and Report
 
-After executing all approved migrations:
+After executing all migrations:
 
 1. Re-export each migrated adapter to verify structural compliance.
 2. Report final status:

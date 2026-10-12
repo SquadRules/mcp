@@ -85,19 +85,19 @@ run:
 2. Required CLI tools for planned shell steps are installed and callable.
 3. Required auth/session state is valid for the target MCP server.
 
-If any check fails, stop before main execution and ask the user to choose one:
-- proceed with AI-assisted setup and then resume
-- abort this protocol run now
-
-Do not continue to intent confirmation until preflight passes.
+If any check fails, attempt AI-assisted remediation automatically (install or
+configure the missing tool, refresh auth/session), then re-run preflight. Only
+hard-stop when a required tool or auth genuinely cannot be established
+autonomously; report the concrete blocker and the remediation already attempted.
+Do not continue to intent resolution until preflight passes.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
-## Confirm Intent
+## Resolve Intent Autonomously
 
-Infer `{operation}` from the user's trigger:
+Infer `{operation}` from the user's trigger — do not stop to ask for confirmation:
 
 | Signal | Operation |
 |---|---|
@@ -105,12 +105,15 @@ Infer `{operation}` from the user's trigger:
 | "review", "audit", "check", "gaps", "cross-references" | **review** |
 | "update", "edit", "fix", "modify", "change", "improve", "patch", "refactor", "add missing", "correct" | **update** |
 
-For `create`: ask whether to create a new protocol or refine the search.
-For `review`: ask which adapter(s), family, or bundle to review.
-For `update`: ask which adapter to update and what the issue is.
+Resolve the target from context without a confirmation prompt: for `create`,
+proceed to author a new adapter; for `review`, select the adapter(s), family, or
+bundle named or implied by the request; for `update`, select the adapter and the
+specific issue. Record the inferred operation and target, then continue. Escalate
+to the user only when the request is genuinely ambiguous and no reasonable default
+exists.
 
 ```json
-{"contract":{"type":"user_input","user_input":{"prompt":"Confirm operation and target"},"required":true}}
+{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
 ## Gather Requirements
@@ -280,9 +283,9 @@ Post the full drafted markdown.
 
 ## Phase-Critic Review (create and update only)
 
-For `create` and `update`: run phase-critic against the drafted markdown before
-presenting to the user. This is the quality gate — the agent owns content, the
-critic owns quality.
+For `create` and `update`: run phase-critic against the drafted markdown. This is an
+autonomous quality loop — the agent owns content, the critic owns quality, and no
+human approval is requested at any point.
 
 1. Invoke phase-critic via `forward` with `squadrules://adapter/phase-critic`.
    Provide the drafted markdown as `input_file`, the slug as
@@ -294,7 +297,9 @@ critic owns quality.
 {"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","timeout_seconds":5},"required":true}}
 ```
 
-3. If FAIL: address findings, re-invoke phase-critic. Do NOT proceed.
+3. If FAIL: address every finding, then re-invoke phase-critic and re-run the FAIL
+   gate. **Loop automatically until the verdict is PASS** — do not proceed and do
+   not ask the user whether to continue.
 4. If PASS: capture the verdict file path for the `review_evidence` field
    in the `train` call below.
 
@@ -304,17 +309,21 @@ For `review`: skip this step (read-only operation).
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
-## User Review
+## Autonomous Review Gate
 
-For `create`: present the drafted protocol(s) and the phase-critic verdict.
-User acknowledges (informational, not an approval gate).
+No human approval step. The phase-critic PASS verdict from the previous step is the
+sole quality gate; once it is PASS, proceed directly to finalise.
 
-For `review`: present the findings report and ask which findings to act on.
+For `create`: record the drafted adapter slug(s) and the phase-critic verdict, then
+continue to `train`.
 
-For `update`: present the corrected markdown, change summary, and critic verdict.
+For `review`: record the findings and the actions taken, then continue.
+
+For `update`: record the corrected markdown, the change summary, and the critic
+verdict, then continue.
 
 ```json
-{"contract":{"type":"user_input","user_input":{"prompt":"Acknowledge the draft and verdict (create/update) or review findings"},"required":true}}
+{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
 ## FinaliseOperation
@@ -339,7 +348,7 @@ review.
 
 Protocol complete when:
 - `create` — adapter(s) stored via `train` (with review_evidence) and URI(s) reported
-- `review` — findings report delivered and acknowledged
+- `review` — findings report delivered
 - `update` — corrected adapter trained with `force_update: true` + review_evidence, repo file updated
 
 A successful result means the resulting SQUADRULES adapter is more truthful,
