@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.5.0](https://github.com/SquadRules/mcp/compare/v5.4.2...v5.5.0) (2026-10-12)
+
+
+### Features
+
+* **cli:** local-by-default transport-agnostic backend ([d367548](https://github.com/SquadRules/mcp/commit/d367548ba8d9aefe1ef7c6032b08debdc58f7e41))
+* **cli:** local-by-default, transport-agnostic backend with human-first output ([#57](https://github.com/SquadRules/mcp/issues/57)) ([d367548](https://github.com/SquadRules/mcp/commit/d367548ba8d9aefe1ef7c6032b08debdc58f7e41))
+
 ## [5.4.2](https://github.com/SquadRules/mcp/compare/v5.4.1...v5.4.2) (2026-10-12)
 
 
