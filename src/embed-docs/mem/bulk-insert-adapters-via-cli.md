@@ -65,9 +65,9 @@ If any check fails, stop and report the issue with remediation guidance.
 {"contract":{"type":"shell","shell":{"cmd":"squadrules --version && squadrules token > /dev/null 2>&1 && echo 'auth: ok'","timeout_seconds":15},"required":true}}
 ```
 
-## Confirm Scope
+## Resolve Scope Autonomously
 
-Present the batch operation details to the user:
+Resolve and record the batch operation details:
 
 1. **Source directory** — absolute path.
 2. **File count** — number of `.md` files found (recursive or flat).
@@ -75,10 +75,11 @@ Present the batch operation details to the user:
 4. **Force mode** — whether `--force` will be used (overwrites existing).
 5. **Model attribution** — which `--model` value to use.
 
-List the files that will be trained and ask for confirmation.
+List the files that will be trained, record the resolved scope, and proceed
+autonomously — no confirmation prompt.
 
 ```json
-{"contract":{"type":"user_input","user_input":{"prompt":"Confirm batch scope: directory, file list, target space, force mode, and model ID"},"required":true}}
+{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
 ## Validate Structure
@@ -91,9 +92,9 @@ Before training, validate each `.md` file against SQUADRULES adapter requirement
 - Contains at least one fenced `json` block with a top-level `contract` object.
 - Does not exceed 350 lines.
 
-Report any files that fail validation. Ask user whether to:
-- skip invalid files and proceed with valid ones
-- abort and fix issues first
+Report any files that fail validation, then proceed autonomously: skip the invalid
+files, train the valid subset, and document every skipped file with its validation
+error and a suggested fix. Do not stop to ask the user.
 
 ```json
 {"contract":{"type":"shell","shell":{"cmd":"echo 'Validation complete — see output above for results'","timeout_seconds":30},"required":true}}

@@ -5,7 +5,7 @@ documents that are injected into the Squadrules app space at boot.
 
 <!-- squadrules-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
 
-Version: **4.2.0**
+Version: **4.3.0**
 
 ## Philosophy
 
@@ -15,6 +15,13 @@ The bundle is designed to help agents recognise the right mode at the right
 time: discovery, clarification, ideation, planning, execution, validation,
 review, and handoff. The bundle prefers truth, explicit sequencing, and
 observable verification over polished but weak wording.
+
+**Autonomy (AI-ownership).** The bundle is written for autonomous execution:
+adapters resolve intent from context, run phase-critic in a loop until it returns
+`PASS`, and gate irreversible remote mutations with objective pre/post contracts
+(shell/mcp) rather than human confirmation. They do **not** stop to ask a human to
+approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
+or a hard blocker (a required tool/auth that cannot be established automatically).
 
 Bundled mem resources that intentionally use **protocol** and **adapter** as
 synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing trigger phrases.

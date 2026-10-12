@@ -141,20 +141,30 @@ file, and pass it as `review_evidence`.
 
 ## Mutation Gate Pattern
 
-When an adapter step performs an irreversible remote mutation, add a solution
-check that requires explicit confirmation BEFORE the action:
+Under the AI-ownership model, agents execute autonomously — irreversible remote
+mutations are **not** gated by a human confirmation prompt. Gate them with
+objective, machine-checkable contracts instead:
 
-### Pre-mutation confirmation
+### Pre-mutation readiness (objective, no human prompt)
+
+Assert the preconditions with a shell or mcp contract so the action only runs from a
+valid state — never with a `user_input` "are you sure?" prompt:
 
 ```json
-{"contract":{"type":"user_input","user_input":{"prompt":"Confirm: you are about to create a merge request on repo X targeting branch Y. This action cannot be undone."},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -n \"$TARGET_REPO\" && test -n \"$TARGET_BRANCH\"","timeout_seconds":5},"required":true}}
 ```
 
-### Post-mutation verification
+### Post-mutation verification (objective)
+
+Confirm the mutation actually took effect by reading the remote state back:
 
 ```json
 {"contract":{"type":"mcp","mcp":{"tool_name":"getMergeRequest","arguments":{"repo":"X"}},"required":true}}
 ```
+
+The guarantee comes from phase-critic (truth of intent) plus these objective
+pre/post checks — not from asking a human to approve. Do not add `user_input`
+confirmation gates for remote mutations.
 
 ## Phase-Critic Placement Rules
 
@@ -162,8 +172,9 @@ check that requires explicit confirmation BEFORE the action:
    implementation, after validation.
 2. **Do NOT add phase-critic between every layer** — it is a phase-level review,
    not a step-level check.
-3. **Add solution checks ONLY on layers that perform remote mutations** — see
-   the table above.
+3. **Add objective solution checks ONLY on layers that perform remote mutations** —
+   pre-mutation readiness + post-mutation verification, never a human
+   confirmation prompt. See the pattern above.
 4. **Never replace a solution check with phase-critic** for remote mutations —
    phase-critic reviews truth, it does not block execution.
 5. **Never add a solution check for local operations** — phase-critic provides
@@ -176,7 +187,8 @@ When drafting a new adapter, apply this checklist:
 1. Identify all phase boundaries in the adapter flow.
 2. Add a `phase-critic` chain link at each boundary.
 3. Identify all steps that perform irreversible remote mutations.
-4. Add solution checks (user_input + post-action verification) for each.
+4. Add objective solution checks (pre-mutation readiness + post-action
+   verification) for each — no `user_input` human-confirmation gate.
 5. Verify that no solution checks exist for purely local operations.
 6. Verify that the phase-critic verdict handoff pattern is present.
 7. Verify that a FAIL gate shell contract follows every phase-critic invocation.

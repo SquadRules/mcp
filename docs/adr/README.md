@@ -36,3 +36,4 @@ Rules of use:
 | [0006](0006-two-integration-lanes.md) | Exactly two integration lanes — cluster and single — both full-suite, both gating | Accepted — PR #30 landed on `main` |
 | [0007](0007-single-lane-stdio-integration-with-model-cache.md) | SINGLE lane CI runs stdio integration test with cached fastembed model | Accepted — PR #37 |
 | [0008](0008-bare-cli-defaults-to-stdio-and-console-log-hygiene.md) | Bare CLI invocation defaults to stdio; console logs must not leak to stdout | Accepted |
+| [0009](0009-autonomous-adapter-execution-no-human-gates.md) | Bundled adapters execute autonomously; human confirmation gates removed | Accepted |
