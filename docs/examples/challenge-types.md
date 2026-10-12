@@ -15,7 +15,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 ## How to train
 
 1. Copy the full content of one of the adapter markdown files above (or combine steps into your own document).
-2. Ensure each step ends with a single ` ```json ` block containing an object with a `challenge` key (see the examples).
+2. Ensure each step ends with a single ` ```json ` block containing an object with a `contract` key (see the examples).
 3. Call `train` with `content`, `llm_model_id`, and optionally `force_update: true`.
 
 ## Solution shapes (for forward)
