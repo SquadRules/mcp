@@ -17,6 +17,8 @@ const STATIC_SYSTEM_ADAPTERS: Array<{ slug: string }> = [
   { slug: 'challenge-type-guide' },
   { slug: 'critic-loop' },
   { slug: 'protocol-linking-guide' },
+  { slug: 'phase-critic' },
+  { slug: 'phase-critic-guide' },
 ];
 
 describe('Mem boot injection', () => {

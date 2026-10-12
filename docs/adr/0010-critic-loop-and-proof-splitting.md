@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted — extends [ADR 0009](0009-autonomous-adapter-execution-no-human-gates.md)
+Accepted — extends [ADR 0009](0009-autonomous-adapter-execution-no-human-gates.md).
+Its "no compatibility alias" decision is refined by
+[ADR 0012](0012-redirect-tombstones-for-renamed-slugs.md) for deeply-referenced
+slugs.
 
 ## Context
 
