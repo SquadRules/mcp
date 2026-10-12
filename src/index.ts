@@ -6,28 +6,18 @@
 
 import { structuredLogger } from './utils/structured-logger.js';
 import { installGlobalErrorHandlers } from './utils/global-error-handlers.js';
-import { MemoryQdrantStore } from './services/memory/store.js';
 import { startHttpTransport } from './http/http-server.js';
 import { startStdioTransport } from './stdio/stdio-server.js';
-import { injectMemResourcesAtBoot } from './resources/mem-resources-boot.js';
-import { MEM_BOOT_FORCE_INJECT } from './config/mem-boot.js';
+import { bootLocalRuntime } from './runtime/boot-local-runtime.js';
 import { startMetricsServer } from './metrics-server.js';
 import {
   SERVER_PORT,
   METRICS_PORT,
-  QDRANT_SNAPSHOT_ON_START,
-  QDRANT_SNAPSHOT_DIR,
   SQUADRULES_LOCAL_ARTIFACT_DIRS,
-  TRANSPORT_TYPE,
-  isQdrantConfigured,
-  EMBEDDING_PROVIDER
+  TRANSPORT_TYPE
 } from './config.js';
-import { qdrantService } from './services/qdrant/index.js';
-import { getEmbeddedRecordStore } from './services/vector-store/embedded-store-singleton.js';
 import { resolveLanceDbDir } from './services/vector-store/lancedb-connection.js';
 import { composeStdioModeBanner } from './stdio/stdio-banner.js';
-import { triggerQdrantSnapshot } from './services/qdrant/snapshots.js';
-import { probeEmbeddingDimension } from './services/embedding/service.js';
 import { installQdrantFetchCompatibility } from './services/qdrant/undici-compat.js';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -43,35 +33,6 @@ function isDirectRun(): boolean {
     } catch {
         return false;
     }
-}
-
-/**
- * Wait for Qdrant to be available with retries
- * Uses shorter intervals for faster detection when Qdrant becomes available quickly
- */
-async function waitForQdrant(memoryStore: MemoryQdrantStore, maxRetries: number = 30, intervalMs: number = 1000): Promise<void> {
-    structuredLogger.info('Waiting for Qdrant to be available...');
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const isHealthy = await memoryStore.checkHealth(5000); // 5 second timeout per check
-            if (isHealthy) {
-                structuredLogger.info(`Qdrant is available after ${attempt} attempt(s)`);
-                return;
-            }
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            structuredLogger.debug(`Qdrant health check error on attempt ${attempt}: ${errorMessage}`);
-            // Health check failed, will retry
-        }
-        
-        if (attempt < maxRetries) {
-            structuredLogger.info(`Qdrant not ready yet (attempt ${attempt}/${maxRetries}), retrying in ${intervalMs}ms...`);
-            await new Promise(resolve => setTimeout(resolve, intervalMs));
-        }
-    }
-    
-    throw new Error(`Qdrant did not become available after ${maxRetries} attempts (${maxRetries * intervalMs / 1000}s)`);
 }
 
 /**
@@ -114,47 +75,10 @@ export async function runSquadrulesServer(): Promise<void> {
             process.stderr.write(composeStdioModeBanner(resolveLanceDbDir()));
         }
 
-        // Backend-selected store. On the embedded path this is the shared
-        // LanceDB store double-cast to the `MemoryQdrantStore` shape (same
-        // instance `qdrantService` resolves to), so tools and boot injection
-        // keep calling the domain methods they already use.
-        const memoryStore = isQdrantConfigured
-          ? new MemoryQdrantStore()
-          : (getEmbeddedRecordStore() as unknown as MemoryQdrantStore);
-
-        // Wait for Qdrant to be available before initializing (embedded store is
-        // local — no server to wait for).
-        if (isQdrantConfigured) {
-          await waitForQdrant(memoryStore);
-        }
-
-        const embeddingDim = await probeEmbeddingDimension();
-        structuredLogger.debug(`embedding dimension: ${embeddingDim}`);
-
-        structuredLogger.info(`vector store: ${isQdrantConfigured ? 'Qdrant' : 'LanceDB (embedded)'}`);
-        structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER}`);
-        await memoryStore.init();
-        structuredLogger.debug('vector store: ready');
-
-        if (isQdrantConfigured && QDRANT_SNAPSHOT_ON_START) {
-            const snapshotResult = await triggerQdrantSnapshot(qdrantService, {
-                enabled: true,
-                directory: QDRANT_SNAPSHOT_DIR,
-                reason: 'startup'
-            });
-
-            if (!snapshotResult.success) {
-                structuredLogger.warn(`Startup snapshot failed: ${snapshotResult.message || 'unknown error'}`);
-            }
-        } else {
-            structuredLogger.debug('startup snapshot: skipped (embedded store)');
-        }
-
-        // Inject mem resources from embedded-mcp-resources into the vector store at boot.
-        // Adapters already stored at (or newer than) their shipped version are reused, so a
-        // normal restart does no re-embedding; set MEM_BOOT_FORCE_INJECT=true to force a
-        // delete-then-retrain (structural-repair path for a corrupted/duplicated store).
-        await injectMemResourcesAtBoot(memoryStore, { force: MEM_BOOT_FORCE_INJECT });
+        // Shared boot: store selection, embedding probe, init, optional snapshot, and
+        // app-space seeding. The server runs every stage (defaults); the CLI local path
+        // dials the expensive stages down for fastboot. Same sequence, no drift.
+        const { memoryStore } = await bootLocalRuntime();
 
         // Metrics HTTP server: only when the app serves HTTP (stdio mode avoids any HTTP listeners).
         if (TRANSPORT_TYPE === 'http') {

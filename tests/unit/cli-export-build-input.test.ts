@@ -6,7 +6,7 @@ const ADAPTER_URI_2 = 'squadrules://adapter/sample-adapter-b';
 
 describe('cli buildExportInput selection union', () => {
   it('builds single-uri selection from positional argument', () => {
-    const input = buildExportInput(ADAPTER_URI, { format: 'markdown' });
+    const input = buildExportInput(ADAPTER_URI, { as: 'markdown' });
     expect(input.uri).toBe(ADAPTER_URI);
     expect(input.adapters).toBeUndefined();
     expect(input.all_adapters).toBeUndefined();
@@ -16,7 +16,7 @@ describe('cli buildExportInput selection union', () => {
   it('builds adapters[] selection from repeated --adapters', () => {
     const input = buildExportInput(undefined, {
       adapters: [ADAPTER_URI, 'my-slug', ADAPTER_URI_2],
-      format: 'skill_zip'
+      as: 'skill_zip'
     });
     expect(input.adapters).toEqual([ADAPTER_URI, 'my-slug', ADAPTER_URI_2]);
     expect(input.uri).toBeUndefined();
@@ -27,8 +27,8 @@ describe('cli buildExportInput selection union', () => {
   it('builds all_adapters selection with space_name', () => {
     const input = buildExportInput(undefined, {
       allAdapters: true,
-      spaceName: 'personal',
-      format: 'skill_zip'
+      space: 'personal',
+      as: 'skill_zip'
     });
     expect(input.all_adapters).toBe(true);
     expect(input.space_name).toBe('personal');
@@ -48,7 +48,7 @@ describe('cli buildExportInput selection union', () => {
 
   it('rejects positional uri combined with --all-adapters', () => {
     expect(() =>
-      buildExportInput(ADAPTER_URI, { allAdapters: true, spaceName: 'personal' })
+      buildExportInput(ADAPTER_URI, { allAdapters: true, space: 'personal' })
     ).toThrow(/exactly one selection/i);
   });
 
@@ -57,29 +57,29 @@ describe('cli buildExportInput selection union', () => {
       buildExportInput(undefined, {
         adapters: [ADAPTER_URI],
         allAdapters: true,
-        spaceName: 'personal'
+        space: 'personal'
       })
     ).toThrow(/exactly one selection/i);
   });
 
-  it('rejects --all-adapters without --space-name', () => {
+  it('rejects --all-adapters without --space', () => {
     expect(() =>
       buildExportInput(undefined, { allAdapters: true })
-    ).toThrow(/space-name/i);
+    ).toThrow(/--space/i);
   });
 
-  it('rejects --space-name without --all-adapters', () => {
+  it('rejects --space without --all-adapters', () => {
     expect(() =>
-      buildExportInput(ADAPTER_URI, { spaceName: 'personal' })
-    ).toThrow(/--space-name is only valid with --all-adapters/);
+      buildExportInput(ADAPTER_URI, { space: 'personal' })
+    ).toThrow(/--space is only valid with --all-adapters/);
   });
 
   it('whitespace-only positional uri counts as missing selection', () => {
     expect(() => buildExportInput('   ', {})).toThrow(/selection/i);
   });
 
-  it('uses markdown as default format when not provided', () => {
+  it('uses skill_zip as default format when not provided', () => {
     const input = buildExportInput(ADAPTER_URI, {});
-    expect(input.format).toBe('markdown');
+    expect(input.format).toBe('skill_zip');
   });
 });

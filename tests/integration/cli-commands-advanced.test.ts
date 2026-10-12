@@ -129,7 +129,8 @@ _d('CLI Commands Advanced --url Tests', () => {
       expect(stderr).toBe('');
       const result = JSON.parse(stdout);
       expect(result).toHaveProperty('results');
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: reward JSON carries the schema-native `next_call` (null) — no injected `cli_next_call`.
+      expect(result).toHaveProperty('next_call');
     }, 30000);
 
     test('reward uses -u short form', async () => {
@@ -144,7 +145,8 @@ _d('CLI Commands Advanced --url Tests', () => {
       expect(stderr).toBe('');
       const result = JSON.parse(stdout);
       expect(result).toHaveProperty('results');
-      expect(result).toHaveProperty('cli_next_call');
+      // B1: reward JSON carries the schema-native `next_call` (null) — no injected `cli_next_call`.
+      expect(result).toHaveProperty('next_call');
     }, 30000);
 
     test('reward with --url and --score', async () => {

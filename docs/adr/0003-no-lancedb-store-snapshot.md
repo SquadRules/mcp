@@ -1,10 +1,14 @@
 # 0003 — No LanceDB store snapshot in CI
 
-Status: Accepted, still in force. The decision not to build a LanceDB store snapshot stands.
-Its revisit condition ([#24](https://github.com/SquadRules/mcp/issues/24)) remains **open on
-`main`**: the boot-injection fix that would have reinforced this decision lived on
-[#26](https://github.com/SquadRules/mcp/pull/26), which closed unmerged.
-Date: 2026-10-06
+Status: Accepted, still in force — and now reinforced. The decision not to build a LanceDB
+store snapshot stands. Its revisit condition ([#24](https://github.com/SquadRules/mcp/issues/24))
+is **closed**: the boot-injection reuse skip was re-landed directly on `main` on 2026-10-12
+(see [0002](0002-boot-injection-reuse-rule.md)), so a warm boot now skips in-sync adapters —
+the redundancy this record predicted would make a snapshot unnecessary. The
+[#26](https://github.com/SquadRules/mcp/pull/26) branch that first measured this closed
+unmerged. The Consequences below preserve the 2026-10-06 state, when the skip was still inert
+on `main`.
+Date: 2026-10-06 (status refreshed 2026-10-12)
 
 ## Context
 

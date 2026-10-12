@@ -36,11 +36,14 @@ export function safeZipBasenameFromRemoteHint(name: string | undefined): string 
 }
 
 /**
- * Output path: explicit `--zip-out` (user-controlled), else `cwd/<sanitized remote basename or default>`.
+ * Output path: explicit `--zip-out` (user-controlled, resolved against cwd), else
+ * `<baseDir>/<sanitized remote basename or default>`. `baseDir` defaults to cwd; `export`
+ * passes its `--out` directory so skill_zip lands beside the other written artifacts.
  */
 export function resolveSkillZipOutputPath(
   zipOut: string | undefined,
-  hints: { downloadBasename?: string; refBasename?: string }
+  hints: { downloadBasename?: string | undefined; refBasename?: string | undefined },
+  baseDir: string = process.cwd()
 ): string {
   if (zipOut !== undefined && zipOut.trim().length > 0) {
     return path.resolve(process.cwd(), zipOut.trim());
@@ -49,7 +52,7 @@ export function resolveSkillZipOutputPath(
     safeZipBasenameFromRemoteHint(hints.downloadBasename) ??
     safeZipBasenameFromRemoteHint(hints.refBasename);
   const base = remote ?? DEFAULT_EXPORT_SKILL_ZIP_FILENAME;
-  return path.join(process.cwd(), base);
+  return path.join(baseDir, base);
 }
 
 /** Reject non-ZIP payloads and oversized downloads before writing bytes from the network to disk. */

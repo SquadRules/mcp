@@ -1,14 +1,35 @@
 /**
- * tune command
+ * tune command — update one or more adapter layers.
  */
 
 import { Command } from 'commander';
 import { handleApiError, isBrowserDisabled } from '../auth-error.js';
-import { writeError, writeJson } from '../output.js';
+import { emitResult, writeError } from '../output.js';
+import { resolveOutputFormat } from '../format.js';
+import { renderTunePretty, renderTuneText } from '../render.js';
 import { readMarkdownUploadFromFile, type SafeMarkdownUpload } from '../upload-guards.js';
-import { createClientFromProgram } from '../client-factory.js';
+import { createBackendFromProgram } from '../backend/resolve-backend.js';
+import type { ReviewEvidence, TuneOptions } from '../backend/action-backend.js';
 
-export function updateCommand(program: Command): void {
+/** Parse the SQUADRULES_REVIEW_EVIDENCE env blob (integration tests inject critic-loop proof). */
+function reviewEvidenceFromEnv(): ReviewEvidence | undefined {
+    const raw = process.env['SQUADRULES_REVIEW_EVIDENCE'];
+    if (!raw) return undefined;
+    try {
+        const parsed = JSON.parse(raw);
+        if (
+            parsed &&
+            typeof parsed.verdict_file === 'string' &&
+            typeof parsed.exit_code === 'number' &&
+            typeof parsed.stdout === 'string'
+        ) {
+            return parsed as ReviewEvidence;
+        }
+    } catch { /* ignore malformed env review_evidence */ }
+    return undefined;
+}
+
+export function tuneCommand(program: Command): void {
     program
         .command('tune')
         .description('Update one or more SQUADRULES adapter layers')
@@ -32,19 +53,19 @@ export function updateCommand(program: Command): void {
             }
         ) => {
             try {
-                const client = createClientFromProgram(program);
+                const backend = await createBackendFromProgram(program);
+                const format = resolveOutputFormat(program);
                 let markdownDoc: SafeMarkdownUpload[] | undefined;
-                let updates: Record<string, any> | undefined;
+                let updates: Record<string, unknown> | undefined;
                 const rawSpace = typeof options.space === 'string' ? options.space.trim() : '';
 
                 if (rawSpace.length > 0 && !options.file && !options.files && !options.updates) {
-                    const response = await client.tune(uris, { space: rawSpace });
-                    writeJson(response);
+                    const response = await backend.tune(uris, { space: rawSpace });
+                    emitResult(format, response, { pretty: renderTunePretty, text: renderTuneText });
                     return;
                 }
 
                 if (options.files) {
-                    // Multiple files, one per URI
                     if (options.files.length !== uris.length) {
                         writeError('Number of files must match number of URIs');
                         process.exit(1);
@@ -54,7 +75,6 @@ export function updateCommand(program: Command): void {
                         readMarkdownUploadFromFile(file, 'tune', Boolean(options.allowSensitiveUpload))
                     );
                 } else if (options.file) {
-                    // Single file for all URIs
                     const content = readMarkdownUploadFromFile(
                         options.file,
                         'tune',
@@ -64,7 +84,7 @@ export function updateCommand(program: Command): void {
                 } else if (options.updates) {
                     try {
                         updates = JSON.parse(options.updates);
-                    } catch (_e) {
+                    } catch {
                         writeError('Invalid JSON in --updates option');
                         process.exit(1);
                         return;
@@ -75,27 +95,15 @@ export function updateCommand(program: Command): void {
                     return;
                 }
 
-                const tuneOpts: {
-                    markdownDoc?: SafeMarkdownUpload[];
-                    updates?: Record<string, unknown>;
-                    space?: string;
-                    reviewEvidence?: { verdict_file: string; exit_code: number; stdout: string };
-                } = {};
+                const tuneOpts: TuneOptions = {};
                 if (markdownDoc) tuneOpts.markdownDoc = markdownDoc;
                 if (updates) tuneOpts.updates = updates;
                 if (rawSpace.length > 0) tuneOpts.space = rawSpace;
-                // Auto-inject review_evidence from env (used by integration tests)
-                const envReviewEvidence = process.env['SQUADRULES_REVIEW_EVIDENCE'];
-                if (envReviewEvidence) {
-                    try {
-                        const parsed = JSON.parse(envReviewEvidence);
-                        if (parsed && typeof parsed.verdict_file === 'string' && typeof parsed.exit_code === 'number' && typeof parsed.stdout === 'string') {
-                            tuneOpts.reviewEvidence = parsed;
-                        }
-                    } catch { /* ignore malformed env review_evidence */ }
-                }
-                const response = await client.tune(uris, tuneOpts);
-                writeJson(response);
+                const envReviewEvidence = reviewEvidenceFromEnv();
+                if (envReviewEvidence) tuneOpts.reviewEvidence = envReviewEvidence;
+
+                const response = await backend.tune(uris, tuneOpts);
+                emitResult(format, response, { pretty: renderTunePretty, text: renderTuneText });
             } catch (error) {
                 if (error instanceof Error && error.message.includes('ENOENT')) {
                     writeError('File not found');
@@ -105,4 +113,3 @@ export function updateCommand(program: Command): void {
             }
         });
 }
-

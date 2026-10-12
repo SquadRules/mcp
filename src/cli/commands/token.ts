@@ -5,7 +5,8 @@
 import { Command } from 'commander';
 import { readConfig } from '../config-file.js';
 import { writeError } from '../output.js';
-import { getBaseUrl, isTokenValid, loginWithBrowser } from './login.js';
+import { resolveTimeoutMsOrDefault } from '../resolve-timeout.js';
+import { getBaseUrl, isLocalAuthTarget, isTokenValid, loginWithBrowser, writeLocalAuthFallbackHint } from './login.js';
 
 export function tokenCommand(program: Command): void {
     program
@@ -16,11 +17,13 @@ export function tokenCommand(program: Command): void {
         .action(async (opts: { validate?: boolean; login?: boolean }) => {
             try {
                 const baseUrl = getBaseUrl();
+                if (isLocalAuthTarget()) writeLocalAuthFallbackHint(baseUrl);
+                const timeoutMs = resolveTimeoutMsOrDefault(program);
                 let config = await readConfig(baseUrl);
                 let token = config.bearerToken;
 
                 if (!token && opts.login) {
-                    const ok = await loginWithBrowser(baseUrl);
+                    const ok = await loginWithBrowser(baseUrl, { timeoutMs });
                     if (!ok) {
                         writeError('Login failed.');
                         process.exit(1);
@@ -34,7 +37,7 @@ export function tokenCommand(program: Command): void {
                     process.exit(1);
                 }
 
-                if (opts.validate && !(await isTokenValid(baseUrl, token))) {
+                if (opts.validate && !(await isTokenValid(baseUrl, token, timeoutMs))) {
                     writeError('Token invalid or expired. Run `squadrules login` to re-authenticate.');
                     process.exit(1);
                 }

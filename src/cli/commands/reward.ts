@@ -1,12 +1,14 @@
 /**
- * reward command
+ * reward command — record a reward signal for an adapter execution.
  */
 
 import { Command } from 'commander';
 import { handleApiError, isBrowserDisabled } from '../auth-error.js';
-import { writeError, writeJson } from '../output.js';
-import { formatNextCallBlock } from '../format-next-call.js';
-import { createClientFromProgram } from '../client-factory.js';
+import { emitResult, writeError } from '../output.js';
+import { resolveOutputFormat } from '../format.js';
+import { renderRewardPretty, renderRewardText } from '../render.js';
+import { createBackendFromProgram } from '../backend/resolve-backend.js';
+import type { RewardOptions } from '../backend/action-backend.js';
 
 export function rewardCommand(program: Command): void {
     program
@@ -39,29 +41,24 @@ export function rewardCommand(program: Command): void {
                     return;
                 }
 
-                const client = createClientFromProgram(program);
-                
-                const rewardOptions: { score?: number; rater?: string; rubricVersion?: string; llmModelId?: string } = {};
-                if (score !== undefined) {
-                    rewardOptions.score = score;
-                }
-                if (options.rater) {
-                    rewardOptions.rater = options.rater;
-                }
-                if (options.rubricVersion) {
-                    rewardOptions.rubricVersion = options.rubricVersion;
-                }
-                if (options.model) {
-                    rewardOptions.llmModelId = options.model;
-                }
-                const response = await client.reward(
+                const backend = await createBackendFromProgram(program);
+
+                const rewardOptions: RewardOptions = {};
+                if (score !== undefined) rewardOptions.score = score;
+                if (options.rater) rewardOptions.rater = options.rater;
+                if (options.rubricVersion) rewardOptions.rubricVersion = options.rubricVersion;
+                if (options.model) rewardOptions.llmModelId = options.model;
+
+                const response = await backend.reward(
                     uri,
                     outcome as 'success' | 'failure',
                     feedback,
                     rewardOptions
                 );
-                const nextCall = formatNextCallBlock(response);
-                writeJson(nextCall ? { ...response, cli_next_call: nextCall } : response);
+                emitResult(resolveOutputFormat(program), response, {
+                    pretty: renderRewardPretty,
+                    text: renderRewardText
+                });
             } catch (error) {
                 handleApiError(error, !isBrowserDisabled());
             }

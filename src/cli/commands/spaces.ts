@@ -1,11 +1,14 @@
+/**
+ * spaces command — list available spaces and adapter counts.
+ */
+
 import { Command } from 'commander';
 import { handleApiError, isBrowserDisabled } from '../auth-error.js';
-import { writeJson } from '../output.js';
-import { createClientFromProgram } from '../client-factory.js';
+import { emitResult } from '../output.js';
+import { resolveOutputFormat } from '../format.js';
+import { renderSpacesPretty, renderSpacesText } from '../render.js';
+import { createBackendFromProgram } from '../backend/resolve-backend.js';
 
-/**
- * spaces command
- */
 export function spacesCommand(program: Command): void {
   program
     .command('spaces')
@@ -16,11 +19,14 @@ export function spacesCommand(program: Command): void {
     )
     .action(async (options: { includeAdapterTitles?: boolean }) => {
       try {
-        const client = createClientFromProgram(program);
-        const response = await client.spaces({
+        const backend = await createBackendFromProgram(program);
+        const response = await backend.spaces({
           include_adapter_titles: Boolean(options.includeAdapterTitles)
         });
-        writeJson(response);
+        emitResult(resolveOutputFormat(program), response, {
+          pretty: renderSpacesPretty,
+          text: renderSpacesText
+        });
       } catch (error) {
         handleApiError(error, !isBrowserDisabled());
       }
