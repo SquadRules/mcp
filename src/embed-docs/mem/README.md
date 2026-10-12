@@ -17,7 +17,7 @@ review, and handoff. The bundle prefers truth, explicit sequencing, and
 observable verification over polished but weak wording.
 
 **Autonomy (AI-ownership).** The bundle is written for autonomous execution:
-adapters resolve intent from context, run phase-critic in a loop until it returns
+adapters resolve intent from context, run critic-loop in a loop until it returns
 `PASS`, and gate irreversible remote mutations with objective pre/post contracts
 (shell/mcp) rather than human confirmation. They do **not** stop to ask a human to
 approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
@@ -32,13 +32,13 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 |------|------|---------|
 | [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
-| [phase-critic.md](phase-critic.md) | `phase-critic` | Phase-boundary adversarial review — verify claims against evidence |
+| [critic-loop.md](critic-loop.md) | `critic-loop` | Phase-boundary adversarial review — verify claims against evidence |
 | [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |
 
 ### Linked authoring flow
 
 ```text
-create-new-protocol (Author) → forward(squadrules://adapter/phase-critic) → phase-critic (Phase-Critic Review) → train (with review_evidence)
+create-new-protocol (Author) → forward(squadrules://adapter/critic-loop) → critic-loop (Critic-Loop Review) → train (with review_evidence)
 ```
 
 ## Reference Documents
@@ -47,7 +47,7 @@ create-new-protocol (Author) → forward(squadrules://adapter/phase-critic) → 
 |------|------|---------|
 | [challenge-type-guide.md](challenge-type-guide.md) | `challenge-type-guide` | Challenge type selection, interpreter choice, and stronger verification patterns |
 | [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chaining back/forward, multi-layer conductor vs extension URI, chain-root collapsing, MCP argument validation |
-| [phase-critic-guide.md](phase-critic-guide.md) | `phase-critic-guide` | Phase-critic integration rules, mutation gates, solution check vs critic decision table |
+| [critic-loop-guide.md](critic-loop-guide.md) | `critic-loop-guide` | Critic-loop integration rules, mutation gates, solution check vs critic decision table |
 
 ## Cross-Protocol Linking
 
@@ -62,7 +62,7 @@ cohesive concern.
 - the adapter exceeds 350 lines
 - weaker models cannot follow the full adapter in one pass
 - runtime routing to different adapters is needed (Router pattern)
-- a step is reusable across multiple parent adapters (e.g. `phase-critic`)
+- a step is reusable across multiple parent adapters (e.g. `critic-loop`)
 
 Chaining is NOT a replacement for layers. A 6-step protocol that fits in 350
 lines should stay as one adapter with 6 H2 layers.
@@ -72,7 +72,7 @@ lines should stay as one adapter with 6 H2 layers.
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with squadrules://adapter/phase-critic and no solution to start the phase critic
+call forward with squadrules://adapter/critic-loop and no solution to start the critic loop
 call forward with squadrules://adapter/implement-terraform and no solution to start this adapter
 ```
 

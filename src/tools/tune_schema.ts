@@ -21,11 +21,11 @@ export const tuneInputSchema = z
       .optional()
       .describe('Move all layers of each target adapter to this space ("personal" or group name), optionally after content updates'),
     review_evidence: z.object({
-      verdict_file: z.string().describe('Absolute path to the phase-critic verdict file'),
+      verdict_file: z.string().describe('Absolute path to the critic-loop verdict file'),
       exit_code: z.number().describe('Shell exit code (must be 0)'),
       stdout: z.string().describe('Shell stdout (line 1 must be PASS)')
     }).optional().describe(
-      'Phase-critic review evidence. Required when content is provided (adapter body edits). '
+      'Critic-loop review evidence. Required when content is provided (adapter body edits). '
       + 'One PASS covers all URIs in the tune call.'
     )
   })
@@ -51,7 +51,7 @@ export const tuneInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['review_evidence'],
-        message: 'review_evidence is required when tune includes content updates. Run phase-critic first and provide the verdict file as proof.'
+        message: 'review_evidence is required when tune includes content updates. Run critic-loop first and provide the verdict file as proof.'
       });
     }
   });

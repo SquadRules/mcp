@@ -11,7 +11,7 @@ export interface ReviewEvidence {
 }
 
 /**
- * Assert that review_evidence proves a PASS verdict from phase-critic.
+ * Assert that review_evidence proves a PASS verdict from critic-loop.
  * Throws TrainError on any failure so that the train error pipeline
  * formats the response correctly.
  */
@@ -19,23 +19,23 @@ export function assertReviewEvidencePassed(evidence: ReviewEvidence | undefined)
   if (!evidence) {
     throw new TrainError(
       'REVIEW_EVIDENCE_REQUIRED',
-      'Adapter train requires review_evidence: run phase-critic first and provide the verdict file as proof.',
-      { must_obey: true, next_action: 'call forward with squadrules://adapter/phase-critic to run the phase-critic review' }
+      'Adapter train requires review_evidence: run critic-loop first and provide the verdict file as proof.',
+      { must_obey: true, next_action: 'call forward with squadrules://adapter/critic-loop to run the critic-loop review' }
     );
   }
   if (evidence.exit_code !== 0) {
     throw new TrainError(
       'REVIEW_GATE_FAILED',
-      `Phase-critic review gate failed: exit_code ${evidence.exit_code} (expected 0). The adapter did not pass review.`,
-      { must_obey: true, next_action: 'address phase-critic findings and re-invoke the review' }
+      `Critic-loop review gate failed: exit_code ${evidence.exit_code} (expected 0). The adapter did not pass review.`,
+      { must_obey: true, next_action: 'address critic-loop findings and re-invoke the review' }
     );
   }
   const firstLine = evidence.stdout.split(/\r?\n/)[0]?.trim() ?? '';
   if (!/^PASS$/i.test(firstLine)) {
     throw new TrainError(
       'REVIEW_GATE_FAILED',
-      `Phase-critic review gate failed: verdict is "${firstLine}" (expected PASS). The adapter did not pass review.`,
-      { must_obey: true, next_action: 'address phase-critic findings and re-invoke the review' }
+      `Critic-loop review gate failed: verdict is "${firstLine}" (expected PASS). The adapter did not pass review.`,
+      { must_obey: true, next_action: 'address critic-loop findings and re-invoke the review' }
     );
   }
 }

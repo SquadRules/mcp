@@ -12,18 +12,18 @@ earlier, lower-trust operating model. That model embedded human-in-the-loop
 own:
 
 - `create-new-protocol` — a "Confirm Intent" gate before authoring and a
-  "User Review" acknowledgment gate after phase-critic.
+  "User Review" acknowledgment gate after critic-loop.
 - `bulk-insert-adapters-via-cli` — a "Confirm Scope" gate and an
   "ask user whether to skip invalid files" decision.
 - `adapter-migration` — a "Review the migration report… apply / select / abort"
   gate, and a description that re-trained "only after user approval".
-- `phase-critic-guide` — a "Mutation Gate Pattern" that prescribed a
+- `critic-loop-guide` — a "Mutation Gate Pattern" that prescribed a
   `user_input` pre-mutation confirmation prompt for irreversible remote actions.
 
 The project's operating principle has shifted to **AI ownership with autonomous
 execution**: agents are expected to resolve intent from context, verify their work
 against objective evidence, and proceed without stopping for human confirmation.
-Quality is enforced by the phase-critic loop (loop until the verdict is `PASS`) and
+Quality is enforced by the critic-loop loop (loop until the verdict is `PASS`) and
 by objective, machine-checkable contracts — not by a human approval click.
 
 ## Decision
@@ -34,14 +34,14 @@ approval gates are removed from the shipped bundle:
 1. **Intent is resolved, not confirmed.** `create-new-protocol` infers the
    operation and target and proceeds; the "Confirm Intent" and "User Review"
    gates become autonomous `comment` contracts that record the inference and the
-   phase-critic verdict. The contract-block count is preserved at 8.
-2. **Phase-critic is a self-loop.** On `FAIL`, the agent addresses findings and
-   re-invokes phase-critic automatically until `PASS`. No human is asked whether
+   critic-loop verdict. The contract-block count is preserved at 8.
+2. **Critic-loop is a self-loop.** On `FAIL`, the agent addresses findings and
+   re-invokes critic-loop automatically until `PASS`. No human is asked whether
    to continue. The existing `FAIL` shell gate remains the mechanical guard.
 3. **Remote mutations use objective gates, not prompts.** The mutation-gate
    pattern replaces the `user_input` pre-confirmation with a pre-mutation
    readiness check (shell/mcp) plus post-mutation verification that reads the
-   remote state back. `train`/`tune` still enforce phase-critic `PASS` evidence at
+   remote state back. `train`/`tune` still enforce critic-loop `PASS` evidence at
    the tool level.
 4. **Batch operations proceed on defaults.** `bulk-insert` and `adapter-migration`
    apply their conservative, reversible transformations and report results rather
@@ -57,7 +57,7 @@ schema documentation in `challenge-type-guide`.
 ### Positive
 
 - Fewer round-trips: adapters run end-to-end without waiting on a human.
-- The quality bar is unchanged and now mechanical: phase-critic `PASS` plus
+- The quality bar is unchanged and now mechanical: critic-loop `PASS` plus
   objective pre/post verification, both machine-checkable.
 - Consistent with the AI-ownership operating model across the whole bundle.
 
@@ -65,7 +65,7 @@ schema documentation in `challenge-type-guide`.
 
 - No human veto immediately before an irreversible remote mutation. Mitigated by
   objective pre-mutation readiness checks, post-mutation verification, the
-  phase-critic loop, and — for repository changes — branch protection and PR
+  critic-loop loop, and — for repository changes — branch protection and PR
   review, which remain the human control point.
 - Agents must be capable of resolving intent correctly; genuinely ambiguous
   requests still escalate to the user by design.
@@ -75,7 +75,7 @@ schema documentation in `challenge-type-guide`.
 ### Keep human confirmation gates
 
 Retain `user_input` gates for safety. Rejected: it contradicts the AI-ownership
-principle and adds latency without adding an objective guarantee — the phase-critic
+principle and adds latency without adding an objective guarantee — the critic-loop
 loop and verification contracts already provide the guarantee.
 
 ### Remove the `user_input` challenge type entirely
@@ -104,4 +104,4 @@ new issue; do not rewrite this record.
 - [ADR 0002: Boot-injection reuse rule](./0002-boot-injection-reuse-rule.md) —
   edited adapters re-inject on the next release version bump or
   `MEM_BOOT_FORCE_INJECT=true`.
-- `src/embed-docs/mem/phase-critic-guide.md` — mutation-gate pattern.
+- `src/embed-docs/mem/critic-loop-guide.md` — mutation-gate pattern.

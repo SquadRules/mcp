@@ -1,23 +1,26 @@
 ---
 version: "5.3.1"
-slug: phase-critic
-title: Phase Critic
+slug: critic-loop
+title: Critic Loop
 ---
 
 
 
-# Phase Critic
+# Critic Loop
 
-Bounded adversarial investigator fired at phase boundaries. Receives a reference
-document, loads the calling protocol's invariants, and independently verifies
-the verification target by extracting claims, gathering evidence, and searching
-for contradictions.
+Bounded adversarial investigator that the calling protocol **loops until it
+returns PASS** — not a one-shot review. Receives a reference document, the
+original requirement list, and the calling protocol's invariants, then
+independently verifies the target by extracting claims, gathering evidence,
+searching for contradictions, and checking requirement-by-requirement coverage.
+A FAIL sends the caller back to fix and re-invoke; the loop is bounded by an
+explicit iteration ceiling (see Verdict).
 
 ## Activation Patterns
 
 **Typically invoked by:** another protocol at the end of a plan, implement,
 validation, or review phase via `forward` with the stored adapter URI
-`squadrules://adapter/phase-critic`.
+`squadrules://adapter/critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "review phase output" / "verify plan" / "audit implementation"
@@ -36,6 +39,8 @@ validation, or review phase via `forward` with the stored adapter URI
 - Extract claims before investigating.
 - Verify in-scope claims first.
 - Search for contradictory evidence, not only confirming evidence.
+- Check every item in the supplied requirement list for coverage; a missing
+  requirement is a FAIL even when the output is internally consistent.
 - Include confidence in every verdict and failure class in every FAIL verdict.
 - Preserve the boundary between execution and review.
 
@@ -56,9 +61,12 @@ This protocol receives:
   input_file: string,              // absolute path to the document under review
   calling_protocol_slug: string,
   verification_target: string,
+  requirements: string[],          // original intent / requirement list to check coverage against
   context: {
     operation: string,
-    verdict_file: string           // absolute path where the verdict will be written
+    verdict_file: string,          // absolute path where the verdict will be written
+    iteration: number,             // 1-based loop pass; caller increments after each FAIL
+    max_iterations: number         // hard ceiling; exceeding it is a terminal FAIL
   }
 }
 ```
@@ -69,7 +77,8 @@ This protocol produces:
 {
   verdict: "PASS" | "FAIL",
   confidence: "High" | "Medium" | "Low",
-  failure_class: string,
+  failure_class: string,           // incorrect_claim | verification_blocked | requirement_gap | iteration_ceiling
+  uncovered_requirements: string[],// requirement items lacking positive evidence (empty on PASS)
   verdict_file: "{context.verdict_file}"
 }
 ```
@@ -106,7 +115,7 @@ are broken.
 Perform bounded adversarial review of the target against the reference document
 and invariants.
 
-**Input:** reference document, invariants, verification target, context
+**Input:** reference document, invariants, verification target, requirement list, context
 
 **Actions:**
 
@@ -167,6 +176,13 @@ Check whether the calling protocol preserved the right mode boundary:
 - did the protocol switch to verification when it should have?
 - is escalation needed because certainty was overstated?
 
+**Step 6 — Check requirement coverage**
+For every item in the supplied `requirements` list, confirm the target addresses
+it with positive evidence and record it as `covered` / `partial` / `missing`. An
+omitted requirement leaves no trace in the output, so coverage can only be judged
+against the list, never from the artifact alone. Any `missing` item — or any
+`partial` high-risk item — forces a FAIL with `failure_class: requirement_gap`.
+
 **Output:** structured audit findings for the verdict step
 
 ```json
@@ -184,16 +200,23 @@ Turn the audit into a final PASS / FAIL result.
 1. Fail if any critical claim is incorrect.
 2. Fail if verification was blocked.
 3. Fail if the evidence base is too weak for high-risk claims.
-4. Otherwise, pass with the appropriate confidence.
-5. Write `$VERDICT_FILE` so line 1 is `PASS` or `FAIL`,
+4. Fail if any requirement is `missing`, or a high-risk requirement is only
+   `partial` (`failure_class: requirement_gap`); list the uncovered items.
+5. Fail terminally if `context.iteration` exceeds `context.max_iterations`
+   (`failure_class: iteration_ceiling`) so the loop stops instead of thrashing.
+6. Otherwise, pass with the appropriate confidence.
+7. Write `$VERDICT_FILE` so line 1 is `PASS` or `FAIL`,
    line 2 is `High`, `Medium`, or `Low`, and the remaining lines summarise key
-   findings.
+   findings and any uncovered requirements.
 
 **Verdict contract (calling adapter must obey):**
-- Line 1 is `PASS` → calling adapter may continue to the next phase.
-- Line 1 is `FAIL` → calling adapter **MUST NOT** proceed to reward, **MUST NOT**
-  ask the user for approval, and **MUST NOT** continue to the next phase.
-  The calling adapter must address findings and re-invoke phase-critic.
+- Line 1 is `PASS` → the loop is satisfied; the calling adapter may continue.
+- Line 1 is `FAIL` → the calling adapter **MUST NOT** proceed to reward, **MUST
+  NOT** ask the user for approval, and **MUST NOT** continue. It must address the
+  findings, increment `context.iteration`, and re-invoke critic-loop.
+- `failure_class: iteration_ceiling` → stop looping and surface the unresolved
+  findings; never silently pass. The ceiling bounds the loop so a weak agent
+  cannot thrash forever.
 
 **Output:** final verdict file
 
@@ -205,6 +228,7 @@ Turn the audit into a final PASS / FAIL result.
 
 Only reachable after all prior steps are solved.
 
-The phase output has been independently challenged. The resulting verdict is more
-truthful because it is based on extracted claims, explicit evidence, contradiction
-search, and a clean boundary between execution and review.
+The phase output has been independently challenged and looped until satisfied. The
+resulting verdict is more truthful because it is based on extracted claims,
+explicit evidence, contradiction search, requirement-by-requirement coverage, and
+a clean boundary between execution and review.
