@@ -251,8 +251,8 @@ ${buildMinimalProtocolBody(title)}`;
         (c: ActivateChoice) => c.role === 'create' && c.uri === URI_CREATE_PROTOCOL
       );
       expect(createChoice).toBeDefined();
-      expect(String(createChoice!.label).toLowerCase()).toContain('squadrules');
-      expect(String(createChoice!.label).toLowerCase()).toContain('protocol');
+      expect(String(createChoice!.label).toLowerCase()).toContain('author');
+      expect(String(createChoice!.label).toLowerCase()).toContain('adapter');
       expect(String(createChoice!.label).toLowerCase()).toMatch(/create|review|refactor/);
       expect(String(createChoice!.next_action).toLowerCase()).toContain('register');
       expect(String(createChoice!.next_action).toLowerCase()).toContain('adapter/protocol/workflow');
