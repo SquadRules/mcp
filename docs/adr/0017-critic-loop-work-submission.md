@@ -43,8 +43,8 @@ Keep `critic-loop` a single adapter and broaden what it can be given.
 3. **`input_file` survives as an accepted alias**, meaning a one-item `file_set`.
    Callers outside this repository already pass it: a stored user-space adapter
    instructs the agent to hand the commit's work over as `input_file`. Dropping
-   the field would break those callers for no functional
-   gain — the same reasoning that keeps redirect tombstones in
+   the field would break those callers for no functional gain — the same
+   reasoning that keeps redirect tombstones in
    [ADR 0012](0012-redirect-tombstones-for-renamed-slugs.md).
 4. **A new `Resolve Submission` layer** sits between Precondition Check and
    Audit. It resolves every item by kind, records the resolved inventory the
