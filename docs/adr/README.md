@@ -45,3 +45,4 @@ Rules of use:
 | [0013](0013-embedded-store-multiprocess-safety.md) | The embedded store is safe across multiple local processes | Accepted |
 | [0014](0014-always-latest-mcp-spec-and-sdk.md) | Always track the latest Model Context Protocol spec and SDK | Accepted |
 | [0015](0015-cli-local-by-default-transport-agnostic-backend.md) | The CLI is local-by-default with a transport-agnostic backend and human-first output | Accepted |
+| [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Proposed |

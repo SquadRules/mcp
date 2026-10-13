@@ -48,8 +48,8 @@ to match the latest SQUADRULES requirements.
 - "we changed the solution scheme, update all adapters" → run this protocol
 
 **Bad trigger examples:**
-- "update this one adapter" → use `create-new-protocol` with `fix` operation
-- "create a new adapter" → use `create-new-protocol`
+- "update this one adapter" → use `author-adapter` with `fix` operation
+- "create a new adapter" → use `author-adapter`
 - "export my adapters" → use `export` directly
 
 ## Preflight Dependencies

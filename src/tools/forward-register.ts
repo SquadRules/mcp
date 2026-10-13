@@ -22,7 +22,7 @@ export function registerForwardTool(server: any, memoryStore: MemoryQdrantStore,
   server.registerTool(
     toolName,
     {
-      title: 'Run adapter forward pass',
+      title: 'Load adapter instructions and advance workflow state',
       description: resolveToolDoc('forward') || 'Run the first or next adapter layer. Omit `solution` on the first call in a run.',
       inputSchema: forwardMcpWireInputSchema,
       outputSchema: forwardOutputSchema,

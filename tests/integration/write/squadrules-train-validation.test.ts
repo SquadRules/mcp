@@ -52,7 +52,7 @@ Done.`;
     expect(body.error).toBe('PROTOCOL_STRUCTURE_INVALID');
     expect(body.must_obey).toBe(true);
     expect(body.next_action).toContain('forward');
-    expect(body.next_action).toMatch(/create-new-protocol|squadrules:\/\/adapter\/create-new-protocol/i);
+    expect(body.next_action).toMatch(/author-adapter|squadrules:\/\/adapter\/author-adapter/i);
     expect(Array.isArray(body.missing)).toBe(true);
     expect(body.missing).toContain('activation_patterns');
     expect(body.message).toMatch(/Activation Patterns|required structure/i);

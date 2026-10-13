@@ -1,3 +1,6 @@
+import { authoringContextSchema } from './authoring-context.js';
+import { isAuthoringAdapterSlug } from '../utils/adapter-alias.js';
+import { resolveExportAdapter } from './export-resolve-adapter.js';
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -111,11 +114,34 @@ export async function executeForward(
   const adapterUri = buildAdapterUri(adapterId);
   const executionId = parsed.kind === 'layer' && parsed.executionId ? parsed.executionId : crypto.randomUUID();
 
+  const continuing = parsed.kind === 'layer' && Boolean(parsed.executionId);
+  let authoring = input.authoring ? authoringContextSchema.parse(input.authoring) : undefined;
+  if (continuing) {
+    const meta = await forwardRuntimeStore.getExecution(executionId);
+    if ((!meta && isAuthoringAdapterSlug(memory.slug ?? '')) || ((meta?.authoring || authoring) &&
+        (!meta || meta.adapter_id !== adapterId ||
+         (authoring && JSON.stringify(authoring) !== JSON.stringify(meta.authoring))))) {
+      throw new SquadrulesError('Authoring operation, target, and workflow are fixed for this run. Use the returned next_call or start a new run.', 'AUTHORING_CONTEXT_MISMATCH', 400);
+    }
+  } else if (authoring) {
+    if (!isAuthoringAdapterSlug(memory.slug ?? '')) {
+      throw new SquadrulesError('authoring is only valid for squadrules://adapter/author-adapter.', 'INVALID_AUTHORING_WORKFLOW', 400);
+    }
+    if (authoring.operation !== 'create') {
+      const target = await resolveExportAdapter(memoryStore, qdrantService, authoring.target_adapter_uri);
+      if (!await memoryStore.getMemory(target.layerId)) {
+        throw new SquadrulesError('Authoring target adapter not found; correct target_adapter_uri before starting.', 'NOT_FOUND', 404);
+      }
+      authoring = { ...authoring, target_adapter_uri: buildAdapterUri(target.adapterId) };
+    }
+  }
+
   if (!(parsed.kind === 'layer' && parsed.executionId)) {
     await forwardRuntimeStore.startExecution({
       execution_id: executionId,
       adapter_id: adapterId,
       adapter_uri: adapterUri,
+      ...(authoring ? { authoring } : {}),
       merge_depth: 0,
       created_at: new Date().toISOString(),
       ...(loaded.slug_disambiguation_note

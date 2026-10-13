@@ -47,7 +47,7 @@ and error recovery for bulk operations.
 **Bad trigger examples:**
 
 - "Train this one protocol" → use `squadrules train <file>` directly
-- "Create a new protocol" → use `create-new-protocol`
+- "Create a new protocol" → use `author-adapter`
 - "Export my adapters" → use `squadrules export`
 
 ## Preflight Dependencies

@@ -53,8 +53,8 @@ describe('LanceRecordReader.getStoredAdapterVersion (issue #24 regression)', () 
   }
 
   test('resolves the version from a stored app-space adapter row', async () => {
-    const reader = readerReturning({ slug: 'create-new-protocol', adapter: { protocol_version: '5.3.0' } });
-    await expect(reader.getStoredAdapterVersion('create-new-protocol')).resolves.toBe('5.3.0');
+    const reader = readerReturning({ slug: 'author-adapter', adapter: { protocol_version: '5.3.0' } });
+    await expect(reader.getStoredAdapterVersion('author-adapter')).resolves.toBe('5.3.0');
   });
 
   test('returns undefined when nothing is stored for the slug', async () => {

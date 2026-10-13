@@ -1,4 +1,34 @@
-Run an **adapter** layer by layer.
+Return an **adapter** layer's instructions and advance its workflow state.
+
+**Effects of this tool:** starts/updates execution metadata, proof records, traces,
+and quality feedback. It returns shell/MCP contracts for the caller to execute;
+it does **not** execute those shell commands, invoke the described MCP tools,
+edit repository files, or train/tune adapter content. A user-input contract may
+request host elicitation on continuation. Tensor contracts evaluate workflow data.
+This is stateful, not a read-only tool. Later actions remain subject to their own
+scope and host permissions; starting a workflow does not authorize all its steps.
+
+**Adapter authoring:** `author-adapter` is the lifecycle name for the existing
+`author-adapter` workflow; both resolve to the same stored adapter. It handles
+**create, review, and update**, not just creation. Copy the complete
+`activate.choices[].forward_first_call`, including `authoring` when present:
+
+```json
+{
+  "uri": "squadrules://adapter/author-adapter",
+  "authoring": {
+    "operation": "update",
+    "target_adapter_uri": "squadrules://adapter/git-pr-protocol"
+  }
+}
+```
+
+`authoring` is optional for original callers. When supplied, create forbids a target;
+review/update require an existing adapter URI. The operation and target are fixed
+for the run, stored server-side, and echoed in responses and forward next calls.
+Omitted continuation context is restored; changed context or a different workflow
+is rejected. Context describes intent, not permission: train/tune remain separate
+mutations. For a new operation or target, start a new run.
 
 First call (start a run):
 

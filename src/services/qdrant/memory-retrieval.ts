@@ -1,3 +1,4 @@
+import { resolveAdapterSlugAlias } from '../../utils/adapter-alias.js';
 import { QdrantConnection } from './connection.js';
 import { validateAndConvertId } from './utils.js';
 import { qdrantOperations, qdrantOperationDuration } from '../metrics/qdrant-metrics.js';
@@ -230,7 +231,7 @@ export async function findFirstStepMemoryUuidBySlug(
   slug: string
 ): Promise<SlugResolveOutcome> {
   return conn.executeWithReconnect(async () => {
-    const normalized = (slug || '').trim().toLowerCase();
+    const normalized = resolveAdapterSlugAlias((slug || '').trim().toLowerCase());
     if (!normalized) return { layerUuid: null };
     const filter = buildSpaceFilter(getSearchSpaceIds(), {
       must: [

@@ -23,7 +23,7 @@ import {
 
 /** Built-in meta adapters (slug routing URIs). */
 const URI_REFINE_SEARCH = 'squadrules://adapter/refine-search' as const;
-const URI_CREATE_PROTOCOL = 'squadrules://adapter/create-new-protocol' as const;
+const URI_CREATE_PROTOCOL = 'squadrules://adapter/author-adapter' as const;
 
 const RE_ADAPTER_URI = /^squadrules:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
 

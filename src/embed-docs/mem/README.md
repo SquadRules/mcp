@@ -30,7 +30,7 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 
 | File | Slug | Purpose |
 |------|------|---------|
-| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
+| [author-adapter.md](author-adapter.md) | `author-adapter` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
 | [critic-loop.md](critic-loop.md) | `critic-loop` | Phase-boundary adversarial review — verify claims against evidence |
 | [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |
@@ -38,7 +38,7 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 ### Linked authoring flow
 
 ```text
-create-new-protocol (Author) → forward(squadrules://adapter/critic-loop) → critic-loop (Critic-Loop Review) → train (with review_evidence)
+author-adapter (Author) → forward(squadrules://adapter/critic-loop) → critic-loop (Critic-Loop Review) → train (with review_evidence)
 ```
 
 ## Reference Documents
@@ -58,6 +58,7 @@ reference them resolve instead of dangling (see ADR 0012):
 |------|------|--------------|
 | [phase-critic.md](phase-critic.md) | `phase-critic` | `critic-loop` |
 | [phase-critic-guide.md](phase-critic-guide.md) | `phase-critic-guide` | `critic-loop-guide` |
+| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | `author-adapter` |
 
 ## Cross-Protocol Linking
 
