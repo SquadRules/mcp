@@ -34,5 +34,5 @@ for in-place adapter/layer edits (non-structural); use **`train`** with
 dump markdown or datasets.
 
 For contract shapes and examples, call **`forward`** with
-`squadrules://adapter/create-new-protocol` and omit `solution` on the first call of
+`squadrules://adapter/author-adapter` and omit `solution` on the first call of
 the run (then follow `next_action`).

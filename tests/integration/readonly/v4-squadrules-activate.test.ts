@@ -23,7 +23,7 @@ import {
 
 /** Built-in meta adapters (slug routing URIs). */
 const URI_REFINE_SEARCH = 'squadrules://adapter/refine-search' as const;
-const URI_CREATE_PROTOCOL = 'squadrules://adapter/create-new-protocol' as const;
+const URI_CREATE_PROTOCOL = 'squadrules://adapter/author-adapter' as const;
 
 const RE_ADAPTER_URI = /^squadrules:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
 
@@ -251,8 +251,8 @@ ${buildMinimalProtocolBody(title)}`;
         (c: ActivateChoice) => c.role === 'create' && c.uri === URI_CREATE_PROTOCOL
       );
       expect(createChoice).toBeDefined();
-      expect(String(createChoice!.label).toLowerCase()).toContain('squadrules');
-      expect(String(createChoice!.label).toLowerCase()).toContain('protocol');
+      expect(String(createChoice!.label).toLowerCase()).toContain('author');
+      expect(String(createChoice!.label).toLowerCase()).toContain('adapter');
       expect(String(createChoice!.label).toLowerCase()).toMatch(/create|review|refactor/);
       expect(String(createChoice!.next_action).toLowerCase()).toContain('register');
       expect(String(createChoice!.next_action).toLowerCase()).toContain('adapter/protocol/workflow');

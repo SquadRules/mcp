@@ -13,7 +13,7 @@ cheap while irreversible boundaries stay guarded.
 
 ## Activation Patterns
 
-**Typically invoked by:** `create-new-protocol` during adapter drafting, and
+**Typically invoked by:** `author-adapter` during adapter drafting, and
 any adapter that includes review or validation phases.
 
 **Can be invoked directly when agent needs:**
@@ -45,7 +45,7 @@ any adapter that includes review or validation phases.
 
 **Bad trigger examples:**
 - "run the critic loop" → use `activate` to match `critic-loop`
-- "create a new protocol" → use `create-new-protocol`
+- "create a new protocol" → use `author-adapter`
 - "which challenge type for this step?" → use `challenge-type-guide`
 
 ## Core Decision Rule

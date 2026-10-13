@@ -1,3 +1,5 @@
+import { AUTHORING_ADAPTER_SLUG } from '../utils/adapter-alias.js';
+import { authoringContextSchema } from './authoring-context.js';
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -216,6 +218,40 @@ export async function executeActivate(
     ? await activateRefinementStore.incrementRefineCount(executionId)
     : 0;
   const includeRefineFooter = !input.execution_id || refineCount <= 2;
+
+  if (input.authoring) {
+    let authoring = authoringContextSchema.parse(input.authoring);
+    const uri = buildAdapterUri(AUTHORING_ADAPTER_SLUG);
+    const discover = async (): Promise<ActivateOutput> => {
+      const resolved = await resolveExportAdapter(memoryStore, qdrantService, uri);
+      const memory = await memoryStore.getMemory(resolved.layerId);
+      if (!memory) throw new Error('Authoring workflow unavailable; restore the built-in author-adapter workflow.');
+      if (authoring.operation !== 'create') {
+        const target = await resolveExportAdapter(memoryStore, qdrantService, authoring.target_adapter_uri);
+        if (!await memoryStore.getMemory(target.layerId)) throw new Error('Authoring target adapter not found. Correct target_adapter_uri.');
+        authoring = { ...authoring, target_adapter_uri: buildAdapterUri(target.adapterId) };
+      }
+      return {
+        must_obey: true,
+        message: `Adapter authoring: ${authoring.operation}. This starts workflow guidance; mutations require separate tool calls.`,
+        next_action: "Copy the choice's forward_first_call, including authoring, into forward.",
+        execution_id: executionId,
+        query: input.query,
+        choices: [{
+          uri, slug: AUTHORING_ADAPTER_SLUG, label: 'Author Adapter (create / review / update)',
+          adapter_name: memory.adapter?.name ?? 'Author Adapter', adapter_version: null,
+          activation_score: 1, role: 'match', tags: ['authoring', authoring.operation],
+          space_name: null,
+          next_action: 'Call forward with the complete forward_first_call to start the specified authoring operation.',
+          forward_first_call: { uri, authoring }
+        }],
+        ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
+      };
+    };
+    return input.space ?? input.space_id
+      ? runWithOptionalSpaceAsync(input.space ?? input.space_id ?? '', discover)
+      : discover();
+  }
 
   const searchOutput = await executeSearch(
     memoryStore,

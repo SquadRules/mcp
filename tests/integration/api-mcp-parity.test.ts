@@ -19,7 +19,7 @@ const API_BASE = `${BASE_URL}/api`;
 const _d = isHttpTransport() ? describe : describe.skip;
 
 /** Boot-injected creation adapter (by slug) — valid export input. */
-const SAMPLE_EXPORT_URI = 'squadrules://adapter/create-new-protocol';
+const SAMPLE_EXPORT_URI = 'squadrules://adapter/author-adapter';
 
 function httpFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(path, {

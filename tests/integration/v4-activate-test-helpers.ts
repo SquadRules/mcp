@@ -33,7 +33,7 @@ export function expectConfidencePercentInMessage(message: string): void {
 
 /**
  * Match rows may be `null` when no slug is stored — use train+echo test to prove slug plumbing.
- * Create footer rows include the built-in creation adapter slug (`create-new-protocol`), not null.
+ * Create footer rows include the built-in creation adapter slug (`author-adapter`), not null.
  */
 export function expectActivateChoiceSlugField(choice: ActivateChoice): void {
   expect(choice.slug === null || typeof choice.slug === 'string').toBe(true);

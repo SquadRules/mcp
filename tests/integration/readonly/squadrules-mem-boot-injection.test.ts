@@ -12,7 +12,7 @@ import { parseMcpJson } from '../../utils/expect-with-raw.js';
 const SQUADRULES_APP_SPACE_NAME = 'Squadrules app';
 const EXPECTED_BOOT_ADAPTER_COUNT = 6;
 const STATIC_SYSTEM_ADAPTERS: Array<{ slug: string }> = [
-  { slug: 'create-new-protocol' },
+  { slug: 'author-adapter' },
   { slug: 'refine-search' },
   { slug: 'challenge-type-guide' },
   { slug: 'critic-loop' },

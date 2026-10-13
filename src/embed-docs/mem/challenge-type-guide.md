@@ -14,7 +14,7 @@ drafting and review.
 
 ## Activation Patterns
 
-**Typically invoked by:** `create-new-protocol` and
+**Typically invoked by:** `author-adapter` and
 `critic-loop`.
 
 **Can be invoked directly when agent needs:**
@@ -38,7 +38,7 @@ drafting and review.
 - reviewing challenge type selection in a draft → load this
 
 **Bad trigger examples:**
-- "Create a new protocol" → use `create-new-protocol`
+- "Create a new protocol" → use `author-adapter`
 - "Review my protocol draft" → use `critic-loop`
 
 ## Core Rules

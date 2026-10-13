@@ -298,9 +298,9 @@ Done.`;
     expect(result.message).toMatch(/tensor, shell, mcp, user_input, or comment/);
   });
 
-  test('embedded create-new-protocol markdown passes validation', () => {
+  test('embedded author-adapter markdown passes validation', () => {
     const md = readFileSync(
-      join(process.cwd(), 'src/embed-docs/mem/create-new-protocol.md'),
+      join(process.cwd(), 'src/embed-docs/mem/author-adapter.md'),
       'utf8'
     );
     const result = validateProtocolStructure(md);
@@ -311,6 +311,6 @@ Done.`;
 
 describe('CREATION_PROTOCOL_URI', () => {
   test('is the creation flow slug URI', () => {
-    expect(CREATION_PROTOCOL_URI).toBe('squadrules://adapter/create-new-protocol');
+    expect(CREATION_PROTOCOL_URI).toBe('squadrules://adapter/author-adapter');
   });
 });
