@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.5.1](https://github.com/SquadRules/mcp/compare/v5.5.0...v5.5.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **cli:** route local-mode boot logs to stderr so stdout stays parseable ([#59](https://github.com/SquadRules/mcp/issues/59)) ([a62c965](https://github.com/SquadRules/mcp/commit/a62c965a2389a13588a74bc1d22ec2dea6a49e97))
+
 ## [5.5.0](https://github.com/SquadRules/mcp/compare/v5.4.2...v5.5.0) (2026-10-12)
 
 
