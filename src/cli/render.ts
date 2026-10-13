@@ -15,6 +15,7 @@ import type { TuneOutput } from '../tools/tune_schema.js';
 import type { DeleteOutput } from '../tools/delete_schema.js';
 import type { TrainOutput } from '../tools/train_schema.js';
 import type { SpacesOutput } from './backend/action-backend.js';
+import { c, asciiTable } from './render-helpers.js';
 
 type JsonObject = Record<string, unknown>;
 
@@ -76,21 +77,21 @@ export function nextCallHint(response: unknown): string | null {
 // ---------------------------------------------------------------------------
 
 export function renderActivatePretty(out: ActivateOutput): string {
-  const lines: string[] = [`activate: ${JSON.stringify(out.query)}`];
+  const lines: string[] = [c.heading(`activate: ${JSON.stringify(out.query)}`)];
   if (out.message) lines.push(out.message);
   const choices = out.choices ?? [];
   if (choices.length === 0) {
     lines.push('', 'No matching adapters.');
     return lines.join('\n');
   }
-  lines.push('', `Choices (${choices.length}):`);
+  lines.push('', c.label(`Choices (${choices.length}):`));
   choices.forEach((choice, index) => {
     const score =
-      typeof choice.activation_score === 'number' ? ` score ${choice.activation_score.toFixed(2)}` : '';
-    const space = choice.space_name ? ` [${choice.space_name}]` : '';
-    lines.push(`  ${index + 1}. (${choice.role}) ${choice.label}${score}${space}`);
-    lines.push(`     ${choice.uri}`);
-    if (choice.next_action) lines.push(`     do: ${choice.next_action}`);
+      typeof choice.activation_score === 'number' ? ` ${c.score(choice.activation_score)}` : '';
+    const space = choice.space_name ? ` ${c.dim(`[${choice.space_name}]`)}` : '';
+    lines.push(`  ${index + 1}. ${c.role(`(${choice.role})`)} ${choice.label}${score}${space}`);
+    lines.push(`     ${c.dim(choice.uri)}`);
+    if (choice.next_action) lines.push(`     ${c.label('do:')} ${choice.next_action}`);
   });
   return lines.join('\n');
 }
@@ -106,18 +107,18 @@ export function renderActivateText(out: ActivateOutput): string {
 export function renderForwardPretty(out: ForwardOutput): string {
   const lines: string[] = [];
   const heading = out.current_layer_label ?? out.context_adapter_name ?? 'forward';
-  lines.push(`forward: ${heading}`);
+  lines.push(c.heading(`forward: ${heading}`));
   if (out.adapter_layer_index && out.adapter_layer_count) {
-    lines.push(`step ${out.adapter_layer_index}/${out.adapter_layer_count}`);
+    lines.push(c.dim(`step ${out.adapter_layer_index}/${out.adapter_layer_count}`));
   }
   const contractType = out.contract?.type ?? 'n/a';
   const contractDesc = out.contract?.description ? ` — ${out.contract.description}` : '';
-  lines.push(`contract: ${contractType}${contractDesc}`);
+  lines.push(`${c.label('contract:')} ${contractType}${contractDesc}`);
   if (out.message) lines.push(out.message);
   if (out.current_layer?.content) {
-    lines.push('', out.current_layer.content.trim());
+    lines.push('', c.dim(out.current_layer.content.trim()));
   }
-  if (out.next_action) lines.push('', `do: ${out.next_action}`);
+  if (out.next_action) lines.push('', `${c.label('do:')} ${out.next_action}`);
   return lines.join('\n');
 }
 
@@ -130,10 +131,14 @@ export function renderForwardText(out: ForwardOutput): string {
 // ---------------------------------------------------------------------------
 
 export function renderRewardPretty(out: RewardOutput): string {
-  const lines: string[] = [`reward: rated ${out.total_rated}, failed ${out.total_failed}`];
+  const summary = out.total_failed > 0
+    ? `reward: ${c.success(`rated ${out.total_rated}`)}, ${c.error(`failed ${out.total_failed}`)}`
+    : `reward: ${c.success(`rated ${out.total_rated}`)}`;
+  const lines: string[] = [summary];
   for (const row of out.results ?? []) {
-    const score = typeof row.score === 'number' ? ` score ${row.score.toFixed(2)}` : '';
-    lines.push(`  ${row.uri} → ${row.outcome}${score} (${row.evaluation_label})`);
+    const score = typeof row.score === 'number' ? ` ${c.score(row.score)}` : '';
+    const status = row.outcome === 'success' ? c.success(row.outcome) : c.error(row.outcome);
+    lines.push(`  ${c.dim(row.uri)} → ${status}${score} (${row.evaluation_label})`);
   }
   return lines.join('\n');
 }
@@ -147,9 +152,13 @@ export function renderRewardText(out: RewardOutput): string {
 // ---------------------------------------------------------------------------
 
 export function renderTunePretty(out: TuneOutput): string {
-  const lines: string[] = [`tune: updated ${out.total_updated}, failed ${out.total_failed}`];
+  const summary = out.total_failed > 0
+    ? `tune: ${c.success(`updated ${out.total_updated}`)}, ${c.error(`failed ${out.total_failed}`)}`
+    : `tune: ${c.success(`updated ${out.total_updated}`)}`;
+  const lines: string[] = [summary];
   for (const row of out.results ?? []) {
-    lines.push(`  ${row.uri} → ${row.status}: ${row.message}`);
+    const status = row.status === 'updated' ? c.success(row.status) : c.error(row.status);
+    lines.push(`  ${c.dim(row.uri)} → ${status}: ${row.message}`);
   }
   return lines.join('\n');
 }
@@ -163,9 +172,13 @@ export function renderTuneText(out: TuneOutput): string {
 // ---------------------------------------------------------------------------
 
 export function renderDeletePretty(out: DeleteOutput): string {
-  const lines: string[] = [`delete: deleted ${out.total_deleted}, failed ${out.total_failed}`];
+  const summary = out.total_failed > 0
+    ? `delete: ${c.success(`deleted ${out.total_deleted}`)}, ${c.error(`failed ${out.total_failed}`)}`
+    : `delete: ${c.success(`deleted ${out.total_deleted}`)}`;
+  const lines: string[] = [summary];
   for (const row of out.results ?? []) {
-    lines.push(`  ${row.uri} → ${row.status}: ${row.message}`);
+    const status = row.status === 'deleted' ? c.success(row.status) : c.error(row.status);
+    lines.push(`  ${c.dim(row.uri)} → ${status}: ${row.message}`);
   }
   return lines.join('\n');
 }
@@ -180,12 +193,14 @@ export function renderDeleteText(out: DeleteOutput): string {
 
 export function renderSpacesPretty(out: SpacesOutput): string {
   const spaces = out.spaces ?? [];
-  if (spaces.length === 0) return 'spaces: (none)';
-  const lines: string[] = [`spaces (${spaces.length}):`];
+  if (spaces.length === 0) return c.heading('spaces:') + ' (none)';
+  const lines: string[] = [c.heading(`spaces (${spaces.length}):`)];
+  const headers = ['Name', 'Type', 'Adapters'];
+  const rows = spaces.map((s) => [c.space(s.name), s.type, String(s.adapter_count)]);
+  lines.push(asciiTable(headers, rows));
   for (const space of spaces) {
-    lines.push(`  ${space.name} (${space.type}): ${space.adapter_count} adapters`);
     for (const adapter of space.adapters ?? []) {
-      lines.push(`    - ${adapter.title} (${adapter.layer_count} layers) ${adapter.uri}`);
+      lines.push(`  ${c.dim(`- ${adapter.title} (${adapter.layer_count} layers) ${adapter.uri}`)}`);
     }
   }
   return lines.join('\n');
@@ -202,10 +217,11 @@ export function renderSpacesText(out: SpacesOutput): string {
 // ---------------------------------------------------------------------------
 
 export function renderTrainPretty(out: TrainOutput): string {
+  const status = out.status === 'stored' ? c.success(out.status) : c.error(out.status);
   const items = out.items ?? [];
-  const lines: string[] = [`train: ${out.status} ${items.length} item(s)`];
+  const lines: string[] = [`${c.heading('train:')} ${status} ${items.length} item(s)`];
   for (const item of items) {
-    lines.push(`  ${item.label} → ${item.uri}`);
+    lines.push(`  ${item.label} → ${c.dim(item.uri)}`);
   }
   return lines.join('\n');
 }
