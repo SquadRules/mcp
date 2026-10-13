@@ -26,7 +26,8 @@ against this slug — use `squadrules://adapter/critic-loop`.
 
 **Must Always:**
 - Send the caller to `squadrules://adapter/critic-loop`, forwarding the same
-  `input_file`, `requirements`, and `context` it received.
+  `work` submission (or the older-spelling `input_file`), `requirements`, and
+  `context` it received.
 
 ## Redirect
 

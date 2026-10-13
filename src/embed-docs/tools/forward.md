@@ -8,9 +8,9 @@ request host elicitation on continuation. Tensor contracts evaluate workflow dat
 This is stateful, not a read-only tool. Later actions remain subject to their own
 scope and host permissions; starting a workflow does not authorize all its steps.
 
-**Adapter authoring:** `author-adapter` is the lifecycle name for the existing
-`author-adapter` workflow; both resolve to the same stored adapter. It handles
-**create, review, and update**, not just creation. Copy the complete
+**Adapter authoring:** `author-adapter` is the lifecycle name for the workflow
+stored as `create-new-protocol`; both slugs resolve to the same stored adapter.
+It handles **create, review, and update**, not just creation. Copy the complete
 `activate.choices[].forward_first_call`, including `authoring` when present:
 
 ```json
@@ -18,7 +18,7 @@ scope and host permissions; starting a workflow does not authorize all its steps
   "uri": "squadrules://adapter/author-adapter",
   "authoring": {
     "operation": "update",
-    "target_adapter_uri": "squadrules://adapter/git-pr-protocol"
+    "target_adapter_uri": "squadrules://adapter/sample-pr-workflow"
   }
 }
 ```
