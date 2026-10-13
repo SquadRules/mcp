@@ -1,5 +1,5 @@
 ---
-version: "5.6.0"
+version: "5.6.1"
 slug: skill-format-guide
 title: Skill Format and Local Authoring Guide
 ---
