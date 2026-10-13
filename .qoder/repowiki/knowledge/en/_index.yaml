@@ -3,7 +3,7 @@ schema_version: 1
 locale: en-US
 branch: chore/prune-agent-assets
 nodes_managed: true
-exported_at: "2026-10-13T10:15:37Z"
+exported_at: "2026-10-13T10:54:55Z"
 modules:
     "":
         dir_name: SquadRules MCP Server Platform

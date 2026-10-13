@@ -8,10 +8,22 @@
 - [.github/workflows/integration.yml](file://.github/workflows/integration.yml)
 - [.github/workflows/release.yml](file://.github/workflows/release.yml)
 - [.github/workflows/security.yml](file://.github/workflows/security.yml)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml)
+- [scripts/build-wiki.mjs](file://scripts/build-wiki.mjs)
+- [scripts/sync-wiki.sh](file://scripts/sync-wiki.sh)
+- [scripts/setup-github-wiki-permissions.sh](file://scripts/setup-github-wiki-permissions.sh)
 - [jest.config.js](file://jest.config.js)
 - [vitest.config.ts](file://vitest.config.ts)
 - [tsconfig.json](file://tsconfig.json)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Added comprehensive documentation for automated wiki building and synchronization infrastructure
+- Updated CI/CD pipeline section to include wiki sync workflow
+- Enhanced documentation workflow section with wiki-specific guidance
+- Added troubleshooting section for wiki-related issues
+- Updated project structure to reflect wiki automation components
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -28,7 +40,7 @@
 ## Introduction
 This guide explains how to develop, test, and release SquadRules. It covers local setup, build and linting, testing strategies, CI/CD pipelines, debugging and performance analysis, release and versioning procedures, code review expectations, contribution workflows, and common issues.
 
-SquadRules is an agent-first MCP framework where AI agents are the primary users. The core flow is activate → forward → reward. Adapters provide deterministic, auditable task execution. Vector storage uses Qdrant (primary, remote-capable) and LanceDB (secondary, embedded). Authentication uses Keycloak with Google IdP for OAuth2/JWT. Skills under `.agents/skills/` are hand-authored routing logic. Documentation is split between curated content under `docs/` and auto-generated wiki content under `.qoder/repowiki/`.
+SquadRules is an agent-first MCP framework where AI agents are the primary users. The core flow is activate → forward → reward. Adapters provide deterministic, auditable task execution. Vector storage uses Qdrant (primary, remote-capable) and LanceDB (secondary, embedded). Authentication uses Keycloak with Google IdP for OAuth2/JWT. Skills under `.agents/skills/` are hand-authored routing logic. Documentation is split between curated content under `docs/` and auto-generated wiki content under `.qoder/repowiki/`, which is automatically synchronized to GitHub Wiki through dedicated workflows.
 
 **Section sources**
 - [README.md:1-66](file://README.md#L1-L66)
@@ -40,6 +52,7 @@ The repository is a TypeScript Node.js application with a React UI. The main ent
 - Build output goes to `dist/`.
 - Tests use Jest for Node-side tests and Vitest for UI tests.
 - CI/CD is defined under `.github/workflows/`.
+- Wiki automation scripts under `scripts/` handle automated documentation building and synchronization.
 
 ```mermaid
 graph TB
@@ -54,6 +67,10 @@ I --> K["Vitest<br/>UI tests"]
 L["CI/CD<br/>.github/workflows/"] --> M["Integration"]
 L --> N["Security"]
 L --> O["Release"]
+L --> P["Wiki Sync"]
+Q["Wiki Scripts<br/>scripts/"] --> R["build-wiki.mjs"]
+Q --> S["sync-wiki.sh"]
+T[".qoder/repowiki/<br/>Generated Wiki Source"] --> U["GitHub Wiki<br/>Automatically Synced"]
 ```
 
 **Diagram sources**
@@ -62,6 +79,7 @@ L --> O["Release"]
 - [.github/workflows/integration.yml:1-43](file://.github/workflows/integration.yml#L1-L43)
 - [.github/workflows/security.yml:1-109](file://.github/workflows/security.yml#L1-L109)
 - [.github/workflows/release.yml:1-313](file://.github/workflows/release.yml#L1-L313)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml:1-46](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml#L1-L46)
 
 **Section sources**
 - [package.json:1-80](file://package.json#L1-L80)
@@ -73,6 +91,7 @@ L --> O["Release"]
 - Authentication: Keycloak + Google IdP via OAuth2/JWT.
 - Tools: activate, forward, train, reward, tune, delete, export, spaces.
 - UI: React-based interface served by the HTTP server.
+- Wiki Automation: Automated documentation building and synchronization from Qoder Repo Wiki to GitHub Wiki.
 
 Local development requires Node.js 24 or newer. Install dependencies with `npm ci`, then run checks and builds using scripts defined in `package.json`.
 
@@ -82,7 +101,7 @@ Local development requires Node.js 24 or newer. Install dependencies with `npm c
 - [CONTRIBUTING.md:39-87](file://CONTRIBUTING.md#L39-L87)
 
 ## Architecture Overview
-The system exposes MCP tools through either stdio or HTTP. The HTTP mode serves both API endpoints and the React UI. Services encapsulate vector stores, embeddings, metrics, and memory abstractions.
+The system exposes MCP tools through either stdio or HTTP. The HTTP mode serves both API endpoints and the React UI. Services encapsulate vector stores, embeddings, metrics, and memory abstractions. The documentation infrastructure includes automated wiki building that transforms Qoder Repo Wiki content into navigable GitHub Wiki pages.
 
 ```mermaid
 graph TB
@@ -100,6 +119,13 @@ StoreQ["Qdrant"]
 StoreL["LanceDB"]
 Cache["Redis"]
 end
+subgraph "Documentation Infrastructure"
+Qoder["Qoder Repo Wiki<br/>.qoder/repowiki/"]
+Builder["build-wiki.mjs"]
+Syncer["sync-wiki.sh"]
+Workflow["sync-qoder-repowiki-to-github-wiki.yml"]
+GitHubWiki["GitHub Wiki<br/>Automatically Synced"]
+end
 Agent --> Stdio
 Agent --> Http
 Browser --> Http
@@ -109,12 +135,19 @@ Tools --> Services
 Services --> StoreQ
 Services --> StoreL
 Services --> Cache
+Qoder --> Builder
+Builder --> Syncer
+Workflow --> Syncer
+Syncer --> GitHubWiki
 ```
 
 **Diagram sources**
 - [package.json:30-34](file://package.json#L30-L34)
 - [.github/workflows/integration.yml:50-53](file://.github/workflows/integration.yml#L50-L53)
 - [.github/workflows/integration.yml:236-248](file://.github/workflows/integration.yml#L236-L248)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml:24-45](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml#L24-L45)
+- [scripts/build-wiki.mjs:1-338](file://scripts/build-wiki.mjs#L1-L338)
+- [scripts/sync-wiki.sh:1-111](file://scripts/sync-wiki.sh#L1-L111)
 
 ## Detailed Component Analysis
 
@@ -123,7 +156,7 @@ Services --> Cache
 - Install locked dependencies: `npm ci`.
 - Run linters, type checks, and tests appropriate to your change.
 - For documentation-only edits, run markdown and docs link checks.
-- Some tests require external services; follow the Integration workflow’s guidance before running service-backed tests.
+- Some tests require external services; follow the Integration workflow's guidance before running service-backed tests.
 
 Recommended validation sequence:
 - `npm run lint`
@@ -200,7 +233,7 @@ Scripts:
 - [CONTRIBUTING.md:77-90](file://CONTRIBUTING.md#L77-L90)
 
 ### CI/CD Pipeline
-The repository defines three major CI workflows:
+The repository defines four major CI workflows:
 
 - Integration: Builds on Node 24 and 26, runs lint, typecheck, knip, spec parity, UI tests, package build, and tgz install test. Two integration lanes validate different runtime configurations:
   - CLUSTER: full-stack infra (Qdrant, Valkey, PostgreSQL, Keycloak), AUTH enabled, HTTP transport.
@@ -210,15 +243,19 @@ The repository defines three major CI workflows:
 
 - Release: automated versioning via Release Please, synchronized versioned sources, auto-merge of release PR, and npm publication with provenance and SBOM attachment.
 
+- Wiki Sync: automated synchronization of generated wiki content from Qoder Repo Wiki to GitHub Wiki, triggered by changes to wiki content, build scripts, or workflow definitions.
+
 ```mermaid
 flowchart TD
 Start(["PR or push to main"]) --> Build["Build and checks<br/>Node 24 + 26"]
 Build --> IntCluster["Integration: CLUSTER<br/>AUTH + HTTP + full infra"]
 Build --> IntSingle["Integration: SINGLE<br/>zero-config stdio + LanceDB"]
 Build --> Security["Security scans<br/>dependency-review, npm-audit, codeql"]
+WikiChanges["Wiki content changes"] --> WikiSync["Wiki Sync Workflow<br/>build-wiki.mjs + sync-wiki.sh"]
 IntCluster --> Gate["Merge gate"]
 IntSingle --> Gate
 Security --> Gate
+WikiSync --> WikiPublish["Publish to GitHub Wiki"]
 Gate --> |main push| Release["Release Please<br/>version PR"]
 Release --> Sync["Sync versioned sources"]
 Sync --> Publish["Publish npm package<br/>with provenance + SBOM"]
@@ -231,11 +268,13 @@ Sync --> Publish["Publish npm package<br/>with provenance + SBOM"]
 - [.github/workflows/security.yml:20-83](file://.github/workflows/security.yml#L20-L83)
 - [.github/workflows/release.yml:21-66](file://.github/workflows/release.yml#L21-L66)
 - [.github/workflows/release.yml:184-279](file://.github/workflows/release.yml#L184-L279)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml:24-45](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml#L24-L45)
 
 **Section sources**
 - [.github/workflows/integration.yml:1-332](file://.github/workflows/integration.yml#L1-L332)
 - [.github/workflows/security.yml:1-109](file://.github/workflows/security.yml#L1-L109)
 - [.github/workflows/release.yml:1-313](file://.github/workflows/release.yml#L1-L313)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml:1-46](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml#L1-L46)
 
 ### Debugging Techniques
 - Use structured logging for server logs; do not write MCP messages to stdout.
@@ -267,6 +306,32 @@ Recommendations:
 **Section sources**
 - [.github/workflows/integration.yml:244-248](file://.github/workflows/integration.yml#L244-L248)
 - [.github/workflows/integration.yml:283-305](file://.github/workflows/integration.yml#L283-L305)
+
+### Wiki Building and Synchronization
+The documentation infrastructure includes automated wiki building and synchronization capabilities:
+
+**Wiki Build Process:**
+- `scripts/build-wiki.mjs` transforms Qoder Repo Wiki source tree into flat, navigable GitHub Wiki format
+- Handles page naming collision resolution and hierarchical navigation generation
+- Rewrites file:// references to clickable GitHub blob URLs
+- Generates `_Sidebar.md` and `Home.md` for proper wiki navigation
+
+**Wiki Sync Workflow:**
+- `.github/workflows/sync-qoder-repowiki-to-github-wiki.yml` triggers on wiki content changes
+- Uses `scripts/sync-wiki.sh` to build and synchronize wiki content
+- Automatically commits and pushes changes to GitHub Wiki repository
+- Supports both local development and CI environments
+
+**Setup Requirements:**
+- Repository must have wiki feature enabled
+- GitHub Actions permissions must be set to read-write
+- Initial wiki setup requires creating a Home page
+
+**Section sources**
+- [scripts/build-wiki.mjs:1-338](file://scripts/build-wiki.mjs#L1-L338)
+- [scripts/sync-wiki.sh:1-111](file://scripts/sync-wiki.sh#L1-L111)
+- [.github/workflows/sync-qoder-repowiki-to-github-wiki.yml:1-46](file://.github/workflows/sync-qoder-repowiki-to-github-wiki.yml#L1-L46)
+- [scripts/setup-github-wiki-permissions.sh:1-60](file://scripts/setup-github-wiki-permissions.sh#L1-L60)
 
 ### Release Process and Versioning
 - Releases are automated via Release Please. On pushes to main, it creates or updates a version PR. After merging, the workflow publishes the tagged release to npm.
@@ -321,7 +386,7 @@ Validation checklist:
 - Place Node-side tests under `tests/` matching Jest patterns.
 - Place UI tests under `tests/ui/` matching Vitest patterns.
 - Use mocks and stubs as configured in Jest module mappers.
-- For service-backed tests, follow the Integration lane’s setup requirements.
+- For service-backed tests, follow the Integration lane's setup requirements.
 
 Coverage:
 - Default threshold is 99%; enable strict mode for 100% coverage.
@@ -335,7 +400,8 @@ Coverage:
 - Edit source documents before regenerating embedded output through the build.
 - Keep adapter and skill versions aligned with `package.json`.
 - Record significant architecture decisions in `docs/adr/`.
-- Do not hand-edit generated wiki content under `.qoder/repowiki/`.
+- Do not hand-edit generated wiki content under `.qoder/repowiki/`; it is automatically built and synchronized.
+- Wiki content changes trigger automatic synchronization to GitHub Wiki through the dedicated workflow.
 
 **Section sources**
 - [CONTRIBUTING.md:77-90](file://CONTRIBUTING.md#L77-L90)
@@ -381,6 +447,12 @@ Common issues and resolutions:
 - Lint or typecheck failures: Run fixers where applicable and re-run checks.
 - Package installation issues: Rebuild and reinstall from tgz artifact as done in CI.
 
+Wiki-related issues:
+- Wiki sync workflow fails: Ensure wiki feature is enabled and GitHub Actions permissions are set to read-write using `scripts/setup-github-wiki-permissions.sh`.
+- Wiki content not updating: Check that wiki content changes are committed to `.qoder/repowiki/en/content/` directory.
+- Manual wiki setup required: Initialize wiki by visiting `/wiki` tab and creating a Home page before first sync.
+- Permission errors: Run `gh auth login` and ensure admin access to repository for permission setup.
+
 Operational tips:
 - Inspect generated logs and test reports after failures.
 - Validate environment variables and `.env` generation for fullstack scenarios.
@@ -390,9 +462,10 @@ Operational tips:
 - [.github/workflows/integration.yml:157-198](file://.github/workflows/integration.yml#L157-L198)
 - [.github/workflows/integration.yml:205-234](file://.github/workflows/integration.yml#L205-L234)
 - [CONTRIBUTING.md:77-81](file://CONTRIBUTING.md#L77-L81)
+- [scripts/setup-github-wiki-permissions.sh:1-60](file://scripts/setup-github-wiki-permissions.sh#L1-L60)
 
 ## Conclusion
-SquadRules provides a robust, agent-first MCP framework with clear development practices, comprehensive CI/CD, and automated releases. By following the local setup, build, testing, and linting guidelines, and adhering to the contribution and review standards, contributors can deliver high-quality changes efficiently. The CI pipeline validates builds across Node versions, security posture, and runtime configurations, while the release process ensures reproducible, provenanced npm publications.
+SquadRules provides a robust, agent-first MCP framework with clear development practices, comprehensive CI/CD, and automated releases. By following the local setup, build, testing, and linting guidelines, and adhering to the contribution and review standards, contributors can deliver high-quality changes efficiently. The CI pipeline validates builds across Node versions, security posture, and runtime configurations, while the release process ensures reproducible, provenanced npm publications. The enhanced documentation infrastructure automatically synchronizes wiki content from Qoder Repo Wiki to GitHub Wiki, ensuring documentation stays current and accessible.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
@@ -406,7 +479,9 @@ SquadRules provides a robust, agent-first MCP framework with clear development p
 - Build: `npm run build`
 - Package: `npm run build:tgz`, `npm run test:tgz`
 - Docs checks: `npm run lint:markdown`, `npm run lint:docs`
+- Wiki setup: `bash scripts/setup-github-wiki-permissions.sh`
 
 **Section sources**
 - [package.json:40-80](file://package.json#L40-L80)
 - [CONTRIBUTING.md:39-75](file://CONTRIBUTING.md#L39-L75)
+- [scripts/setup-github-wiki-permissions.sh:1-60](file://scripts/setup-github-wiki-permissions.sh#L1-L60)
