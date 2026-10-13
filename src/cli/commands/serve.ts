@@ -163,6 +163,9 @@ export function serveCommand(program: Command): void {
         const env: NodeJS.ProcessEnv = {
           ...process.env,
           TRANSPORT_TYPE: transport,
+          // The CLI parent forces logs to stderr (stdout is its payload channel), but the
+          // spawned server owns stdout again: stdio keeps logs on stderr, http on stdout.
+          SQUADRULES_LOG_STDERR: transport === 'stdio' ? '1' : '0',
           SQUADRULES_CLI_SERVE: '1',
           SQUADRULES_CLI_TRANSPORT_SOURCE: source
         };

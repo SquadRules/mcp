@@ -3,6 +3,9 @@
  * SQUADRULES CLI - Command-line interface for interacting with SQUADRULES REST API
  */
 
+// Must be first: routes all CLI logs to stderr (stdout is the payload channel) before the
+// module graph eagerly creates the shared logger. See ./log-sink-prelude.ts.
+import './log-sink-prelude.js';
 import { createProgram } from './program.js';
 
 // Bare invocation defaults to `serve` → stdio transport when stdin is NOT a TTY

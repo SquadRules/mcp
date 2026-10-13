@@ -50,10 +50,14 @@ function localCliEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-async function runCli(args: string[], timeout: number): Promise<{ stdout: string; stderr: string }> {
+async function runCli(
+  args: string[],
+  timeout: number,
+  env: NodeJS.ProcessEnv = localCliEnv()
+): Promise<{ stdout: string; stderr: string }> {
   const { stdout, stderr } = await execFilePromise(process.execPath, [CLI_PATH, ...args], {
     cwd: process.cwd(),
-    env: localCliEnv(),
+    env,
     timeout,
     maxBuffer: 16 * 1024 * 1024
   });
@@ -144,6 +148,25 @@ _d('CLI local mode (embedded store, stdio lane)', () => {
     const writtenPath = manifest.written[0].path as string;
     expect(existsSync(writtenPath)).toBe(true);
     expect(readFileSync(writtenPath, 'utf8').length).toBeGreaterThan(0);
+  }, 120000);
+
+  test('local boot logs stay on stderr; stdout is a pure JSON payload (default transport)', async () => {
+    // Regression (shipped 5.5.0): a local data command is NOT a local *server* launch, so
+    // TRANSPORT_TYPE resolves to `http` and the shared pino sink wrote boot INFO lines
+    // (cache:/vector store:/embedding:) to STDOUT, corrupting `activate ... | jq`. The CLI
+    // prelude now forces logs to stderr. Unlike the cases above (stdio transport +
+    // LOG_LEVEL=error), this runs with the default transport and default log level, so it
+    // reproduces exactly what a human hits with `npx @squadrules/mcp activate ...`.
+    const env = localCliEnv();
+    env.TRANSPORT_TYPE = 'http'; // what a data command resolves to by default
+    delete env.LOG_LEVEL; // default info → boot logs are emitted
+    delete env.SQUADRULES_LOG_STDERR; // the CLI prelude must set this, not the test
+    const { stdout, stderr } = await runCli(['spaces', '--format', 'json'], 120000, env);
+    // stdout parses as JSON with no `[HH:MM:SS] [LEVEL]` log lines interleaved.
+    expect(() => JSON.parse(stdout)).not.toThrow();
+    expect(stdout).not.toMatch(/^\[\d{2}:\d{2}:\d{2}\]/m);
+    // The boot logs went to stderr instead.
+    expect(stderr).toMatch(/vector store:|cache:|embedding:|model stats:/);
   }, 120000);
 
   afterAll(async () => {

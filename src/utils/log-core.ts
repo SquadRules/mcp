@@ -18,8 +18,21 @@ const REDACT_PATHS = [
   'res.headers["set-cookie"]'
 ];
 
-function textFormatStream(transportType: 'stdio' | 'http'): Writable {
-  const out = transportType === 'stdio' ? process.stderr : process.stdout;
+/**
+ * Logs go to stderr whenever stdout is a data channel — the stdio MCP transport
+ * (protocol frames) and the CLI process (`SQUADRULES_LOG_STDERR=1`, set by the CLI
+ * prelude in `cli/log-sink-prelude.ts` so data-command payloads stay parseable, e.g.
+ * `activate ... | jq`). Otherwise (http server) logs go to stdout, as containers expect.
+ */
+export function shouldLogToStderr(
+  transportType: 'stdio' | 'http',
+  forceStderr: boolean
+): boolean {
+  return transportType === 'stdio' || forceStderr;
+}
+
+function textFormatStream(toStderr: boolean): Writable {
+  const out = toStderr ? process.stderr : process.stdout;
   return new Writable({
     write(chunk: Buffer, _enc, cb) {
       try {
@@ -44,9 +57,13 @@ function textFormatStream(transportType: 'stdio' | 'http'): Writable {
 }
 
 function createBaseLogger(): pino.Logger {
+  const toStderr = shouldLogToStderr(
+    TRANSPORT_TYPE,
+    process.env['SQUADRULES_LOG_STDERR'] === '1'
+  );
   const dest = LOG_FORMAT === 'text'
-    ? textFormatStream(TRANSPORT_TYPE)
-    : TRANSPORT_TYPE === 'stdio'
+    ? textFormatStream(toStderr)
+    : toStderr
       ? process.stderr
       : process.stdout;
 
