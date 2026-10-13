@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: tools/artifact_catalog
+title: Artifact Catalog & Path/MIME Utilities
+scope:
+    - src/tools/artifact-catalog.ts
+    - src/tools/artifact-mime.ts
+    - src/tools/artifact-relative-path.ts
+    - src/tools/local-artifact-dir-contract.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/export_tools

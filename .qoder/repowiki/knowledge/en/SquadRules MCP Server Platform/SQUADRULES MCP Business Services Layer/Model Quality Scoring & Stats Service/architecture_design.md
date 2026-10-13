@@ -1,0 +1,8 @@
+Single-file leaf module organized around one orchestrator class with pure-function submodules:
+- `model-stats.ts` exports `ModelStatsService` (and singleton `modelStats`) — the only mutable facade that owns in-memory `StatsState`, persists it through `keyValueStore` (`stats:state`, `stats:implementationBonusTotals`, `stats:rareSuccessCounts`), emits Prometheus metrics via `../metrics/agent-metrics.js`, and delegates computation to sibling modules.
+- `scoring.ts` provides pure functions (`calculateSpecificity`, `calculateExpertValue`, `calculateBroadUtility`, `calculateLongevity`, `calculateQualityScore`, `calculateStepQualityMetadata`) that derive a `QualityScore` from description/task/type/tags and an execution outcome multiplier.
+- `bonuses.ts` implements statistical bonus math (Wilson score adjustment, rarity multiplier capped at 3x, comparative bonus against other models) mutating `qualityMetrics.implementation_stats` in place.
+- `healer.ts` computes healer bonuses from `qualityMetrics.healer_contributions` with per-improvement-type base values and experience/exclusivity multipliers.
+- `protocol.ts` lazily imports `../qdrant/index.js` to aggregate step `quality_metadata` into workflow-level `workflow_total_potential` / `workflow_quality` labels, failing gracefully to defaults on error.
+- `types.ts` centralizes shared interfaces (`QualityScore`, `ModelStats`, `RecentDiscovery`, `StatsState`).
+Dependency direction is strictly inward: submodules import only `types.ts`; only `model-stats.ts` imports external services (kv store, qdrant, metrics, tenant context). Protocol scoring uses dynamic `import()` to break the circular dependency on `qdrantService`.

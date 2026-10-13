@@ -1,0 +1,1 @@
+`npm run test` runs the full unit + integration suite (integration uses testcontainers for Redis/Qdrant); the server can be launched directly via `node dist/index.js` or through `dist/bootstrap.js`, with transport selection controlled by `TRANSPORT_TYPE=http|stdio` and `SQUADRULES_CLI_TRANSPORT_SOURCE`.

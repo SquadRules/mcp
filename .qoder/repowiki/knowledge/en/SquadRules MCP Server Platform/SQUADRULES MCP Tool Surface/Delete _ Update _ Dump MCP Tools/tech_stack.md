@@ -1,0 +1,1 @@
+Zod for runtime schema validation; MCP tool registration via `server.registerTool`; metrics emitted through OpenTelemetry-style counters/observers in `services/metrics/mcp-metrics.js`.

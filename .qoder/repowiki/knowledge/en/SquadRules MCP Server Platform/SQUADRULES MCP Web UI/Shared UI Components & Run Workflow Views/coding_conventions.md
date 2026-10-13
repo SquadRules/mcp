@@ -1,0 +1,5 @@
+- Components receive their props as a single destructured object typed inline in the function signature rather than via a separate interface declaration, except where the type is reused across modules (e.g. `RichTextEditorProps`).
+- Styling uses Tailwind utility classes combined with CSS custom property variables (`--color-*`, `--radius-*`, `--layout-*`) instead of theme objects or styled-components.
+- User-facing strings go through `useTranslation()` and `t(...)` keys rather than literal English text, including aria-labels and button labels.
+- Type-dispatched behavior on `RunContract.type` is implemented as a chain of `if (type === '...')` branches inside both `SolutionForm` and `runContractChallenge`, keeping the shape of each variant's payload explicit at each branch.
+- Accessible forms pair every input with an explicit `<label htmlFor=...>` whose id matches the input's `id`, and use `aria-invalid` / `role="alert"` for validation feedback.

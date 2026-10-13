@@ -1,0 +1,18 @@
+schema_version: 1
+module_path: tools/forward_runtime
+title: MCP Tool Runtime & Forward Adapter Execution
+scope:
+    - src/tools/forward-register.ts
+    - src/tools/forward-tool-error.ts
+    - src/tools/forward-trace.ts
+    - src/tools/forward-view.ts
+    - src/tools/forward-helpers.ts
+    - src/tools/export-resolve-adapter.ts
+    - src/tools/mcp-contract-match.ts
+    - src/tools/mcp-loose-input-schema.ts
+    - src/tools/mcp-runtime-error.ts
+    - src/tools/mcp-tool-input-teaching.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/next_pow_challenge

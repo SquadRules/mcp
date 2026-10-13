@@ -1,0 +1,1 @@
+Node.js built-in `node:crypto` for SHA-256; TypeScript discriminated unions for parsed URIs; regex-based URI validation against the custom `squadrules://` scheme.

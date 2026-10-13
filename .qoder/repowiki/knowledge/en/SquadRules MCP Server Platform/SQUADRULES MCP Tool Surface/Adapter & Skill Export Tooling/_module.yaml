@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: tools/export_tools
+title: Adapter & Skill Export Tooling
+scope:
+    - src/tools/export.ts
+    - src/tools/export_schema.ts
+    - src/tools/export-selection.ts
+    - src/tools/export-source.ts
+    - src/tools/export-telemetry.ts
+    - src/tools/export-reward-jsonl.ts
+    - src/tools/export-skill-items.ts
+    - src/tools/skill-export/
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/artifact_catalog

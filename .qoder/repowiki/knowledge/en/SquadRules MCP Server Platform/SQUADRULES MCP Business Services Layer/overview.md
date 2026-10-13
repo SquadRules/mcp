@@ -1,0 +1,1 @@
+Orchestrates the MCP server's business logic by wiring embedding generation, Qdrant-backed memory persistence, vector record storage, metrics, and scoring behind pluggable backends.

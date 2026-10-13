@@ -1,0 +1,1 @@
+Command-line interface for SquadRules, wiring Commander.js subcommands to HTTP or embedded-local transports with XDG-compliant config and OS keyring-backed auth.

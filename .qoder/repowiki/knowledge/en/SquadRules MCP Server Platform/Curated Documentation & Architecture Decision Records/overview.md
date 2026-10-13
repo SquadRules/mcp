@@ -1,0 +1,1 @@
+Holds the irreducible, non-code-derivable documentation for SquadRules: ADRs, CLI reference, examples, and security records, with code-derivable content delegated to the project Wiki.

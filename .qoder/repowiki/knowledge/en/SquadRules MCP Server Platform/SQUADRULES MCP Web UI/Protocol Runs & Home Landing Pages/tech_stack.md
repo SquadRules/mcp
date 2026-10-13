@@ -1,0 +1,1 @@
+React + TypeScript with react-i18next for localization, react-router v6 (`Link`, `useParams`, `useSearchParams`, `useNavigate`) for routing, and TanStack Query-style mutation hooks exposed by `useForwardStart` / `useForwardStep` / `useReward`.

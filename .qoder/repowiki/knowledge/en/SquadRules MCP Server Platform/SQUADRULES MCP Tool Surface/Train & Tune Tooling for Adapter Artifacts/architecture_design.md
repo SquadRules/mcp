@@ -1,0 +1,9 @@
+Two parallel entry points serve the same domain: `train-store.ts` exposes `executeTrainStore`, a low-level step that validates protocol structure / artifact MIME size and delegates persistence to `MemoryQdrantStore.storeAdapter` or `storeArtifact`; `tune-execute.ts` exposes `executeTune`, which resolves wire URIs to canonical layer URIs, rewrites adapter markdown in place (enforcing title/layer-count stability), forwards field updates to `update.js`, optionally moves layers across spaces, and returns a `TuneOutput` with per-URI results.
+
+Supporting utilities are split by concern:
+- URI resolution: `train-artifact-adapter-uri.ts` resolves an input `squadrules://adapter/{slug}` to its canonical UUID-backed URI via Qdrant; `train-output-adapter-uri.ts` derives the output adapter URI from multiple fallback sources (memory slug, item/input adapter URI, normalized author slug, adapter id).
+- MIME handling: `train-mime.ts` centralizes explicit vs. inferred artifact MIME selection using `artifact-mime.js`.
+- Post-write safety: `tune-verify.ts` re-reads each updated layer from Qdrant and asserts text equality to catch silent no-op writes; `tune-cache-invalidation.ts` calls `redisCacheService.invalidateAfterUpdate()` when any update succeeded.
+- Messaging: `tune-messages.ts` rewrites generic error messages into adapter-layer terminology and normalizes embedded layer URIs.
+
+Dependency direction is one-way: tools depend on `services/qdrant/service.js`, `services/memory/*`, `utils/*`, and sibling tool modules (`update.js`, `review-evidence-check.js`); nothing in this module is imported by services. The `TrainError` class (code + message + details) is the uniform error shape thrown by train-side helpers.

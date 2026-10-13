@@ -1,0 +1,1 @@
+React + TypeScript with Tailwind utility classes; Tiptap (`@tiptap/react`) for the rich text editor; react-router v6 (`Outlet`, `NavLink`, `useLocation`) for navigation; react-i18next for internationalization.

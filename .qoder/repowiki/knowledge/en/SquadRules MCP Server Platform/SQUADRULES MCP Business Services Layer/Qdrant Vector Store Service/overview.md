@@ -1,0 +1,1 @@
+Service layer that wraps the Qdrant vector database for storing, searching, and retrieving agent memory points, with an embedded-store fallback when Qdrant is not configured.

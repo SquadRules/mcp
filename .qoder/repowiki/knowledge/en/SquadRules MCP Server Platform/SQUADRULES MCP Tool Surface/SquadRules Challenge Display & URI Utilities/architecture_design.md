@@ -1,0 +1,5 @@
+Three small, independent utility files consumed by other MCP tool adapters:
+- `squadrules-genesis-proof-hash.ts` is the root constant provider — exports `GENESIS_HASH`, computed once via `node:crypto` SHA-256 of the literal `'genesis'`, used as the initial `proof_hash` when no prior step exists.
+- `squadrules-challenge-display.ts` consumes that hash plus `shell-challenge-invocation.js` helpers to build a read-only challenge shape from a `ProofOfWorkDefinition`, coercing unknown stored types to `comment` and logging via `structuredLogger`. It is intentionally stateless and does not touch storage.
+- `squadrules-uri.ts` defines the canonical `squadrules://` scheme with three resource kinds (`adapter`, `artifact`, `layer`) and exposes regexes, `build*Uri` constructors, a discriminated-union `ParsedSquadrulesUri` type, and two parsers — one returning `Error`, one wrapping failures in `SquadrulesError('INVALID_URI', 400)`.
+Dependency direction is strictly inward: this module depends on `../types/`, `../utils/protocol-slug.js`, and `../utils/structured-logger.js`; nothing here imports sibling tool adapters, keeping it reusable across the tools layer.

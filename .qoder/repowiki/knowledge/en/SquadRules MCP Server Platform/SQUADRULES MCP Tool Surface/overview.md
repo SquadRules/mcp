@@ -1,0 +1,1 @@
+Registers the canonical SQUADRULES MCP tool surface (activate, forward, train, reward, tune, delete, export, spaces) and wires their Zod schemas, docs, and UI metadata into a single registry consumed by MCP, HTTP, and CLI.

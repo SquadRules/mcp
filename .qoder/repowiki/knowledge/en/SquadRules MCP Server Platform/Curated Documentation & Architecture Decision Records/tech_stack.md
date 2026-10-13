@@ -1,0 +1,1 @@
+Plain Markdown documents governed by the `documentation-authority` rule; link checks via `npm run lint:docs` and markdown style via `npm run lint:markdown`.

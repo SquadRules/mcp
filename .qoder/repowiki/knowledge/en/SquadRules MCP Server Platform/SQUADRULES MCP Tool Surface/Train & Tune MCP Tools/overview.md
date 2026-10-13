@@ -1,0 +1,1 @@
+MCP tool handlers that register and execute adapter training (create/fork) and tuning (update) operations, validating inputs via Zod and delegating to store/execute services.

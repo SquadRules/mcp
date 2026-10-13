@@ -1,0 +1,1 @@
+MCP export tool that serializes adapters, layers, artifacts, and training traces into markdown, JSONL, skill_tree, or skill_zip bundles with telemetry and download capability support.

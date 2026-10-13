@@ -1,0 +1,1 @@
+TypeScript with Zod for runtime schema validation; Node.js crypto for UUIDs; integrates with Qdrant vector store and a memory store for adapter layers.

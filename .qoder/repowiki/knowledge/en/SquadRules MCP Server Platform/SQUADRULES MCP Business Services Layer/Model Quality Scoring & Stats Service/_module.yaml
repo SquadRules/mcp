@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: services/stats_scoring
+title: Model Quality Scoring & Stats Service
+scope:
+    - src/services/stats/
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,5 @@
+- Server-bound hooks wrap an async function that calls `apiFetch` and throw a constructed `Error` whose message comes from the response JSON `message` field or `res.statusText` when `!res.ok`.
+- Read-only data hooks return `useQuery({ queryKey: [...], queryFn })` with a stable tuple key (e.g. `["activate", query, scope]`, `["spaces", options]`, `["protocol", uri]`, `["me"]`).
+- Mutating operations expose a hook returning `useMutation({ mutationFn })` rather than exposing raw fetch calls directly.
+- Local storage keys are declared as module-level constants (`STORAGE_KEY`, `THEME_PREFERENCE_STORAGE_KEY`) and values are guarded with `typeof window !== 'undefined'` checks for SSR safety.
+- Legacy server payload shapes are normalized inside a dedicated helper (e.g. `normalizeRunSession`) that maps old field names to current ones before being persisted or returned.

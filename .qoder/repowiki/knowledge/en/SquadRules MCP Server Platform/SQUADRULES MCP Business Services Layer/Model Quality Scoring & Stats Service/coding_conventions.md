@@ -1,0 +1,5 @@
+- Pure computation lives in dedicated files (`scoring.ts`, `bonuses.ts`, `healer.ts`) returning calculated values, while `model-stats.ts` handles side effects (persistence, metrics, state mutation).
+- External service dependencies are loaded lazily via dynamic `import()` inside async functions (e.g. `qdrantService` in `protocol.ts`) to avoid circular module initialization.
+- Shared data shapes are declared once in `types.ts` and imported as `type`-only bindings by all consumers to keep runtime coupling minimal.
+- Persistent counters use Redis hash keys prefixed with `stats:` (`stats:state`, `stats:implementationBonusTotals`, `stats:rareSuccessCounts`) accessed through `keyValueStore.hgetall`/`hsetall`.
+- Error paths return conservative default values rather than throwing (e.g. protocol calculation falls back to `{ workflow_total_potential: 1, workflow_quality: 'Standard Protocol' }`).

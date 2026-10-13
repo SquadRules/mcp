@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: ui/hooks
+title: UI React Hooks for Agent Workflow & Protocol Editor
+scope:
+    - src/ui/hooks/
+source_files: []
+depends_on: []
+related_to: []

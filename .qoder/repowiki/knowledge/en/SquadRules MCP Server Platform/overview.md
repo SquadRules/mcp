@@ -1,0 +1,1 @@
+Node.js MCP server that boots a shared runtime (memory store, embedding probe, vector store) and exposes it over HTTP or stdio transports, with CLI, web UI, and embedded docs as client surfaces.

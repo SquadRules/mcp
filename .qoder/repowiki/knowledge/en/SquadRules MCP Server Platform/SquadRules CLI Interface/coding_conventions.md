@@ -1,0 +1,5 @@
+- Each command module exports a single registration function taking a Commander `Command` instance (e.g. `activateCommand(program)`) rather than defining its own parser.
+- Transports are selected centrally via `resolve-backend.ts` using the `ResolvedTarget` discriminated union (`kind: 'local' | 'http'`); command handlers consume `ActionBackend` and never branch on URL schemes themselves.
+- Global CLI flags are propagated to child processes and downstream helpers by writing `SQUADRULES_*` environment variables inside the Commander `preAction` hook instead of passing them through nested option objects.
+- Secrets in the config file are represented as `__KEYCHAIN__` placeholders when backed by the OS keyring, with migration logic that promotes inline tokens to the keyring on first read.
+- Every domain output type exposes paired `renderXxxPretty` / `renderXxxText` functions in `render.ts`, consuming typed output interfaces from `../tools/*_schema.js`.

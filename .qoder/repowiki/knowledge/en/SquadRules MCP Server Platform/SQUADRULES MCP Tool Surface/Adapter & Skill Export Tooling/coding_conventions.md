@@ -1,0 +1,5 @@
+- Export format variants are dispatched as string literals on `input.format` in the main `executeExportImpl`, with each branch returning a typed `ExportOutput` object rather than using separate functions.
+- Input validation combines Zod primitive enums with a single `superRefine` block that cross-checks mutually exclusive selection modes (`uri` / `adapters` / `all_adapters`) and format-specific constraints.
+- Skill export items flow through a pipeline of pure transform functions (`assembleSkillExportItem` → `loadArtifactFilesForAdapter` → `appendSha256SumsToSkillExportItem`) composed inside `collectSkillExportItemsForZip`.
+- Concurrent export metrics are isolated per request by wrapping work in `runExportTelemetryContext` and writing byte counts via `setSkillZipDecodedBytes` against an `AsyncLocalStorage` store instead of module-level globals.
+- Adapters are always referenced through canonical `squadrules://adapter/{slug}` URIs, with `normalizeAdapterUri` auto-prefixing bare slugs supplied by callers.

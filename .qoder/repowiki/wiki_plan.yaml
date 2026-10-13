@@ -1,0 +1,32 @@
+version: 1
+scope:
+  include:
+    - "src/**"
+    - "docs/**"
+    - ".agents/**"
+  exclude:
+    - "tests/**"
+    - "dist/**"
+    - "node_modules/**"
+    - "**/*.test.ts"
+    - "**/*.spec.ts"
+repowiki:
+  template: architecture
+  notes:
+    - text: "SquadRules is an agent-first MCP framework: AI agents are the primary users, humans configure preferences through agents. One AI + one human = team."
+    - text: "Core flow: activate → forward → reward chain. Adapters provide deterministic, auditable task execution. Agents must create/repair adapters when workflows change."
+    - text: "Vector DBs: Qdrant (primary, remote-capable), LanceDB (secondary, embedded). Both used for semantic search of rules and workflows."
+    - text: "Storage: Redis (sessions, rate limiting), vector DB (embeddings), filesystem (config, adapters). No traditional relational DB."
+    - text: "Auth: Keycloak + Google IdP for OAuth2/JWT. See docs/keycloak/ for setup. JWT tokens validate both human and agent requests."
+    - text: "Skills in .agents/skills/ are hand-authored routing logic, never auto-generated. squadrules skill is the canonical action router."
+    - text: "MCP tools: activate, forward, train, reward, tune, delete, export, spaces. Tools follow the activate→forward→reward chain."
+    - text: "Agent autonomy: agents must consult team knowledge before acting, even for familiar tasks. Familiarity ≠ established preference."
+    - text: "Documentation split: .qoder/repowiki/ is auto-generated from code (synced to GitHub Wiki). docs/ is curated for non-code-derivable content (Keycloak setup, security, ADRs)."
+    - text: "Build: npm run build compiles TypeScript + React UI. Tests: Jest (unit), Vitest (UI). Lint: ESLint + markdownlint + custom doc-link checker."
+knowledgecard:
+  notes:
+    - text: "Agent-first design: build for AI agents as primary users. Humans interact through agents or configure via agent-assisted workflows."
+    - text: "Workflow engine: activate (intent detection) → forward (adapter execution) → reward (outcome validation). Adapters are auto-created/repaired by agents."
+    - text: "Module boundaries: src/tools/ (MCP tools), src/services/ (business logic), src/http/ (REST API), src/cli/ (CLI interface), src/embed-docs/ (embedded documentation for tools)."
+    - text: "Testing contract: unit tests in tests/unit/, integration in tests/integration/. Use testcontainers for Redis/Qdrant. npm run test executes full suite."
+    - text: "Documentation governance: see documentation-authority.md rule. Wiki is code-derivable, docs/ is curated. Never hand-edit .qoder/repowiki/."

@@ -1,0 +1,1 @@
+Shared utilities for SquadRules MCP tools: rendering proof-of-work challenges for display, the genesis proof hash, and a squadrules:// URI parser/builder.

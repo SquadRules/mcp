@@ -1,0 +1,469 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: chore/prune-agent-assets
+nodes_managed: true
+exported_at: "2026-10-13T10:15:37Z"
+modules:
+    "":
+        dir_name: SquadRules MCP Server Platform
+        title: SquadRules MCP Server Platform
+        scope: []
+        source_files: []
+        children:
+            - cli
+            - config
+            - docs
+            - embed_docs
+            - http_server
+            - mcp_apps
+            - resources
+            - services
+            - tools
+            - ui
+            - utils
+        depends_on: []
+        related_to: []
+    cli:
+        dir_name: SquadRules CLI Interface
+        title: SquadRules CLI Interface
+        scope:
+            - src/cli/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: http_server
+    config:
+        dir_name: Runtime Configuration & Environment Resolution
+        title: Runtime Configuration & Environment Resolution
+        scope:
+            - src/config/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    docs:
+        dir_name: Curated Documentation & Architecture Decision Records
+        title: Curated Documentation & Architecture Decision Records
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    embed_docs:
+        dir_name: Embedded Documentation Bundle for MCP Tools & Meta-Protocols
+        title: Embedded Documentation Bundle for MCP Tools & Meta-Protocols
+        scope:
+            - src/embed-docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: resources
+    http_server:
+        dir_name: HTTP Server & REST_MCP API Layer
+        title: HTTP Server & REST/MCP API Layer
+        scope:
+            - src/http/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: cli
+            - path: tools
+            - path: ui
+    mcp_apps:
+        dir_name: MCP Apps Widget Assets & Registration
+        title: MCP Apps Widget Assets & Registration
+        scope:
+            - src/mcp-apps/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools
+    resources:
+        dir_name: MCP Resource & Prompt Bootstrap, Embedded Docs, and Built-in Adapters
+        title: MCP Resource & Prompt Bootstrap, Embedded Docs, and Built-in Adapters
+        scope:
+            - src/resources/
+            - src/constants/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: embed_docs
+    services:
+        dir_name: SQUADRULES MCP Business Services Layer
+        title: SQUADRULES MCP Business Services Layer
+        scope:
+            - src/services/
+        source_files: []
+        children:
+            - services/cross_cutting_stores
+            - services/embedding_service
+            - services/memory_store
+            - services/metrics_registry
+            - services/qdrant_client
+            - services/stats_scoring
+            - services/vector_store
+        depends_on: []
+        related_to: []
+    services/cross_cutting_stores:
+        dir_name: Cross-Cutting Services & Storage Backends
+        title: Cross-Cutting Services & Storage Backends
+        scope:
+            - src/services/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    services/embedding_service:
+        dir_name: Embedding Service & Multi-Provider Backend
+        title: Embedding Service & Multi-Provider Backend
+        scope:
+            - src/services/embedding/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: services/memory_store
+    services/memory_store:
+        dir_name: Qdrant Memory Store & Adapter Pipeline
+        title: Qdrant Memory Store & Adapter Pipeline
+        scope:
+            - src/services/memory/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: services/embedding_service
+            - path: services/qdrant_client
+    services/metrics_registry:
+        dir_name: Prometheus Metrics Registry & Domain Observability
+        title: Prometheus Metrics Registry & Domain Observability
+        scope:
+            - src/services/metrics/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    services/qdrant_client:
+        dir_name: Qdrant Vector Store Service
+        title: Qdrant Vector Store Service
+        scope:
+            - src/services/qdrant/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: services/memory_store
+    services/stats_scoring:
+        dir_name: Model Quality Scoring & Stats Service
+        title: Model Quality Scoring & Stats Service
+        scope:
+            - src/services/stats/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    services/vector_store:
+        dir_name: Vector Record & Execution Trace Persistence Layer
+        title: Vector Record & Execution Trace Persistence Layer
+        scope:
+            - src/services/vector-store/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    tools:
+        dir_name: SQUADRULES MCP Tool Surface
+        title: SQUADRULES MCP Tool Surface
+        scope:
+            - src/tools/
+        source_files: []
+        children:
+            - tools/activate_forward
+            - tools/artifact_catalog
+            - tools/delete_update_dump
+            - tools/export_tools
+            - tools/forward_runtime
+            - tools/next_pow_challenge
+            - tools/reward
+            - tools/search
+            - tools/squadrules_challenge
+            - tools/train_artifact_helpers
+            - tools/train_tune
+        depends_on: []
+        related_to:
+            - path: http_server
+            - path: mcp_apps
+    tools/activate_forward:
+        dir_name: Adapter Activation & Forward Execution Tools
+        title: Adapter Activation & Forward Execution Tools
+        scope:
+            - src/tools/activate.ts
+            - src/tools/activate_schema.ts
+            - src/tools/forward.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/search
+    tools/artifact_catalog:
+        dir_name: Artifact Catalog & Path_MIME Utilities
+        title: Artifact Catalog & Path/MIME Utilities
+        scope:
+            - src/tools/artifact-catalog.ts
+            - src/tools/artifact-mime.ts
+            - src/tools/artifact-relative-path.ts
+            - src/tools/local-artifact-dir-contract.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/export_tools
+    tools/delete_update_dump:
+        dir_name: Delete _ Update _ Dump MCP Tools
+        title: Delete / Update / Dump MCP Tools
+        scope:
+            - src/tools/delete.ts
+            - src/tools/delete_schema.ts
+            - src/tools/update.ts
+            - src/tools/update_schema.ts
+            - src/tools/dump.ts
+            - src/tools/dump_schema.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    tools/export_tools:
+        dir_name: Adapter & Skill Export Tooling
+        title: Adapter & Skill Export Tooling
+        scope:
+            - src/tools/export.ts
+            - src/tools/export_schema.ts
+            - src/tools/export-selection.ts
+            - src/tools/export-source.ts
+            - src/tools/export-telemetry.ts
+            - src/tools/export-reward-jsonl.ts
+            - src/tools/export-skill-items.ts
+            - src/tools/skill-export/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/artifact_catalog
+    tools/forward_runtime:
+        dir_name: MCP Tool Runtime & Forward Adapter Execution
+        title: MCP Tool Runtime & Forward Adapter Execution
+        scope:
+            - src/tools/forward-register.ts
+            - src/tools/forward-tool-error.ts
+            - src/tools/forward-trace.ts
+            - src/tools/forward-view.ts
+            - src/tools/forward-helpers.ts
+            - src/tools/export-resolve-adapter.ts
+            - src/tools/mcp-contract-match.ts
+            - src/tools/mcp-loose-input-schema.ts
+            - src/tools/mcp-runtime-error.ts
+            - src/tools/mcp-tool-input-teaching.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/next_pow_challenge
+    tools/next_pow_challenge:
+        dir_name: Forward Step & Proof-of-Work Engine
+        title: Forward Step & Proof-of-Work Engine
+        scope:
+            - src/tools/next.ts
+            - src/tools/next_schema.ts
+            - src/tools/next-pow-helpers.ts
+            - src/tools/next-pow-challenge-shape.ts
+            - src/tools/next-proof-types.ts
+            - src/tools/next-missing-proof-payload.ts
+            - src/tools/next-previous-step.ts
+            - src/tools/shell-challenge-invocation.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/forward_runtime
+            - path: tools/squadrules_challenge
+    tools/reward:
+        dir_name: Reward Signals & Review Gate Utilities
+        title: Reward Signals & Review Gate Utilities
+        scope:
+            - src/tools/reward.ts
+            - src/tools/reward_schema.ts
+            - src/tools/review-evidence-check.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/train_tune
+    tools/search:
+        dir_name: Adapter Search & Activation Tool
+        title: Adapter Search & Activation Tool
+        scope:
+            - src/tools/search.ts
+            - src/tools/search_output.ts
+            - src/tools/search_schema.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/activate_forward
+    tools/squadrules_challenge:
+        dir_name: SquadRules Challenge Display & URI Utilities
+        title: SquadRules Challenge Display & URI Utilities
+        scope:
+            - src/tools/squadrules-challenge-display.ts
+            - src/tools/squadrules-genesis-proof-hash.ts
+            - src/tools/squadrules-uri.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/next_pow_challenge
+    tools/train_artifact_helpers:
+        dir_name: Train & Tune Tooling for Adapter Artifacts
+        title: Train & Tune Tooling for Adapter Artifacts
+        scope:
+            - src/tools/train-store.ts
+            - src/tools/train-mime.ts
+            - src/tools/train-artifact-adapter-uri.ts
+            - src/tools/train-output-adapter-uri.ts
+            - src/tools/tune-cache-invalidation.ts
+            - src/tools/tune-execute.ts
+            - src/tools/tune-messages.ts
+            - src/tools/tune-verify.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    tools/train_tune:
+        dir_name: Train & Tune MCP Tools
+        title: Train & Tune MCP Tools
+        scope:
+            - src/tools/train.ts
+            - src/tools/train_schema.ts
+            - src/tools/tune.ts
+            - src/tools/tune_schema.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: tools/reward
+    ui:
+        dir_name: SQUADRULES MCP Web UI
+        title: SQUADRULES MCP Web UI
+        scope:
+            - src/ui/
+        source_files: []
+        children:
+            - ui/account_skill_squadrules
+            - ui/app_shell
+            - ui/home_runs
+            - ui/hooks
+            - ui/i18n_theme
+            - ui/protocol_pages
+            - ui/shared_components
+            - ui/shared_lib_utils
+        depends_on: []
+        related_to:
+            - path: http_server
+    ui/account_skill_squadrules:
+        dir_name: Account, Skill Bundle & Squadrules Pages
+        title: Account, Skill Bundle & Squadrules Pages
+        scope:
+            - src/ui/pages/AccountPage.tsx
+            - src/ui/pages/SkillBundlePage.tsx
+            - src/ui/pages/SquadrulesPage.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/app_shell:
+        dir_name: React App Shell & Entry Point
+        title: React App Shell & Entry Point
+        scope:
+            - src/ui/App.tsx
+            - src/ui/main.tsx
+            - src/ui/index.html
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/home_runs:
+        dir_name: Protocol Runs & Home Landing Pages
+        title: Protocol Runs & Home Landing Pages
+        scope:
+            - src/ui/pages/HomePage.tsx
+            - src/ui/pages/RunsPage.tsx
+            - src/ui/pages/RunGuidedPage.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/hooks:
+        dir_name: UI React Hooks for Agent Workflow & Protocol Editor
+        title: UI React Hooks for Agent Workflow & Protocol Editor
+        scope:
+            - src/ui/hooks/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/i18n_theme:
+        dir_name: UI Internationalization & Design Tokens
+        title: UI Internationalization & Design Tokens
+        scope:
+            - src/ui/i18n/
+            - src/ui/theme/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/protocol_pages:
+        dir_name: Protocol Editor & Detail Pages
+        title: Protocol Editor & Detail Pages
+        scope:
+            - src/ui/pages/protocol-edit/
+            - src/ui/pages/ProtocolDetailPage.tsx
+            - src/ui/pages/ProtocolEditPage.tsx
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/shared_components:
+        dir_name: Shared UI Components & Run Workflow Views
+        title: Shared UI Components & Run Workflow Views
+        scope:
+            - src/ui/components/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    ui/shared_lib_utils:
+        dir_name: UI Shared Library & Utilities
+        title: UI Shared Library & Utilities
+        scope:
+            - src/ui/lib/
+            - src/ui/utils/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    utils:
+        dir_name: Cross-Cutting Utilities & Shared Infrastructure
+        title: Cross-Cutting Utilities & Shared Infrastructure
+        scope:
+            - src/utils/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []

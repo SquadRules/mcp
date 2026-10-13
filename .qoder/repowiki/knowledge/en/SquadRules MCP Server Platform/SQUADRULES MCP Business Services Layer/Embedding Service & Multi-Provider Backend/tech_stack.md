@@ -1,0 +1,1 @@
+Three embedding backends: OpenAI Embeddings API (`OPENAI_API_KEY` + `OPENAI_EMBEDDING_MODEL`), Text Embeddings Inference (`TEI_BASE_URL` + `TEI_MODEL`, deprecated per issue #11), and local fastembed (`fastembed.FlagEmbedding` with ONNX weights cached under `FASTEMBED_CACHE_DIR`). The fastembed SDK is dynamically `import()`-ed so native bindings load only when selected.

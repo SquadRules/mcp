@@ -1,0 +1,1 @@
+TypeScript MCP SDK for the tool/server contract, Express for the HTTP transport, Qdrant for vector search, LanceDB for embedded vector record storage, Redis for optional caching/state, and a shared metrics subsystem (`src/services/metrics/`) exposed on a separate port.

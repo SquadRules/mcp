@@ -1,0 +1,1 @@
+TypeScript against Qdrant via `services/qdrant/service.js` for vector storage, Redis via `services/redis-cache.js` for read-through caching of adapter layers, and frontmatter parsing through `utils/frontmatter.js`.

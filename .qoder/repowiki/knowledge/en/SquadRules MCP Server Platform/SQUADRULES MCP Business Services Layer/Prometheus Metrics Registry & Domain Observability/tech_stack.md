@@ -1,0 +1,1 @@
+Prometheus client library (`prom-client`) — Counter, Histogram, Gauge, and Registry types; no custom serialization since the `/metrics` endpoint is served elsewhere.

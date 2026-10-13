@@ -1,0 +1,1 @@
+At application startup `probeEmbeddingDimension()` must be called before any Qdrant store initialization; it performs a minimal embed to resolve and cache the vector dimension, after which `getResolvedEmbeddingDimension()` will throw if accessed too early. Provider selection follows `EMBEDDING_PROVIDER` env var (`openai` | `tei` | `fastembed` | auto).
