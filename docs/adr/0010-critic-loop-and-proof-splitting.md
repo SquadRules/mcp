@@ -40,8 +40,8 @@ Adopt a **two-layer guardrail model** and rename the critic to match its contrac
    — a stored adapter forwarding to the old slug must be re-pointed — but the
    project currently has a single consumer (the owner) and no external integrations,
    so it ships as a **non-breaking refactor**: no compatibility alias and no
-   major-version bump, with the owner re-pointing the stored Personal-space git
-   protocols. "Loop" tells the agent the critic must be *satisfied*, not run once.
+   major-version bump; re-pointing the owner's stored adapters is left to the
+   owner. "Loop" tells the agent the critic must be *satisfied*, not run once.
 2. **The critic loop is fed the requirements and bounded.** Its input contract
    carries the original `requirements` list plus `iteration` / `max_iterations`;
    the verdict asserts requirement-by-requirement coverage (`requirement_gap` on a
@@ -74,8 +74,8 @@ Adopt a **two-layer guardrail model** and rename the critic to match its contrac
 - **Backward-incompatible slug.** A stored adapter or external integration
   forwarding to `squadrules://adapter/phase-critic` would break silently until
   re-pointed. Accepted without a major-version bump because the project has a
-  single consumer (the owner) and no published integrations; the owner re-points
-  the stored Personal adapters. Revisit if external consumers appear.
+  single consumer (the owner) and no published integrations; re-pointing adapters
+  the owner stores is the owner's call. Revisit if external consumers appear.
 - Authors must write real conjunctions rather than a single lazy assert.
 
 ## Alternatives Considered

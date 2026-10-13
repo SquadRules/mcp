@@ -41,9 +41,9 @@ Keep `critic-loop` a single adapter and broaden what it can be given.
    The precondition contract becomes "a submission handoff exists":
    `test -f "${WORK_MANIFEST:-}" || test -f "${INPUT_FILE:-}"`.
 3. **`input_file` survives as an accepted alias**, meaning a one-item `file_set`.
-   Callers outside this repository already pass it: the shipped
-   `git-commit-protocol` adapter instructs the agent to hand the commit's work over
-   as `input_file`. Dropping the field would break those callers for no functional
+   Callers outside this repository already pass it: a stored user-space adapter
+   instructs the agent to hand the commit's work over as `input_file`. Dropping
+   the field would break those callers for no functional
    gain — the same reasoning that keeps redirect tombstones in
    [ADR 0012](0012-redirect-tombstones-for-renamed-slugs.md).
 4. **A new `Resolve Submission` layer** sits between Precondition Check and
@@ -120,7 +120,7 @@ requirement coverage, and verdict rules drifting apart.
   assertion and the size ceiling still hold with `critic-loop` at 288 lines and 4
   contract blocks. Integration suites were not run locally — they need the CI
   cluster stack; the PR's Cluster and Single lanes carry that proof.
-- `export` of the stored `git-commit-protocol` v1.1.0 (Personal space) shows a
+- `export` of a stored user-space adapter shows a
   `Phase-Critic Review` layer that passes "this work" as `input_file` and forwards
   to the `phase-critic` tombstone slug — direct evidence that the alias is load-
   bearing outside this repository, and that this change needed to be additive.
