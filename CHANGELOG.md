@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.1](https://github.com/SquadRules/mcp/compare/v5.6.0...v5.6.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* rename create-new-protocol to author-adapter with redirect tombstone ([#63](https://github.com/SquadRules/mcp/issues/63)) ([c89282f](https://github.com/SquadRules/mcp/commit/c89282f5ee380ac222920c1d793e88cae143af28))
+
 ## [5.6.0](https://github.com/SquadRules/mcp/compare/v5.5.1...v5.6.0) (2026-10-13)
 
 
