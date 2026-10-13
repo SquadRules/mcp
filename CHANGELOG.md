@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.0](https://github.com/SquadRules/mcp/compare/v5.5.1...v5.6.0) (2026-10-13)
+
+
+### Features
+
+* **cli:** rich default output with colors and ASCII tables ([#61](https://github.com/SquadRules/mcp/issues/61)) ([9d9dc62](https://github.com/SquadRules/mcp/commit/9d9dc62fe87918f0e8c21dbd2247f7e97438c09d))
+
 ## [5.5.1](https://github.com/SquadRules/mcp/compare/v5.5.0...v5.5.1) (2026-10-13)
 
 
