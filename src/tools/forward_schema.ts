@@ -1,3 +1,4 @@
+import { authoringContextSchema } from './authoring-context.js';
 import { z } from 'zod';
 import { ADAPTER_SLUG_URI_INPUT_REGEX, LAYER_URI_INPUT_REGEX } from './squadrules-uri.js';
 
@@ -100,6 +101,7 @@ const forwardNextCallSchema = z.discriminatedUnion('kind', [
     args: z
       .object({
         uri: layerUriSchema,
+        authoring: authoringContextSchema.optional(),
         solution_template: solutionTemplateSchema
       })
       .strict()
@@ -242,6 +244,7 @@ export const FORWARD_SOLUTION_FORBIDDEN_ON_START_MESSAGE =
   'Omit `solution` when starting a run (`squadrules://adapter/...` or `squadrules://layer/{uuid}` without `?execution_id=...`). The first call loads `contract`; then call `forward` again with the layer URI including `?execution_id=...` and a `solution` whose `type` matches `contract.type` (prefer v2: include `outcome` and `evidence`).';
 
 export const forwardInputSchema = z.object({
+  authoring: authoringContextSchema.optional().describe("Authoring operation and target from activate. Fixed for this execution; omitted continuation values are restored from server state."),
   uri: forwardUriSchema.describe('Adapter or layer URI'),
   solution: forwardSolutionSchema
     .optional()
@@ -307,6 +310,7 @@ const forwardWireSolutionSchema = z
 
 export const forwardMcpWireInputSchema = z
   .object({
+    authoring: authoringContextSchema.optional().describe("Copy authoring from activate.forward_first_call. Identifies create/review/update and the existing target; does not grant mutation permission."),
     uri: z
       .string()
       .optional()
@@ -318,6 +322,7 @@ export const forwardMcpWireInputSchema = z
   .passthrough();
 
 export const forwardOutputSchema = z.object({
+  authoring: authoringContextSchema.optional(),
   must_obey: z.boolean(),
   current_layer: z.object({ uri: layerUriSchema, content: z.string(), mimeType: z.literal('text/markdown') }).optional().nullable(),
   contract: forwardContractSchema,

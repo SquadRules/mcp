@@ -5,7 +5,7 @@ import { getTestSpaceId } from '../../utils/auth-headers.js';
 import type { ActivateChoice } from '../v4-activate-test-helpers.js';
 
 const URI_REFINE_SEARCH = 'squadrules://adapter/refine-search' as const;
-const URI_CREATE_PROTOCOL = 'squadrules://adapter/create-new-protocol' as const;
+const URI_CREATE_PROTOCOL = 'squadrules://adapter/author-adapter' as const;
 
 describe('v4-activate refinement gating', () => {
   let mcpConnection: Awaited<ReturnType<typeof createMcpConnection>>;

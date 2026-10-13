@@ -267,12 +267,14 @@ export async function buildForwardView(
         kind: 'forward' as const,
         args: {
           uri: layer.uri,
+          ...(meta?.authoring ? { authoring: meta.authoring } : {}),
           solution_template: buildEmptySolutionTemplate(contract.type)
         }
       };
   return {
     must_obey: options?.mustObey ?? true,
     current_layer: layer,
+    ...(meta?.authoring ? { authoring: meta.authoring } : {}),
     contract,
     next_call: nextCall,
     ...(tensorIn && Object.keys(tensorIn).length > 0 ? { tensor_in: tensorIn } : {}),

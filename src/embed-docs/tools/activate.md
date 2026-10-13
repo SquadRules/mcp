@@ -70,3 +70,28 @@ When several spaces contain similar adapters, the server prefers your **default 
 - Pick **one** choice and obey **that** choice’s `next_action` (not a different URI).
 - Weak matches (e.g. all scores &lt; 0.5): prefer the refine choice once before creating.
 - If you re-run `activate` more than twice with the same `execution_id`, the default refine footer is removed so you stop looping and instead create a custom adapter/workflow or ask the user clarifying questions.
+
+
+## Adapter authoring requests
+
+When the user asks to create, review, or update an adapter itself, supply
+`authoring` with the operation inferred from their request. For review/update,
+resolve the existing target URI first; do not guess a slug from a display name.
+Do not supply this field when the user wants to execute an adapter.
+
+```json
+{
+  "query": "update existing PR adapter worktree isolation",
+  "authoring": {
+    "operation": "update",
+    "target_adapter_uri": "squadrules://adapter/git-pr-protocol"
+  }
+}
+```
+
+Explicit authoring intent returns the `author-adapter` workflow as a match with
+operation and target in `forward_first_call`. Copy that entire object to forward.
+This is deterministic routing of a known operation; ordinary queries continue to
+use semantic discovery. Missing targets or unavailable authoring workflows fail
+without falling back to creation. This context is not a grant of permission.
+The original `author-adapter` name continues to resolve to the same workflow.

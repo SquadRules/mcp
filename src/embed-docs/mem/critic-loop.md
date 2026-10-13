@@ -1,5 +1,5 @@
 ---
-version: "5.6.0"
+version: "5.6.1"
 slug: critic-loop
 title: Critic Loop
 ---
@@ -49,7 +49,7 @@ validation, or review phase via `forward` with the stored adapter URI
 - compose protocol fires this after output generation → run this protocol
 
 **Bad trigger examples:**
-- "Create a new protocol" → use `create-new-protocol`
+- "Create a new protocol" → use `author-adapter`
 - "Implement a feature" → use an execution protocol, not this one
 
 ## Artifact Contract

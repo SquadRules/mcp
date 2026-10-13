@@ -1,3 +1,4 @@
+import type { AuthoringContext } from '../tools/authoring-context.js';
 import { keyValueStore } from './key-value-store-factory.js';
 import { logger } from '../utils/structured-logger.js';
 
@@ -8,6 +9,7 @@ export interface ForwardExecutionMeta {
   adapter_id: string;
   adapter_uri: string;
   activation_query?: string;
+  authoring?: AuthoringContext;
   /** When forward started from an ambiguous slug URI, echoed on forward responses for this run. */
   slug_disambiguation_note?: string;
   merge_depth: number;

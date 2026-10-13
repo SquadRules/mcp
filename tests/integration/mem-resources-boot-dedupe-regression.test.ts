@@ -41,10 +41,10 @@ _d('Mem resources boot injection dedupe regression', () => {
       // First boot: train all adapters
       await injectMemResourcesAtBoot(memoryStore, { force: true });
 
-      // Find the first-layer point for 'create-new-protocol' by slug
+      // Find the first-layer point for 'author-adapter' by slug
       const slugFilter = {
         must: [
-          { key: 'slug', match: { value: 'create-new-protocol' } },
+          { key: 'slug', match: { value: 'author-adapter' } },
           { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
           { key: 'adapter.layer_index', match: { value: 1 } }
         ]
@@ -76,7 +76,7 @@ _d('Mem resources boot injection dedupe regression', () => {
       // Second boot (force): should detect the slug still exists but retrain anyway
       await injectMemResourcesAtBoot(memoryStore, { force: true });
 
-      // Verify: at least one point with slug 'create-new-protocol' exists in app space
+      // Verify: at least one point with slug 'author-adapter' exists in app space
       const restored = await client.scroll(collection, {
         filter: slugFilter,
         limit: 1,

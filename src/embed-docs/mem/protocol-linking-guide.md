@@ -1,5 +1,5 @@
 ---
-version: "5.6.0"
+version: "5.6.1"
 slug: protocol-linking-guide
 title: Protocol Linking Guide
 ---
@@ -14,7 +14,7 @@ validation for deterministic cross-protocol linking.
 
 ## Activation Patterns
 
-**Typically invoked by:** `create-new-protocol` and
+**Typically invoked by:** `author-adapter` and
 `critic-loop`.
 
 **Can be invoked directly when agent needs:**
@@ -41,7 +41,7 @@ validation for deterministic cross-protocol linking.
 
 **Bad trigger examples:**
 - "which challenge type for this step?" → use `challenge-type-guide`
-- "create a new protocol" → use `create-new-protocol`
+- "create a new protocol" → use `author-adapter`
 
 ## Layers vs Chains
 

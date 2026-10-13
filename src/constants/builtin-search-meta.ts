@@ -1,3 +1,4 @@
+import { AUTHORING_ADAPTER_SLUG } from '../utils/adapter-alias.js';
 import type { Memory } from '../types/memory.js';
 import { getMetaDoc } from '../resources/embedded-mcp-resources.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
@@ -6,10 +7,10 @@ import { parseFrontmatter } from '../utils/frontmatter.js';
 export const SQUADRULES_REFINING_PROTOCOL_SLUG = 'refine-search';
 
 /** Built-in adapter authoring flow; always appended as an **activate** footer choice (not a vector match). */
-export const SQUADRULES_CREATION_PROTOCOL_SLUG = 'create-new-protocol';
+export const SQUADRULES_CREATION_PROTOCOL_SLUG = 'author-adapter';
 
 /** Set of built-in protocol slugs used for search filtering. */
-export const BUILTIN_PROTOCOL_SLUGS = new Set([SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG]);
+export const BUILTIN_PROTOCOL_SLUGS = new Set([SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG, AUTHORING_ADAPTER_SLUG]);
 
 function getMetaDocTitle(slug: string, fallbackTitle: string): string {
   const doc = getMetaDoc(slug);

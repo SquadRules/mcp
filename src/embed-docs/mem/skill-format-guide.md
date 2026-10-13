@@ -1,5 +1,5 @@
 ---
-version: "5.6.0"
+version: "5.6.1"
 slug: skill-format-guide
 title: Skill Format and Local Authoring Guide
 ---
@@ -17,7 +17,7 @@ is `skill`.
 
 ## Activation Patterns
 
-**Typically invoked by:** `create-new-protocol` and
+**Typically invoked by:** `author-adapter` and
 `critic-loop`.
 
 **Can be invoked directly when agent needs:**
@@ -50,7 +50,7 @@ is `skill`.
 
 **Bad trigger examples:**
 - "which challenge type for this step?" → use `challenge-type-guide`
-- "create a new protocol" → use `create-new-protocol`
+- "create a new protocol" → use `author-adapter`
 
 ## Storage Decision
 

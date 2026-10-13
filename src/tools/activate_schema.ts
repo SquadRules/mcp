@@ -1,3 +1,4 @@
+import { authoringContextSchema } from './authoring-context.js';
 import { z } from 'zod';
 import { SQUADRULES_SEARCH_LIMIT_CAP, SQUADRULES_SEARCH_LIMIT_MIN } from '../config.js';
 
@@ -15,7 +16,8 @@ const adapterSlugUriSchema = z
   );
 const forwardFirstCallSchema = z
   .object({
-    uri: adapterSlugUriSchema
+    uri: adapterSlugUriSchema,
+    authoring: authoringContextSchema.optional()
   })
   .strict();
 const executionIdSchema = z
@@ -67,6 +69,7 @@ const activateCreateChoiceSchema = activateChoiceCommonSchema.extend({
 });
 
 export const activateInputSchema = z.object({
+  authoring: authoringContextSchema.optional().describe("For adapter create/review/update requests, supply the operation and existing target URI for review/update. Routes to the authoring workflow, not execution of the target."),
   query: z.string().min(1).describe('Activation query used to find the best matching adapter'),
   execution_id: executionIdSchema
     .optional()
