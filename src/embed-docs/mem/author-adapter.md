@@ -274,9 +274,11 @@ autonomous quality loop — the agent owns content, the critic owns quality, and
 human approval is requested at any point.
 
 1. Invoke critic-loop via `forward` with `squadrules://adapter/critic-loop`.
-   Provide the drafted markdown as `input_file`, the slug as
-   `calling_protocol_slug`, and "structural compliance and agent behaviour"
-   as `verification_target`.
+   Submit the drafted markdown as a `file_set` work submission — write
+   `kind: file_set`, `root: <directory of the draft>`, then the drafted file
+   under `items:` into the handoff pointed to by `$WORK_MANIFEST` — with the
+   slug as `calling_protocol_slug` and "structural compliance and agent
+   behaviour" as `verification_target`.
 2. Run the FAIL gate shell contract on the verdict file:
 
 ```json

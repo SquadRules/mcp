@@ -9,12 +9,13 @@ title: Critic Loop
 # Critic Loop
 
 Bounded adversarial investigator that the calling protocol **loops until it
-returns PASS** — not a one-shot review. Receives a reference document, the
+returns PASS** — not a one-shot review. Receives a work submission (files,
+links, a git diff, a pull request, command output, or inline text), the
 original requirement list, and the calling protocol's invariants, then
-independently verifies the target by extracting claims, gathering evidence,
-searching for contradictions, and checking requirement-by-requirement coverage.
-A FAIL sends the caller back to fix and re-invoke; the loop is bounded by an
-explicit iteration ceiling (see Verdict).
+independently verifies the submitted work by extracting claims, gathering
+evidence, searching for contradictions, and checking requirement-by-requirement
+coverage. A FAIL sends the caller back to fix and re-invoke; the loop is bounded
+by an explicit iteration ceiling (see Verdict).
 
 ## Activation Patterns
 
@@ -30,7 +31,7 @@ validation, or review phase via `forward` with the stored adapter URI
 (phase / plan / implementation / output).
 
 **Must Never:**
-- Modify any file outside the provided input and output paths.
+- Modify any submitted item or any file other than the verdict path.
 - Trust the executor's assertions without independent evidence.
 - Classify a claim as `verified` based only on absence of contradiction.
 - Keep investigating after a precondition failure that blocks verification.
@@ -58,10 +59,16 @@ This protocol receives:
 
 ```text
 {
-  input_file: string,              // absolute path to the document under review
+  work: {
+    kind: 'file_set' | 'links' | 'git_diff' | 'pr' | 'command_output' | 'inline',
+    items: string[],              // paths | URLs | 'base..head' refs | PR URL/number | commands | text
+    root: string                  // absolute cwd used to resolve relative paths, refs and commands
+  },
+  work_manifest: string,          // absolute path to the handoff file recording `work`
+  input_file: string,             // accepted alias: a one-item work.kind='file_set'
   calling_protocol_slug: string,
   verification_target: string,
-  requirements: string[],          // original intent / requirement list to check coverage against
+  requirements: string[],         // original intent / requirement list to check coverage against
   context: {
     operation: string,
     verdict_file: string,          // absolute path where the verdict will be written
@@ -70,6 +77,12 @@ This protocol receives:
   }
 }
 ```
+
+The submission is the **work itself**, not an essay about it. Write `work` to
+`$WORK_MANIFEST` as flat keys so the handoff stays machine-checkable:
+`kind:`, `root:`, then `items:` with one item per line. Callers that still pass
+only `input_file` are handled as `kind: file_set` with that single path; the
+review rules do not change, only the scope of what is submitted.
 
 This protocol produces:
 
@@ -88,14 +101,16 @@ This protocol produces:
 Verify foundational preconditions before deep investigation. Early-abort if any
 are broken.
 
-**Input:** `$INPUT_FILE` (absolute path), calling protocol slug, context
+**Input:** `$WORK_MANIFEST` (or the older-spelling `$INPUT_FILE`), calling protocol slug, context
 
 **Actions:**
-1. Verify the input file exists: `test -f "$INPUT_FILE"`.
+1. Verify a submission handoff is present: `$WORK_MANIFEST`, or `$INPUT_FILE`
+   when the caller passed no manifest.
 2. Verify the verdict output path is writable (parent directory exists).
 3. Load the calling protocol's Must Never / Must Always sections if possible.
 4. Verify the target state is available for review.
-5. Verify required tools are available.
+5. Verify required tools are available for the submission's `kind` (a `pr`
+   submission with no `gh` on the host is `verification_blocked`, not skipped).
 
 **On early-abort:**
 - verdict = `FAIL`
@@ -107,15 +122,52 @@ are broken.
 **Output:** verified preconditions or early-abort diagnostics
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"$INPUT_FILE\"","timeout_seconds":3},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","timeout_seconds":3},"required":true}}
+```
+
+## Resolve Submission [SUBAGENT]
+
+Turn the submission into the material under review. What cannot be resolved is
+never guessed at.
+
+**Input:** `work` recorded in `$WORK_MANIFEST` (or the older-spelling `$INPUT_FILE`),
+`work.root`
+
+**Actions:**
+1. Read `kind`, `root`, `items`. An unknown `kind`, an empty `items` list, or a
+   malformed manifest is `verification_blocked`.
+2. Resolve every item by kind, always from `work.root`:
+   - `file_set` — read each path; relative paths resolve against `root`, and a
+     missing path is `verification_blocked`.
+   - `links` — fetch each URL; a URL that cannot be fetched is
+     `verification_blocked`, not an `unverifiable` claim.
+   - `git_diff` — `git -C "$root" diff <base>..<head>`, or the working tree when
+     no range is given; no `git`, no repository, or a bad ref is
+     `verification_blocked`.
+   - `pr` — `gh pr view` plus `gh pr diff` for the number or URL; a missing
+     `gh`, an expired login, or an unreachable host is `verification_blocked`.
+   - `command_output` — run each command from `root` and capture stdout and
+     stderr as the material.
+   - `inline` — the text recorded in the manifest is the material.
+3. Record the resolved inventory before auditing: `kind`, item count, per-item
+   status (`resolved` or `blocked`), and where each item's evidence lives. The
+   audit investigates this inventory and nothing else.
+4. A `pr` or `git_diff` submission is reviewed as a diff: claims are checked
+   against the changed lines and the tests they touch, never against the
+   description written alongside them.
+
+**Output:** resolved work inventory for the audit
+
+```json
+{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 
 ## Audit [SUBAGENT]
 
-Perform bounded adversarial review of the target against the reference document
-and invariants.
+Perform bounded adversarial review of the target against the resolved work
+submission and invariants.
 
-**Input:** reference document, invariants, verification target, requirement list, context
+**Input:** resolved work inventory, invariants, verification target, requirement list, context
 
 **Actions:**
 
@@ -158,6 +210,8 @@ Extract every verifiable claim that matters operationally:
 **Rules:**
 - higher-priority evidence overrides lower-priority evidence
 - priority 5–6 alone is not enough for `verified`
+- a submitted link or PR description is priority 5 evidence: verify the claim
+  against the fetched content or the actual diff, never against the summary
 
 **Step 4 — Produce claim verdicts**
 
