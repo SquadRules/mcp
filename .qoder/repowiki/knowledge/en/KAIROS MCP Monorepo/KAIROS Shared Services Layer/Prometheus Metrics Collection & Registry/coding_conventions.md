@@ -1,3 +1,0 @@
-- Metric definitions are top-level named exports created with `new prom-client.{Counter|Histogram|Gauge}({ name, help, labelNames?, buckets?, registers: [register] })` and follow the `kairos_<domain>_<metric>_total/seconds/bytes` naming scheme.
-- Every metric file imports the shared `register` from `./registry.js` and passes it via the `registers` option so registration happens at import time without explicit bootstrap calls.
-- Tenant-scoped metrics include a `tenant_id` label explicitly (never as a default label) to enforce per-tenant isolation at scrape time.

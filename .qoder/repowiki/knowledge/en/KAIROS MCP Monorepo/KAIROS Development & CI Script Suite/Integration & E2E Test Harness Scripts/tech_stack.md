@@ -1,1 +1,0 @@
-Node.js ES modules with native `fetch`; Playwright (`chromium`) for viewport capture; dotenv for `.env` loading; shell toolchain `ct`, `kubeconform`, and `helm unittest v1.0.3` for Helm chart validation.

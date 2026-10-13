@@ -1,6 +1,0 @@
-Flat collection of independent CLI entry points under `scripts/`, each a self-contained program with no shared library — callers invoke them directly from CI jobs.
-- `ci-check-trivyignore-expiry.py` (Python) parses `.trivyignore` lines matching `exp:YYYY-MM-DD`, emits `::error::` / `::warning::` annotations and returns non-zero on expired entries.
-- `ci-github-step-summary.mjs` and `ci-parallel-checks.mjs` (Node ESM) both write Markdown sections into `$GITHUB_STEP_SUMMARY`; the latter uses `Promise.all` to run TypeScript check, Knip, and UI tests concurrently while serializing summary writes to avoid race conditions.
-- `ci-test-tgz-install.mjs` builds an isolated temp project via `npm init -y` + `npm install <tgz>` and runs `kairos --version` / `kairos-mcp serve --help` smoke tests against the packed artifact.
-- `ci-wait-for-infra.sh` (Bash) polls Valkey (`redis-cli ping`), Qdrant (`/healthz`), Postgres (`pg_isready`), and Keycloak (`/health/ready`) in parallel background subshells, exiting non-zero if any service fails to become ready within its loop limit.
-Dependency direction is one-way: these scripts depend only on the repo root (`package.json`, `dist/*.tgz`, `.env`, docker-compose services) and standard libraries; nothing inside this module imports another script here.

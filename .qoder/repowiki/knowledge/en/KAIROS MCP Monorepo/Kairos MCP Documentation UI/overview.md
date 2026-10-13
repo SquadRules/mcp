@@ -1,1 +1,0 @@
-React-based frontend that renders the Kairos documentation site, protocol editor, guided run flow, and adapter discovery pages on top of a shared shell, hooks, i18n, and design-token system.

@@ -1,3 +1,0 @@
-- MCP tool handlers follow a two-part split: a pure `execute*` function taking service dependencies explicitly, paired with a `register*Tool` wrapper that handles zod validation, tenant-scoped metrics, and MCP response shape.
-- Validation failures return structured teaching results via `mcpToolInputValidationErrorResult` rather than throwing, preserving user-facing guidance alongside error telemetry.
-- Cross-tool shared contracts are isolated in tiny modules that export only constants and builders (e.g. `KAIROS_LOCAL_ARTIFACT_DIR_JSON_FIELD`, `buildLocalArtifactDirFields`) instead of scattering literals across callers.

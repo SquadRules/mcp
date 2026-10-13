@@ -1,1 +1,0 @@
-Orchestrates advancing an adapter layer by validating proof-of-work submissions, chaining to the next step, and building challenge payloads for shell/MCP/user_input/comment proofs.

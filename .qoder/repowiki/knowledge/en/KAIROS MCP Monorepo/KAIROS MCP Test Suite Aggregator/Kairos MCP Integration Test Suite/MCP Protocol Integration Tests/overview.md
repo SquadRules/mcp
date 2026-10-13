@@ -1,1 +1,0 @@
-Integration tests that exercise the MCP server over HTTP and stdio transports, validating tool listings, auth error envelopes, group-scoped spaces, UI resource reads, and contract stability.

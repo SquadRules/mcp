@@ -1,6 +1,0 @@
-- Per-transport suites wrap their `describe` in `_d = isHttpTransport() ? describe : describe.skip` so they only run against a live server.
-- Fixture staging is factored into a local `stage0TrainFixture` / `pretrainFixtureViaApi` / `trainStage0Fixture` function that reads every path from `loadMimeArtifactContract().artifactPaths` and trains artifacts with `relative_path` preserved.
-- Export round-trips follow a fixed Stage 0 → Stage 1 → Stage 2 pattern: export, `cleanupVia*`, retrain from the bundle via `skillTreeToTrainInput` / `skillZipToTrainInput`, export again, then assert `assertSumsBodyByteIdentical` and `assertBundleSelfVerifies`.
-- Every exported bundle is persisted to disk through `dumpMimeFixtureExport({ transport, format, stage, slug, files, sumsBody })` keyed by transport+format+stage before assertions run.
-- Cleanup of trained resources uses a transport-specific `cleanupViaApi` / `cleanupViaCli` / `cleanupViaMcp` helper rather than ad-hoc delete calls.
-- Assertions about bundle contents go through `../utils/skill-bundle-sha-assert.js` (`extractSumsFromSkillTree`, `extractSumsFromZip`, `assertArtifactSumsMatchFixture`) instead of hand-rolled SHA checks.

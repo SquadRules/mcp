@@ -1,5 +1,0 @@
-- User-visible strings go through `useTranslation()` / `t(...)` rather than hard-coded literals, even in small components like CopyButton.
-- Utility modules expose named pure functions and types instead of default exports, keeping barrel-style imports explicit.
-- UI styling uses Tailwind utility classes combined with CSS custom properties (`--color-*`, `--radius-md`, `--color-focus-ring`) instead of component-scoped style files.
-- Optional callback props follow the `onXxx?: () => void` pattern and are guarded with truthy checks before rendering (see `ErrorAlert.onRetry`).
-- Browser APIs are wrapped in try/catch with silent failure for non-critical interactions such as clipboard writes.

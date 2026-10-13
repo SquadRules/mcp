@@ -1,6 +1,0 @@
-- `node scripts/journey-export.mjs --input <audit.jsonl> [--out ./journeys/] [--correlation <id>] [--redact] [--min-tools <n>]`
-- `node scripts/journey-diff.mjs --baseline <dir> --current <dir> [--out <path>] [--timing-threshold <n>]`
-- `node scripts/journey-replay.mjs --journey <file> --server <url> [--bearer <token>] [--strict] [--dry-run]`
-- `python3 scripts/lint-agent-skills.py` (auto-installs `skills-ref` into `.venv` if missing)
-- `bash scripts/qdrant-binary.sh {install|start|stop|status}` (env: `QDRANT_VERSION`, `QDRANT_HOST`, `QDRANT_HTTP_PORT`, `QDRANT_GRPC_PORT`)
-- `npm run dev:node -- <version>` → writes `.nvmrc` and runs `fnm use`

@@ -1,1 +1,0 @@
-Jest integration tests that exercise the KAIROS MCP server's v4 activate/forward/reward tool contracts end-to-end against a live server process.

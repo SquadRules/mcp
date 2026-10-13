@@ -1,1 +1,0 @@
-Model Context Protocol SDK `@modelcontextprotocol/sdk/server/streamableHttp.js` `StreamableHTTPServerTransport` over Express; JSON-RPC 2.0 with custom -32001 `unauthorized` code for auth-required flows.

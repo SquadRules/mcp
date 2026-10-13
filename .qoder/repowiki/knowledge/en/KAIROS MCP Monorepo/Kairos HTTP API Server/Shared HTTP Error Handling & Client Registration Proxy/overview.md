@@ -1,1 +1,0 @@
-Express middleware for global error handling, structured tool-route error responses, and a reverse proxy that rewrites Keycloak client-registration endpoints to the public base URL.

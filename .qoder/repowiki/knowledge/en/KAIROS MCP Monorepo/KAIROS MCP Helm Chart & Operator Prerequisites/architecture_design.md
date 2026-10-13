@@ -1,5 +1,0 @@
-Three cooperating sub-packages form a single install surface:
-- `infrastructure/` (Kustomize) provisions OLM CatalogSource, OperatorGroup, Subscriptions for ngrok, Keycloak, Redis, and Percona PostgreSQL operators plus GatewayClass — this is the prerequisite layer.
-- `kairos-mcp/` is the main Helm chart that renders the application stack (MCP service, Gateway API routes, Keycloak realm import, DCR cleanup, optional Qdrant/Ollama/Postgres/Redis).
-- `dev_environment/` (`helm-deploy.sh`, `values-{full,http,tls,tls-redis}.yaml`) orchestrates local k3s/k3d setup, runs the operator prerequisites, then applies the chart through profile-driven values overlays.
-Cross-child wiring: `values.dev.yaml` at the helm root is the default overlay consumed by the dev scripts; `values.prod.yaml` is the production counterpart. The same `kairos-mcp/` chart is reused across both paths, so shared configuration lives in its `values.yaml` / `values.schema.json` while environment-specific knobs are layered from the parent `values.*.yaml` files.

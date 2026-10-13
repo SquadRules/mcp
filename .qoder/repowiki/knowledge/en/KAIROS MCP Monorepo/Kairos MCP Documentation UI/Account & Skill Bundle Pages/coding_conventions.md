@@ -1,4 +1,0 @@
-- All user-facing strings go through `react-i18next`'s `useTranslation()` hook rather than inline literals.
-- Styling uses Tailwind utility classes combined with CSS custom properties (e.g. `bg-[var(--color-primary)]`, `rounded-[var(--radius-md)]`, `text-[var(--color-text-heading)]`) instead of imported style modules.
-- Native form controls enforce a minimum hit area with `min-h-[44px] min-w-[44px]` and consistent focus rings via `focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)]`.
-- Optional UI sections are gated by truthiness checks on fields (e.g. `data.preferred_username && data.preferred_username !== displayName(data)`, `data.email`, `data.identity_provider`, `data.groups.length > 0`) before rendering.

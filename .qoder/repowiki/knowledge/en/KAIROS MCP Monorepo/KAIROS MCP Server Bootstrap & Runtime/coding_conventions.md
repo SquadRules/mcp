@@ -1,4 +1,0 @@
-- Environment variables are read exclusively through helpers in `config.ts` (`getEnvRequired`, `getEnvInt`, `getEnvBoolean`, `getEnvFloat`, `getEnvString`); modules never access `process.env` directly.
-- Startup failures print root cause to `process.stderr` before invoking the structured logger, ensuring logs survive even when logging sinks are unavailable.
-- Optional features (metrics server, Qdrant snapshot, auth) are gated by boolean flags exported from `config.ts` rather than try/catch blocks, keeping transport selection declarative.
-- The MCP server is constructed once via `createServer(memoryStore)` and reused across transports instead of being instantiated per-request.

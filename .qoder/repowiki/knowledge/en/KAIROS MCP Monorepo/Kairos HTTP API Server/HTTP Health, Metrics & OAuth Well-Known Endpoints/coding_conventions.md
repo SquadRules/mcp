@@ -1,4 +1,0 @@
-- Route setup functions take `(app: express.Express, ...deps)` and mount handlers directly on `app.get`/`app.options` rather than returning routers, keeping registration imperative.
-- Each well-known endpoint pairs a GET handler with an OPTIONS preflight handler that echoes `Access-Control-Allow-Origin` based on `req.headers.origin` and sets `Vary: Origin`.
-- External dependency checks inside `/health` are wrapped in try/catch plus a short `Promise.race` timeout so upstream failures degrade gracefully without blocking the response.
-- Prometheus metric labels consistently include `{ method, route, status, tenant_id }`, with `tenant_id` resolved via `getTenantId(req)` before any observation.

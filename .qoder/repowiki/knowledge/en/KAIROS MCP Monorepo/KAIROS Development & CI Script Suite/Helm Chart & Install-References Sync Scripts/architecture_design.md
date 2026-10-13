@@ -1,7 +1,0 @@
-Three independent Node.js/Python CLI scripts invoked from repo root; each is self-contained with no shared library.
-
-- `helm-bump-version.mjs` reads `helm/kairos-mcp/Chart.yaml`, computes a new semver by bumping `base = CHART_VERSION_BASE env or git show origin/main:helm/kairos-mcp/Chart.yaml`, then idempotently rewrites only if current < target. Supports `--dry-run`.
-- `helm-sync-app-version.mjs` resolves the canonical stable version (explicit `--version`, `package.json` when non-prerelease, else latest matching `vX.Y.Z` git tag) and rewrites both `Chart.yaml` `appVersion` and `values.yaml` `app.image.tag`; `--check` mode exits non-zero for CI drift detection.
-- `sync-kairos-install-references.py` copies selected files from `docs/install/` and `docs/CLI.md` into `skills/.system/kairos-install/references/` (flat layout plus an `install/` subfolder for the hub README), then applies per-file regex-based link patchers (`patch_install_hub`, `patch_cursor_links_for_bundle`, `patch_docker_full`, `patch_cli`) that rewrite relative links to absolute `https://github.com/debian777/kairos-mcp/blob/main` URLs, ending with post-write verification assertions.
-
-Dependency direction is one-way: scripts read source-of-truth locations (`package.json`, `origin/main`, `docs/install/`) and write into Helm chart / skills bundle targets; they never import each other.

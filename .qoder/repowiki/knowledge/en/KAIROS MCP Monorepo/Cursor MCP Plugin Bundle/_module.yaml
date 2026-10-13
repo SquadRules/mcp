@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: cursor_plugin
-title: Cursor MCP Plugin Bundle
-scope:
-    - integrations/cursor/plugin/
-source_files: []
-depends_on: []
-related_to: []

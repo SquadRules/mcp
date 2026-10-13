@@ -1,1 +1,0 @@
-Jest scenario entry points that run the shared spaces-tool contract against HTTP (with and without auth) and stdio MCP transports.

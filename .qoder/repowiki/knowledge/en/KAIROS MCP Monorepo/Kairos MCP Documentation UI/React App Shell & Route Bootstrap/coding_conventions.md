@@ -1,3 +1,0 @@
-- Every page component is loaded lazily via `lazy(() => import("./pages/<Name>").then(m => ({ default: m.<Name> })))` and wrapped in `<Suspense fallback={<RouteFallback />} />` at the route level.
-- Global CSS is centralized in `index.css` which imports design tokens once and re-exports them into Tailwind's `@theme inline` block; components consume colors, spacing, radii, and fonts through Tailwind utility classes rather than raw CSS variables.
-- Providers are layered in a fixed order in `main.tsx` — i18n side-effect first, then `QueryClientProvider`, then `ThemeProvider`, then `App` — and new cross-cutting concerns should be added as additional provider wrappers around `App`.

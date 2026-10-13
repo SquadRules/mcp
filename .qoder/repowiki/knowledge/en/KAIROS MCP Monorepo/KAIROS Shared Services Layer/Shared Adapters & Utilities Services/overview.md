@@ -1,1 +1,0 @@
-Cross-cutting services for adapter layer navigation, refinement-count persistence, code-block extraction, and deterministic ID generation used by multiple adapters.

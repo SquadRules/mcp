@@ -1,1 +1,0 @@
-React + TypeScript with Tailwind utility classes and CSS custom properties for theming; TipTap (StarterKit, Link, Table, Markdown) for rich text; `react-i18next` for all user-facing strings; `react-router-dom` `<Link>` inside error UI.

@@ -1,3 +1,0 @@
-- Every service exposes a single entry file (`index.ts` or a named `service.ts`) that re-exports the public API; internal modules stay private within the subdirectory.
-- Services that emit observability data register metrics against the shared `metrics/registry.ts` using the default service label instead of creating their own registry.
-- External dependencies (Qdrant client, Redis connection, embedding provider config) are passed in as constructor parameters rather than imported directly, enabling test-time substitution.

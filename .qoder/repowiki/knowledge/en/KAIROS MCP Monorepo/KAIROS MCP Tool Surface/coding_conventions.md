@@ -1,6 +1,0 @@
-- Every tool exposes an `execute*` pure function plus a `register*Tool` wrapper that handles Zod parsing, metrics, and MCP response shape.
-- Input/output contracts are defined as exported Zod schemas in a sibling `<tool>_schema.ts` file and imported by both the execute function and the register wrapper.
-- Adapter/layers/artifacts are addressed exclusively through `kairos://` URIs parsed/built via `parseKairosUri`/`buildAdapterUri`/`assertWireAdapterUri` from `kairos-uri.ts`.
-- Long-running exports wrap their body in `runExportTelemetryContext`/`finalizeExportObservation` and emit per-call duration/error/input-size metrics via `mcp-metrics`.
-- Structured errors use `KairosError` with typed codes and are formatted by tool-specific formatters (`forward-tool-error`, `mcp-runtime-error`) before returning `{ isError, content }`.
-- Artifact references pass through `normalizeArtifactRelativePath` and MIME checks in `artifact-mime.ts`/`artifact-sanitization/` before being materialized or zipped.

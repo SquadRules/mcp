@@ -1,4 +1,0 @@
-- PoW state (nonce, proof hash, retry count, results) is persisted through the `proofOfWorkStore` singleton rather than kept in memory, making retries and restarts idempotent.
-- Validation failures return a `{ blockedPayload }` object carrying `error_code`, `retry_count`, and a `next_action` string that instructs the caller how to recover, instead of throwing exceptions.
-- Optional fields from incoming submissions are normalized with explicit `if (x !== undefined)` guards before assignment so `exactOptionalPropertyTypes` does not receive `undefined` values.
-- Interpreter selection uses small `Set` lookups (`INJECT_C`, `INJECT_E`, `OTHER_STYLE`) plus a `flagTokensLower` helper to detect explicit code flags, keeping interpreter dispatch declarative and testable.

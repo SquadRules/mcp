@@ -1,4 +1,0 @@
-- All discovered directories are sorted with `localeCompare('en')` before iteration so the emitted module has deterministic ordering across platforms.
-- Only files ending in `.md` are considered; filenames become keys by stripping the extension (`path.basename(file, '.md')`), never transformed or normalized.
-- Build-time logging goes through a local logger shim (`[embed-docs]` prefix) instead of importing the application's runtime logger, keeping the script runnable in isolation.
-- Generated output is guarded with an `AUTO-GENERATED FILE - DO NOT EDIT` header so consumers know not to hand-edit the produced TS module.

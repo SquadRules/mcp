@@ -64,8 +64,7 @@ source tree, GitHub Release and npm package therefore carry the same version.
 
 ## Release and migration settings
 
-See the [release runbook](../../.agents/skills/squadrules-dev/references/release-semver.md)
-for the full flow. Release Please, version synchronization and auto-merge use a
+Release Please, version synchronization and auto-merge use a
 short-lived repository-scoped GitHub App installation token. Normal `pull_request`
 events run the required checks without a human approval step. After synchronization,
 the workflow enables protected auto-merge on the exact Release PR head. GitHub waits

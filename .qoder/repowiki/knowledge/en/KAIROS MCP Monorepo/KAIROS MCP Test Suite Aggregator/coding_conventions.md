@@ -1,4 +1,0 @@
-- Integration tests live under `integration/scenarios/<feature>.<transport>.test.ts` and reuse transport-specific harness code from `integration/harness/` instead of duplicating client setup.
-- Shared runtime helpers go in `utils/` and are imported by both unit and integration suites rather than being duplicated per suite.
-- External service lifecycle (Keycloak, dev server) is bootstrapped via `global-setup-auth.ts` / `global-teardown-auth.ts` so individual tests remain stateless.
-- Test data artifacts are stored as static files under `test-data/` and loaded through `utils/mime-artifact-fixture-contract.ts` helpers.

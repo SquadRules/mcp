@@ -1,4 +1,0 @@
-- External input is accepted as `unknown` / `Record<string, unknown>` and coerced via explicit `typeof` guards with safe defaults before any field is read.
-- String-array normalization follows a uniform pattern: coerce to array, trim each entry, filter empty strings, then deduplicate with `new Set(...)` when order-independence is needed.
-- Payload mutation functions return a `{ payload, changed }` tuple so callers can short-circuit expensive downstream work (vector generation, upsert) when nothing actually changed.
-- Search-text construction goes through a shared `compactSegments` helper that trims, drops nullish entries, and joins with newlines, keeping dense/sparse text builders free of inline join logic.

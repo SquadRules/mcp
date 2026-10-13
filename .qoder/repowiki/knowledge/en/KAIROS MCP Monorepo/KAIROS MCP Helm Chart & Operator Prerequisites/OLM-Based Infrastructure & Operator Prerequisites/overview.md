@@ -1,1 +1,0 @@
-Kustomize bundles and helper scripts that install OLM CatalogSource, Subscription, OperatorGroup, GatewayClass, and CRDs for ngrok, Keycloak, Redis, and Percona PostgreSQL operators before the main KAIROS chart runs.

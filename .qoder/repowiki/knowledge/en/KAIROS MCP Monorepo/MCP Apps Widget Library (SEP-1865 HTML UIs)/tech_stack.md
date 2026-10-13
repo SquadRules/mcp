@@ -1,1 +1,0 @@
-Vanilla JS IIFEs embedded in single-file HTML fragments; no client-side framework or bundler. Host communication uses JSON-RPC 2.0 over `window.parent.postMessage` per SEP-1865 (`@modelcontextprotocol/ext-apps`). Dual MIME profiles (`text/html;profile=mcp-app` and `text/html+skybridge`) target multiple MCP host implementations.

@@ -1,3 +1,0 @@
-- Server-fetched hooks wrap `apiFetch` calls in a local async function that converts non-OK responses into thrown `Error`s carrying `statusCode` or a parsed `message`, then expose the result through `useQuery` with a stable `queryKey` tuple.
-- Hooks return plain objects of memoized values / callbacks rather than using `useState` directly inside consumers, keeping state mutations (`upsert`, `remove`, `refresh`, `update`) co-located with persistence logic.
-- Optional or backward-compatible fields are accepted via conditional spread (`typeof x === 'string' ? { field: x } : {}`) during normalization instead of relying on loose typing.

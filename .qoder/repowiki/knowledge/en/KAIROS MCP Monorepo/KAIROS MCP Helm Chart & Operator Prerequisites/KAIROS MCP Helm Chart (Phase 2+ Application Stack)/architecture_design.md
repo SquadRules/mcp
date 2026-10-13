@@ -1,9 +1,0 @@
-Single `helm/kairos-mcp` chart (`Chart.yaml`, v2) whose templates render a cohesive runtime stack:
-- Core app: `kairos-mcp-deployment.yaml` + `kairos-mcp-service.yaml` exposing port 3000, with optional HPA/VPA (`app-hpa.yaml`, `app-vpa.yaml`).
-- Ingress layer: dual-mode via `gateway.yaml` (Gateway API parentRef) or `ingressClassName` fallback; routes split into `httproute-mcp.yaml` and `httproute-keycloak.yaml`, with admin lockdown route `httproute-keycloak-admin-redirect.yaml` and TLS via `gateway-certificate.yaml` / cert-manager.
-- Auth: bundled Keycloak via `keycloak-cr.yaml` (Keycloak operator CR), realm import through `keycloak-realm-import.yaml` referencing `files/kairos-realm.json`, and periodic stale DCR client pruning via `keycloak-dcr-cleanup-cronjob.yaml` driven by `files/keycloak-dcr-cleanup.py`.
-- Data plane: optional Qdrant (v1.17.0 subchart), Valkey/Redis failover (`redis-failover-cr.yaml`), Ollama StatefulSet for local embeddings, and Percona Postgres cluster CR for Keycloak persistence.
-- Secrets lifecycle: `credentials-secret-generator-job.yaml` + RBAC (`credentials-secret-generator-rbac.yaml`) auto-generate app secrets unless an existing secret is supplied; helpers in `_helpers.tpl` resolve legacy vs preferred secret names via `lookup`.
-- Observability: per-component `servicemonitor.yaml` files and a top-level `prometheusrule.yaml`.
-- Pre-install bootstrap: `operator-precheck-job.yaml` validates required operators before install.
-- Dependencies are declared in `Chart.yaml` (`qdrant`, `valkey` subcharts gated by `.Values.*.enabled`); the chart's own description notes Phase 1 data-plane lives under `helm/infrastructure` (Kustomize) and operators under `helm/operators`, so this chart composes them at deploy time.

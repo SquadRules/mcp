@@ -1,3 +1,0 @@
-- Optional persistence backend is injected as a `QdrantService | undefined` parameter and guarded with explicit checks that throw descriptive errors (e.g. 'Artifact slug lookup is unavailable') when slug resolution is requested without it.
-- URIs are always parsed through `parseKairosUri` before branching on `parsed.kind` ('adapter' | 'artifact' | 'layer'), keeping URI dispatch centralized instead of string-matching prefixes inline.
-- Missing resources are surfaced by throwing plain `Error('... not found')` messages rather than returning null/undefined, letting callers wrap them in MCP error responses uniformly.

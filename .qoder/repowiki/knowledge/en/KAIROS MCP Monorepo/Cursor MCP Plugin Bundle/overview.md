@@ -1,1 +1,0 @@
-Cursor plugin bundle that registers the KAIROS streamable HTTP MCP server so Cursor's tool row shows the KAIROS logo and exposes its tools.

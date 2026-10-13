@@ -1,5 +1,0 @@
-- All Bash scripts declare `set -euo pipefail` at the top and use `ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"` to resolve paths relative to the repo root.
-- Environment variables are loaded from `.env.<ENV>` (defaulting `ENV=dev` or `dev_simple`) before any service calls, falling back to `.env`.
-- Shell helpers follow a uniform color-coded logging pattern (`log_info`/`log_success`/`log_warn`/`log_error`) using ANSI escape sequences defined as `RED`/`GREEN`/`YELLOW`/`NC`.
-- Qdrant API calls conditionally inject an `api-key` header only when `QDRANT_API_KEY` is non-empty, keeping unauthenticated local dev seamless.
-- JSON responses from curl are parsed inline with short `python3 -c 'import json ...'` one-liners rather than invoking external tools.

@@ -1,9 +1,0 @@
-Single entry point `flat-config.cjs` exports a `createFlatConfig(rootDir)` factory producing an array of ESLint v9+ flat config objects. Each object scopes rules to a glob (frontend `src/ui`, backend `src/**` excluding UI, tests by tier, markdown/shell/JSON, root configs) via `files` + `ignores`, with per-scope `languageOptions.parser` (shared `@typescript-eslint/parser` plus a custom plain-text parser for `.md`/`.sh`) and `plugins` registry.
-
-- `rules/shared-snippets.cjs` holds reusable rule-object spreads (`NO_TEST_MOCKS_RULE`, `NO_JEST_MOCK_OUTSIDE_UNIT_RULE`, `NO_AUTH_ENABLED_OVERRIDE_RULE`) composed into multiple scopes.
-- `parsers/markdown-plain-text.cjs` is a minimal AST stub returning a `Program` node so full-text rules can run on Markdown without a real parser.
-- `plugins/kairos-forbidden-text.cjs` implements two rules: `no-forbidden-kairos-text` (full-source regex scan banning legacy env keys, retired MCP tool names, multi-word phrases, bare `v10`, and `KAIROS:BODY-*` markers) and `review-protocol-wording` (warns ambiguous `protocol` prose in Markdown with a tight allowlist and a file-level `<!-- kairos-lint-allow-protocol-synonyms -->` opt-out).
-- `plugins/kairos-codeql-line-comments.cjs` enforces substantive `// codeql[...]: <justification>` comments and forbids log-injection suppressions in `structured-logger.ts`.
-- `plugins/kairos-mcp-widget.cjs` validates MCP App inline scripts (`handshake-and-safety`: required host handshake substrings, bans `eval`/`new Function`/`document.write`) and HTML builders (`html-shell`: required DOCTYPE/lang/viewport or fragment root div + style + script).
-
-Dependency direction: `flat-config.cjs` imports plugins/parsers/snippets; plugins never import back into the config. The config is consumed from the repo root's `eslint.config.cjs` (listed in ignores to avoid recursion).

@@ -10,7 +10,7 @@ while read -r _local_ref _local_sha remote_ref _remote_sha; do
     echo >&2 "  containing package.json/package-lock/changelog/version-source updates."
     echo >&2 "  After that Release PR passes the normal required checks and is merged,"
     echo >&2 "  Release Please creates the vX.Y.Z tag/GitHub Release and release.yml publishes npm."
-    echo >&2 "  Procedure: .agents/skills/squadrules-dev/references/release-semver.md"
+    echo >&2 "  Procedure: see .github/workflows/README.md (Release and migration settings)."
     echo >&2 ""
     exit 1
   fi

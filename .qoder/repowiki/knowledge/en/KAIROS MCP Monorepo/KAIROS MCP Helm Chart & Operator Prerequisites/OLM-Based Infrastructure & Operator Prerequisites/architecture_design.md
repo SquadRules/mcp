@@ -1,6 +1,0 @@
-Three sibling directories form a layered prerequisite stack consumed by the top-level Helm chart:
-- `helm/infrastructure/` — installs cluster-wide networking prerequisites (a `GatewayClass` named `ngrok`) plus the ngrok operator via a custom `CatalogSource` pointing at an OCI gRPC catalog image (`catalogsource-ngrok.yaml`) and an `OperatorGroup` + `Subscription` in its own `ngrok-operator` namespace.
-- `helm/operators/` — installs three application operators (Keycloak, Redis Failover, Percona PostgreSQL) as `Subscription`s scoped to the release namespace through a single `OperatorGroup` targeting `kairos` by default; each operator has its own `subscription-*.yaml` resource.
-- `helm/prerequisites/` — thin idempotent shell wrappers around the two kustomize directories; they patch the shared `operatorgroup`'s `spec.targetNamespaces` to the caller's chosen release namespace and then `kubectl wait` on the operator's CRDs until established.
-
-Dependency direction is one-way: `prerequisites/*` → `operators/*` / `infrastructure/*` → upstream OperatorHub or the user-supplied ngrok catalog image. Both `kustomization.yaml` files declare their resources inline (no overlays), so the only customization point is editing the YAML manifests directly or using the wrapper scripts to adjust the target namespace.

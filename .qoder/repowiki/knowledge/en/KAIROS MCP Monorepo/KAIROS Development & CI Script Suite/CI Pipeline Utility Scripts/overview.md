@@ -1,1 +1,0 @@
-Standalone Node.js, Python, and Bash helpers invoked by GitHub Actions to validate trivyignore expiry, run parallel checks, smoke-test the published tgz, wait for compose infra, and append step summaries.

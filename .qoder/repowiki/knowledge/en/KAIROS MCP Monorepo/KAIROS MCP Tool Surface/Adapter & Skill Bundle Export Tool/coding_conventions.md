@@ -1,4 +1,0 @@
-- Each format branch returns a uniform `{ uri, format, content_type, content, item_count, ... }` shape so callers can treat all outputs identically.
-- Sanitization rules implement a common `ArtifactSanitizationRule` interface evaluated by `runArtifactSanitization`, which flattens single or array diagnostics into one `SkillExportDiagnostic[]` list.
-- YAML frontmatter scalars are escaped via a dedicated helper (`escapeYamlScalar` / `parseYamlLineValue`) rather than relying on a full YAML library, keeping frontmatter handling regex-based and dependency-light.
-- Large payloads use streaming where possible: `pipeSkillZipToWritable` streams ZIP bytes to a Writable destination instead of buffering the whole archive.

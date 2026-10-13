@@ -1,1 +1,0 @@
-OIDC flow against Keycloak using `jose` for JWKS-based JWT verification (`createRemoteJWKSet`, `jwtVerify`, `decodeJwt`); custom HMAC-SHA256-signed session cookies built with `@exodus/bytes/base64.js` and `utf8fromString` instead of a session store.

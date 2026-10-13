@@ -1,1 +1,0 @@
-@modelcontextprotocol/sdk (`Client`, `StreamableHTTPClientTransport`, `StdioClientTransport`) for both HTTP and stdio transports; Keycloak admin API used to dynamically create host-style OAuth clients during the group-scoped test.

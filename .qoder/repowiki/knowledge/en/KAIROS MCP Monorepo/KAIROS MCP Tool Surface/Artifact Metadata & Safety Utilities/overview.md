@@ -1,1 +1,0 @@
-Shared helpers for listing adapter artifacts from Qdrant, validating artifact MIME types against a canonical allowlist, and normalizing skill-root-relative paths without traversal.

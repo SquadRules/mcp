@@ -1,1 +1,0 @@
-Cross-cutting Jest integration tests that exercise the Kairos server over HTTP, stdio, and CLI transports against a live dev stack to validate contracts across all transports.

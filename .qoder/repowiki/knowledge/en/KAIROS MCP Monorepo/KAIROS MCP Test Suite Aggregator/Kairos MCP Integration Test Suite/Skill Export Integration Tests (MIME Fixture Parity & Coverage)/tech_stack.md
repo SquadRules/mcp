@@ -1,1 +1,0 @@
-Jest (`describe`/`test.each`) over Node's `fetch`; MCP client via `../utils/mcp-client-utils.js`; CLI exercised as a child process through `./cli-commands-shared.js` (`execAsync`, `setupCliConfigWithLogin`).

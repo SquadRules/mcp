@@ -1,1 +1,0 @@
-i18next v21+ with the `react-i18next` integration plugin for React; CSS custom properties (CSS Variables) as the token format, with dark mode driven by an `html[data-theme]` attribute selector rather than media queries.

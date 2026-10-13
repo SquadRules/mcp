@@ -1,1 +1,0 @@
-Agent-facing skill definitions that route action intents through the KAIROS activate→forward→reward chain, plus helper skills for bug-report capture and first-time environment setup.

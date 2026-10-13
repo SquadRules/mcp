@@ -1,1 +1,0 @@
-Express route that accepts POST /mcp JSON-RPC requests, delegates to per-request MCP servers via the Model Context Protocol SDK, and emits structured audit events.

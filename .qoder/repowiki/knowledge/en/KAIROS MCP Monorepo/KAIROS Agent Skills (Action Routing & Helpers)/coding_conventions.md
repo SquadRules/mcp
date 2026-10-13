@@ -1,4 +1,0 @@
-- Each skill is a directory whose only required artifact is `SKILL.md` with YAML frontmatter (`name`, `description`) followed by a markdown body kept under ~500 lines, pushing detail into sibling `references/` files.
-- Helper and setup skills are placed under `skills/.system/` while the primary everyday skill stays at `skills/<name>/`, following the skills CLI discovery convention documented in SKILLS.md.
-- Frontmatter declares `always_active: true` and an explicit `allowed-tools` list matching the MCP tools the skill orchestrates (e.g. `activate forward reward train tune export delete spaces`).
-- Skill bodies address the agent directly as an internal operator — they explicitly state 'This skill is for the agent, not the human' and forbid surfacing internals like URIs/nonces to the user.

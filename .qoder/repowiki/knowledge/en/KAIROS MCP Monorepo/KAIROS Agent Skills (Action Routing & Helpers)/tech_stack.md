@@ -1,1 +1,0 @@
-Skills specification from agentskills.io (formerly Anthropic); distributed via the vercel-labs/skills CLI and published on skills.sh; validated locally/CI with the Python `skills-ref` tool.

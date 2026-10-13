@@ -1,1 +1,0 @@
-Qdrant JS REST client (`@qdrant/js-client-rest`) with multi-vector collections — primary dense, title dense, activation-pattern dense, plus a `bm25` sparse vector; embeddings produced by the project's own `embeddingService` (dimension configured via `getEmbeddingDimension`).

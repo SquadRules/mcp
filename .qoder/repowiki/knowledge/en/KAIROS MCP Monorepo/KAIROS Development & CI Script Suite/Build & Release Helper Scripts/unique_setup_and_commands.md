@@ -1,1 +1,0 @@
-Run the doc embedder with `npx ts-node scripts/build-embed-docs.ts`; sync versions with `node scripts/build-sync-skill-versions.mjs [--check]`; produce the distribution tarball through `node scripts/build-ensure-tgz.mjs` which internally calls `npm run build` then `npm pack --pack-destination dist`.

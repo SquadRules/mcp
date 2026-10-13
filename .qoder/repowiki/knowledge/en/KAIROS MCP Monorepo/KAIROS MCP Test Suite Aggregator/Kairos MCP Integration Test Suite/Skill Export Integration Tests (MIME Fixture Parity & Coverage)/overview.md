@@ -1,1 +1,0 @@
-Integration tests that train MIME-fixture adapters and assert skill_tree / skill_zip exports are byte-identical across API, CLI, and MCP transports through a three-stage SHA contract.

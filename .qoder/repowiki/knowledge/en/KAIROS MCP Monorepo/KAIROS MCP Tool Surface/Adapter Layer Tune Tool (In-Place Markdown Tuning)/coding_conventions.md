@@ -1,4 +1,0 @@
-- Errors thrown during per-URI processing are caught inside the loop and recorded as `{ status: 'error', message }` rows rather than aborting the whole batch, so callers always receive a complete results array.
-- Adapter-layer selection prefers an explicit `preferredSpaceId`, falls back to the tenant's `defaultWriteSpaceId`, and finally picks the lexicographically smallest known space — implemented consistently in both `normalizeTuneUri` and `collectLayerMemoryUuidsForTune`.
-- Every mutating path ends with a call to `verifyTuneLayerPersistence` (or equivalent read-back) to assert that Qdrant actually persisted the written text, treating stale-cache writes as failures.
-- User-facing messages are canonicalised through `rewriteTuneMessage` / `buildTuneResultMessage` so legacy `memory` terminology and old `me|/m/` URI forms are rewritten into the current adapter-layer vocabulary.

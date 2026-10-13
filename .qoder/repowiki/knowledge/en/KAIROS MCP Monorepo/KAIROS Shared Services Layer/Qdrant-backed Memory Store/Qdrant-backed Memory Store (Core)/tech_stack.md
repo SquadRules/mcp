@@ -1,1 +1,0 @@
-@qdrant/js-client-rest as the Qdrant client; hybrid search uses Qdrant Query API with RRF fusion of three dense legs (primary, title, activation-pattern vectors) plus two BM25 sparse legs, with a dense-only `search()` fallback when the Query API fails.

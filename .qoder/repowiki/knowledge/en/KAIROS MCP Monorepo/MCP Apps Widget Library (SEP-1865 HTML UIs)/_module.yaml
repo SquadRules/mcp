@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: mcp_apps
-title: MCP Apps Widget Library (SEP-1865 HTML UIs)
-scope:
-    - src/mcp-apps/
-source_files: []
-depends_on: []
-related_to: []

@@ -1,1 +1,0 @@
-Pure TypeScript using native `fetch`; OpenAI embeddings via `/v1/embeddings` with Bearer auth, TEI via its `/v1/embeddings` endpoint (optional `x-api-key`); BM25 tokenizer uses FNV-1a hashing into a fixed 30 000-dimensional sparse space without client-side IDF.

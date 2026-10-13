@@ -1,1 +1,0 @@
-Pino structured logger (with redaction paths and optional text formatter) for all logging; Qdrant client used through typed wrappers in `qdrant-*` utils; MCP SDK `ResourceTemplate` / `registerResource` for resource bootstrap; Node `fs/promises` + `path` for embedded markdown scanning.

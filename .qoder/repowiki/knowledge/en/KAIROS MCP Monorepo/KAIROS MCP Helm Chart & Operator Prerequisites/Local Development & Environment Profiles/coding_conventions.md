@@ -1,4 +1,0 @@
-- Profiles are expressed as `values-<name>.yaml` files under `.dev/`; the deploy script selects them by matching `--profile NAME` against the filename prefix `values-`.
-- Each profile file explicitly sets `gateway.enabled` and `valkey.enabled` rather than relying on defaults, making the minimal baseline (core app + Qdrant) unambiguous.
-- Operator installation is guarded by idempotent `kubectl get crd/deployment` checks so reruns skip already-installed components instead of failing.
-- Environment-sensitive settings (image tag, replica count, storage sizes, monitoring toggles) live in separate `values.dev.yaml` / `values.prod.yaml` overlays instead of being hardcoded in the chart.

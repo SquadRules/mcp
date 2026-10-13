@@ -1,4 +1,0 @@
-- Previous-layer traversal uses `resolveAdapterPreviousLayer` plus an explicit `layer_index <= 1` check to short-circuit at step 1 instead of recursing indefinitely.
-- `expectedPreviousHash` is always derived as GENESIS_HASH for step 1 or looked up via `proofOfWorkStore.getProofHash(grandparent.uuid)`; callers never hardcode hashes inline.
-- Return types are discriminated unions tagged with an `applied: boolean` field (`TryApplyToPreviousResult`), so callers branch on `{ applied: true }` vs `{ applied: false }` rather than checking nullability.
-- Error responses use a `PreviousProofBlock` shape with a stable `error_code` string (`MISSING_PROOF`, `COMMAND_FAILED`) plus a free-text `message` and optional `next_action` instruction.

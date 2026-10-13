@@ -1,1 +1,0 @@
-TypeScript client wrapping Qdrant for vector similarity search, memory CRUD, quality metrics, protocol step indexing, and alias/snapshot management behind a resilient connection layer.

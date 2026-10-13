@@ -1,2 +1,0 @@
-- Environment variants are expressed as sibling `values*.yaml` files at the helm root rather than separate charts, with the dev script selecting one via `-f`.
-- Operator lifecycle is split into a Kustomize-only prerequisite step (`infrastructure/`) before any Helm chart render, keeping CRD installation outside the app chart.

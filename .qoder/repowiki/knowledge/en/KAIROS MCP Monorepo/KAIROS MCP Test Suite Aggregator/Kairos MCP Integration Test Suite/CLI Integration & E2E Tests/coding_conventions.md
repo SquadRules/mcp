@@ -1,6 +1,0 @@
-- Tests skip entirely when not using HTTP transport by wrapping the top-level `describe` with `_d = isHttpTransport() ? describe : describe.skip` instead of guarding individual tests.
-- Auth-gated suites are wrapped with `const describeAuthNoToken = serverRequiresAuth() && isHttpTransport() ? describe : describe.skip` to conditionally enable auth-required scenarios.
-- Every test calls `requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn)` after a `beforeAll` that runs `setupServerCheck()` + `setupCliConfigWithLogin()`, replacing silent skips with an explicit error.
-- CLI invocations go through `execAsync`/`execAsyncNoAuth`/`execAsyncWithConfig` from `cli-commands-shared.ts` rather than calling `exec` directly, ensuring consistent env injection and logout/login cleanup.
-- Assertions parse JSON from `stdout` and assert the V2 unified response shape (`must_obey`, `choices`, `cli_next_call`, `next_action`, `contract`) instead of matching raw text.
-- Per-test fixtures in `cli-train-batch.test.ts` create temp directories under `os.tmpdir()` with unique timestamps and clean them up in a `finally` block.

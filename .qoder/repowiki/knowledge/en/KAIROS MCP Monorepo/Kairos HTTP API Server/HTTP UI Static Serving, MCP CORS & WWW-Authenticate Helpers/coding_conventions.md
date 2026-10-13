@@ -1,4 +1,0 @@
-- Express setup functions are exported as named `setupXxx(app)` helpers that take an `express.Express` instance and register routes/middleware directly on it, rather than returning middleware objects.
-- Optional URL-like configuration values (`AUTH_CALLBACK_BASE_URL`, `KEYCLOAK_URL`) are normalized by stripping trailing slashes before string interpolation to avoid double-slash paths.
-- Quoted-string values destined for HTTP headers are escaped via a dedicated helper (`escapeWwwAuthenticateQuotedValue`) that backslash-escapes backslashes and double quotes and replaces control characters with spaces.
-- Feature detection at startup reads filesystem artifacts (e.g. scanning `assets/KairosPage-*.js` for markers like `browseByLetterHint`) and logs a warning when the expected build artifact is absent.

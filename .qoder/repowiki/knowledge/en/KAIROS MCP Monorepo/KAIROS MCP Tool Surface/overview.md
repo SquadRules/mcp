@@ -1,1 +1,0 @@
-Registers and wires the KAIROS adapter lifecycle — activate, forward, reward, train/tune/update, export/dump/search/space, next-step/proof-of-work, plus shared schemas, URI helpers, telemetry and artifact utilities.

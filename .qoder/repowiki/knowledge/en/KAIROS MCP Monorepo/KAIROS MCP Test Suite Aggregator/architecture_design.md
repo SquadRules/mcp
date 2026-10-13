@@ -1,5 +1,0 @@
-The `tests/` root is a flat collection of independent test suites plus shared infrastructure consumed by them:
-- `unit/`, `integration/`, `ui/` are separate Jest/Vitest projects with their own entry points (`setup.ts`, `global-setup-auth.ts`) and no cross-import between them.
-- `utils/`, `test-data/`, `reporters/`, `load/`, `_new/`, and the two global setup files form the shared layer: `utils/` provides Keycloak container bootstrap, MIME artifact fixtures, ZIP export parsing, skill-bundle helpers, and Prometheus scraping; `test-data/` holds sample artifacts consumed by both integration and unit tests; `reporters/jest-github-summary-reporter.cjs` is a custom Jest reporter used by the CI run.
-- Cross-cutting wiring lives at this level: `env-loader.ts` injects env for all suites, `jest-sequencer.cjs` orders integration scenarios, and `global-setup-auth.ts` / `global-teardown-auth.ts` spin up the external auth stack once per test run so every integration test shares the same Keycloak + dev-server instance.
-- The `workflow-test/` eval harness is a sibling to the main suites and reuses the same `utils/` fixtures rather than importing from `unit/` or `integration/`.

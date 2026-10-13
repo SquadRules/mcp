@@ -1,1 +1,0 @@
-MCP tool implementations that let an agent discover adapters (activate), step through their layered proof-of-work contracts (forward), and record post-execution rewards (reward).

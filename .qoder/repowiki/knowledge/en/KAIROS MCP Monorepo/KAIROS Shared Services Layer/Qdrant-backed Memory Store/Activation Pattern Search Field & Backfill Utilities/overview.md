@@ -1,1 +1,0 @@
-Normalizes activation-pattern payloads, builds dense/sparse search text fields for Qdrant embeddings, and backfills missing vectors across the memory collection.

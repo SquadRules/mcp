@@ -1,1 +1,0 @@
-Helm application chart that deploys the KAIROS MCP service, its Gateway API ingress, Keycloak SSO with realm import and DCR cleanup, plus optional Qdrant, Valkey/Redis, Ollama, and Percona Postgres dependencies.

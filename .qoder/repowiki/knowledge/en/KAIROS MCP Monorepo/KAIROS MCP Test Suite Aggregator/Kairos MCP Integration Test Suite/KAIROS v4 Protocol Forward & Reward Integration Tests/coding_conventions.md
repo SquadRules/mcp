@@ -1,5 +1,0 @@
-- Each test suite opens a single MCP connection in `beforeAll` with an extended timeout (30–120s) and closes it in `afterAll` to avoid leaking server processes across suites.
-- Protocol fixtures are generated at runtime by calling the server's `train` tool with Markdown built via `buildProofMarkdown(label, steps)`, then asserting `stored.status === 'stored'` before proceeding.
-- Every `client.callTool` response is wrapped in `withRawOnFail({ call, result }, () => { ... })` and parsed through `parseMcpJson(result, '<suite> <step>')` so failing assertions include the raw request/response.
-- Multi-step flows are driven by repeatedly invoking `forward` with `{ uri: payload.current_layer.uri, solution: {...} }` until `payload.next_action` mentions `reward` or `forward`, never hard-coding layer indices.
-- Shared activate-choice assertions (slug length, `AUTHOR_SLUG_RE`, role branching between `match`/`refine`/`create`) are centralized in `v4-activate-test-helpers.ts` rather than duplicated per test file.

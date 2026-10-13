@@ -1,2 +1,0 @@
-- Validation functions return a discriminated union with an `ok: boolean` discriminator plus typed failure codes/messages rather than throwing, letting callers decide whether to surface or re-throw.
-- Zod input schemas are wrapped through a factory function (`mcpLooseToolInput`) that composes a strict branch with a record fallback, instead of scattering union logic inline at each tool registration.

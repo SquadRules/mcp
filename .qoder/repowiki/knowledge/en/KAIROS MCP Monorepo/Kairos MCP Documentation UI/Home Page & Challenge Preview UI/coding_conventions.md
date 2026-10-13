@@ -1,4 +1,0 @@
-- All text strings go through `react-i18next`'s `useTranslation()` with namespaced keys like `home.title`, `home.cardBrowseCta`, never hardcoded literals.
-- Styling uses Tailwind utility classes combined with CSS custom properties (e.g. `var(--color-text-heading)`, `var(--color-border)`, `var(--radius-md)`), avoiding inline style objects.
-- Presentational components receive plain typed props (e.g. `ChallengePayload`) and render nothing beyond DOM — no side effects, no data fetching inside the component itself.
-- Optional payload fields are gated with explicit truthiness checks (`payload?.cmd && ...`, `payload?.arguments !== undefined && ...`) rather than destructuring defaults.

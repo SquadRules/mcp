@@ -1,1 +1,0 @@
-Vitest runner with jsdom environment; `@testing-library/react` + `@testing-library/jest-dom` matchers; `@tanstack/react-query` `QueryClient` for data-layer isolation; `react-router-dom` `MemoryRouter` for route testing; `react-i18next` mocked to return raw keys.

@@ -1,6 +1,0 @@
-- Each tool file exports paired `*InputSchema` / `*OutputSchema` Zod objects together with `z.infer`-derived TypeScript types named `*Input` / `*Output`.
-- Reusable sub-schemas (URIs, artifacts, tensors) are defined as local const values and composed via `.extend()`, `.union()`, or `.array()` rather than re-declared inline.
-- Cross-field validation uses `superRefine` to add custom issues with explicit `path` and `message`, instead of chaining multiple `.refine()` calls.
-- Discriminated unions encode mutually exclusive variants using a literal `role` / `kind` field (e.g. `'match'|'refine'|'create'`, `'forward'|'reward'`).
-- Legacy input formats are accepted through `z.preprocess` normalizers that rewrite old shapes into the canonical v2 envelope before the strict schema runs.
-- Every string field carries a `.describe(...)` docstring explaining its semantics, which doubles as MCP tool documentation.

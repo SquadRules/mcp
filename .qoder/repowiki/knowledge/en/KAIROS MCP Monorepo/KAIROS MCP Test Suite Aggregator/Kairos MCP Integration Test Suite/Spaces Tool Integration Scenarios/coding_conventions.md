@@ -1,3 +1,0 @@
-- Scenario files are minimal shims that import a single contract runner plus one harness factory and delegate all assertions to `runSpacesToolContract(name, harnessFactory)`.
-- Conditional execution uses an `if` guard followed by a `describe.skip(...)` branch with a one-line no-op `test`, so the suite always registers under its expected name regardless of environment.
-- Transport eligibility is checked via utility predicates from `../../utils/auth-headers.js` rather than inline env checks, except for the explicit `ENV=dev_stdio` requirement for the stdio harness.

@@ -29,9 +29,7 @@ To (re)install just the user skill by name:
 npx skills add SquadRules/mcp --skill squadrules
 ```
 
-`squadrules` is the only user-facing skill. The maintainer skill `squadrules-dev` is
-developer-scoped (marked internal) and is auto-loaded from a cloned repository;
-end users do not install it.
+`squadrules` is the only skill this repository ships; end users install just this one.
 
 ## After updating
 

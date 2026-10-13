@@ -1,3 +1,0 @@
-- Global CLI flags are declared on the root `Command` and propagated into `process.env` inside a `preAction` hook so nested subcommands read them uniformly via environment variables rather than deep option merging.
-- Configuration defaults follow a fixed precedence chain (explicit flag → env var → persisted file → hardcoded localhost) exposed through a dedicated getter (`getCliApiUrlDefault`) reused as both the Commander option default and the runtime value.
-- All terminal I/O goes through the `writeStdout`/`writeStderr` helpers instead of `console.*`, keeping linting happy and giving a single place to add formatting or buffering later.

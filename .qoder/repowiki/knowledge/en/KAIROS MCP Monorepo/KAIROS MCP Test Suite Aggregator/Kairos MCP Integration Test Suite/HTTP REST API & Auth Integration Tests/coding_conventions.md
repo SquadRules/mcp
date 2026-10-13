@@ -1,5 +1,0 @@
-- Tests are conditionally skipped for non-HTTP transports using `_d = isHttpTransport() ? describe : describe.skip` before the top-level `describe` block.
-- Every test calls `expect.hasAssertions()` at the top to fail fast when no assertions run.
-- Error responses are asserted by checking both `response.status` and a JSON body with `{ error: 'INVALID_INPUT' | 'PAYLOAD_TOO_LARGE' }` plus a `message` field.
-- Authenticated requests go through the shared `apiFetch(url, { headers: getAuthHeaders(), ... })` helper rather than calling `fetch` directly.
-- When auth may be disabled, tests accept `[200, 401]` as valid statuses instead of asserting exactly 200, guarded by `serverRequiresAuth()` / `hasAuthToken()` checks.

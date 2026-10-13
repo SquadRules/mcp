@@ -1,4 +1,0 @@
-- Read paths check a shared `redisCacheService` before hitting Qdrant and write back into it after mapping, while a parallel `*Fresh` variant bypasses the cache for post-update reads.
-- Every Qdrant operation is wrapped in `[MemoryQdrantStore] ...` structured-log messages at info/warn/error level, with request/response details logged at debug.
-- Space-scoped access control is enforced by reading `point.payload.space_id` against `getSpaceContext().allowedSpaceIds` (plus the app-space sentinel) immediately after each retrieve call.
-- Vector names are resolved dynamically via `getPrimaryVectorName` / `getAdapterTitleVectorName` / `getActivationPatternVectorName` keyed off the embedding dimension rather than hard-coded strings.

@@ -1,5 +1,0 @@
-- Per-call async isolation uses `AsyncLocalStorage.run({}, fn)` to attach mutable state (e.g. `decodedBytes`) scoped to a single export invocation.
-- Export observability follows a fixed pattern: capture `hrtimeSecondsSince(t0)` at call start, then call `finalizeExportObservation(input, result, t0, caught)` in a finally-like path to emit both metrics and structured logs.
-- Slow-export detection is centralized around the `EXPORT_SLOW_MS = 5000` threshold, branching between `structuredLogger.warn` and `structuredLogger.info` based on whether the duration exceeds it.
-- JSONL builders accept `TrainingPair[]` and return arrays of plain serializable objects, using `pair.reward ?? null` / `?? 'unknown'` / `?? []` defaults rather than throwing on missing fields.
-- Layer URIs are normalized through `canonicalLayerUri` before any grouping or metadata emission so `kairos://adapter/...` and `kairos://layer/...` variants collapse to a stable key.

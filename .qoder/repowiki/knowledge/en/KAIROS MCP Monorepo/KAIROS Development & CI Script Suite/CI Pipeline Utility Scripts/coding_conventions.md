@@ -1,4 +1,0 @@
-- Each script is a standalone CLI with a shebang (`#!/usr/bin/env node|python3|bash`) and exits with a non-zero code on failure so CI can gate on it.
-- GitHub Actions integration is opt-in via environment variables (`GITHUB_STEP_SUMMARY`, `COMPOSE_PROJECT`, `ENV_FILE`) rather than hard-coded paths, allowing local dry-runs without side effects.
-- Long-running or flaky operations use bounded retry loops with fixed iteration counts and `sleep` intervals instead of unbounded waits.
-- Child processes are spawned with `stdio: 'inherit'` and `shell: false` so upstream tool output passes through unchanged and argument injection is prevented.

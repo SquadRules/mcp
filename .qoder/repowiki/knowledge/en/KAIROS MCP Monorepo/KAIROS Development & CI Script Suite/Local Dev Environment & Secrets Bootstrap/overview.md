@@ -1,1 +1,0 @@
-Bash/Python/Node helpers that generate .env secrets, copy env files across git worktrees, start/stop the dev stack (Qdrant, Keycloak, app), and run CLI login + Qdrant search probes.

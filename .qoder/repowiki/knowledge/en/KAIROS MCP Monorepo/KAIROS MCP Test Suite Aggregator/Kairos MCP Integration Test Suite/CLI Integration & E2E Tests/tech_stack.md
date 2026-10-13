@@ -1,1 +1,0 @@
-Jest + Node `child_process` for spawning the compiled CLI; `@modelcontextprotocol/sdk` client for the stdio bootstrap smoke test; dotenv parsing for `.env` / `.env.<profile>` overrides.

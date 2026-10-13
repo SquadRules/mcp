@@ -1,4 +1,0 @@
-- All sensitive configuration (KEYCLOAK_URL, SESSION_SECRET, AUTH_CALLBACK_BASE_URL, etc.) is read from `../config.js` rather than accessed directly from `process.env`, keeping environment coupling out of business logic.
-- Group membership is always normalized through `applyOidcGroupsAllowlist(groups, OIDC_GROUPS_ALLOWLIST)` before being attached to `AuthPayload`, whether groups come from the access token, a nested id_token, or the userinfo endpoint.
-- Trace/debug output is gated behind `process.env['AUTH_TRACE'] === 'true' || process.env['LOG_LEVEL'] === 'trace'` and emitted via `structuredLogger.info`/`debug` under the `[auth]` prefix.
-- Cookie signing uses a deterministic HMAC-SHA256 over a base64url-encoded JSON payload (`payloadB64.sig`), with the same signing/verification path mirrored between the callback setter and the middleware parser.

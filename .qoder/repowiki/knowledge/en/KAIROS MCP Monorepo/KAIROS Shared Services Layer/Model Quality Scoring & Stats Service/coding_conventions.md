@@ -1,4 +1,0 @@
-- Pure scoring algorithms are exported as standalone functions in dedicated files; the orchestrator only imports and wraps them, keeping side effects (persistence, metrics) out of the math.
-- External services (Qdrant) are loaded through dynamic `await import(...)` inside the function body to break circular module dependencies.
-- Per-model counters stored in Redis hashes use `hgetall`/`hsetall` with string-valued numeric fields parsed back to numbers on load.
-- Quality labels are drawn from a fixed union type (`excellent | high | standard | basic | below_threshold`) rather than free strings, enforced at the score-aggregation boundary.

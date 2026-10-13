@@ -1,3 +1,0 @@
-- Per-feature operations live in sibling modules (e.g. `memory-store.ts`, `memory-retrieval.ts`, `quality.ts`) and are re-exported through a façade class (`QdrantService`, `MemoryQdrantStore`) that owns only the connection object.
-- Configuration is read from `../../config.js` (`getQdrantUrl`, `getQdrantCollection`, `QDRANT_API_KEY`) rather than passed as constructor arguments, keeping callers configuration-free.
-- Collection alias `current` is resolved once at construction via `resolveCollectionAlias` / `createOrUpdateAlias` so all subsequent calls target the real collection name.

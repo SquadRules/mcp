@@ -1,1 +1,0 @@
-React Query and local-storage-backed hooks that fetch user identity, spaces, and persist run-session state for the Kairos MCP documentation UI.

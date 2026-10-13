@@ -1,1 +1,0 @@
-Express routes and middleware exposing /health, /api, Prometheus HTTP metrics, and RFC 9728/8414 well-known discovery endpoints for MCP authorization.

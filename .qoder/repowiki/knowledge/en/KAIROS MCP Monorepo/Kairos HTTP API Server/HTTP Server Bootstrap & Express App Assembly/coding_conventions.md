@@ -1,3 +1,0 @@
-- Cross-cutting concerns are exposed as named `setup*` or `configure*` functions that mutate an Express app instance rather than returning new apps, allowing a single composition root to control registration order.
-- Per-prefix rate limits are created through the shared `createRateLimiter` factory with an identifier string and window/limit/message options instead of inline `rateLimit()` calls.
-- External services injected into route handlers (e.g. `memoryStore`, `qdrantService`) are passed as explicit arguments to each `setup*` function rather than attached on the Express app.

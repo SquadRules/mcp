@@ -1,3 +1,0 @@
-- Public input validation is exposed as a pair of functions: a permissive parser returning a typed result plus a `*OrThrow` wrapper that converts errors into `KairosError` instances with a machine-readable code and HTTP status.
-- URI identifiers accept both UUIDs and author slugs; when a slug is detected the value is passed through `normalizeAuthorSlug` before being returned, so callers always receive a canonical form.
-- Read-only display builders construct a plain `Record<string, unknown>` object and attach the immutable `GENESIS_HASH` as the `proof_hash` field, keeping schema generation separate from storage or execution logic.

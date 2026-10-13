@@ -1,1 +1,0 @@
-Bootstraps the React application by mounting the root, configuring providers (i18n, React Query, theme), and declaring the lazy-loaded route tree under a `/ui` base path.

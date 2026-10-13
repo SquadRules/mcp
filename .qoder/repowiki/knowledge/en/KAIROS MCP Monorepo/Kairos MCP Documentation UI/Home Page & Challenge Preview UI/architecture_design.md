@@ -1,6 +1,0 @@
-Three leaf React components with no internal sub-packages:
-- `HomePage.tsx` is a presentational route component that composes `SurfaceCard`, `SpaceTypeBadge`, and the `useSpaces` hook to display a search form (submits via `react-router-dom`'s `useNavigate` to `/kairos?q=...`), three action cards (Browse / Create / Runs), and a grid of per-space adapter counts. It owns all data fetching and state (`isLoading`, `isError`) and renders a static placeholder when spaces are unavailable.
-- `ChallengeCard.tsx` is a pure presentational card for challenge payloads; it maps string `type` values to human-readable labels and CSS badge classes via two module-level `Record<string,string>` lookups (`CHALLENGE_TYPE_LABEL`, `TYPE_BADGE_CLASS`) and conditionally renders optional payload fields (`cmd`, `tool_name`, `arguments`, `prompt`, `min_length`).
-- `SearchResultsSkeleton.tsx` is a pure skeleton component emitting three pulsing list items using Tailwind's `animate-pulse` to avoid layout shift during search loading.
-
-Dependency direction: this module only imports from shared UI primitives (`@/components/*`) and hooks (`@/hooks/*`); it does not import any other feature pages or business logic, keeping it a thin presentation layer.

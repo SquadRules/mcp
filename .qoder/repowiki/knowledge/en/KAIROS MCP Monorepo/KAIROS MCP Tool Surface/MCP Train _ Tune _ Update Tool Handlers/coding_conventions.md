@@ -1,5 +1,0 @@
-- Each tool exposes a `registerXxxTool(server, memoryStore, options)` factory plus a separately exported `executeXxx(...)` pure function, letting the MCP handler and other transports share the same business logic.
-- Tool handlers validate inputs with `zod.safeParse(params)` and short-circuit via `mcpToolInputValidationErrorResult(toolName, error, params)` before invoking the execute function.
-- Every handler wraps the call in `mcpToolDuration.startTimer`, increments `mcpToolCalls`/`mcpToolErrors` on success or failure, and observes `mcpToolInputSize`/`mcpToolOutputSize` with `{tool, tenant_id}` labels.
-- Optional external services (e.g. `QdrantService`) are injected via `options` and lazily imported (`await import(...)`) only when actually needed, keeping the module load path lightweight.
-- Errors thrown by execute functions are caught and normalized into a `{error, message, details}` object (often via a dedicated formatter like `formatTrainErrorPayload`) before being returned as `{isError: true, content: [{type:'text', text: JSON.stringify(...) }]}`.

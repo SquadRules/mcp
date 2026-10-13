@@ -1,6 +1,0 @@
-Three sibling React components with no internal sub-packages:
-- `AccountPage.tsx` renders the signed-in / not-signed-in account view, reads identity via `useMe()` from `@/hooks/useAuth`, and drives theme switching through the `useThemePreferenceContext` provider (`light`/`dark`/`system`).
-- `SkillBundlePage.tsx` is a route page (`react-router-dom`'s `useParams`) that loads a protocol document via `useProtocol(decodedUri)`, lets the user author a `Skill.md` plus optional references using `RichTextEditor`, and triggers a client-side zip download through `fetchSkillZipBundle` + `triggerFileDownload` from `@/lib/export-skill-zip`.
-- `SpaceSelect.tsx` is a reusable `<select>` wrapper typed against `SpaceInfo` from `@/hooks/useSpaces`; it also exports a `SpaceTypeBadge` badge whose CSS classes are keyed by `SpaceInfo.type` (`personal`/`group`/`app`/`other`).
-
-Dependency direction is one-way: pages consume hooks/libraries; `SpaceSelect` only depends on the `SpaceInfo` type. There is no state sharing between the three files — they are independent leaf routes/components.

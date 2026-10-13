@@ -1,1 +1,0 @@
-Jest-based unit tests exercising KAIROS MCP source modules — CLI, adapters, training, memory, OIDC/OAuth, and tool input schemas — with no external server required.

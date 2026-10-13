@@ -1,4 +1,0 @@
-- Per-test-suite connections are acquired in `beforeAll` and closed in `afterAll`, with `try/finally` guards around `client.close()` to swallow cleanup errors.
-- Tests that require HTTP + auth gate themselves with `_d = isHttpTransport() ? describe : describe.skip` and early-return when `!serverRequiresAuth()` or missing tokens, rather than failing hard.
-- Assertions on MCP responses are wrapped in `withRawOnFail(result, () => { ... })` so a failing expectation prints the raw JSON-RPC payload alongside the matcher output.
-- Contract assertions live in `contracts/*.contract.ts` as functions taking `(suiteName, createHarness)` and are invoked from scenario-specific test files, keeping transport logic out of the assertions.

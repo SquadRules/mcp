@@ -1,1 +1,0 @@
-Cross-cutting TypeScript types, shared utility modules (logging, Qdrant helpers, tenant context), embedded resource bootstrapping, and process-wide configuration consumed by the rest of the KAIROS MCP server.

@@ -1,5 +1,0 @@
-- Each persistence handler wraps the Qdrant `upsert` call in a try/catch that retries without the `bm25` field when the error message mentions 'Bad Request', 'sparse', or 'vector', treating missing sparse config as a transient collection mismatch.
-- Embedding batches are validated post-call by asserting both count equals `memories.length * 3` and every vector length equals `getEmbeddingDimension()`, falling back to zero-filled vectors rather than failing the whole request.
-- Adapter identity is derived deterministically via `IDGenerator.generateAdapterUUIDv5(label)` unless `forkNewAdapter` is true, in which case `crypto.randomUUID()` is used to create a new version.
-- Every persisted point carries `space_id`, `created_by`/`modified_by` from `getSpaceContext()`, and quality metadata computed through `modelStats.calculateStepQualityMetadata` before being recorded via `memoryStore.inc` and `memoryAdapterSize.observe`.
-- Protocol slugs are resolved through `resolveProtocolSlugCandidate` and allocated atomically via `allocateAdapterSlugForMint`, with invalid candidates thrown as `KairosError('INVALID_SLUG', 400)`.

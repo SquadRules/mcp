@@ -1,6 +1,0 @@
-Three independent React components at `src/ui/components/`:
-- `Layout.tsx` is the app root shell: a fixed-width `<aside>` sidebar built from `react-router-dom`'s `NavLink` + `useLocation`, an `Outlet` for child routes, and a version footer sourced from `import.meta.env.VITE_KAIROS_VERSION`. Route-wide width is toggled via `isWideContentRoute` (`/protocols`, `/runs`).
-- `RichTextEditor.tsx` wraps `@tiptap/react` in a controlled value/onChange interface; it delegates extension registration to `@/utils/rich-text-editor-extensions` so the editor's feature set (paragraph, bold, italic, lists, link, quote, code, code block, table) is centralized. A local `Toolbar` composes small SVG icon helpers and calls `editor.chain().focus()...` commands. Sync between external `value` and editor content uses refs (`lastEmittedMarkdown`, `contentKey`) to avoid stale closures.
-- `RenderedMarkdown.tsx` is a thin wrapper around `react-markdown` + `remark-gfm` that renders markdown as styled HTML without exposing raw source.
-
-Dependency direction is one-way: these components consume shared utilities (`@/utils/rich-text-editor-extensions`) and i18n (`react-i18next`), but are not imported by them. Styling is Tailwind utility classes referencing CSS custom properties (e.g. `--color-primary`, `--layout-sidebar-width`) defined elsewhere in the theme.

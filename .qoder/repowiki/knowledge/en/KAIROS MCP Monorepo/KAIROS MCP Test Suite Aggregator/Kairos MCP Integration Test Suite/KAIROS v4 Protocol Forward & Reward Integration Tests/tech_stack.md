@@ -1,1 +1,0 @@
-Jest (no `@jest/globals` import — the integration harness injects `expect` globally); Node `crypto.randomUUID` for per-run execution IDs; `kairos://adapter/...` URIs drive the active server under test.

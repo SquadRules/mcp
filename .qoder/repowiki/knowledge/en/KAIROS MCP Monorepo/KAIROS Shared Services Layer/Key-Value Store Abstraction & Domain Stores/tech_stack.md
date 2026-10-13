@@ -1,1 +1,0 @@
-In-memory Map-backed cache for dev; Redis via `RedisService` for production (selected by `isRedisConfigured`); Qdrant vector DB (`@qdrant/js-client-rest`) for execution traces with keyword payload indexes on `adapter_id` and `updated_at`.

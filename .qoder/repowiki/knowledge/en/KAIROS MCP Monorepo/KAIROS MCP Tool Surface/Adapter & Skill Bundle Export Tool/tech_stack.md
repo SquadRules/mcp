@@ -1,1 +1,0 @@
-ZIP bundling via Node `archiver` with zlib compression level controlled by `config/export-zip-settings.js`; input/output schemas validated with Zod (`exportInputSchema`/`exportOutputSchema`); metrics emitted through `mcp-metrics.js` (calls, duration, sizes, errors).

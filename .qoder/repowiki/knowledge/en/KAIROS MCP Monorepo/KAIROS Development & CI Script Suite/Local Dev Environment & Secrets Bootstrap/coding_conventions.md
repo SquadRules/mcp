@@ -1,4 +1,0 @@
-- Scripts use `set -euo pipefail` and resolve `$ROOT`/`$PROJECT_DIR` by `cd "$(dirname "$0")/../.." && pwd` so they are relocatable regardless of cwd.
-- Environment variables are loaded lazily with `set -a && source .env && set +a` and guarded with `${VAR:-default}` defaults rather than hard-coded constants.
-- Secrets are never committed: templates use `__VAR_NAME__` placeholders resolved at generation time, and `SECRET_KEYS` lists which values must be generated or supplied via env.
-- Each script is self-contained and exits non-zero on failure; human-friendly status messages go through colored `print_info/print_success/print_warning/print_error` helpers instead of bare `echo`.

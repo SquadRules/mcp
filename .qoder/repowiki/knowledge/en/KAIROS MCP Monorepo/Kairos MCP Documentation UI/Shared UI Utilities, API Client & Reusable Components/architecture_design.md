@@ -1,6 +1,0 @@
-Three concentric layers with one-way dependency direction:
-- `src/ui/lib/` — runtime primitives consumed by feature code. `api.ts` is the single HTTP entry point (`apiFetch`) that normalizes base URL, JSON content-type, and same-origin credentials; `export-skill-zip.ts` composes it to call `/api/export`, resolve either a `download_ref.url` or inline base64 into a Blob, and provide download helpers (`triggerFileDownload`, `suggestedSkillZipFilename`). `runToolTypes.ts` re-exports type aliases from `tools/*_schema.js` so UI code never imports tool schemas directly.
-- `src/ui/utils/` — pure functions with no React coupling. `browse-adapters.ts` flattens nested space→adapter trees, dedupes by `adapter_id` (preferring higher `layer_count`), and precomputes per-letter counts against the fixed `BROWSE_LETTERS` alphabet. `confidence.ts` clamps/scales raw scores to integer percentages. `rich-text-editor-extensions.ts` centralises the TipTap extension configuration used both in the protocol step editor and its tests.
-- `src/ui/components/` — tiny presentational React components (`CopyButton`, `ErrorAlert`) that own only their own state and render via Tailwind utility classes plus CSS custom properties (`--color-*`, `--radius-md`).
-
-Dependency direction is strictly lib → utils → components; nothing in `lib/` imports React, and `utils/` are side-effect free.
