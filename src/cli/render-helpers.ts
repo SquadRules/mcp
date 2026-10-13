@@ -1,31 +1,41 @@
 /**
  * CLI rich-output helpers: semantic color functions and ASCII table builder.
  *
- * Colors are automatically stripped by chalk when `process.stdout.isTTY` is false
- * (output is piped/redirected), so these helpers are safe to call unconditionally
- * in pretty-mode renderers — machine-parseable output (piped) stays clean.
+ * Uses a per-call chalk instance so that color support is determined dynamically
+ * from `process.stdout.isTTY` at call time (not cached at import). This ensures
+ * colors are emitted on TTY and stripped when piped, regardless of when chalk
+ * was first loaded.
  */
-import chalk from 'chalk';
+import chalk, { Chalk } from 'chalk';
+
+/** Create a chalk instance that reflects the current TTY state. */
+function ttyChalk(): Chalk {
+  const level = process.stdout.isTTY ? (chalk.level || 1) : 0;
+  return new chalk.Instance({ level });
+}
 
 /** Semantic color helpers for CLI output (auto-stripped when piped). */
 export const c = {
   /** Section headings: "activate:", "spaces:" */
-  heading: chalk.bold.cyan,
+  heading: (s: string): string => ttyChalk().bold.cyan(s),
   /** Field labels: "score", "contract" */
-  label: chalk.bold,
+  label: (s: string): string => ttyChalk().bold(s),
   /** Score badge: color-coded by value (green >= 0.7, yellow >= 0.4, red < 0.4) */
-  score: (v: number): string =>
-    v >= 0.7 ? chalk.green(v.toFixed(2)) : v >= 0.4 ? chalk.yellow(v.toFixed(2)) : chalk.red(v.toFixed(2)),
+  score: (v: number): string => {
+    const k = ttyChalk();
+    const t = v.toFixed(2);
+    return v >= 0.7 ? k.green(t) : v >= 0.4 ? k.yellow(t) : k.red(t);
+  },
   /** Status: "success", "rated", "ok" */
-  success: chalk.green,
+  success: (s: string): string => ttyChalk().green(s),
   /** Status: "failed", "error" */
-  error: chalk.red,
+  error: (s: string): string => ttyChalk().red(s),
   /** URIs, secondary info */
-  dim: chalk.dim,
+  dim: (s: string): string => ttyChalk().dim(s),
   /** Adapter roles: "match", "refine", "create" */
-  role: chalk.magenta,
+  role: (s: string): string => ttyChalk().magenta(s),
   /** Space names */
-  space: chalk.blue,
+  space: (s: string): string => ttyChalk().blue(s),
 };
 
 /**

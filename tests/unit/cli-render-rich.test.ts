@@ -2,15 +2,10 @@
  * Rich-output unit tests: color helpers, ASCII table builder, and TTY-aware color
  * stripping. Pure — no server, no embedded store, no ONNX.
  *
- * NOTE: chalk v4 caches its color level at import time. We set FORCE_COLOR=1
- * before any imports so the shared chalk instance in render-helpers.ts starts
- * with colors enabled. For the "piped" test we use a local chalk instance at
- * level 0 to verify stripping behaviour (chalk's own responsibility).
+ * render-helpers.ts checks `process.stdout.isTTY` dynamically per call, so tests
+ * can toggle isTTY to verify both colored and stripped output.
  */
-process.env['FORCE_COLOR'] = '1';
-
-import { describe, expect, it } from '@jest/globals';
-import chalk from 'chalk';
+import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
 import { c, asciiTable } from '../../src/cli/render-helpers.js';
 import {
   renderActivatePretty,
@@ -50,8 +45,15 @@ describe('asciiTable', () => {
   });
 });
 
-describe('color helpers produce ANSI codes', () => {
-  it('emits ANSI escape sequences', () => {
+describe('color helpers (TTY-aware)', () => {
+  const origIsTTY = process.stdout.isTTY;
+
+  afterEach(() => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true });
+  });
+
+  it('emits ANSI escape sequences on TTY', () => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
     expect(c.heading('test')).toMatch(ANSI_RE);
     expect(c.score(0.85)).toMatch(ANSI_RE);
     expect(c.success('ok')).toMatch(ANSI_RE);
@@ -61,18 +63,27 @@ describe('color helpers produce ANSI codes', () => {
     expect(c.space('personal')).toMatch(ANSI_RE);
   });
 
-  it('chalk level 0 strips ANSI codes (simulates piped output)', () => {
-    // chalk v4 caches level at import; use a local level-0 instance to verify
-    // that the strip behaviour works (chalk's own responsibility).
-    const plain = new chalk.Instance({ level: 0 });
-    expect(plain.bold.cyan('test')).toBe('test');
-    expect(plain.green('ok')).toBe('ok');
-    expect(plain.red('fail')).toBe('fail');
-    expect(plain.dim('uri')).toBe('uri');
+  it('strips ANSI codes when piped (non-TTY)', () => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true });
+    expect(c.heading('test')).toBe('test');
+    expect(c.score(0.85)).toBe('0.85');
+    expect(c.success('ok')).toBe('ok');
+    expect(c.error('fail')).toBe('fail');
+    expect(c.dim('uri')).toBe('uri');
+    expect(c.role('match')).toBe('match');
+    expect(c.space('personal')).toBe('personal');
   });
 });
 
 describe('score color coding', () => {
+  const origIsTTY = process.stdout.isTTY;
+  beforeEach(() => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true });
+  });
+
   it('green for >= 0.7', () => {
     expect(c.score(0.85)).toContain('\x1b[32m'); // green
   });
@@ -87,6 +98,13 @@ describe('score color coding', () => {
 });
 
 describe('pretty renderers use colors', () => {
+  const origIsTTY = process.stdout.isTTY;
+  beforeEach(() => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true });
+  });
   it('renderActivatePretty includes ANSI codes', () => {
     const out: ActivateOutput = {
       must_obey: true,
