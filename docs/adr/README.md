@@ -47,3 +47,4 @@ Rules of use:
 | [0015](0015-cli-local-by-default-transport-agnostic-backend.md) | The CLI is local-by-default with a transport-agnostic backend and human-first output | Accepted |
 | [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Proposed |
 | [0017](0017-critic-loop-work-submission.md) | Critic-loop reviews a typed work submission, not a single input file | Accepted (extends 0010) |
+| [0018](0018-automated-dependency-pr-merge-via-reconcile.md) | Automated dependency PR merge via reconcile every 6 hours | Accepted |

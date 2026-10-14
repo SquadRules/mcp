@@ -131,6 +131,21 @@ assert.equal(renovate.automerge, false);
 assert.equal(renovate.osvVulnerabilityAlerts, false);
 assert.equal(renovate.vulnerabilityAlerts.enabled, false);
 
+const autoMergeDeps = load(readFileSync(`${directory}/auto-merge-deps.yml`, 'utf8'));
+assert.ok(autoMergeDeps.on.schedule.some(s => s.cron === '23 */6 * * *'), 'Auto-merge must run every 6 hours');
+assert.ok(autoMergeDeps.on.workflow_dispatch?.inputs?.['dry-run'], 'Auto-merge must support dry-run dispatch');
+assert.equal(autoMergeDeps.permissions.contents, 'read');
+assert.equal(autoMergeDeps.concurrency['cancel-in-progress'], false);
+const autoMergeJob = autoMergeDeps.jobs.merge;
+assert.match(autoMergeJob.if, /AUTOMATION_ENABLED/);
+const autoMergeCheckout = autoMergeJob.steps.find(s => s.uses?.startsWith('actions/checkout@'));
+assert.equal(autoMergeCheckout.with.ref, 'refs/heads/main');
+assert.equal(autoMergeCheckout.with['persist-credentials'], false);
+const autoMergeStep = autoMergeJob.steps.find(s => s.run?.includes('ci-automation.mjs'));
+assert.ok(autoMergeStep, 'Auto-merge must invoke ci-automation.mjs');
+assert.equal(autoMergeStep.env.GH_TOKEN, '${{ secrets.GH_PAT }}');
+assert.doesNotMatch(JSON.stringify(autoMergeDeps), /git push|npm audit fix/);
+
 if (spawnSync('shellcheck', ['--version'], { stdio: 'ignore' }).status !== 0) {
   throw new Error('ShellCheck is required for complete workflow validation');
 }
