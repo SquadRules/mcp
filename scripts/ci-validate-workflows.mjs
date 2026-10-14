@@ -70,7 +70,7 @@ const validateAuthStep = syncReleasePr.steps.find(s => s.name === 'Validate Qode
 assert.ok(validateAuthStep, 'Validate Qoder CLI authentication step must exist');
 assert.equal(validateAuthStep.env.QODER_PERSONAL_ACCESS_TOKEN, '${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}');
 assert.match(validateAuthStep.run ?? '', /qodercli.*status/);
-assert.match(validateAuthStep.run ?? '', /https:\/\/qoder\.com\/account\/integrations/);
+assert.match(validateAuthStep.run ?? '', /https:\/\/qoder\.com\/account\/integrations\b/);
 
 assert.equal(release.jobs['validate-release-pr'], undefined);
 const autoMerge = release.jobs['auto-merge-release-pr'];
