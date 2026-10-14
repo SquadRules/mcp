@@ -237,6 +237,8 @@ export type BuildForwardViewOptions = {
   contractOverride?: ForwardOutput['contract'];
   tensorInOverride?: Record<string, unknown>;
   slugDisambiguationNote?: string;
+  nextProofHash?: string;
+  nextNonce?: string;
 };
 
 export async function buildForwardView(
@@ -268,7 +270,11 @@ export async function buildForwardView(
         args: {
           uri: layer.uri,
           ...(meta?.authoring ? { authoring: meta.authoring } : {}),
-          solution_template: buildEmptySolutionTemplate(contract.type)
+          solution_template: {
+            ...buildEmptySolutionTemplate(contract.type),
+            ...(options?.nextNonce ? { nonce: options.nextNonce } : {}),
+            ...(options?.nextProofHash ? { proof_hash: options.nextProofHash } : {})
+          }
         }
       };
   return {
@@ -294,7 +300,8 @@ export async function buildForwardView(
 export async function mapLayerPayloadShapeToForwardView(
   memoryStore: MemoryQdrantStore,
   executionId: string,
-  nextExecutionResult: LayerPayload
+  nextExecutionResult: LayerPayload,
+  extras?: { nextProofHash?: string; nextNonce?: string }
 ): Promise<ForwardOutput> {
   const currentLayerId = nextExecutionResult.current_step?.uri
     ? extractUuid(nextExecutionResult.current_step.uri)
@@ -318,7 +325,9 @@ export async function mapLayerPayloadShapeToForwardView(
     ...(nextExecutionResult.error_code ? { errorCode: nextExecutionResult.error_code } : {}),
     ...(nextExecutionResult.retry_count !== undefined ? { retryCount: nextExecutionResult.retry_count } : {}),
     mustObey: nextExecutionResult.must_obey,
-    ...(!final && displayContract?.type !== 'tensor' && { contractOverride: nextExecutionResult.challenge })
+    ...(!final && displayContract?.type !== 'tensor' && { contractOverride: nextExecutionResult.challenge }),
+    ...(extras?.nextProofHash ? { nextProofHash: extras.nextProofHash } : {}),
+    ...(extras?.nextNonce ? { nextNonce: extras.nextNonce } : {})
   };
   return buildForwardView(displayMemory, executionId, options);
 }
@@ -335,11 +344,4 @@ export interface LayerPayload {
   message?: string;
   error_code?: string;
   retry_count?: number;
-}
-export async function mapLayerPayloadToForwardView(
-  memoryStore: MemoryQdrantStore,
-  executionId: string,
-  nextExecutionResult: LayerPayload
-): Promise<ForwardOutput> {
-  return mapLayerPayloadShapeToForwardView(memoryStore, executionId, nextExecutionResult);
 }

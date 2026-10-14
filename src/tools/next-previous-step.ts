@@ -30,10 +30,11 @@ export async function tryApplySolutionToPreviousStep(
   memory: Memory,
   solution: ProofOfWorkSubmission,
   loadMemory: (uuid: string) => Promise<Memory | null>,
-  qdrantService: QdrantService | undefined
+  qdrantService: QdrantService | undefined,
+  executionId?: string
 ): Promise<TryApplyToPreviousResult> {
   if (getInferenceContract(memory)) return { applied: false };
-  const prevInfo = await resolveAdapterPreviousLayer(memory, qdrantService);
+  const prevInfo = await resolveAdapterPreviousLayer(memory, qdrantService, executionId);
   const prevMemory = prevInfo?.uuid ? await loadMemory(prevInfo.uuid) : null;
   const prevContract = prevMemory ? getInferenceContract(prevMemory) : undefined;
   if (!prevMemory || !prevContract?.required) return { applied: false };
@@ -42,7 +43,7 @@ export async function tryApplySolutionToPreviousStep(
   const expectedPrevHash = prevIsStep1
     ? GENESIS_HASH
     : (await (async () => {
-        const previous = await resolveAdapterPreviousLayer(prevMemory, qdrantService);
+        const previous = await resolveAdapterPreviousLayer(prevMemory, qdrantService, executionId);
         return previous?.uuid ? await proofOfWorkStore.getProofHash(previous.uuid) : null;
       })()) ?? GENESIS_HASH;
 
@@ -64,10 +65,11 @@ export async function tryApplySolutionToPreviousStepWhenSolutionMatchesPrevious(
   requestedMemory: Memory,
   solution: ProofOfWorkSubmission,
   loadMemory: (uuid: string) => Promise<Memory | null>,
-  qdrantService: QdrantService | undefined
+  qdrantService: QdrantService | undefined,
+  executionId?: string
 ): Promise<TryApplyToPreviousResult> {
   if (!getInferenceContract(requestedMemory)) return { applied: false };
-  const prevInfo = await resolveAdapterPreviousLayer(requestedMemory, qdrantService);
+  const prevInfo = await resolveAdapterPreviousLayer(requestedMemory, qdrantService, executionId);
   if (!prevInfo?.uuid) return { applied: false };
   const prevMemory = await loadMemory(prevInfo.uuid);
   const prevContract = prevMemory ? getInferenceContract(prevMemory) : undefined;
@@ -104,7 +106,7 @@ export async function tryApplySolutionToPreviousStepWhenSolutionMatchesPrevious(
   const expectedPrevHash = prevIsStep1
     ? GENESIS_HASH
     : (await (async () => {
-        const previous = await resolveAdapterPreviousLayer(prevMemory, qdrantService);
+        const previous = await resolveAdapterPreviousLayer(prevMemory, qdrantService, executionId);
         return previous?.uuid ? await proofOfWorkStore.getProofHash(previous.uuid) : null;
       })()) ?? GENESIS_HASH;
 
@@ -121,7 +123,7 @@ export async function ensurePreviousProofCompleted(
   executionId?: string
 ): Promise<PreviousProofBlock | null> {
   if (!memory?.adapter || memory.adapter.layer_index <= 1) return null;
-  const previous = await resolveAdapterPreviousLayer(memory, qdrantService);
+  const previous = await resolveAdapterPreviousLayer(memory, qdrantService, executionId);
   if (!previous?.uuid) return null;
   const prevMemory = await loadMemory(previous.uuid);
   const prevProof = prevMemory ? getInferenceContract(prevMemory) : undefined;

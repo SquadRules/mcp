@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getTenantId } from '../utils/tenant-context.js';
-import { resolveAdapterNextLayer, resolveAdapterPreviousLayer } from '../services/adapter-navigation.js';
+import { resolveAdapterNextLayer, resolveAdapterPreviousLayer, buildAndPinLayerManifest } from '../services/adapter-navigation.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { forwardRuntimeStore } from '../services/forward-runtime-store.js';
 import { getAdapterId, getInferenceContract, getLayerIndex } from '../services/memory/memory-accessors.js';
@@ -31,32 +31,27 @@ import {
   buildForwardView,
   buildCurrentLayerView,
   loadMemoryForParsedUri,
-  mapLayerPayloadToForwardView,
+  mapLayerPayloadShapeToForwardView,
   mapProofSolution,
 } from './forward-view.js';
 import { appendExecutionTrace, handleTensorForward, solutionToTensorValue } from './forward-trace.js';
 import { SquadrulesError } from '../types/index.js';
 
 function traceFireAndForget(op: Promise<void>): void {
-  op.catch((err) => {
-    structuredLogger.warn(
-      `[trace] Persistence failed, data lost: ${err instanceof Error ? err.message : String(err)}`
-    );
-  });
+  op.catch((err) => structuredLogger.warn(`[trace] Persistence failed, data lost: ${err instanceof Error ? err.message : String(err)}`));
 }
-
 async function loadLayer(memoryStore: MemoryQdrantStore, layerId: string | undefined): Promise<Awaited<ReturnType<MemoryQdrantStore['getMemory']>>> {
   return layerId ? memoryStore.getMemory(layerId) : null;
 }
-
 async function expectedPreviousHash(
   memory: Awaited<ReturnType<MemoryQdrantStore['getMemory']>>,
-  qdrantService: QdrantService | undefined
+  qdrantService: QdrantService | undefined,
+  executionId?: string
 ): Promise<string> {
   if (!memory || getLayerIndex(memory) <= 1) {
     return GENESIS_HASH;
   }
-  const previous = await resolveAdapterPreviousLayer(memory, qdrantService);
+  const previous = await resolveAdapterPreviousLayer(memory, qdrantService, executionId);
   if (!previous?.uuid) {
     return GENESIS_HASH;
   }
@@ -75,7 +70,7 @@ async function buildPostSubmissionView(params: {
   if (!currentMemory) {
     throw new Error('Layer not found while building forward response');
   }
-  const next = await resolveAdapterNextLayer(currentMemory, qdrantService);
+  const next = await resolveAdapterNextLayer(currentMemory, qdrantService, executionId);
   if (!next?.uuid) {
     return buildForwardView(currentMemory, executionId, {
       final: true,
@@ -87,9 +82,13 @@ async function buildPostSubmissionView(params: {
   if (!nextMemory) {
     throw new Error(`Next layer ${next.uuid} could not be loaded`);
   }
+  const nextNonce = nextMemory.memory_uuid
+    ? (await proofOfWorkStore.getNonce(nextMemory.memory_uuid)) ?? undefined
+    : undefined;
   return buildForwardView(nextMemory, executionId, {
-    ...(proofHash ? { proofHash } : {}),
-    ...(message ? { message } : {})
+    ...(proofHash ? { proofHash, nextProofHash: proofHash } : {}),
+    ...(message ? { message } : {}),
+    ...(nextNonce ? { nextNonce } : {})
   });
 }
 
@@ -109,7 +108,6 @@ export async function executeForward(
   if (!memory) {
     throw new SquadrulesError('Layer or adapter not found', 'NOT_FOUND', 404);
   }
-
   const adapterId = getAdapterId(memory);
   const adapterUri = buildAdapterUri(adapterId);
   const executionId = parsed.kind === 'layer' && parsed.executionId ? parsed.executionId : crypto.randomUUID();
@@ -153,6 +151,8 @@ export async function executeForward(
       adapterId,
       adapterUri
     }));
+    // Pin layer manifest on first forward of this execution to prevent UUID churn (#79).
+    await buildAndPinLayerManifest(memory, qdrantService, executionId);
   }
 
   if (!input.solution) {
@@ -171,7 +171,7 @@ export async function executeForward(
   let solutionToUse = mapProofSolution(input.solution);
   const elicitResult = await tryElicit(memory, solutionToUse, requestedUri);
   if ('payload' in elicitResult) {
-    return mapLayerPayloadToForwardView(memoryStore, executionId, elicitResult.payload);
+    return mapLayerPayloadShapeToForwardView(memoryStore, executionId, elicitResult.payload);
   }
   solutionToUse = elicitResult.solution;
 
@@ -181,14 +181,15 @@ export async function executeForward(
       memory,
       solutionToUse,
       (id) => memoryStore.getMemory(id),
-      qdrantService
+      qdrantService,
+      executionId
     );
     if (previousAttempt.applied) {
       if (previousAttempt.outcome.blockedPayload) {
         if (qdrantService) {
           await updateStepQuality(qdrantService, previousAttempt.prevMemory, 'failure', tenantId);
         }
-        return mapLayerPayloadToForwardView(memoryStore, executionId, previousAttempt.outcome.blockedPayload);
+        return mapLayerPayloadShapeToForwardView(memoryStore, executionId, previousAttempt.outcome.blockedPayload);
       }
       const previousBlock = await ensurePreviousProofCompleted(
         memory,
@@ -209,7 +210,7 @@ export async function executeForward(
           qdrantService,
           executionId
         );
-        return mapLayerPayloadToForwardView(memoryStore, executionId, {
+        return mapLayerPayloadShapeToForwardView(memoryStore, executionId, {
           must_obey: payload.retry_count < 3,
           current_step: payload.current_step,
           challenge: payload.challenge,
@@ -251,14 +252,15 @@ export async function executeForward(
     memory,
     solutionToUse,
     (id) => memoryStore.getMemory(id),
-    qdrantService
+    qdrantService,
+    executionId
   );
   if (previousMatchAttempt.applied) {
     if (previousMatchAttempt.outcome.blockedPayload) {
       if (qdrantService) {
         await updateStepQuality(qdrantService, previousMatchAttempt.prevMemory, 'failure', tenantId);
       }
-      return mapLayerPayloadToForwardView(memoryStore, executionId, previousMatchAttempt.outcome.blockedPayload);
+      return mapLayerPayloadShapeToForwardView(memoryStore, executionId, previousMatchAttempt.outcome.blockedPayload);
     }
     if (qdrantService && !previousMatchAttempt.outcome.alreadyRecorded) {
       await updateStepQuality(qdrantService, previousMatchAttempt.prevMemory, 'success', tenantId);
@@ -273,20 +275,25 @@ export async function executeForward(
       {},
       tensorOut
     );
+    const redirectProofHash = previousMatchAttempt.outcome.proofHash;
+    const currentNonce = memory.memory_uuid
+      ? (await proofOfWorkStore.getNonce(memory.memory_uuid)) ?? undefined
+      : undefined;
     return buildForwardView(memory, executionId, {
-      ...(previousMatchAttempt.outcome.proofHash ? { proofHash: previousMatchAttempt.outcome.proofHash } : {}),
-      message: 'Applied the submitted solution to the pending prior layer. Continue with the current layer.'
+      ...(redirectProofHash ? { proofHash: redirectProofHash, nextProofHash: redirectProofHash } : {}),
+      message: 'Applied the submitted solution to the pending prior layer. Continue with the current layer.',
+      ...(currentNonce ? { nextNonce: currentNonce } : {})
     });
   }
 
   submissionOutcome = await handleProofSubmission(solutionToUse, memory, {
-    expectedPreviousHash: await expectedPreviousHash(memory, qdrantService)
+    expectedPreviousHash: await expectedPreviousHash(memory, qdrantService, executionId)
   });
   if (submissionOutcome.blockedPayload) {
     if (qdrantService) {
       await updateStepQuality(qdrantService, memory, 'failure', tenantId);
     }
-    return mapLayerPayloadToForwardView(memoryStore, executionId, submissionOutcome.blockedPayload);
+    return mapLayerPayloadShapeToForwardView(memoryStore, executionId, submissionOutcome.blockedPayload);
   }
 
   const previousBlock = await ensurePreviousProofCompleted(
@@ -308,7 +315,7 @@ export async function executeForward(
       qdrantService,
       executionId
     );
-    return mapLayerPayloadToForwardView(memoryStore, executionId, {
+    return mapLayerPayloadShapeToForwardView(memoryStore, executionId, {
       must_obey: payload.retry_count < 3,
       current_step: payload.current_step,
       challenge: payload.challenge,

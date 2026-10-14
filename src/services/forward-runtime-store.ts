@@ -20,6 +20,10 @@ function metaKey(executionId: string): string {
   return `runtime:execution:${executionId}:meta`;
 }
 
+function manifestKey(executionId: string): string {
+  return `runtime:execution:${executionId}:manifest`;
+}
+
 function tensorKey(executionId: string, tensorName: string): string {
   return `runtime:execution:${executionId}:tensor:${tensorName}`;
 }
@@ -31,6 +35,18 @@ export class ForwardRuntimeStore {
 
   async getExecution(executionId: string): Promise<ForwardExecutionMeta | null> {
     return keyValueStore.getJson<ForwardExecutionMeta>(metaKey(executionId));
+  }
+
+  /** Pin the ordered layer UUIDs for an execution. Built once on first forward. */
+  async setLayerManifest(executionId: string, manifest: string[]): Promise<void> {
+    if (!executionId || manifest.length === 0) return;
+    await keyValueStore.setJson(manifestKey(executionId), manifest, DEFAULT_EXECUTION_TTL_SEC);
+  }
+
+  /** Retrieve the pinned layer manifest for an execution (null if not yet pinned). */
+  async getLayerManifest(executionId: string): Promise<string[] | null> {
+    if (!executionId) return null;
+    return keyValueStore.getJson<string[]>(manifestKey(executionId));
   }
 
   async setTensor(executionId: string, name: string, value: unknown): Promise<void> {
@@ -66,6 +82,7 @@ export class ForwardRuntimeStore {
   async deleteExecution(executionId: string, tensorNames: string[] = []): Promise<void> {
     try {
       await keyValueStore.del(metaKey(executionId));
+      await keyValueStore.del(manifestKey(executionId));
       for (const name of tensorNames) {
         await keyValueStore.del(tensorKey(executionId, name));
       }

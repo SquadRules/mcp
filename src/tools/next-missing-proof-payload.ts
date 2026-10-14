@@ -35,11 +35,11 @@ export async function buildMissingProofPayload(
   qdrantService: QdrantService | undefined,
   executionId?: string
 ): Promise<MissingProofPayload> {
-  const previous = await resolveAdapterPreviousLayer(memory, qdrantService);
+  const previous = await resolveAdapterPreviousLayer(memory, qdrantService, executionId);
   const prevMemory = previous?.uuid ? await loadMemory(previous.uuid) : null;
   const prevUri = previous?.uuid ? buildLayerUri(previous.uuid, executionId) : requestedUri;
   const isPrevStep1 = !prevMemory?.adapter || prevMemory.adapter.layer_index <= 1;
-  const previousOfPrevious = prevMemory && !isPrevStep1 ? await resolveAdapterPreviousLayer(prevMemory, qdrantService) : null;
+  const previousOfPrevious = prevMemory && !isPrevStep1 ? await resolveAdapterPreviousLayer(prevMemory, qdrantService, executionId) : null;
   const expectedPrevHash = isPrevStep1
     ? GENESIS_HASH
     : (previousOfPrevious?.uuid ? await proofOfWorkStore.getProofHash(previousOfPrevious.uuid) : null) ?? GENESIS_HASH;
