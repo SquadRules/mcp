@@ -58,6 +58,8 @@ const solutionTemplateSchema = z
   .object({
     type: solutionTypeSchema,
     outcome: z.enum(['success', 'failure', 'skipped']).optional(),
+    nonce: z.string().optional(),
+    proof_hash: z.string().optional(),
     evidence: z.record(z.string(), z.unknown()).optional(),
     tensor: z.record(z.string(), z.unknown()).optional(),
     shell: z.record(z.string(), z.unknown()).optional(),

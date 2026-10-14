@@ -268,9 +268,18 @@ export async function buildForwardView(
         args: {
           uri: layer.uri,
           ...(meta?.authoring ? { authoring: meta.authoring } : {}),
-          solution_template: buildEmptySolutionTemplate(contract.type)
+          solution_template: {
+            ...buildEmptySolutionTemplate(contract.type),
+            ...(contract.nonce ? { nonce: contract.nonce } : {}),
+            ...(contract.proof_hash ? { proof_hash: contract.proof_hash } : {})
+          }
         }
       };
+  // Chain tokens are server-issued and already carried by the contract, so pre-fill them;
+  // evidence is the only part the caller must earn from a real execution.
+  const chainHint = contract.nonce || contract.proof_hash
+    ? ' — nonce/proof_hash are pre-filled in solution_template; evidence must be your real execution result'
+    : ', and include nonce/proof_hash from contract';
   return {
     must_obey: options?.mustObey ?? true,
     current_layer: layer,
@@ -282,7 +291,7 @@ export async function buildForwardView(
     ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
     next_action: final
       ? `call reward with ${layer.uri} and outcome (success or failure) and feedback to complete the adapter`
-      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}, and include nonce/proof_hash from contract`,
+      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}${chainHint}`,
     execution_id: executionId,
     ...(options?.proofHash && { proof_hash: options.proofHash }),
     ...(options?.message ? { message: options.message } : {}),
@@ -335,11 +344,4 @@ export interface LayerPayload {
   message?: string;
   error_code?: string;
   retry_count?: number;
-}
-export async function mapLayerPayloadToForwardView(
-  memoryStore: MemoryQdrantStore,
-  executionId: string,
-  nextExecutionResult: LayerPayload
-): Promise<ForwardOutput> {
-  return mapLayerPayloadShapeToForwardView(memoryStore, executionId, nextExecutionResult);
 }
