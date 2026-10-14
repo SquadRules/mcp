@@ -48,3 +48,4 @@ Rules of use:
 | [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Proposed |
 | [0017](0017-critic-loop-work-submission.md) | Critic-loop reviews a typed work submission, not a single input file | Accepted (extends 0010) |
 | [0018](0018-automated-dependency-pr-merge-via-reconcile.md) | Automated dependency PR merge via reconcile every 6 hours | Accepted |
+| [0019](0019-path-tiered-ci-gates-with-a-classifier-job.md) | Tier CI by gating expensive jobs on a dorny/paths-filter classifier, never by path-skipping a required workflow | Proposed — branch `ci/tiered-gates-classifier` |

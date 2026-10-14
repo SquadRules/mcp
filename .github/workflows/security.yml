@@ -18,6 +18,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Cheap path classifier so CodeQL / npm audit skip on docs/harness-only PRs.
+  # Runs on every event; the filter step is PR-only so the job always completes as
+  # success and dependent jobs never strand on a skipped need.
+  changes:
+    name: Classify changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Detect changed path buckets
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        id: filter
+        with:
+          filters: .github/paths/ci-filter.yml
+
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'
@@ -39,6 +63,8 @@ jobs:
 
   npm-audit:
     name: npm audit
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -57,6 +83,8 @@ jobs:
 
   codeql:
     name: CodeQL
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -98,8 +126,10 @@ jobs:
           set -euo pipefail
           echo "npm-audit=$NPM_AUDIT codeql=$CODEQL"
 
-          test "$NPM_AUDIT" = "success"
-          test "$CODEQL" = "success"
+          # Skipped lanes (docs/harness-only PRs) satisfy the required check; only a
+          # real failure/cancellation blocks the merge.
+          case "$NPM_AUDIT" in success|skipped) ;; *) echo "npm-audit=$NPM_AUDIT"; exit 1 ;; esac
+          case "$CODEQL" in success|skipped) ;; *) echo "codeql=$CODEQL"; exit 1 ;; esac
           if [ "$EVENT_NAME" = "pull_request" ]; then
             test "$DEPENDENCY_REVIEW" = "success"
           else

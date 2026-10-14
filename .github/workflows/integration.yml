@@ -14,8 +14,36 @@ permissions:
   contents: read
 
 jobs:
+  # Cheap path classifier so expensive lanes can skip on docs/harness-only PRs.
+  # Runs on every event; the filter step is PR-only, so the job always completes as
+  # success and dependent jobs never strand on a skipped need.
+  changes:
+    name: Classify changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      tests: ${{ steps.filter.outputs.tests }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Detect changed path buckets
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        id: filter
+        with:
+          filters: .github/paths/ci-filter.yml
+
   build:
     name: Build and checks (Node ${{ matrix.node }})
+    needs: [changes]
+    if: github.event_name != 'pull_request' || needs.changes.outputs.code == 'true' || needs.changes.outputs.tests == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -326,6 +354,12 @@ jobs:
         env:
           RESULTS: ${{ join(needs.*.result, ',') }}
         run: |
+          set -euo pipefail
+          # A skipped lane is a valid green for the required check; only a real
+          # failure/cancellation may block the merge.
           for result in ${RESULTS//,/ }; do
-            test "$result" = success || exit 1
+            case "$result" in
+              success|skipped) ;;
+              *) echo "Unexpected lane result: $result"; exit 1 ;;
+            esac
           done
