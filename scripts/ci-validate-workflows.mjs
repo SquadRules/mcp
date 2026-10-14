@@ -38,6 +38,25 @@ assert.equal(single['continue-on-error'], undefined, 'Single lane is required (n
 assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
 assert.ok(single.steps.some(s => s.run === 'npm test -- tests/unit'), 'Single lane runs unit tests under zero-config defaults');
 assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.ts')), 'Single lane runs stdio integration test to verify SINGLE mode end-to-end');
+// Tiered CI classifier lockstep: integration.yml and security.yml gate the expensive
+// lanes on a dorny/paths-filter `changes` job, and both merge gates must tolerate a
+// skipped lane so the required check still reports success on docs/harness-only PRs.
+const ciFilter = load(readFileSync('.github/paths/ci-filter.yml', 'utf8'));
+assert.deepEqual(Object.keys(ciFilter).sort(), ['code', 'harness', 'infra', 'tests']);
+for (const config of [integration, security]) {
+  const changes = config.jobs.changes;
+  assert.ok(changes, 'classifier changes job must exist');
+  assert.equal(changes.permissions?.contents, 'read');
+  const filterStep = changes.steps.find(s => s.uses?.startsWith('dorny/paths-filter@'));
+  assert.ok(filterStep, 'changes job must run dorny/paths-filter');
+  assert.equal(filterStep.with.filters, '.github/paths/ci-filter.yml');
+}
+assert.deepEqual(integration.jobs.build.needs, ['changes']);
+assert.match(integration.jobs.build.if ?? '', /needs\.changes\.outputs/);
+assert.match(security.jobs.codeql.if ?? '', /needs\.changes\.outputs/);
+assert.match(security.jobs['npm-audit'].if ?? '', /needs\.changes\.outputs/);
+assert.match(integration.jobs['integration-pass'].steps[0].run ?? '', /success\|skipped/);
+assert.match(security.jobs['security-pass'].steps[0].run ?? '', /success\|skipped/);
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);
