@@ -1,1 +1,0 @@
-`helm/README.md` documents the two install paths: `./helm/.dev/helm-deploy.sh` for local k3d development (auto-installs operators via `prerequisites/*.sh` and applies `values-full.yaml`), and a manual path using `infrastructure/` Kustomize followed by `helm upgrade --install kairos-mcp ./kairos-mcp -f values.prod.yaml` on a real cluster.

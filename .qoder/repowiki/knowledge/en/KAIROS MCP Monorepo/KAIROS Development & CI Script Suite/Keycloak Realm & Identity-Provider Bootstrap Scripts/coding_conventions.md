@@ -1,5 +1,0 @@
-- Environment is resolved through a shared `load_env_file(root / ".env")` followed by `os.environ.update`, so callers can override any value at runtime without editing `.env`.
-- Every Admin API call goes through a small helper that builds a `urllib.request.Request` with `Authorization: Bearer <token>` and `Content-Type: application/json`, and wraps the call in a try/except that calls `sys.exit(...)` on non-2xx responses rather than raising exceptions.
-- Admin token acquisition uses the same pattern across scripts: POST to `/realms/master/protocol/openid-connect/token` with `grant_type=password`, `client_id=admin-cli`, username `admin`, and `KEYCLOAK_ADMIN_PASSWORD`.
-- All configuration is idempotent: list-then-compare before create/update (e.g. check existing IdP/client-scope/mapper by name/id before POST/PUT), and realm merge preserves Keycloak-assigned `id` fields so PUT updates instead of duplicating.
-- Realm JSONs in `scripts/keycloak/import/` are treated as the single source of truth; Python helpers like `_merge_realm` overlay desired onto current state keyed by stable identifiers (`clientId`, flow `alias`) rather than replacing whole arrays.

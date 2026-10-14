@@ -1,6 +1,0 @@
-- Every widget ships as three TypeScript string exports — a CSS string, a script IIFE string, and an HTML assembler — plus a `register-*-ui-resources.ts` that registers the resource under both MCP App and Skybridge MIME profiles.
-- Inline widget scripts are self-contained IIFEs that implement the full JSON-RPC 2.0 handshake (`ui/initialize` / `ui/notifications/initialized`) and handle both `ui/notifications/tool-result` and the legacy `notifications/tool-result` method names.
-- Host theming is applied by merging `hostContext` deltas into a local state object and painting CSS variables onto `:root` via `document.documentElement.style.setProperty`, with fallbacks for hosts that only toggle `html.dark`.
-- All widget URIs, `_meta.ui.resourceUri` bindings, and MIME type constants are declared once in `kairos-ui-constants.ts` using `as const` and reused everywhere rather than duplicated.
-- The `__KAIROS_WIDGET_PRESENTATION_ONLY__` token is injected into every widget script via `substituteWidgetPresentationToken`; when true the script skips all `postMessage` calls and renders a static placeholder instead.
-- After every DOM render path, widgets call `notifySize()` (wrapping `document.documentElement.scrollHeight` in `requestAnimationFrame`) and send `ui/notifications/size-changed` so the host iframe resizes without internal scrollbars.

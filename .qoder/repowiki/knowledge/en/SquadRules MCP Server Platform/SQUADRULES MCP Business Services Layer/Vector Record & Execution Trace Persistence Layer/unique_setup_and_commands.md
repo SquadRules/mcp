@@ -1,0 +1,1 @@
+The embedded store persists into `<squadrules-config-dir>/lancedb` (resolved via `getSquadrulesConfigDir()`) and is shared across processes through the file system — no daemon or lock server is started. Loading this module does not load the native LanceDB bindings because the SDK is imported lazily inside `openLanceConnection`.

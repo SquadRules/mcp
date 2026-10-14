@@ -1,1 +1,0 @@
-Express middleware that serves the Vite-built Kairos SPA under /ui, exposes a permissive CORS handler for the /mcp endpoint, and builds RFC 7235-compliant WWW-Authenticate headers for OAuth/MCP clients.

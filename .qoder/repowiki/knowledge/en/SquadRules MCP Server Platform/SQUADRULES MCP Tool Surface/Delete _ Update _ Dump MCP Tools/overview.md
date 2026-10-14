@@ -1,0 +1,1 @@
+MCP tool implementations for deleting, updating, and dumping SQUADRULES adapter memories stored in Qdrant, with Zod schemas and shared execute functions reusable by both MCP and HTTP routes.

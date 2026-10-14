@@ -1,4 +1,0 @@
-- Each script derives its repository root from `__dirname` / `Path(__file__).resolve().parent.parent` and resolves file paths relative to it, so the scripts can be run from any working directory.
-- Idempotent mutation: scripts compare the computed target against the on-disk value and exit 0 without writing when already in sync (bump guard, `already at X`, or `--check` mismatch reporting).
-- External state is sourced from environment variables (`CHART_VERSION_BASE`) or git (`git show origin/main`, `git tag --sort=-v:refname`) rather than hard-coded, allowing CI-driven overrides.
-- File edits go through regex capture groups around the target field (e.g. `^(version:\s*)(\S+)`, `^(appVersion:\s*")([^\"]+)(")`) so surrounding YAML formatting is preserved instead of full YAML parsing.

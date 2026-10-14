@@ -1,6 +1,0 @@
-- Each tool exports both a pure `executeXxx(input)` business function and a `registerXxxTool(server, ...)` wrapper that calls `server.registerTool` with `mcpLooseToolInput(schema)`, `resolveToolDoc(name)`, and the schema's output type.
-- The tool handler body follows a fixed shape: observe `mcpToolInputSize`, start `mcpToolDuration` timer, `safeParse` params, return `mcpToolInputValidationErrorResult` on failure, then try/catch around `executeXxx` where success increments `mcpToolCalls`/`mcpToolOutputSize` and error increments `mcpToolErrors` before returning `mcpRateLimitErrorResult` or rethrowing.
-- URIs are parsed and validated through `parseKairosUriOrThrow` / `assertWireAdapterUri` from `kairos-uri.js`, and layer URIs are constructed with `buildLayerUri(memory_uuid, executionId)` rather than string concatenation.
-- Adapters are identified by slug-based URIs built via `buildAdapterUri(adapterId)`; when an incoming URI is not already slug-form, `canonicalizeAdapterUri` normalizes it using `normalizeAuthorSlug` before emitting.
-- Optional Qdrant-backed side effects (quality updates, metric writes) are guarded by `if (qdrantService)` checks so tools remain callable without a vector store.
-- Non-fatal background work such as execution tracing uses a `traceFireAndForget(op)` helper that logs warnings on rejection instead of propagating errors.

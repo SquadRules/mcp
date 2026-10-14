@@ -1,1 +1,0 @@
-Small, cross-cutting tool implementations and shared contracts for deletion, local artifact handoff, and phase-critic review validation used by the MCP train/tune pipeline.

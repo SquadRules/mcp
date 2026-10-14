@@ -1,2 +1,0 @@
-- Subcommands expose a factory function `(program: Command) => void` registered through `program.ts`; no command file imports another command file.
-- Global flags are propagated as `KAIROS_*` environment variables in a `preAction` hook rather than passed as arguments, so shared runtime code reads configuration uniformly from `process.env`.

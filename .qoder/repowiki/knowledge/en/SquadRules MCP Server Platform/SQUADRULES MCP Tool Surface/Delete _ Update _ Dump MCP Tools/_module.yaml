@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: tools/delete_update_dump
+title: Delete / Update / Dump MCP Tools
+scope:
+    - src/tools/delete.ts
+    - src/tools/delete_schema.ts
+    - src/tools/update.ts
+    - src/tools/update_schema.ts
+    - src/tools/dump.ts
+    - src/tools/dump_schema.ts
+source_files: []
+depends_on: []
+related_to: []

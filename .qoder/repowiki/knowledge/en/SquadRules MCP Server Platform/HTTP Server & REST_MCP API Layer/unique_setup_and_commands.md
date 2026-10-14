@@ -1,0 +1,1 @@
+Server startup requires `AUTH_CALLBACK_BASE_URL` when `AUTH_ENABLED=true`; port is read from `SERVER_PORT` in `../config.js`; the process exits with code 1 on `EADDRINUSE` or any listen error.

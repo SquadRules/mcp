@@ -1,1 +1,0 @@
-Helm 3 charts + Kustomize for operator bootstrap; Kubernetes Gateway API (GatewayClass/HTTPRoute) as the ingress abstraction instead of Ingress resources.

@@ -1,3 +1,0 @@
-- JSON-RPC error responses are built as plain objects with `{ jsonrpc: '2.0', error: { code, message, data }, id }` shape rather than using SDK builders, keeping the handler free of SDK-specific error formatting.
-- Audit emission is gated on `AUDIT_LOG_LEVEL` (<=0 returns early) and split into three phases — start before space context, end after completion, tool_call with captured response — so correlation_id ties them together across the request lifecycle.
-- Per-request MCP servers are created inside the route handler (one `createServer(memoryStore)` + one `StreamableHTTPServerTransport` per invocation) instead of sharing a single transport, allowing many concurrent requests on one node.

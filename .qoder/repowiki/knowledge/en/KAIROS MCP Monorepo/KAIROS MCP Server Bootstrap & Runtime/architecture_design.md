@@ -1,9 +1,0 @@
-Two-stage bootstrap: `bootstrap.ts` registers `uncaughtException` / `unhandledRejection` handlers on process startup (before any app code loads) then dynamically `import('./index.js')` to avoid circularity; `index.ts` is the real runtime — it detects whether it was directly invoked (`isDirectRun()`) or loaded by bootstrap, installs global error/signal handlers, waits for Qdrant health via `MemoryQdrantStore.checkHealth`, probes embedding dimension, optionally triggers a snapshot, injects embedded mem resources, starts an isolated Prometheus `/metrics` HTTP server when `TRANSPORT_TYPE=http`, then dispatches to either `startHttpTransport` (from `./http/http-server.js`) or `startStdioTransport` (this module's `stdio/stdio-server.ts`).
-
-- `config.ts` is the single source of truth for all env-driven settings, exposing typed getters (`getEnvRequired`, `getEnvInt`, `getEnvBoolean`, …) plus derived values like `AUTH_TRUSTED_ISSUERS`, `AUTH_ALLOWED_AUDIENCES`, and `GROUP_SPACE_PATH_EXAMPLE`; required vars are validated at import time.
-- `server.ts` owns MCP server construction (`createServer`): instantiates `McpServer` with capabilities, registers tools/resources/prompts, and replaces the default `tools/list` handler with a strict registry built from `KAIROS_TOOL_REGISTRY`.
-- `stdio/stdio-server.ts` is the stdio transport shim that calls `createServer` and connects it via `StdioServerTransport`.
-- `metrics-server.ts` spins up a separate Express listener on `METRICS_PORT` exposing only `/metrics` and `/health`, kept off the main app port for isolation.
-- `me-response.ts` is a shared type used by both the HTTP `/api/me` handler and UI consumers.
-
-Dependency direction is one-way: bootstrap → index → config/server/metrics/stdio; no cross-imports between transport implementations.

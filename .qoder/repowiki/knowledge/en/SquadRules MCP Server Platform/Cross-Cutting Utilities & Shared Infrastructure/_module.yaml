@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: utils
+title: Cross-Cutting Utilities & Shared Infrastructure
+scope:
+    - src/utils/
+source_files: []
+depends_on: []
+related_to: []

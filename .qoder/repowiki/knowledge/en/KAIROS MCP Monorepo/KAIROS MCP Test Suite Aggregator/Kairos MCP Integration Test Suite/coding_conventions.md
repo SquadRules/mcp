@@ -1,4 +1,0 @@
-- Each test file imports a harness factory from `harness/*.ts` rather than constructing MCP clients directly, and asserts via `harness.callTool(name, args)` instead of raw JSON-RPC calls.
-- Transport capability is declared through the central `SCENARIOS` registry in `harness/scenario.ts`; tests gate behavior on `harness.scenario.supportsHttpApi` / `supportsBrowserLogin` etc. instead of reading env flags.
-- Contract suites live in `contracts/` as pure functions taking `(suiteName, createHarness)` and are invoked once per transport via thin scenario files in `scenarios/`.
-- Per-transport harness constructors throw early with a message referencing the required `npm run test:integration:*` command when prerequisites (auth, embedding config, `ENV=dev_stdio`) are missing.

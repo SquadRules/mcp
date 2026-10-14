@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: cli
-title: KAIROS CLI Binary
-scope:
-    - src/cli/
-source_files: []
-depends_on: []
-related_to: []

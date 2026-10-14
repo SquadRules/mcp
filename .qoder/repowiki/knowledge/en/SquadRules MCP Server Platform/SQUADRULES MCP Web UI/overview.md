@@ -1,0 +1,1 @@
+React SPA that boots the SQUADRULES MCP frontend, wiring routing, React Query, theme, i18n, and lazy-loaded pages around the activate→forward→reward workflow engine.

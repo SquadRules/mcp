@@ -1,1 +1,0 @@
-Node.js native `crypto.randomUUID()` plus the `uuid` package (v4 + v5) for deterministic hashing; relies on the project's global `qdrantService` singleton rather than direct HTTP calls.

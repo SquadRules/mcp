@@ -14,8 +14,7 @@ that routing guidance here; keep it in one place.
 
 If SquadRules MCP is **unavailable or unauthenticated**, treat that as a **critical
 error** and stop; fix the host connection per
-**[README.md#manual-installation](README.md#manual-installation)**
-and **[`.agents/skills/squadrules-dev/references/mcp-host-bridge.md`](.agents/skills/squadrules-dev/references/mcp-host-bridge.md)**.
+**[README.md#manual-installation](README.md#manual-installation)**.
 
 For **real MCP calls**, follow the **connected server's** tool names, schemas,
 and descriptions; for **implementation in this repository**, follow this
@@ -64,10 +63,6 @@ of truth; other contributor documents should link here.
 
 - **Contributor setup, build/test contract, code style, and design
   principles:** [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- **Maintainer workflows** (build/test, bug-fix ship, release, MCP QA, Git
-  safety, UI specs, wiki publishing): the
-  [`squadrules-dev`](.agents/skills/squadrules-dev/SKILL.md) skill and its
-  [`references/`](.agents/skills/squadrules-dev/references/).
 - **Code-derivable reference** (architecture, auth, storage, search, workflow
   engine, testing topology): the
   [project Wiki](https://github.com/SquadRules/mcp/wiki).
@@ -112,15 +107,12 @@ corresponds to your configured server — often the one ending in
 portable across workspaces or Cursor versions.
 
 **MCP auth or availability:** If a tool fails with auth errors or the server is
-missing, follow
-**[`.agents/skills/squadrules-dev/references/mcp-host-bridge.md`](.agents/skills/squadrules-dev/references/mcp-host-bridge.md)**
-(probe with minimal calls first; do not continue without required MCP — ask the
-user to fix auth or config). Cursor-specific `server` id resolution is in the
-same reference under **Cursor-specific**.
+missing, probe with minimal calls first; do not continue without required MCP —
+ask the user to fix auth or config.
 
 ## Legacy skill paths
 
-The former `squadrules` and `squadrules-dev` skill directories are retained under
-`.agents/skills/` for backward compatibility with existing installations. If
-`.agents/skills/squadrules/` is present, hosts should prefer it over the legacy
-`squadrules/` directory to avoid duplicate routing registration.
+The `squadrules` skill directory under `.agents/skills/` is the canonical
+routing skill. If `.agents/skills/squadrules/` is present, hosts should prefer it
+over any legacy top-level `squadrules/` directory to avoid duplicate routing
+registration.

@@ -1,0 +1,1 @@
+MCP tool for recording adapter execution rewards into Qdrant plus a shared critic-loop review evidence validator used by train/tune flows.

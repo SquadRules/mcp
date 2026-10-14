@@ -1,1 +1,0 @@
-Reusable KAIROS REST API client with automatic bearer/refresh token handling, retry/backoff, and XDG-compliant multi-environment config storage shared by every CLI command.

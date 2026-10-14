@@ -1,4 +1,0 @@
-- Optional sub-components are gated by a `<component>.enabled` boolean in `values.yaml` and mirrored by a `condition:` entry in `Chart.yaml` dependencies, so consumers toggle features purely through values rather than template conditionals.
-- Runtime discovery uses the `lookup` function against the live cluster (e.g. `gateway.networking.k8s.io/v1/GatewayClass`, `v1/Secret`) inside helper templates to auto-select gateway classes and fall back between preferred and legacy secret names.
-- Each observable component ships its own `<component>-servicemonitor.yaml` template paired with a corresponding `monitoring.serviceMonitor.<component>.enabled` value, keeping scrape config co-located with the resource it targets.
-- Admin-facing surfaces (Keycloak admin UI) are isolated behind a separate `adminHostname` route guarded by the `gateway.routes.keycloak.adminLockdown.enabled` flag, with the hostname derived from `gateway.hostname` via the `kairos.adminHostname` helper.

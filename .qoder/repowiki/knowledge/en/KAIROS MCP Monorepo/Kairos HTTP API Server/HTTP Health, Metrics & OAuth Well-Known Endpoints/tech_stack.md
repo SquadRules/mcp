@@ -1,1 +1,0 @@
-Express.js route/middleware layer; Prometheus client counters/histograms/gauges consumed via `../services/metrics/http-metrics.js`; OIDC/KC integration driven by `KEYCLOAK_URL`/`KEYCLOAK_INTERNAL_URL`/`KEYCLOAK_REALM` config.

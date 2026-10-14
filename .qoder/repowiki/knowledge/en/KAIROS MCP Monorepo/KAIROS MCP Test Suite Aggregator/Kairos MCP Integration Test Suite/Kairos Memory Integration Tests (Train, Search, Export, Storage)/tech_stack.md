@@ -1,1 +1,0 @@
-Jest + Node.js HTTP(S) client used to call the Qdrant REST API directly for storage verification; MCP client built on top of the shared `mcp-client-utils` harness.

@@ -1,1 +1,0 @@
-Install by opening the containing directory (`integrations/cursor/plugin`) as a Cursor plugin per Cursor's plugin docs; if the KAIROS server runs on a non-default port, edit `mcp/mcp.json`'s `url` field before installing. Verify by calling the `spaces` tool in a chat that can invoke MCP tools.

@@ -1,0 +1,1 @@
+Registers and executes the MCP 'forward' tool that runs adapter layers, plus shared helpers for input teaching, contract matching, error shaping, and adapter URI resolution.

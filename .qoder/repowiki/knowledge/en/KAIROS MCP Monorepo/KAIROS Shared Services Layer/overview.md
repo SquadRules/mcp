@@ -1,1 +1,0 @@
-Aggregates KAIROS's cross-cutting runtime services — embedding providers, Qdrant-backed memory, metrics, scoring, key-value stores, and export tokens — behind a single package consumed by adapters and the core server.

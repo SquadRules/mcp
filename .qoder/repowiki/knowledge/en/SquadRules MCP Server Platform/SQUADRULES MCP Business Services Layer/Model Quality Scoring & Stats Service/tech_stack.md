@@ -1,0 +1,1 @@
+TypeScript; persistence via the project's `keyValueStore` abstraction (Redis-backed); optional Qdrant integration for protocol step aggregation; Prometheus metrics through `../metrics/agent-metrics.js`.

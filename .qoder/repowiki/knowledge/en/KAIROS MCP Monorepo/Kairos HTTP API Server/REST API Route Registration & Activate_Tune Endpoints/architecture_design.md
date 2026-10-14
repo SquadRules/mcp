@@ -1,6 +1,0 @@
-- `http-api-routes.ts` is the single composition root: `setupApiRoutes(app, memoryStore, deps)` wires every feature module's `setupXxxRoute(app, ...)` into one Express app, centralising dependency injection of `MemoryQdrantStore` and `QdrantService`.
-- Each feature lives in its own file (`http-api-begin.ts`, `http-api-update.ts`, …) exporting a `setupXxxRoute` function that registers exactly one POST handler on `/api/<action>`; this keeps each endpoint self-contained with its own schema import, logger calls, and error handling.
-- Validation is schema-driven: handlers call `<feature>InputSchema.safeParse(req.body)` (Zod) and short-circuit with `{ error: 'INVALID_INPUT', message }` on failure.
-- Business logic is delegated to pure tool functions in `../tools/*` (`executeActivate`, `executeTune`); routes never implement domain logic themselves.
-- Tenant isolation is injected via `runHttpApiWithSpaceContext(req, () => …)` from `../utils/tenant-context.js`, so the same handler works across spaces without per-request space plumbing.
-- Errors are normalised through `sendToolRouteError(res, error, CODE)` or an inline `{ error, message }` shape, keeping response contracts uniform.

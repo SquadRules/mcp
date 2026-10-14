@@ -1,0 +1,1 @@
+Bootstraps MCP server resource/prompt handlers, serves embedded documentation and prompts as MCP resources, and injects shipped adapter markdown into the vector store at startup.

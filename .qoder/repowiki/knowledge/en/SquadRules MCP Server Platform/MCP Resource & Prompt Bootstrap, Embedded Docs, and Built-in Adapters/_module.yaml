@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: resources
+title: MCP Resource & Prompt Bootstrap, Embedded Docs, and Built-in Adapters
+scope:
+    - src/resources/
+    - src/constants/
+source_files: []
+depends_on: []
+related_to:
+    - path: embed_docs

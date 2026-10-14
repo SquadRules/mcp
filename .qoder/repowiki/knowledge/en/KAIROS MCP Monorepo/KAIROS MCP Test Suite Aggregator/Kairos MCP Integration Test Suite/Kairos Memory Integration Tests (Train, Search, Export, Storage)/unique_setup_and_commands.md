@@ -1,1 +1,0 @@
-Requires a live Qdrant service and a running Kairos MCP server before execution; Qdrant endpoint is configured via `QDRANT_URL`, `QDRANT_COLLECTION`, and `QDRANT_API_KEY` environment variables (defaults `http://localhost:6333`, `kairos`, empty).

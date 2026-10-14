@@ -1,0 +1,1 @@
+Collection schema evolves at runtime — `initializeQdrantStore` auto-migrates legacy single-vector collections to named vectors and backfills BM25/activation vectors; tests spin up Qdrant via testcontainers as documented in the project-wide testing contract.

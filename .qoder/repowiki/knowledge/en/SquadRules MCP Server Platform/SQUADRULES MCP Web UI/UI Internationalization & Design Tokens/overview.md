@@ -1,0 +1,1 @@
+Provides the SQUADRULES UI's English i18n resources via i18next and its CSS design-token system for shared spacing, typography, and light/dark theme colors.

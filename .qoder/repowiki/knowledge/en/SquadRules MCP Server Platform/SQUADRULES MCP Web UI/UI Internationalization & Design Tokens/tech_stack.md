@@ -1,0 +1,1 @@
+i18next + react-i18next for client-side localization; plain CSS custom properties (CSS variables) for the design token system with no build step or preprocessor.

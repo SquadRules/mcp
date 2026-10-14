@@ -1,4 +1,0 @@
-- Styling is done exclusively through Tailwind utility classes that reference CSS custom properties (e.g. `var(--color-primary)`, `var(--layout-touch-target)`) rather than inline style objects or scoped CSS modules.
-- Components expose a controlled-value pattern with explicit `Props` interfaces (`RichTextEditorProps`, `RenderedMarkdownProps`) and optional label/hint/id props for form integration.
-- SVG toolbar icons are implemented as tiny stateless functional components returning a `<svg>` with `aria-hidden="true"` and a fixed `viewBox="0 0 16 16"`, reused across multiple buttons.
-- Editor command chains follow the `editor.chain().focus().<action>().run()` shape, and side-effectful updates inside `useEffect`/`onUpdate` go through refs to avoid capturing stale closure values.

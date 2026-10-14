@@ -1,5 +1,0 @@
-- Each source unit has a sibling `<name>.test.ts(x)` file colocated under `tests/ui/`, grouping all assertions for that unit in one describe block.
-- Component tests wrap rendered output in `QueryClientProvider` (with `retry: false`) and `MemoryRouter` so network calls and routing do not leak into assertions.
-- Assertions use `@testing-library/jest-dom` matchers extended onto Vitest's `expect` (e.g. `toBeInTheDocument`, `toContain`) rather than raw DOM queries.
-- i18n text is asserted by its translation key string (e.g. `home.title`, `account.loading`) instead of localized values, relying on the `react-i18next` mock that returns the key unchanged.
-- Pure-function tests verify round-trip or normalization behavior by constructing input fixtures inline and asserting exact output shapes via `toEqual` / `toMatchObject`.

@@ -1,5 +1,0 @@
-- Suites are wrapped with `_d = isHttpTransport() ? describe : describe.skip` so they run only under HTTP transport and are silently skipped otherwise.
-- MCP responses are parsed through `parseMcpJson` from `expect-with-raw.js` before being compared or validated, rather than consumed raw.
-- HTTP calls attach authentication headers via `getAuthHeaders()` and base URL via `getTestAuthBaseUrl().replace(/\/$/, '')` instead of hard-coding endpoints.
-- Response shapes are asserted by comparing sorted key sets between MCP and HTTP variants, then additionally validated against the canonical Zod `*OutputSchema` from `src/tools/`.
-- Adapter-space tests use the `openAdapterSpaceMcpBundle` / `assertGroupSpacesWhenAuth` helpers to skip or fail based on auth state and group membership rather than asserting directly.

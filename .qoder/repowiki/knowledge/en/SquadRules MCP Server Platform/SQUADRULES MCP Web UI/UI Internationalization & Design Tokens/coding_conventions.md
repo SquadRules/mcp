@@ -1,0 +1,4 @@
+- Internationalization keys use dot-namespaced strings grouped by feature area (e.g. `nav.*`, `home.*`, `protocolEdit.*`, `run.*`, `account.*`) rather than flat keys.
+- Interpolated values in i18n strings use i18next placeholders (`{{version}}`, `{{count}}`, `{{count}}_plural`) instead of string concatenation at call sites.
+- Design tokens are split into structural (spacing, typography, radius, layout) in `tokens-shared.css` and semantic colors in per-theme files, with all color usage going through `--color-*` variables defined on `:root`.
+- Theme variants are applied by scoping overrides to `html[data-theme="dark"]` rather than using CSS classes on components.

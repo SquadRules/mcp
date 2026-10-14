@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: ui/i18n_theme
+title: UI Internationalization & Design Tokens
+scope:
+    - src/ui/i18n/
+    - src/ui/theme/
+source_files: []
+depends_on: []
+related_to: []

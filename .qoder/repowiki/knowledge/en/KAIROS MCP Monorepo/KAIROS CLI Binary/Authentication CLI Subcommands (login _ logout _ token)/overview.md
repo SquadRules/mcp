@@ -1,1 +1,0 @@
-Implements the `kairos login`, `kairos logout`, and `kairos token` subcommands, handling PKCE browser flow, raw Bearer-token input, and credential persistence.

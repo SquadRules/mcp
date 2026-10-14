@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: ui/home_runs
+title: Protocol Runs & Home Landing Pages
+scope:
+    - src/ui/pages/HomePage.tsx
+    - src/ui/pages/RunsPage.tsx
+    - src/ui/pages/RunGuidedPage.tsx
+source_files: []
+depends_on: []
+related_to: []

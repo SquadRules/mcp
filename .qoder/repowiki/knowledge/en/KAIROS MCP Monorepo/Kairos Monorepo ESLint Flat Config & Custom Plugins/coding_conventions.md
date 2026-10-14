@@ -1,5 +1,0 @@
-- Each plugin file exports a single named object `{ kairosXxxPlugin }` via `module.exports = { ... }` and is imported by name in `flat-config.cjs`.
-- Custom rules declare both `meta.docs.description` and a `schema` array (even if empty) so the rule is self-documenting and schema-valid.
-- Full-file text scans iterate over matches with a `seenAt` Set keyed by character index to deduplicate overlapping reports before calling `context.report({ loc, message })`.
-- Per-scope configuration in `flat-config.cjs` is organized as numbered sections (0 ignores, 0b no-inline-config, 1 max-lines, 2a/2b frontend/backend, 3 forbidden-text, 4 tests, 5 root configs) with a top-level comment header.
-- Reused rule configurations are factored into `rules/shared-snippets.cjs` as spreadable objects (`NO_TEST_MOCKS_RULE`, `NO_AUTH_ENABLED_OVERRIDE_RULE`) rather than duplicated inline.

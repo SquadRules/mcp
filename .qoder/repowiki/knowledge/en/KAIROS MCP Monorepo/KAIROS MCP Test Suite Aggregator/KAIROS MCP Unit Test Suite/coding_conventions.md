@@ -1,6 +1,0 @@
-- Each test file targets one source module and imports it directly from `../../src/...`, asserting on exported function return values rather than HTTP endpoints.
-- External dependencies (keyring, filesystem, network) are stubbed at the top of the file using `jest.unstable_mockModule('../../src/...', () => ({...}))` instead of per-test spies.
-- Schema-driven tests call `schema.safeParse(input)` and branch on `parsed.success` / `parsed.error`, then assert on the generated teaching payload shape.
-- Per-test temp directories are created via `mkdtempSync(join(tmpdir(), 'kairos-...-'))` and torn down in `afterEach` with `rmSync(dir, { recursive: true, force: true })`.
-- Environment variables that affect config resolution (e.g. `XDG_CONFIG_HOME`) are set in `beforeEach` and deleted in `afterEach` so tests stay isolated.
-- Tests that require an external backend (Redis/Qdrant) gate functional cases behind `isRedisConfigured ? it.skip : it` and rely on integration suites for real-backend coverage.

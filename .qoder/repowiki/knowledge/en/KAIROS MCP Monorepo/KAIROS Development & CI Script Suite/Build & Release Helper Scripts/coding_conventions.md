@@ -1,5 +1,0 @@
-- Each script is a standalone CLI entry point with its own shebang (`#!/usr/bin/env node`) and top-level `main()` invocation, rather than being imported as a library.
-- Filesystem paths are resolved relative to the script's location via `fileURLToPath(import.meta.url)` / `dirname(fileURLToPath(...))` instead of relying on `process.cwd()`.
-- YAML frontmatter parsing is done with minimal regex over the first `---...---` block only, deliberately avoiding a full YAML dependency.
-- Scripts use synchronous `fs` APIs (`readFileSync`, `readdirSync`, `writeFileSync`) for deterministic build-time execution, reserving async fs only in the ESM-only version-sync script.
-- Git/npm orchestration is wrapped in a tiny `run(cmd, args, desc)` helper that forwards stdio to the parent process and exits non-zero on failure.

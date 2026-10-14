@@ -1,0 +1,4 @@
+- Startup wiring is centralized in `bootLocalRuntime()` so both HTTP and stdio transports share identical initialization order (store selection → embedding probe → init → snapshot → seed).
+- Cross-cutting concerns (structured logging, global error handlers, signal handling, audit emission) are installed once at process boot before any transport starts.
+- Tool schemas and metadata live alongside implementations in `src/tools/*_schema.ts` and are registered centrally, then reused by both the MCP and HTTP layers.
+- Configuration is resolved from environment variables via `src/config.ts` rather than per-module defaults, keeping CLI, HTTP, and stdio modes consistent.

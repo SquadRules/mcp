@@ -1,0 +1,1 @@
+Zod for per-tool input/output schemas; Qdrant as the backing store for adapters/layers/artifacts; Redis/memory cache for search results; testcontainers for Redis/Qdrant in tests.

@@ -1,1 +1,0 @@
-Idempotent bootstrap scripts that apply Keycloak realm JSONs, configure the Google OIDC identity provider, and create demo/test users against a running Keycloak instance.

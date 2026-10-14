@@ -1,1 +1,0 @@
-Node ≥24 + TypeScript 5 + Vite 8 for the React UI; Express 5 + Commander 15 for the HTTP/CLI surfaces; Qdrant 1.17 for vector memory; Redis/Valkey for key-value store; Keycloak 26 for OIDC; Jest 30 + Vitest 4 for tests; ESLint flat config from `eslint_rules`; Helm chart workspace under `helm_charts`.

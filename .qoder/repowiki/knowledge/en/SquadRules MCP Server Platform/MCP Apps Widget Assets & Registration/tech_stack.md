@@ -1,0 +1,1 @@
+MCP Apps spec (SEP-1865 / `@modelcontextprotocol/ext-apps`) with JSON-RPC 2.0 over `window.parent.postMessage`; dual MIME profiles `text/html;profile=mcp-app` and `text/html+skybridge` for host compatibility; vanilla JS IIFEs with no client-side build step.

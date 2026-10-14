@@ -1,0 +1,5 @@
+- Configuration values are exposed either as top-level constants resolved once at import time (e.g. `TRANSPORT_TYPE`, `FASTEMBED_MODEL`) or as getter functions read on each call when live env overrides must take effect without restart (e.g. `getExportZipCompressionLevel`, `getAdapterMarkdownSizeLimits`).
+- Boolean env parsing follows a uniform pattern: empty/unset returns the default, otherwise case-insensitive truthy strings (`true`/`1`/`yes`/`y`/`on`) map to true and falsy ones (`false`/`0`/`no`/`n`) to false, with unparseable values falling through to the default.
+- Integer env parsing uses `parseInt(..., 10)` with `isNaN` checks that silently fall back to the documented default rather than throwing.
+- Each config sub-file carries a JSDoc comment explaining its purpose and the env keys it consumes, keeping the module self-documenting despite being split across files.
+- Validation logic is expressed as pure functions returning error messages (e.g. `getStdioConfigViolations`) so they can be unit-tested independently, with a thin wrapper (`assertStdioConfigConsistency`) that throws at startup.

@@ -1,4 +1,0 @@
-- Feature pages are colocated with their sub-components under `pages/<feature>/` and imported lazily from `App.tsx`.
-- All server data is accessed via hooks in `hooks/` (useAuth, useSpaces, useRunSession, etc.) rather than direct fetch calls inside components.
-- User-facing strings go through the i18n runtime (`react-i18next`) using keys defined in `i18n/en.json`.
-- Theming uses semantic CSS custom properties from `theme/tokens.css` plus dark/light overrides instead of hard-coded color values.

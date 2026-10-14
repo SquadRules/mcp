@@ -1,1 +1,0 @@
-Markdown documentation for the KAIROS MCP server covering architecture, installation, security, examples, and per-tool workflow references.

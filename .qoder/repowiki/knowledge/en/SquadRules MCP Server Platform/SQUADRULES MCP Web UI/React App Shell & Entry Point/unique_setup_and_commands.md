@@ -1,0 +1,1 @@
+The app is expected to be served under the `/ui` path prefix (see `BrowserRouter basename="/ui"` and the favicon/i18n CSS paths), so the hosting server must rewrite all `/ui/*` requests to serve `index.html`.

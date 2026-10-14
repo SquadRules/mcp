@@ -1,5 +1,0 @@
-- Each endpoint file exports a single `setupXxxRoute(app, ...)` factory that registers one `app.post('/api/<path>', ...)` handler — no shared middleware inside the file.
-- Request bodies are validated with a canonical Zod schema imported from `../tools/<name>_schema.js` using `.safeParse`, and failures return `{ error: 'INVALID_INPUT', message }` at status 400.
-- Domain work is performed by calling a corresponding `executeXxx(...)` function from `../tools/<name>.js`; routes only orchestrate I/O and logging.
-- Every handler wraps the business call in `runHttpApiWithSpaceContext(req, () => …)` to enforce per-space isolation transparently.
-- Structured logging uses `structuredLogger.info` for entry/exit and `structuredLogger.error` in catch blocks, paired with `sendToolRouteError` or a typed `{ error, message }` JSON body.

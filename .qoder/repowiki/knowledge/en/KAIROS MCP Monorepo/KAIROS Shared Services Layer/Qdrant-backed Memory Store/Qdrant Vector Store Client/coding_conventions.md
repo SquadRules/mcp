@@ -1,6 +1,0 @@
-- Every Qdrant I/O function is wrapped in `conn.executeWithReconnect(async () => ...)` so resilience is enforced at the call site rather than per-operation.
-- Tenant isolation is applied uniformly by combining `getSpaceContext().allowedSpaceIds` with `buildSpaceFilter(...)` as the top-level filter on every read/search/query.
-- Write paths normalize the point's `space_id` from the existing payload or `getSpaceContext().defaultWriteSpaceId` before upserting, ensuring writes never lose tenant scoping.
-- Metrics are recorded with `qdrantOperations.inc({ operation, status, tenant_id })` and `qdrantUpsertDuration` / `qdrantQueryDuration` timers around try/catch blocks, incrementing both success and error branches.
-- Payload mutations follow a read-modify-write pattern: fetch via `retrieveAccessiblePointById`, spread existing payload/metrics, then `sanitizeAndUpsert` the full point back.
-- Optional boolean configuration flags are read through `parseBooleanEnv('ENV_VAR', defaultValue)` instead of direct `process.env` comparisons.

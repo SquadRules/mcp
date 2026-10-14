@@ -1,1 +1,0 @@
-ESLint v9+ flat config format (`Linter.FlatConfig[]`), `@typescript-eslint/parser` + `@typescript-eslint/eslint-plugin`, custom CJS plugins using the ESLint Rule API (`meta.type`, `schema`, `create(context)` returning AST selectors); no runtime dependency beyond Node.js.

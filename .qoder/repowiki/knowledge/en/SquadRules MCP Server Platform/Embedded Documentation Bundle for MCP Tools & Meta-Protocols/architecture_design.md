@@ -1,0 +1,5 @@
+Two parallel sub-trees under `src/embed-docs/`:
+- `mem/` — bundled SQUADRULES internal meta-protocols (adapters) injected at boot. `README.md` is the authoritative index declaring slugs, versions, redirect tombstones, and cross-protocol linking rules; individual `.md` files are adapter definitions consumed by the runtime.
+- `tools/` — per-MCP-tool documentation (`activate`, `delete`, `export`, `forward`, `reward`, `spaces`, `train`, `tune`) describing input/output contracts, roles, and agent workflows.
+
+The module is pure content: no code, no build script. It is consumed by the application at startup to populate the embedded adapter/tool registry. The `mem/README.md` header carries a `squadrules-doc-keep` directive marking it as the local authority for this bundle's slugs and chain-linking rules, separate from the wiki.

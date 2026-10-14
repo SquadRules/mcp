@@ -1,9 +1,0 @@
-Each widget follows a fixed three-file pattern plus a registration module:
-- `{name}-widget-inline-css.ts` exports a shared CSS string (imports `MCP_WIDGET_CHROME_INLINE_CSS` from `mcp-widget-chrome-inline-css.ts`).
-- `{name}-widget-inline-script.ts` exports a self-contained IIFE string implementing the JSON-RPC 2.0 over `postMessage` handshake (`ui/initialize` → `ui/notifications/initialized`, then `tool-result` delivery).
-- `{name}-widget-html.ts` calls `substituteWidgetPresentationToken()` on a template literal that concatenates `<div>` + `<style>` + `<script>` into one HTML fragment.
-- `register-{name}-ui-resources.ts` calls `server.registerResource()` twice per widget — once with MIME type `text/html;profile=mcp-app` at URI `ui://kairos/{name}-result`, once with `text/html+skybridge` at `ui://open-ai/kairos/{name}-result` — so both MCP Apps hosts (Cursor, Claude Desktop) and Skybridge hosts (ChatGPT, Windsurf) can render it.
-
-Shared cross-cutting concerns live in dedicated modules: `kairos-ui-constants.ts` centralizes all URIs, `_meta.ui.resourceUri` bindings, and MIME types; `mcp-widget-presentation-inject.ts` injects the `__KAIROS_WIDGET_PRESENTATION_ONLY__` flag into scripts; `kairos-logo-embedded.ts` provides an inline SVG logo; `widget-inline-minify.ts` supplies lightweight minifiers used by tests; `list-offerings-for-ui.ts` aggregates tool/resource/prompt listings for UI discovery; `kairos-server-ui-capability.ts` advertises the `io.modelcontextprotocol/ui` extension capability.
-
-Dependency direction is strictly inward: widget files depend only on shared constants and helpers; registration files depend on the HTML builder and constants; nothing in this module imports server logic or external services. The README documents the full lifecycle and is the canonical reference for adding new widgets.

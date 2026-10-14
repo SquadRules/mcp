@@ -1,1 +1,0 @@
-Bash + Python 3 (`secrets`, `argparse`) + Node ESM (`dotenv/config`, native `fetch`); relies on `npx dotenv -e` for env-file injection, `ts-node/esm` loader as fallback, and `jest` with `--experimental-vm-modules` for integration tests.

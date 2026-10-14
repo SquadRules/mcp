@@ -1,1 +1,0 @@
-Node.js built-in `crypto` module for `randomUUID`, HMAC-SHA256 signing, and `timingSafeEqual`; base64url encoding via `Buffer.toString('base64url')`. Persistence is through the application's pluggable `keyValueStore` factory (in-memory by default).

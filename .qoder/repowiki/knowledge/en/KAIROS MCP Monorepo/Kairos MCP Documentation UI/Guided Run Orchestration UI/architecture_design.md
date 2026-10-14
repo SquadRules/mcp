@@ -1,8 +1,0 @@
-Two top-level route components plus a small `components/run/` subtree:
-- `RunsPage.tsx` is a read-only list of persisted sessions (via `useRunSessions`) with resume/remove actions that navigate to `/protocols/:uri/run?session=:id`.
-- `RunGuidedPage.tsx` is the stateful orchestrator: it reads `uri` from the URL, loads an existing session via `useRunSession(sessionId)`, and owns mutation hooks (`useForwardStart`, `useForwardStep`, `useReward`). It builds a `RunSession` object on start/step/reward, persists it through `useRunSessions().upsert`, and passes all callbacks + pending flags down to `RunGuidedContent`.
-- `RunGuidedContent.tsx` is a pure presentational layer driven by props; it computes the step-flow model (`runFlowModel`) from `history.length` / `status` / `current_layer`, renders `ChallengeCard` (fed by `runContractToChallengeCard`), `SolutionForm`, history, and the reward panel.
-- `SolutionForm.tsx` is a type-dispatched form for `RunContractType` (`shell | tensor | mcp | user_input | comment`); each branch validates locally and emits a `DraftSolution` shape.
-- `runContractChallenge.ts` is a thin adapter mapping a live `RunContract` into `ChallengeCard` props.
-
-Dependency direction is strictly one-way: pages → `RunGuidedContent` → `SolutionForm` + `runContractChallenge`; both pages depend only on shared hooks in `@/hooks/useRunSession` and tool hooks (`useForwardStart`, `useForwardStep`, `useReward`) plus `RunSession`/`RunSolutionSubmission` types from `@/lib/runToolTypes`. No cross-imports between sibling files beyond these contracts.

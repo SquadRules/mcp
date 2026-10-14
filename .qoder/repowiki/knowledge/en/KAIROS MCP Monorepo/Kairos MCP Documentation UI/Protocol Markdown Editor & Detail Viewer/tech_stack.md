@@ -1,1 +1,0 @@
-React + react-router-dom for routing, react-i18next for labels, Zod (`zod`) for client-side markdown schema validation, and Tailwind utility classes for styling. Protocol markdown parsing lives in `@/hooks/useProtocol`.

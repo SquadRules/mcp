@@ -1,1 +1,0 @@
-Cursor plugin format (`.cursor-plugin/plugin.json`) plus the MCP `mcpServers` JSON schema for streamable-HTTP transports.

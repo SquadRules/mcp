@@ -1,1 +1,0 @@
-Auth suites require a running dev stack (`npm run dev:deploy`) plus a refresh of the test bearer token from `tests/global-setup-auth.ts`; the e2e file documents `npm run dev:test -- tests/integration/cli-auth-browser-login.e2e.test.ts`. Non-auth suites only need the dev server reachable at the URL returned by `getTestAuthBaseUrl()`.

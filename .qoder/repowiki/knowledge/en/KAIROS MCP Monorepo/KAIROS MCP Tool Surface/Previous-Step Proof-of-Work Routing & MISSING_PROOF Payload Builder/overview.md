@@ -1,1 +1,0 @@
-Routes a proof submission to the previous step when its inference contract is required but unfulfilled, and builds the MISSING_PROOF challenge payload returned to clients.

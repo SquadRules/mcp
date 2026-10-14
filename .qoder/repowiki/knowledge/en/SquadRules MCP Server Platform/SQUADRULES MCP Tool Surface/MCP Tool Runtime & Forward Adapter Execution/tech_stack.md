@@ -1,0 +1,1 @@
+Zod for input schema validation (`safeParse` + `ZodError`); MCP tool registration via an internal `server.registerTool` API; OpenTelemetry-style metrics through `../services/metrics/mcp-metrics.js` (counters, histograms, timers).

@@ -1,3 +1,0 @@
-- Per-tool companion pages follow a fixed filename pattern `workflow-<tool>.md` (activate, forward-first-call, forward-continue, reward, train, tune, delete, export) aligned to the MCP tool names.
-- Architecture and install guides embed Mermaid diagrams to illustrate container topology, startup sequences, and data flows.
-- Cross-references use relative Markdown links back into sibling sections and into source trees under `src/` and `skills/` rather than absolute URLs.

@@ -1,1 +1,0 @@
-Implements the forward/trace protocol that turns a memory layer into an interactive contract view, validates solutions, persists execution traces, and advances adapter layers.

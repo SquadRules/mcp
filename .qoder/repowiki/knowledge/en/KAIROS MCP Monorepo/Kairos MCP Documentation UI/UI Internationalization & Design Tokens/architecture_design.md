@@ -1,6 +1,0 @@
-Two sibling sub-packages with no cross-dependency:
-
-- `src/ui/i18n/` — side-effect module (`index.ts`) bootstraps i18next via `initReactI18next`, registers a single namespace `translation` keyed by language code, hardcodes `lng` and `fallbackLng` to `en`, and imports the flat JSON resource from `en.json`. Consumers import this file once at app bootstrap; new languages are added by dropping a matching `<lang>.json` next to `en.json` and wiring it into the `resources` map.
-- `src/ui/theme/` — pure CSS design tokens. `tokens.css` is the single public entry that `@import`s `tokens-shared.css` (structural tokens on `:root`: spacing scale, typography, radius, layout max widths, focus-visible rules) followed by one theme file per palette. `tokens-theme-light.css` defines the default semantic colors on `:root`; `tokens-theme-dark.css` re-declares the same variables scoped to `html[data-theme="dark"]`. Adding a new theme means creating `tokens-theme-<name>.css` and adding an `@import` in `tokens.css` plus toggling the `data-theme` attribute on `<html>`.
-
-Dependency direction is one-way: UI components consume both packages but neither package depends on React or other UI layers.

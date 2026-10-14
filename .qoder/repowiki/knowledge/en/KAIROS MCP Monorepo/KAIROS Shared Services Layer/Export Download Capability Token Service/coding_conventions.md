@@ -1,5 +1,0 @@
-- Each capability follows a fixed four-function surface: `toBase64Url` / `fromBase64UrlJson` helpers, a local `sign(payloadB64)` using `crypto.createHmac('sha256', KAIROS_EXPORT_DOWNLOAD_SECRET)`, and a `timingSafeEqualString` wrapper over `crypto.timingSafeEqual`.
-- Opaque tokens are composed as `<base64url(JSON({id, exp}))>.<hmac-sig>` and rejected if they contain more than two dot-separated segments.
-- Record persistence uses a class with a private `prefix` constant and a `key(id)` helper, exposing only `put(record, ttlSeconds)` and `get(id)` backed by `keyValueStore.setJson`/`getJson`.
-- Every minted record embeds `space_context: getSpaceContextFromStorage()` at creation time so tenant isolation is captured alongside the capability.
-- Both expiry checks are performed twice — once against the signed payload's `exp` epoch and again against the stored record's `expires_at` ISO string — before returning a verified record.

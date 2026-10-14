@@ -1,1 +1,0 @@
-Bash/Python helper scripts that maintain documentation wording, sync Qoder Repo Wiki to GitHub, validate Mermaid diagrams, and seed/restore Qdrant test snapshots for CI and local dev.

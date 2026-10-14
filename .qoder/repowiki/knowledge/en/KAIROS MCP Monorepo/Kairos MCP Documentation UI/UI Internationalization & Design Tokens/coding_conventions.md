@@ -1,4 +1,0 @@
-- Translation keys use dot-namespaced strings grouped by feature area (e.g. `home.*`, `kairos.*`, `protocolEdit.*`, `run.*`, `account.*`) so consumers can scope lookups by page.
-- Interpolation placeholders follow i18next's double-brace syntax (`{{key}}`) and `escapeValue` is disabled so React renders HTML safely through its own renderer.
-- Design tokens are declared as CSS custom properties on `:root` using a consistent prefix (`--space-*`, `--font-size-*`, `--color-*`, `--badge-*`, `--status-*`) and never referenced as raw hex values in components.
-- Theme variants override only semantic color variables inside a `html[data-theme="dark"]` block, keeping structural tokens (spacing, typography, radius) shared across all themes.

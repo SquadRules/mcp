@@ -1,3 +1,0 @@
-- Solution fields accept both top-level keys (e.g. `solution.tensor`, `solution.shell`) and flattened `evidence.*` variants; every accessor first inspects the explicit key, then falls back to the evidence map, and finally throws if neither is present.
-- Optional output fields are spread conditionally using the `{ ...(cond ? { key } : {}) }` pattern so undefined values never leak into the returned `ForwardOutput`.
-- Cross-cutting services (memory store, qdrant service, runtime store, proof-of-work store) are passed as function parameters rather than imported at module scope, making each handler injectable and independently testable.

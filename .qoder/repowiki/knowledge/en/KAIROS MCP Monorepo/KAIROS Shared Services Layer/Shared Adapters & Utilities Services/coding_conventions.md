@@ -1,4 +1,0 @@
-- Public entry points are either a default-exported class instantiated once at module bottom (e.g. `activateRefinementStore`) or a file of pure functions/static methods with no constructor — modules avoid requiring callers to instantiate anything.
-- External I/O calls (kv store, qdrant service) are always wrapped in try/catch that logs via `logger`/`structuredLogger` and returns a safe default value instead of propagating errors.
-- Deterministic identifiers are produced through `uuid.v5` keyed off a module-level `KAIROS_NAMESPACE` constant so the same input string always yields the same Qdrant ID across processes.
-- Adapter-layer traversal follows a uniform pattern: fetch points via `getAdapterLayers`, map each point to `{ uuid, label, layer_index }` using optional-chained access on `payload.adapter.layer_index`, then pick the element matching the target index.

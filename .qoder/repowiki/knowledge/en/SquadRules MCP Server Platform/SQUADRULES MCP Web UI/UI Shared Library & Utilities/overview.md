@@ -1,0 +1,1 @@
+Shared TypeScript helpers for the UI layer: a centralized fetch wrapper, skill ZIP export/download utilities, run-tool type aliases, and browser-side adapters/browsing/confidence/TipTap extensions.

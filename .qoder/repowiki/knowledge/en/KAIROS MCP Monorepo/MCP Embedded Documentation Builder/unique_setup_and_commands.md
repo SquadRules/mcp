@@ -1,1 +1,0 @@
-Run `npx ts-node scripts/build-embed-docs.ts` (or the repo's `npm run build`) to regenerate `src/resources/embedded-mcp-resources.ts` and copy `mem/*.md` into `dist/embed-docs/mem/`. The generator expects the source tree under `src/embed-docs/` relative to the script location.

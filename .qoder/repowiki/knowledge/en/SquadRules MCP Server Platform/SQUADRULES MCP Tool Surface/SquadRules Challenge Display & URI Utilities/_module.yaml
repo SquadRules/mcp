@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: tools/squadrules_challenge
+title: SquadRules Challenge Display & URI Utilities
+scope:
+    - src/tools/squadrules-challenge-display.ts
+    - src/tools/squadrules-genesis-proof-hash.ts
+    - src/tools/squadrules-uri.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/next_pow_challenge

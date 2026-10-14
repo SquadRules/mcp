@@ -1,6 +1,0 @@
-Three files form a thin HTTP layer over the export pipeline:
-- `http-export-download-routes.ts` registers `GET /export/skill-zip/:opaque`, verifies the token via `verifyExportDownloadCapability`, then delegates streaming to `streamSkillZipHttpResponse` inside a tenant space context.
-- `http-export-artifact-download-routes.ts` registers `GET /export/artifact/:opaque`, verifies with `verifyExportArtifactDownloadCapability`, fetches the artifact text from `MemoryQdrantStore` under the recorded `space_context`, and returns it as an attachment with `X-KAIROS-Artifact-Sha256`.
-- `export-skill-zip-http.ts` is a pure streaming helper: it calls `collectSkillExportItemsForZip`, flattens paths via `flattenSkillItemsToZipPaths`, pipes a Node `PassThrough` into `pipeSkillZipToWritable`, counts compressed bytes, and records them through `setSkillZipDecodedBytes`.
-
-Dependency direction is one-way: routes → capability verification + memory store → streaming helpers. No business logic lives in these files; they only wire Express handlers to services and enforce consistent error/telemetry shape (structured logging, `EXPORT_*` JSON error codes, 403 on invalid/expired tokens, 404 when artifact not found, 500 fallback after checking `res.headersSent`).

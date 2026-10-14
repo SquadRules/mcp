@@ -1,4 +1,0 @@
-- Each file defines one exported `*Command(program: Command)` function that registers a single Commander subcommand via `.command(...).option(...).action(...)`, keeping CLI registration declarative and side-effect-free until invoked.
-- Base API URL is resolved centrally via the exported `getBaseUrl()` from `login.ts` rather than duplicated across commands, ensuring `--url` / env / config precedence is consistent.
-- Errors are reported through `writeError` and failures terminate the process with `process.exit(1)`, while success paths use `process.exit(0)` or implicit zero — no thrown exceptions bubble out of action handlers.
-- User-facing messages go through `writeStdout`/`writeStderr` instead of direct `console.log`/`process.stderr.write`, enabling test harnesses to intercept CLI output.

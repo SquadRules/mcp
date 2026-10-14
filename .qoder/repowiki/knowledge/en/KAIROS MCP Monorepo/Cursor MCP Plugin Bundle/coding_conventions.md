@@ -1,2 +1,0 @@
-- Plugin metadata is kept minimal and declarative in JSON manifests rather than generated or computed at runtime.
-- MCP server entries use the `alwaysAllow` array to pre-authorize tools instead of interactive prompts.

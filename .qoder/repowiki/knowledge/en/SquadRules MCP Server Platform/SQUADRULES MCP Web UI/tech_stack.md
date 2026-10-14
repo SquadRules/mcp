@@ -1,0 +1,1 @@
+React + TypeScript, Vite, React Router v6, @tanstack/react-query for server state, i18next for localization, TipTap extensions for the rich-text editor, CSS custom properties for theming.

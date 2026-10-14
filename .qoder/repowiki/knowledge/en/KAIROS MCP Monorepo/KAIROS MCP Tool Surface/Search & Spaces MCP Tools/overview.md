@@ -1,1 +1,0 @@
-MCP tool implementations for searching adapters by semantic query and listing per-space adapter inventories, including result formatting and output rendering.

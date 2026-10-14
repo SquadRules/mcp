@@ -1,4 +1,0 @@
-- Each route wraps its handler in `runWithSpaceContextAsync(record.space_context, ...)` so downstream service calls execute under the correct tenant.
-- Token verification failures return a 403 JSON body with an `EXPORT_*_FORBIDDEN` error code and a human-readable message instead of throwing.
-- Error branches log via `structuredLogger.error(...)` and, if headers were already sent, call `res.end()` before returning a 500 JSON response.
-- Binary responses set explicit `Content-Type`, `Content-Disposition`, and `X-KAIROS-*` custom headers rather than relying on defaults.

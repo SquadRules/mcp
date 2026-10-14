@@ -1,5 +1,0 @@
-- All user-facing strings go through `t('protocolEdit.*')` / `t('protocol.*')` keys rather than inline literals, keeping i18n centralized.
-- Form mutations are expressed as immutable updates via `setForm(prev => ({ ...prev, key: value }))` and per-step updates via a `setStep(index, updateFn)` helper that maps over `steps`.
-- Reusable input/button styles are extracted into string constants (`labelInputClass`, `inputClass`, `elevatedInputClass`, `secondaryBtn`) instead of repeating Tailwind class lists.
-- Optional nested step payloads are always spread with defaults on every write (e.g. `{ cmd: ..., timeout_seconds: step.shell?.timeout_seconds ?? 30, ... }`) so partial edits never drop sibling fields.
-- Validation errors are surfaced through dedicated `validationError` / `error` state variables and rendered inside elements with `role="alert"`.

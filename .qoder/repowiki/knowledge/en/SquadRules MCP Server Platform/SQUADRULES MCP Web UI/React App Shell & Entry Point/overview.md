@@ -1,0 +1,1 @@
+Bootstraps the SQUADRULES MCP web UI by mounting React, configuring routing, query client, theme provider, and lazy-loading page modules.

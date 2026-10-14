@@ -1,1 +1,0 @@
-Python 3 standard library only (`urllib.request`, `json`, `subprocess`) — no third-party HTTP or Keycloak SDKs. Bash + Keycloak's bundled `kcadm.sh` CLI for the demo-user helper.

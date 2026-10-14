@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: tools
-title: KAIROS MCP Tool Surface
-scope:
-    - src/tools/
-source_files: []
-depends_on: []
-related_to: []

@@ -1,5 +1,0 @@
-- All user-facing strings go through `react-i18next`'s `useTranslation()` and are keyed under namespaces like `kairos.*` / `notFound.*`; no literal English text appears in JSX.
-- Theming is done exclusively via Tailwind utility classes referencing CSS custom properties (e.g. `bg-[var(--color-primary)]`, `text-[var(--color-text-muted)]`, `min-h-[var(--layout-touch-target)]`) rather than raw color values.
-- Search input and space selection are kept in local controlled state (`query`/`submittedQuery`, `activateSpace`/`submittedSpace`) and persisted to the URL via `useSearchParams` with `{ replace: true }` so back-button navigation works.
-- Data fetching is performed through typed hooks (`useActivate`, `useSpaces`) returning `{ data, isLoading, isError, error, refetch }`, and UI branches on these flags to render `ErrorAlert` or `SearchResultsSkeleton` before content.
-- Navigation between protocols uses `<Link to="/protocols/${encodeURIComponent(uri)}">` instead of imperative routing, keeping links declarative and accessible.

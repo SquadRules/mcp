@@ -1,0 +1,1 @@
+Bare invocation without arguments auto-switches to `serve` when `stdin.isTTY` is false, enabling MCP stdio transport; `--url local` (or default `stdio://local`) runs entirely in-process against the embedded store, skipping network and embedding stack loads.

@@ -1,1 +1,0 @@
-Node ESM modules (`import.meta.url` + `fileURLToPath`) for the two `.mjs` scripts, plain Python 3 stdlib (`pathlib`, `shutil`) for the reference copier; all three are shebang-invoked directly via `node` / `python3` rather than through a build tool.

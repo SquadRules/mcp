@@ -1,1 +1,0 @@
-TanStack React Query (`@tanstack/react-query`) for server-state caching; browser `localStorage` for run-session persistence; TypeScript interfaces for all persisted shapes.

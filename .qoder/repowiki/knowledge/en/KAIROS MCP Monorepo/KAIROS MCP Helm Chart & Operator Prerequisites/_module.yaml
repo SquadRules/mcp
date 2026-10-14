@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: helm_charts
-title: KAIROS MCP Helm Chart & Operator Prerequisites
-scope:
-    - helm/
-source_files: []
-depends_on: []
-related_to: []

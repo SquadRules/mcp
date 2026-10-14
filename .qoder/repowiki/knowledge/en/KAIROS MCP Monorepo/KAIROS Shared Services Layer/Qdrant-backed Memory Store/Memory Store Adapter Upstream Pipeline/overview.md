@@ -1,1 +1,0 @@
-Parses Markdown adapters into layered Memory records and persists them as Qdrant points with dense, title, activation-pattern vectors plus BM25 sparse indices.

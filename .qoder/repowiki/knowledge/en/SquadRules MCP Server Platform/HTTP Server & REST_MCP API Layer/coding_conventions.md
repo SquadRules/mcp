@@ -1,0 +1,5 @@
+- Each route group is implemented in its own file exporting a `setupXxxRoute(app, ...)` function that registers one or more Express paths, keeping per-endpoint logic isolated.
+- Route handlers return typed JSON objects with an `error` + `message` envelope (e.g. `{ error: 'INVALID_INPUT', message: ... }`) instead of throwing, so the global error handler only catches unexpected failures.
+- External services (MemoryQdrantStore, QdrantService) are passed as parameters into setup functions rather than imported directly, enabling dependency injection for tests.
+- Tenant scoping is applied through `getSpaceContext` / `runWithSpaceContext` around request handling, with `space`/`space_id` query params narrowing the allowed space before calling into business logic.
+- Structured logging goes through `structuredLogger` with named keys (e.g. `request_id`, `http_method`, `http_url`) rather than ad-hoc console output.

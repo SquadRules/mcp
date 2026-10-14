@@ -1,4 +1,0 @@
-- Public entry points are factory functions (`setupErrorHandlers`, `setupClientRegistrationProxy`) that take an Express app and register routes/middleware imperatively rather than exporting middleware objects.
-- HTTP status codes are derived by normalising both `status` and `statusCode` properties and clamping them to the 400–599 range, defaulting to 500 otherwise.
-- Upstream calls use Node `fetch` with an `AbortController` + `setTimeout` for timeouts, and failures are logged via `structuredLogger` before returning a stable error code (e.g. 502 with `authorization_server_unavailable`).
-- URL rewriting is performed by parsing with `new URL(...)`, splitting the pathname, extracting the last segment as the resource identifier, and reconstructing the path under the configured public base.

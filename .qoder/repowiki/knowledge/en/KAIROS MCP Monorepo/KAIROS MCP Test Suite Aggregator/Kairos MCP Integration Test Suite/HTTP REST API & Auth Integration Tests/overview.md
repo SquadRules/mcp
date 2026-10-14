@@ -1,1 +1,0 @@
-End-to-end Jest tests that exercise the server's HTTP REST endpoints (train, forward, activate, snapshot, metrics) and Keycloak-based OIDC auth against a live dev/test server.

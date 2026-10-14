@@ -1,3 +1,0 @@
-- Every MCP tool handler records per-tenant metrics before and after execution using `mcpToolCalls.inc`, `mcpToolErrors.inc`, `mcpToolDuration.startTimer`, and `mcpToolInputSize`/`mcpToolOutputSize.observe` with `{tool, tenant_id}` labels.
-- User-facing errors are returned as `{isError: true, content: [{type:'text', text: JSON.stringify(...)}]}` rather than thrown, while unexpected errors re-throw to let the server handle them.
-- Async persistence operations are wrapped in a fire-and-forget `.catch` pattern so trace/storage failures log a warning but never bubble up to the caller.

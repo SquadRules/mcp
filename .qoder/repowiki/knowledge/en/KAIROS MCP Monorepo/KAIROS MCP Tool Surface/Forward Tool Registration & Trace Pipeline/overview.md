@@ -1,1 +1,0 @@
-Registers the MCP 'forward' tool, formats its errors, and persists execution traces plus tensor outputs for adapter layer forward passes.

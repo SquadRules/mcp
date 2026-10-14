@@ -1,1 +1,0 @@
-Top-level Helm workspace that installs OLM-based operators and deploys the KAIROS MCP application chart, with dev profiles driving progressive values overlays.

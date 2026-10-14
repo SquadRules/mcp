@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: tools/search
+title: Adapter Search & Activation Tool
+scope:
+    - src/tools/search.ts
+    - src/tools/search_output.ts
+    - src/tools/search_schema.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/activate_forward

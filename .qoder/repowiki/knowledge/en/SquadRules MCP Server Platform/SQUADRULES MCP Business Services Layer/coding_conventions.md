@@ -1,0 +1,5 @@
+- Each domain service exposes a singleton instance alongside its class (e.g. `embeddingService`, `qdrantService`) for dependency injection.
+- Metrics are emitted through the central registry in `services/metrics/` rather than direct Prometheus calls, tagged with `provider` and `tenant_id` labels.
+- Pluggable backends implement a shared interface and are selected at runtime via a factory (`key-value-store-factory`, Qdrant vs. embedded LanceDB in `vector-store`).
+- Tenant and request identity flow through `getTenantId()` / `getRequestIdFromStorage()` from `utils/tenant-context.js` instead of being passed as arguments.
+- All logging goes through the structured logger from `../utils/structured-logger.js` with `[ServiceName]` prefixed messages.

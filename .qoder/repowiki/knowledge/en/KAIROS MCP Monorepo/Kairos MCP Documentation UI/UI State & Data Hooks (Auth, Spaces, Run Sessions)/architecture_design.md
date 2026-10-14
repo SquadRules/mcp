@@ -1,6 +1,0 @@
-Three independent React hooks living in `src/ui/hooks/`, each owning one concern:
-- `useAuth.ts` exposes `useMe()` wrapping a GET `/api/me` call via `@/lib/api`; it re-exports the `MeResponse` type so callers can type-check the result.
-- `useSpaces.ts` exposes `useSpaces(enabled?, options?)` wrapping a POST `/api/spaces` with an optional `include_adapter_titles` flag; both data-fetching hooks use TanStack Query (`useQuery`) keyed by a string tuple so they share cache and deduplicate requests.
-- `useRunSession.ts` is state-only: it persists `RunSession[]` under the `kairos.runSessions.v1` localStorage key, exposing `useRunSessions()` (CRUD + refresh) and a derived `useRunSession(sessionId)` selector. It normalizes server payloads from multiple legacy field names (`protocol_uri`/`adapter_uri`, `current_step`/`current_layer`, `challenge`/`contract`, `attest_uri`/`reward_uri`, `ready_to_attest`/`ready_to_reward`) into a single `RunSession` shape before storage.
-
-Dependency direction is strictly inward: hooks depend on `@/lib/api` and shared types from `@/lib/runToolTypes` and `../../me-response.js`, but no other hook imports another — they are composable at the component layer only.

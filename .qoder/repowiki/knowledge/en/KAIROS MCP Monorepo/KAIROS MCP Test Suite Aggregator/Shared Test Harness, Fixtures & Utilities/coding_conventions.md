@@ -1,4 +1,0 @@
-- External service bootstraps expose a dual-mode API: a container-based starter (`startKeycloakWithTestUser`) and an existing-environment consumer (`useExistingKeycloakFromEnv`), both returning a typed `*Env` object with a token factory, so callers never branch on mode.
-- Immutable fixture directories carry an `artifact-contract.json` declaring every path, its MIME type, and the expected artifact slug; contracts are parsed and validated at load time, failing fast when the fixture drifts.
-- Deterministic UUID generation is enforced via a Jest `moduleNameMapper` pointing to `tests/mocks/uuid-stub.cjs`, which returns fixed v4 values and SHA1-derived v5 values keyed by namespace+name.
-- Per-Jest-worker idempotent setup functions guard state with a module-level boolean flag (e.g. `ensureMimeFixtureExportDumpRootCleanBeforeMimeTests`) so teardown/cleanup runs exactly once per worker process.

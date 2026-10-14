@@ -1,1 +1,0 @@
-Provides the i18n runtime (i18next + react-i18next) initialized with English translation keys and a CSS design-token system that exposes semantic color, spacing, typography, and layout variables for light/dark themes.

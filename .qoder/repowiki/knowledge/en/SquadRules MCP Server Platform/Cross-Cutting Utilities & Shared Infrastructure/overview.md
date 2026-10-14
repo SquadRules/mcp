@@ -1,0 +1,1 @@
+Shared cross-cutting utilities powering SQUADRULES MCP: structured logging, Qdrant vector helpers, async-local tenant/space context, audit event emission, and assorted HTTP/Redis/Qdrant helpers.

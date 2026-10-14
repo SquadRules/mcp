@@ -1,1 +1,0 @@
-Node.js ESM with TypeScript; MCP SDK (`@modelcontextprotocol/sdk`) for both HTTP and stdio transports; Express for the standalone metrics server; Prometheus client via `./services/metrics/registry.js`.

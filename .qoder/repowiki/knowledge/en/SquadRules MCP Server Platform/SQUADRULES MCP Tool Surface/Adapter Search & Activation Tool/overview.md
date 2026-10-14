@@ -1,0 +1,1 @@
+MCP tool that searches stored protocol adapters via Qdrant, caches results in Redis/memory, and returns a unified choice list with refine/create meta-actions.

@@ -1,4 +1,0 @@
-- Cross-cutting configuration flows exclusively through environment variables loaded from `.env*` files; no hard-coded defaults beyond fallbacks in `shared_types_utils`.
-- Build-time assets (docs, skill versions, embedded resources) are regenerated in `prebuild` so source-of-truth lives in Markdown/YAML and never in generated code.
-- Every child module ships its own `tsconfig*.json` and is type-checked independently before the root `tsc` emits the unified `dist/`.
-- ESLint rules from `eslint_rules` are applied uniformly across all children via the root `eslint.config.cjs`; custom plugins enforce MCP widget safety and CodeQL comment integrity project-wide.

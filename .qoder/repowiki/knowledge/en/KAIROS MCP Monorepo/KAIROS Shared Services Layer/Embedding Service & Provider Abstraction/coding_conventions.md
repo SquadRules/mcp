@@ -1,6 +1,0 @@
-- Provider selection is centralized in a single dispatcher (`postEmbeddings`, `EmbeddingService.getProvider`) that reads `EMBEDDING_PROVIDER` then falls back to env discovery, keeping backend choice out of callers.
-- Every outbound embedding call wraps timing, tenant/request-id extraction, metric increments, and audit logging in a try/catch block that records both success and error paths uniformly.
-- HTTP retries use a shared pattern: `computeDeadline()` + `isBudgetExceeded(deadline)` guard, `computeBackoffMs` with full jitter, and `parseRetryAfterMs` honoring server hints before falling back to exponential backoff.
-- Runtime configuration is resolved lazily at first successful response (`setResolvedEmbeddingDimension`) and enforced on all subsequent calls via `getResolvedEmbeddingDimension`, with a hard failure if `probeEmbeddingDimension()` was not called at startup.
-- Anomalies are recorded through `recordAnomaly` which emits both Prometheus counters (`anomalyEvents.inc`) and structured logs tagged with `category: 'audit.anomaly'`, separating severity into warn/error branches.
-- BM25 tokenizer is implemented as a stateless pure function (`tokenizeToSparse`) returning `{ indices, values }` tuples, kept completely decoupled from the embedding provider stack.

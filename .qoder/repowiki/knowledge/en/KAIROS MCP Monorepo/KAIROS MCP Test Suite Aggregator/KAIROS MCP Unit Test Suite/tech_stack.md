@@ -1,1 +1,0 @@
-Jest 30 + ts-jest 29 against Node ≥24; assertions via `@jest/globals`; mocking via `jest.unstable_mockModule`; Zod v4 `.safeParse()` used as the canonical validation/assertion primitive in many tests.

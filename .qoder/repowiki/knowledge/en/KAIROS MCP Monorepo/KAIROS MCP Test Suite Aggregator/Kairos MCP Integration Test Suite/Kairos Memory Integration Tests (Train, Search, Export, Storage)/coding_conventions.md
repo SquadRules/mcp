@@ -1,6 +1,0 @@
-- Each test file opens with a JSDoc comment describing which report case or behavior it covers (e.g. CASE 1, FORBIDDEN BEHAVIOUR), then uses a single `describe` block per file.
-- Tests create a unique H1 title using `Date.now()` / `ts` timestamps so every run trains a fresh adapter without colliding with other suites.
-- Markdown training content follows the required shape: `## Activation Patterns` section first, one or more step sections containing a ````json` contract code block, and a trailing `## Reward Signal` section.
-- Every test calls `parseMcpJson(result, '<label>')` to unwrap the raw MCP result and asserts the V2 unified schema fields (`must_obey`, `message`, `next_action`, `choices[]`) while explicitly asserting that legacy V1 fields (`start_here`, `protocol_status`, `best_match`, `suggestion`, `hint`) are undefined.
-- Long-running assertions are wrapped in `withRawOnFail({ call, result }, ...)` so failures print the original MCP call and response alongside the expectation error.
-- All tests pass `review_evidence: MOCK_REVIEW_EVIDENCE` and use `force_update: true` when they need to guarantee a `stored` response regardless of similarity detection.

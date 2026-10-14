@@ -1,5 +1,0 @@
-- Each domain store file declares its own interface, a class implementing it, and a module-level singleton export (e.g. `oidcStateStore`, `proofOfWorkStore`, `forwardRuntimeStore`, `executionTraceStore`).
-- Backend selection is centralized in `key-value-store-factory.ts` driven solely by `isRedisConfigured`; domain stores never read REDIS_URL or deployment topology themselves.
-- All KV operations are wrapped in try/catch that logs via `structured-logger` and returns a safe default (null / empty record / 0) so callers remain resilient to backend failures.
-- TTLs are expressed as explicit seconds constants at the top of each store file and passed through to `set`/`setJson` rather than being hard-coded at call sites.
-- Keys are built by small private helper functions (`stateKey`, `metaKey`, `tensorKey`, `buildKey`, `nonceKey`, …) that centralize prefix composition instead of string concatenation scattered across methods.

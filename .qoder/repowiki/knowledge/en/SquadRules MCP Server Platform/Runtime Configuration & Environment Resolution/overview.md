@@ -1,0 +1,1 @@
+Environment-driven configuration module that resolves runtime mode, embedding defaults, export settings, and adapter size limits for the MCP server.

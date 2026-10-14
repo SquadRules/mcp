@@ -1,5 +1,0 @@
-- CLI argument parsing follows a uniform pattern: `process.argv.slice(2)` paired with a local `getArg(name, required?)` helper plus `hasFlag(name)`, with `--help` printing inline usage and exiting 0.
-- Each Node script exposes a top-level `async function main()` invoked as `main().catch(err => { console.error(...); process.exit(1); })`, centralizing error handling and non-zero exit codes.
-- Bearer-token authentication is resolved from an explicit `--bearer` / env var argument first, falling back to environment variables (`AUTH_BEARER_TOKEN`, `JOURNEY_BEARER_TOKEN`) rather than hard-coded defaults.
-- Scripts resolve their own location via `path.dirname(fileURLToPath(import.meta.url))` and derive `repoRoot = path.resolve(__dirname, '..')` so they work regardless of cwd.
-- Bash helpers use `set -euo pipefail`, define a `die()` helper for fatal errors, and keep all mutable state under a single `${STATE_DIR}` directory (pidfile, logs, installed tag) instead of global variables.

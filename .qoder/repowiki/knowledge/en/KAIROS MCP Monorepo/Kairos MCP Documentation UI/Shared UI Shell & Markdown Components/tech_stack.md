@@ -1,1 +1,0 @@
-React + TypeScript with `react-router-dom` for routing, `react-i18next` for translations, `@tiptap/react` for the WYSIWYG editor (markdown content type), and `react-markdown` + `remark-gfm` for read-only rendering.

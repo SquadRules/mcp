@@ -1,1 +1,0 @@
-TypeScript test utilities built on Node's `fs`/`zlib`/`crypto` and `testcontainers` (Keycloak image `quay.io/keycloak/keycloak:26.0`); ZIP parsing uses only `node:zlib`'s `inflateRawSync` to avoid adding a third-party zip library as a runtime dependency.

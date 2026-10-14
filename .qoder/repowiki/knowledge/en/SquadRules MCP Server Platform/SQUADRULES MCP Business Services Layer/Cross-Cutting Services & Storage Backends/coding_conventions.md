@@ -1,0 +1,6 @@
+- Backend selection is done at module load via an `isXxxConfigured` flag from `config.js`, exporting a single facade singleton that resolves to either the networked or embedded implementation.
+- Expensive services are exposed as module-level singletons (e.g. `embeddingService`, `keyValueStore`, `qdrantService`, `executionTraceStore`) rather than constructed by callers.
+- Each domain groups its metrics into a dedicated file under `metrics/` and registers them with `metrics/registry.ts`, tagging every counter/histogram with `tenant_id`.
+- Embedding-service methods wrap provider calls with timing via `embeddingDuration.startTimer`, anomaly detection via `detectEmbeddingAnomalies`, and audit logging via `logEmbeddingAuditSuccess`/`logEmbeddingAuditError`.
+- Qdrant operations go through `QdrantConnection.executeWithReconnect` and use `ensureCollection`-style lazy initialization guarded by an `initPromise` to avoid concurrent collection creation.
+- Mutation paths acquire per-key async locks (e.g. `withMutationLock` keyed by `execution:${id}`) to serialize concurrent writes against the same logical entity.

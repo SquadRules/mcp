@@ -1,1 +1,0 @@
-`./helm/.dev/helm-deploy.sh` is the single entry point; pass `--profile {http|tls|tls-redis|full}` or let it infer from the existing release. Extra Helm flags are forwarded after `--`. For k3d end-to-end: `set -a && source .env && set +a && ./helm/.dev/k3b.sh` (also supports `KAIROS_SKIP_CHART=1` to install only operators/ngrok).

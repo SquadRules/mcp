@@ -1,0 +1,5 @@
+- Validation failures surface as typed errors — `TrainError` with a string code plus optional `details` record for train-side operations, and plain `Error` with descriptive messages for tune-side operations.
+- Wire URIs are parsed and built exclusively through `squadrules-uri.js` (`parseSquadrulesUri`, `assertWireAdapterUri`, `buildLayerUri`, `buildAdapterUri`) rather than string concatenation.
+- Adapter content is validated before persistence using dedicated validators (`validateAdapterMarkdownSize`, `validateProtocolStructure`, `validateArtifactContentSize`) and rejected with structured error payloads.
+- Post-write integrity is enforced by re-reading persisted data from Qdrant and asserting equality (see `verifyTuneLayerPersistence`), catching stale-cache or no-op write scenarios.
+- Per-URI tuning results are accumulated into a `results[]` array with `status: 'updated' | 'error'` and counters `total_updated` / `total_failed` rather than throwing on the first failure.

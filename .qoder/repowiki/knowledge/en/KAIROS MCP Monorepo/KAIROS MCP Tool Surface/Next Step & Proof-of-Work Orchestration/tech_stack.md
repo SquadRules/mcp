@@ -1,1 +1,0 @@
-Zod schemas (`next_schema.js`) drive input/output types; SHA-256 hashing of proof records via Node `crypto`; cosine-similarity gating for `comment` proofs against step content using `embeddingService`; MCP client elicitation via `server.elicitInput` when capabilities allow.

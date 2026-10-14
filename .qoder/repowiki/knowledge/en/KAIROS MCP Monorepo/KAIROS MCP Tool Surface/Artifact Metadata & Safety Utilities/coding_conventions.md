@@ -1,3 +1,0 @@
-- Public constants are built at module load time from external maps and exposed as `Object.freeze([...set])` arrays backed by a private `Set` for O(1) membership checks.
-- String fields in payload-to-interface mappers use a cascade of `typeof ... === 'string' && value.trim().length > 0 ? trim(value) : fallback` to coerce optional payload keys safely.
-- Validation helpers return `null` on invalid input rather than throwing, letting callers treat failures as absent data.

@@ -1,1 +1,0 @@
-Assembles the Express application, wires middleware and route modules, and starts the HTTP server with port-binding error handling.

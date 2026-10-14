@@ -1,0 +1,1 @@
+Qdrant via `@qdrant/js-client-rest` REST client; optional mTLS through a CA cert file read at startup; raw `fetch` used directly for alias endpoints across multiple Qdrant REST variants; Redis cache invalidation events published via `../redis-cache` after writes.

@@ -1,1 +1,0 @@
-Node/TypeScript build-time scripts that embed MCP docs into generated source, sync skill versions against git tags and package.json, define Vite UI env vars, and produce the npm tarball.

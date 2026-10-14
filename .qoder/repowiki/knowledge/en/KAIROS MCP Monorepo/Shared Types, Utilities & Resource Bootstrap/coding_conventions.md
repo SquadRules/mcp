@@ -1,5 +1,0 @@
-- Environment variables are read through small typed helpers (`envString`, `envInt`) that fall back to a process-local default, never accessed directly from `process.env` at call sites.
-- All log messages pass through `sanitizeLogMessage` / `sanitizeBindingsForAudit` before reaching Pino or the audit stream, stripping CR/LF and CTL characters and capping depth/key/string length.
-- Qdrant-related exports are consolidated via a barrel file (`qdrant-utils.ts` re-exporting types, collection ops, vector management, and query helpers) so callers import a single path.
-- Boot-time operations wrap work in `runWithSpaceContextAsync` with an app-space context object so filesystem-driven injection runs under the correct tenant/space scoping.
-- Built-in UI labels and slugs are derived from embedded markdown frontmatter (e.g. `getMetaDocTitle` reading `title` then H1) instead of being hardcoded string literals.
