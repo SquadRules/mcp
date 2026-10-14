@@ -6,6 +6,7 @@ import type { MemoryQdrantStore } from '../../src/services/memory/store.js';
 import type { QdrantService } from '../../src/services/qdrant/service.js';
 
 const executions = new Map<string, ForwardExecutionMeta>();
+const manifests = new Map<string, string[]>();
 const nonces = new Map<string, string>();
 const search = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 const submit = jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({ proofHash: 'accepted' });
@@ -14,7 +15,10 @@ jest.unstable_mockModule('../../src/tools/search.js', () => ({ executeSearch: se
 jest.unstable_mockModule('../../src/services/forward-runtime-store.js', () => ({
   forwardRuntimeStore: {
     startExecution: async (meta: ForwardExecutionMeta) => { executions.set(meta.execution_id, meta); },
-    getExecution: async (id: string) => executions.get(id) ?? null
+    getExecution: async (id: string) => executions.get(id) ?? null,
+    setLayerManifest: async (id: string, manifest: string[]) => { manifests.set(id, manifest); },
+    getLayerManifest: async (id: string) => manifests.get(id) ?? null,
+    deleteExecution: async (id: string) => { executions.delete(id); manifests.delete(id); }
   }
 }));
 jest.unstable_mockModule('../../src/services/execution-trace-store.js', () => ({
@@ -88,6 +92,24 @@ describe('authoring intent from activation through continuation', () => {
     expect(continued.current_layer!.uri).toContain(next);
     expect(continued.next_call.args).toMatchObject({ authoring: canonicalAuthoring });
     expect(executions.get(first.execution_id!)?.authoring).toEqual(canonicalAuthoring);
+  });
+
+  test('solution_template pre-fills chain tokens from the contract, leaving evidence to earn (#79)', async () => {
+    const first = forwardOutputSchema.parse(await executeForward({}, store, db, {
+      uri: 'squadrules://adapter/author-adapter', authoring
+    }));
+    expect(first.next_call.kind).toBe('forward');
+    const template = first.next_call.kind === 'forward' ? first.next_call.args.solution_template : undefined;
+    expect(template?.nonce).toBe(first.contract.nonce);
+    expect(template?.proof_hash).toBe(first.contract.proof_hash);
+    expect(template?.evidence).toEqual({ text: '' });
+
+    const continued = forwardOutputSchema.parse(await executeForward({}, store, db, {
+      uri: first.current_layer!.uri, solution
+    }));
+    const nextTemplate = continued.next_call.kind === 'forward' ? continued.next_call.args.solution_template : undefined;
+    expect(nextTemplate?.nonce).toBe(continued.contract.nonce);
+    expect(nextTemplate?.proof_hash).toBe(continued.contract.proof_hash);
   });
 
   test.each(['author-adapter', 'create-new-protocol'])('%s starts the same existing adapter', async slug => {

@@ -4,10 +4,14 @@
  * Fix 1: Pin layer manifest at execution start to prevent UUID churn.
  * Fix 2: Return copy-paste-ready next-call objects with proof_hash and nonce.
  *
- * These tests verify the behavioral logic without importing the heavy module chain
+ * Fix 1 verifies the navigation logic without importing the heavy module chain
  * (Qdrant, Redis, embedding service) that causes ESM mock-chain failures in Jest.
+ * Fix 2 asserts against the real forward schemas, so a template the server emits
+ * but the wire contract rejects fails here rather than only in CI.
  */
 import { describe, expect, test } from '@jest/globals';
+import { randomUUID } from 'node:crypto';
+import { forwardOutputSchema, forwardSolutionSchema } from '../../src/tools/forward_schema.js';
 
 // ─── Fix 1: Manifest pinning prevents UUID churn ─────────────────────────────
 
@@ -77,67 +81,94 @@ describe('Fix 1: Layer manifest pinning', () => {
 // ─── Fix 2: Copy-paste-ready next_call objects ───────────────────────────────
 
 describe('Fix 2: Copy-paste-ready next_call objects', () => {
+  const layerUri = `squadrules://layer/${randomUUID()}?execution_id=${randomUUID()}`;
+
   /**
-   * Simulates the solution_template building logic in buildForwardView.
-   * When nextProofHash and nextNonce are provided, they are included in the template.
+   * Mirrors buildForwardView: chain tokens are read off the contract (the single
+   * source of truth) so the template can never disagree with it. Evidence is left
+   * as a placeholder — that is the part the caller must earn from a real execution.
    */
-  function buildSolutionTemplate(
-    contractType: string,
-    nextNonce?: string,
-    nextProofHash?: string
-  ): Record<string, unknown> {
-    const baseTemplate: Record<string, unknown> = { type: contractType, outcome: 'success', evidence: {} };
-    if (contractType === 'comment') baseTemplate.evidence = { text: '' };
-    if (contractType === 'shell') baseTemplate.evidence = { exit_code: 0 };
-    if (nextNonce) baseTemplate.nonce = nextNonce;
-    if (nextProofHash) baseTemplate.proof_hash = nextProofHash;
-    return baseTemplate;
+  function templateFromContract(contract: Record<string, any>): Record<string, unknown> {
+    const evidenceHints: Record<string, unknown> = {
+      comment: { text: '' },
+      shell: { exit_code: 0 },
+      mcp: { tool_name: '', arguments: {}, response: {} },
+      user_input: { confirmation: '' }
+    };
+    return {
+      type: contract.type,
+      outcome: 'success',
+      evidence: evidenceHints[contract.type as string] ?? {},
+      ...(contract.nonce ? { nonce: contract.nonce } : {}),
+      ...(contract.proof_hash ? { proof_hash: contract.proof_hash } : {})
+    };
   }
 
-  test('includes proof_hash in solution_template when provided', () => {
-    const template = buildSolutionTemplate('comment', undefined, 'abc123hash');
-    expect(template.proof_hash).toBe('abc123hash');
+  function forwardOutput(contract: Record<string, any>, solution_template: Record<string, unknown>) {
+    return {
+      must_obey: true,
+      contract,
+      next_action: `call forward with ${layerUri}`,
+      next_call: { kind: 'forward', args: { uri: layerUri, solution_template } }
+    };
+  }
+
+  const commentContract = { type: 'comment', nonce: 'fresh-nonce', proof_hash: 'expected-hash', comment: { min_length: 40 } };
+
+  test('chain tokens come from the contract, so template and contract cannot diverge', () => {
+    const template = templateFromContract(commentContract);
+    expect(template.nonce).toBe(commentContract.nonce);
+    expect(template.proof_hash).toBe(commentContract.proof_hash);
   });
 
-  test('includes nonce in solution_template when provided', () => {
-    const template = buildSolutionTemplate('comment', 'nonce-value', undefined);
-    expect(template.nonce).toBe('nonce-value');
+  test('a contract-derived template validates against the real forwardOutputSchema', () => {
+    const contract = { type: 'shell', nonce: 'n', proof_hash: 'h', shell: { cmd: 'gh pr checks 81', timeout_seconds: 600 } };
+    const parsed = forwardOutputSchema.parse(forwardOutput(contract, templateFromContract(contract)));
+    expect(parsed.next_call).toMatchObject({ kind: 'forward' });
   });
 
-  test('includes both nonce and proof_hash when both provided', () => {
-    const template = buildSolutionTemplate('shell', 'nonce-xyz', 'hash-abc');
-    expect(template.nonce).toBe('nonce-xyz');
-    expect(template.proof_hash).toBe('hash-abc');
-    expect(template.type).toBe('shell');
-  });
-
-  test('omits nonce and proof_hash when not provided', () => {
-    const template = buildSolutionTemplate('comment');
+  test('tensor contracts carry no proof-of-work tokens and still validate', () => {
+    const contract = { type: 'tensor', tensor: { required_inputs: ['a'], output: { name: 'out', type: 'number' } } };
+    const template = templateFromContract(contract);
     expect(template.nonce).toBeUndefined();
     expect(template.proof_hash).toBeUndefined();
+    expect(() => forwardOutputSchema.parse(forwardOutput(contract, template))).not.toThrow();
   });
 
-  test('preserves evidence template for comment type', () => {
-    const template = buildSolutionTemplate('comment', 'nonce', 'hash');
+  test('solution_template stays strict, so a rogue model cannot smuggle extra keys', () => {
+    const smuggled = { ...templateFromContract(commentContract), executed_by: 'hallucinated' };
+    expect(() => forwardOutputSchema.parse(forwardOutput(commentContract, smuggled))).toThrow();
+  });
+
+  test('evidence is left as a placeholder the caller must replace with real output', () => {
+    const template = templateFromContract(commentContract);
     expect(template.evidence).toEqual({ text: '' });
+    expect(Object.keys(template).sort()).toEqual(['evidence', 'nonce', 'outcome', 'proof_hash', 'type']);
   });
 
-  test('preserves evidence template for shell type', () => {
-    const template = buildSolutionTemplate('shell', 'nonce', 'hash');
-    expect(template.evidence).toEqual({ exit_code: 0 });
-  });
-
-  test('model can copy-paste: solution_template has all fields needed for next forward call', () => {
-    // Simulate what the model receives in next_call.args
-    const nextCallArgs = {
-      uri: 'squadrules://layer/some-uuid?execution_id=some-exec-id',
-      solution_template: buildSolutionTemplate('comment', 'fresh-nonce', 'expected-hash')
+  test('filling only evidence yields a submission the real input schema accepts', () => {
+    const submission = {
+      ...templateFromContract(commentContract),
+      evidence: { text: 'Verified all 13 required checks green on the PR.' }
     };
-    // The model should be able to fill evidence.text and send the object as-is
-    expect(nextCallArgs.solution_template.type).toBe('comment');
-    expect(nextCallArgs.solution_template.outcome).toBe('success');
-    expect(nextCallArgs.solution_template.nonce).toBe('fresh-nonce');
-    expect(nextCallArgs.solution_template.proof_hash).toBe('expected-hash');
-    expect(nextCallArgs.solution_template.evidence).toEqual({ text: '' });
+    expect(forwardSolutionSchema.parse(submission)).toMatchObject({
+      type: 'comment',
+      outcome: 'success',
+      nonce: 'fresh-nonce',
+      proof_hash: 'expected-hash'
+    });
+  });
+
+  test('a shell submission carrying pre-filled chain tokens round-trips', () => {
+    const contract = { type: 'shell', nonce: 'shell-nonce', proof_hash: 'shell-hash', shell: { cmd: 'true', timeout_seconds: 1 } };
+    const submission = {
+      ...templateFromContract(contract),
+      evidence: { exit_code: 0, stdout: 'ok', stderr: '' }
+    };
+    expect(forwardSolutionSchema.parse(submission)).toMatchObject({
+      type: 'shell',
+      nonce: 'shell-nonce',
+      proof_hash: 'shell-hash'
+    });
   });
 });

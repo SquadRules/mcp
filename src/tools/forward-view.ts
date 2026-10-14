@@ -237,8 +237,6 @@ export type BuildForwardViewOptions = {
   contractOverride?: ForwardOutput['contract'];
   tensorInOverride?: Record<string, unknown>;
   slugDisambiguationNote?: string;
-  nextProofHash?: string;
-  nextNonce?: string;
 };
 
 export async function buildForwardView(
@@ -272,11 +270,16 @@ export async function buildForwardView(
           ...(meta?.authoring ? { authoring: meta.authoring } : {}),
           solution_template: {
             ...buildEmptySolutionTemplate(contract.type),
-            ...(options?.nextNonce ? { nonce: options.nextNonce } : {}),
-            ...(options?.nextProofHash ? { proof_hash: options.nextProofHash } : {})
+            ...(contract.nonce ? { nonce: contract.nonce } : {}),
+            ...(contract.proof_hash ? { proof_hash: contract.proof_hash } : {})
           }
         }
       };
+  // Chain tokens are server-issued and already carried by the contract, so pre-fill them;
+  // evidence is the only part the caller must earn from a real execution.
+  const chainHint = contract.nonce || contract.proof_hash
+    ? ' — nonce/proof_hash are pre-filled in solution_template; evidence must be your real execution result'
+    : ', and include nonce/proof_hash from contract';
   return {
     must_obey: options?.mustObey ?? true,
     current_layer: layer,
@@ -288,7 +291,7 @@ export async function buildForwardView(
     ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
     next_action: final
       ? `call reward with ${layer.uri} and outcome (success or failure) and feedback to complete the adapter`
-      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}, and include nonce/proof_hash from contract`,
+      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}${chainHint}`,
     execution_id: executionId,
     ...(options?.proofHash && { proof_hash: options.proofHash }),
     ...(options?.message ? { message: options.message } : {}),
@@ -300,8 +303,7 @@ export async function buildForwardView(
 export async function mapLayerPayloadShapeToForwardView(
   memoryStore: MemoryQdrantStore,
   executionId: string,
-  nextExecutionResult: LayerPayload,
-  extras?: { nextProofHash?: string; nextNonce?: string }
+  nextExecutionResult: LayerPayload
 ): Promise<ForwardOutput> {
   const currentLayerId = nextExecutionResult.current_step?.uri
     ? extractUuid(nextExecutionResult.current_step.uri)
@@ -325,9 +327,7 @@ export async function mapLayerPayloadShapeToForwardView(
     ...(nextExecutionResult.error_code ? { errorCode: nextExecutionResult.error_code } : {}),
     ...(nextExecutionResult.retry_count !== undefined ? { retryCount: nextExecutionResult.retry_count } : {}),
     mustObey: nextExecutionResult.must_obey,
-    ...(!final && displayContract?.type !== 'tensor' && { contractOverride: nextExecutionResult.challenge }),
-    ...(extras?.nextProofHash ? { nextProofHash: extras.nextProofHash } : {}),
-    ...(extras?.nextNonce ? { nextNonce: extras.nextNonce } : {})
+    ...(!final && displayContract?.type !== 'tensor' && { contractOverride: nextExecutionResult.challenge })
   };
   return buildForwardView(displayMemory, executionId, options);
 }

@@ -82,13 +82,9 @@ async function buildPostSubmissionView(params: {
   if (!nextMemory) {
     throw new Error(`Next layer ${next.uuid} could not be loaded`);
   }
-  const nextNonce = nextMemory.memory_uuid
-    ? (await proofOfWorkStore.getNonce(nextMemory.memory_uuid)) ?? undefined
-    : undefined;
   return buildForwardView(nextMemory, executionId, {
-    ...(proofHash ? { proofHash, nextProofHash: proofHash } : {}),
-    ...(message ? { message } : {}),
-    ...(nextNonce ? { nextNonce } : {})
+    ...(proofHash ? { proofHash } : {}),
+    ...(message ? { message } : {})
   });
 }
 
@@ -276,13 +272,9 @@ export async function executeForward(
       tensorOut
     );
     const redirectProofHash = previousMatchAttempt.outcome.proofHash;
-    const currentNonce = memory.memory_uuid
-      ? (await proofOfWorkStore.getNonce(memory.memory_uuid)) ?? undefined
-      : undefined;
     return buildForwardView(memory, executionId, {
-      ...(redirectProofHash ? { proofHash: redirectProofHash, nextProofHash: redirectProofHash } : {}),
-      message: 'Applied the submitted solution to the pending prior layer. Continue with the current layer.',
-      ...(currentNonce ? { nextNonce: currentNonce } : {})
+      ...(redirectProofHash ? { proofHash: redirectProofHash } : {}),
+      message: 'Applied the submitted solution to the pending prior layer. Continue with the current layer.'
     });
   }
 
