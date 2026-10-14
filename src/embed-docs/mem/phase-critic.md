@@ -1,5 +1,5 @@
 ---
-version: "5.8.1"
+version: "5.9.0"
 slug: phase-critic
 title: Phase Critic (Redirect to Critic Loop)
 ---
