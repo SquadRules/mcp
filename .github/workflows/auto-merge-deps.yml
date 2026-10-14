@@ -1,0 +1,42 @@
+# Every-6-hour reconcile and squash-merge of eligible dependency PRs.
+# Covers Dependabot security PRs, Renovate version bumps and the consolidated
+# npm-audit-fix fallback. Security PRs are merged first (priority ordering).
+name: Auto-merge dependencies
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Assess eligible PRs without merging
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auto-merge-deps
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: vars.AUTOMATION_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry-run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+      - name: Merge eligible dependency PRs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          AUTOMATION_USER_ID: ${{ vars.AUTOMATION_USER_ID }}
+          AUTOMATION_ENABLED: ${{ vars.AUTOMATION_ENABLED }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
+        run: node scripts/ci-automation.mjs
