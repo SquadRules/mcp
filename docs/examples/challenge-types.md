@@ -11,6 +11,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 | [adapter-example-comment.md](adapter-example-comment.md) | comment | Step 1: provide a text summary (min length). Step 2: show output to user (no challenge). |
 | [adapter-example-mcp.md](adapter-example-mcp.md) | mcp | Step 1: call an MCP tool and report success. Step 2: show output to user (no challenge). |
 | [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, user_input, comment | Steps 1–4: one per type. Step 5: show outputs to user (no challenge). |
+| [adapter-example-gh-pr-checks.md](adapter-example-gh-pr-checks.md) | shell | Step 1: `gh pr checks <PR> --watch --fail-fast`. Step 2: show results to user. |
 
 ## How to train
 
