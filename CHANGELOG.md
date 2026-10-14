@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.9.1](https://github.com/SquadRules/mcp/compare/v5.9.0...v5.9.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* pin layer manifest and return copy-paste-ready next-call objects ([#79](https://github.com/SquadRules/mcp/issues/79)) ([#81](https://github.com/SquadRules/mcp/issues/81)) ([b8065aa](https://github.com/SquadRules/mcp/commit/b8065aaff6621700b5924b0666b2398a6892903e))
+* use git ls-remote for wiki repo check ([#84](https://github.com/SquadRules/mcp/issues/84)) ([6920cdf](https://github.com/SquadRules/mcp/commit/6920cdf8aa4cd14806b35ec8d74c6f835fe6f3ba))
+* use git ls-remote for wiki repo check (gh repo view does not resolve wiki repos) ([6920cdf](https://github.com/SquadRules/mcp/commit/6920cdf8aa4cd14806b35ec8d74c6f835fe6f3ba))
+
 ## [5.9.0](https://github.com/SquadRules/mcp/compare/v5.8.1...v5.9.0) (2026-10-14)
 
 
