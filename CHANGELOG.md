@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.8.1](https://github.com/SquadRules/mcp/compare/v5.8.0...v5.8.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* prevent PROOF_HASH_MISMATCH when requested layer has no stored nonce ([#75](https://github.com/SquadRules/mcp/issues/75)) ([f3c92fc](https://github.com/SquadRules/mcp/commit/f3c92fcf5051c793c08aa85933470d9ec6b01912))
+* prevent PROOF_HASH_MISMATCH when requested layer has no stored nonce ([#76](https://github.com/SquadRules/mcp/issues/76)) ([f3c92fc](https://github.com/SquadRules/mcp/commit/f3c92fcf5051c793c08aa85933470d9ec6b01912))
+
 ## [5.8.0](https://github.com/SquadRules/mcp/compare/v5.7.0...v5.8.0) (2026-10-14)
 
 

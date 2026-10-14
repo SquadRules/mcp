@@ -51,3 +51,12 @@ harness:
   - 'release-please-config.json'
   - '.release-please-manifest.json'
   - '.devcontainer/**'
+
+# Documentation only: wiki plan, generated wiki, curated docs, root markdown.
+# Docs-only PRs skip all expensive lanes (build/integration/CodeQL/npm-audit) while
+# the *-pass gates still report success. The docs bot (Phase 2) opens docs-typed PRs
+# that land in this bucket.
+docs:
+  - '.qoder/**'
+  - 'docs/**'
+  - '*.md'
