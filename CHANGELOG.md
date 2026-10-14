@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.8.0](https://github.com/SquadRules/mcp/compare/v5.7.0...v5.8.0) (2026-10-14)
+
+
+### Features
+
+* **ci:** add every-6-hour auto-merge workflow for dependency PRs ([#68](https://github.com/SquadRules/mcp/issues/68)) ([74a4b05](https://github.com/SquadRules/mcp/commit/74a4b05b803ccdaab1f1b7b5240c8b4583ad3c85))
+
 ## [5.7.0](https://github.com/SquadRules/mcp/compare/v5.6.1...v5.7.0) (2026-10-13)
 
 
