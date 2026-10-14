@@ -24,3 +24,6 @@ paths-ignore:
   # CI integration harness: report bodies are shaped via snapshotForIntegrationReport;
   # CodeQL does not treat that as a sanitizer for js/http-to-file-access.
   - "scripts/test-ai-mcp-integration.mjs"
+  # CI workflow validator: asserts on literal URLs inside shell-script strings;
+  # not a user-facing network surface (js/unanchored-url-regex false positive).
+  - "scripts/ci-validate-workflows.mjs"
