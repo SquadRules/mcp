@@ -34,6 +34,21 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - name: Verify wiki repository exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          WIKI_REPO="${{ github.repository }}.wiki"
+          echo "Checking if wiki repository $WIKI_REPO exists..."
+          if ! gh repo view "$WIKI_REPO" >/dev/null 2>&1; then
+            echo "::error::Wiki repository $WIKI_REPO does not exist or is not accessible."
+            echo "::error::Please initialize the wiki by visiting https://github.com/${{ github.repository }}/wiki/create"
+            echo "::error::or disable this workflow if wiki sync is not needed."
+            exit 1
+          fi
+          echo "Wiki repository exists, proceeding with sync."
+
       - name: Checkout wiki repository
         uses: actions/checkout@v7
         with:
