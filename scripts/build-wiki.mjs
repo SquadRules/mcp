@@ -27,7 +27,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-const REPO_OWNER = 'jakub-plichcinski';
+const REPO_OWNER = 'SquadRules';
 const REPO_NAME = 'mcp';
 const REPO_BRANCH = 'main';
 const BLOB_BASE = `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/`;
@@ -65,11 +65,18 @@ function pageNameFor(relPathPosix) {
   return segs.join(' - ');
 }
 
+// Move <cite> "Referenced Files" blocks from top to bottom of wiki pages.
+function moveCiteToBottom(content) {
+  const m = content.match(/<cite>\n\*\*Referenced Files in This Document\*\*[\s\S]*?<\/cite>\n*/);
+  if (!m) return content;
+  const inner = m[0].replace(/^<cite>\n/, '').replace(/\n?<\/cite>\n*$/, '');
+  return content.replace(m[0], '').trimEnd() + '\n\n' + inner + '\n';
+}
+
 // Rewrite `[text](file://<repo-path>)` references to clickable GitHub blob URLs.
 // Also converts "Referenced Files in This Document" sections from inline-link
 // bullet lists into reference-style link lists so GitHub Wiki renders them
 // correctly (inline links with long URLs often render as raw text on Wiki).
-// Strips <cite> wrappers around these sections.
 function rewriteSourceLinks(content) {
   // Step 1: replace file:// with blob URL
   let out = content.split('](file://').join(`](${BLOB_BASE}`);
@@ -311,7 +318,8 @@ async function main() {
   let count = 0;
   const writeOne = async (pageName, relPath) => {
     const raw = await fs.readFile(path.join(sourceAbs, relPath), 'utf8');
-    await fs.writeFile(path.join(outAbs, `${pageName}.md`), rewriteSourceLinks(raw));
+    const moved = moveCiteToBottom(raw);
+    await fs.writeFile(path.join(outAbs, `${pageName}.md`), rewriteSourceLinks(moved));
     count += 1;
   };
 

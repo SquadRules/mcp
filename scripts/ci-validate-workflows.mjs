@@ -61,8 +61,16 @@ assert.equal(syncReleasePr.permissions.contents, 'read');
 const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
 assert.match(syncStep.run ?? '', /npm run version:sync/);
 assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
+assert.match(syncStep.run ?? '', /qodercli.*wiki/);
+assert.match(syncStep.run ?? '', /\.qoder\/repowiki/);
 assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
 assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
+
+const validateAuthStep = syncReleasePr.steps.find(s => s.name === 'Validate Qoder CLI authentication');
+assert.ok(validateAuthStep, 'Validate Qoder CLI authentication step must exist');
+assert.equal(validateAuthStep.env.QODER_PERSONAL_ACCESS_TOKEN, '${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}');
+assert.match(validateAuthStep.run ?? '', /qodercli.*status/);
+assert.match(validateAuthStep.run ?? '', /qoder\.com\/account\/integrations/);
 
 assert.equal(release.jobs['validate-release-pr'], undefined);
 const autoMerge = release.jobs['auto-merge-release-pr'];

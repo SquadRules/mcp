@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-REPO_OWNER="jakub-plichcinski"
+REPO_OWNER="SquadRules"
 REPO_NAME="mcp"
 SOURCE_DIR="${SOURCE_DIR:-.qoder/repowiki/en/content}"
 

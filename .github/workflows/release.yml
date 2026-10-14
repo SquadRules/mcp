@@ -110,10 +110,29 @@ jobs:
 
       - run: npm ci
 
+      - name: Validate Qoder CLI authentication
+        env:
+          QODER_PERSONAL_ACCESS_TOKEN: ${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$QODER_PERSONAL_ACCESS_TOKEN" ]; then
+            echo "::error::QODER_PERSONAL_ACCESS_TOKEN secret is missing. Add it at:"
+            echo "::error::  https://github.com/SquadRules/mcp/settings/secrets/actions"
+            echo "::error::Rotate or create a new token at:"
+            echo "::error::  https://qoder.com/account/integrations"
+            exit 1
+          fi
+          npx -y @qoder-ai/qodercli@latest status >/dev/null 2>&1 || {
+            echo "::error::QODER_PERSONAL_ACCESS_TOKEN is invalid or expired."
+            echo "::error::Rotate it at: https://qoder.com/account/integrations"
+            exit 1
+          }
+
       - name: Synchronize version-derived source on the Release PR
         id: sync
         env:
           RELEASE_BRANCH: ${{ needs.release-please.outputs.pr_branch }}
+          QODER_PERSONAL_ACCESS_TOKEN: ${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -122,14 +141,17 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           npm run release:verify-version -- "$VERSION"
 
-          UNEXPECTED="$(git status --porcelain=v1 | awk '{print $2}' | grep -Ev '^(\.agents/skills/.+/SKILL\.md|\.agents/skills/.+/references/SQUADRULES\.md|src/embed-docs/mem/.+\.md|src/resources/embedded-mcp-resources\.ts)$' || true)"
+          # Regenerate Qoder Repo Wiki from current source tree
+          npx -y @qoder-ai/qodercli@latest wiki --language en
+
+          UNEXPECTED="$(git status --porcelain=v1 | awk '{print $2}' | grep -Ev '^(\.agents/skills/.+/SKILL\.md|\.agents/skills/.+/references/SQUADRULES\.md|src/embed-docs/mem/.+\.md|src/resources/embedded-mcp-resources\.ts|\.qoder/repowiki/)' || true)"
           if [ -n "$UNEXPECTED" ]; then
             echo "::error::Release PR synchronization modified unexpected files:"
             echo "$UNEXPECTED"
             exit 1
           fi
 
-          git add --force .agents/skills src/embed-docs/mem src/resources/embedded-mcp-resources.ts
+          git add --force .agents/skills src/embed-docs/mem src/resources/embedded-mcp-resources.ts .qoder/repowiki
           if git diff --cached --quiet; then
             echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             echo "Release PR version-derived source is already synchronized."
