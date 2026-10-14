@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           # Qoder CLI wiki generation (regenerates .qoder/repowiki/en/content/ from source).
           # The wiki is code-derivable; this workflow keeps it fresh.
-          npx -y @qoder-ai/qodercli@latest wiki generate --yes
+          npx -y @qoder-ai/qodercli@latest wiki --repo . --language en
           echo "Wiki regenerated at $(date -u)"
 
       - name: Check for changes
