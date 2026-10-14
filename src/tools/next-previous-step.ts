@@ -67,6 +67,23 @@ export async function tryApplySolutionToPreviousStepWhenSolutionMatchesPrevious(
   qdrantService: QdrantService | undefined
 ): Promise<TryApplyToPreviousResult> {
   if (!getInferenceContract(requestedMemory)) return { applied: false };
+  const prevInfo = await resolveAdapterPreviousLayer(requestedMemory, qdrantService);
+  if (!prevInfo?.uuid) return { applied: false };
+  const prevMemory = await loadMemory(prevInfo.uuid);
+  const prevContract = prevMemory ? getInferenceContract(prevMemory) : undefined;
+  if (!prevMemory || !prevContract?.required) return { applied: false };
+
+  // If the previous layer already has a stored result, the solution is not for
+  // it — let normal validation handle the requested layer. This check must run
+  // before the nonce guard below: when the requested layer has never been
+  // challenged (stored nonce is null), the nonce guard cannot distinguish
+  // "agent is answering the previous layer" from "agent is legitimately calling
+  // the next layer for the first time". Without this early exit the second
+  // forward call to the same URI falls through to normal validation with a
+  // stale expectedPreviousHash and hits PROOF_HASH_MISMATCH (#75).
+  const storedResult = await proofOfWorkStore.getResult(prevInfo.uuid);
+  if (storedResult) return { applied: false };
+
   // Client is answering the *current* layer's stored challenge; do not route proof to previous step.
   const nonceForRequested = requestedMemory.memory_uuid
     ? await proofOfWorkStore.getNonce(requestedMemory.memory_uuid)
@@ -78,14 +95,6 @@ export async function tryApplySolutionToPreviousStepWhenSolutionMatchesPrevious(
   ) {
     return { applied: false };
   }
-  const prevInfo = await resolveAdapterPreviousLayer(requestedMemory, qdrantService);
-  if (!prevInfo?.uuid) return { applied: false };
-  const prevMemory = await loadMemory(prevInfo.uuid);
-  const prevContract = prevMemory ? getInferenceContract(prevMemory) : undefined;
-  if (!prevMemory || !prevContract?.required) return { applied: false };
-
-  const storedResult = await proofOfWorkStore.getResult(prevInfo.uuid);
-  if (storedResult) return { applied: false };
 
   const requiredType = prevContract.type || 'shell';
   const solutionType = solution.type || 'shell';
