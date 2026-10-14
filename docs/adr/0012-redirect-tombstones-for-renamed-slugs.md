@@ -10,9 +10,9 @@ its "no compatibility alias" decision for slugs that are deeply referenced.
 ADR 0010 renamed `phase-critic` to `critic-loop` and shipped it as a clean,
 non-breaking refactor with **no** alias, on the reasoning that the project has a
 single consumer who would re-point the stored adapters. In practice the retired
-slug was deeply referenced: the stored Personal-space `git-commit-protocol` and
-`git-pr-protocol` both `forward` to `squadrules://adapter/phase-critic`, and that
-app-space adapter was then deleted from the live store, so those forwards dangle.
+slug was deeply referenced: adapters in the owner's own space forward to
+`squadrules://adapter/phase-critic`, and that app-space adapter was since deleted
+from the live store, so those forwards dangle.
 A clean break leaves every not-yet-re-pointed reference silently broken, and a
 deleted slug gives the agent no signal about where the behaviour moved.
 
@@ -47,8 +47,7 @@ referents. A clean break remains the default for a slug nothing forwards to.
 - Two slugs coexist (retired tombstone plus replacement) — the cost ADR 0010
   wanted to avoid. Bounded: the tombstone is inert and points one way.
 - A tombstone adds one hop to a chain; callers should re-point directly to the
-  replacement when convenient (the owner's stored git adapters remain to be
-  re-pointed to `critic-loop`).
+  replacement when convenient.
 
 ## Alternatives Considered
 

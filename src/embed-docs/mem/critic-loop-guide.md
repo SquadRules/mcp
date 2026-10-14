@@ -1,5 +1,5 @@
 ---
-version: "5.6.1"
+version: "5.7.0"
 slug: critic-loop-guide
 title: Critic Loop Integration and Mutation Gate Guide
 ---
@@ -54,7 +54,8 @@ any adapter that includes review or validation phases.
 returns PASS** — not a one-shot step. It verifies claims, gathers evidence,
 searches for contradictions, and checks the work against the original requirement
 list. Use it for quality and truthfulness review, and whenever a step is
-non-deterministic or has no objective proof.
+non-deterministic or has no objective proof. Run it **before** the work is handed
+to the next step, and before it is presented to the human.
 
 **Solution checks** are per-layer contract verification mechanisms (shell
 commands, MCP tool calls). Use them ONLY where getting it wrong is expensive or
@@ -133,6 +134,34 @@ pattern is a `mcp` contract that requires calling `forward` with the
 
 Use the same contract. The critic-loop adapter receives the calling protocol's
 context and independently verifies the work.
+
+### What to submit for review
+
+The submission is the **work itself**, not a summary of it. Pass `work` with a
+`kind`, an `items` list, and the absolute `root` the items resolve against:
+
+| `kind` | `items` contain | Resolved by | Typical work |
+|---|---|---|---|
+| `file_set` | paths (absolute, or relative to `root`) | read each file | docs, generated code, configs |
+| `links` | URLs, `squadrules://` resource URIs | fetch each one | published pages, external references |
+| `git_diff` | `base..head` refs, or empty for the working tree | `git diff` | an unpushed implementation |
+| `pr` | PR numbers or URLs | `gh pr view` + `gh pr diff` | a reviewable pull request |
+| `command_output` | commands to run from `root` | run and capture | migrations, builds, data pulls |
+| `inline` | the text itself | read the manifest | a plan, a decision, a message draft |
+
+Record `work` in the handoff file pointed to by `$WORK_MANIFEST`, as flat keys —
+`kind:`, `root:`, then `items:` with one item per line — so the precondition
+stays a machine-checkable file test instead of prose:
+
+```json
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","timeout_seconds":3},"required":true}}
+```
+
+Anything that cannot be resolved is `verification_blocked` — an item the critic
+could not read is never treated as an item that passed. `input_file` still works
+and means a one-item `file_set`; prefer `work_manifest` for anything that is not
+a single document. A `pr` or `git_diff` submission is judged on the diff and the
+tests it touches, not on the description written next to it.
 
 ### Feed it the requirements, then loop with a ceiling
 

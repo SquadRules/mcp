@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.7.0](https://github.com/SquadRules/mcp/compare/v5.6.1...v5.7.0) (2026-10-13)
+
+
+### Features
+
+* **mem:** make critic-loop accept a typed work submission ([#66](https://github.com/SquadRules/mcp/issues/66)) ([7fc56e4](https://github.com/SquadRules/mcp/commit/7fc56e471e170f36df209a146009d01f055768bc))
+
 ## [5.6.1](https://github.com/SquadRules/mcp/compare/v5.6.0...v5.6.1) (2026-10-13)
 
 

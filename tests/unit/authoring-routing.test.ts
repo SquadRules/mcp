@@ -59,13 +59,13 @@ function layer(id: string, index: number, slug = 'author-adapter'): Memory {
     inference_contract: { type: 'comment', comment: { min_length: 1 }, required: true }
   };
 }
-const memories = new Map([[head, layer(head, 1)], [next, layer(next, 2)], [target, layer(target, 1, 'git-pr-protocol')]]);
+const memories = new Map([[head, layer(head, 1)], [next, layer(next, 2)], [target, layer(target, 1, 'sample-pr-workflow')]]);
 const store = { getMemory: async (id: string) => memories.get(id) ?? null } as unknown as MemoryQdrantStore;
 const db = {
-  findFirstStepMemoryUuidBySlug: async (slug: string) => ({ layerUuid: resolveAdapterSlugAlias(slug) === 'author-adapter' ? head : slug === 'git-pr-protocol' ? target : null }),
+  findFirstStepMemoryUuidBySlug: async (slug: string) => ({ layerUuid: resolveAdapterSlugAlias(slug) === 'author-adapter' ? head : slug === 'sample-pr-workflow' ? target : null }),
   getAdapterLayers: async (id: string) => (id === head ? [head, next] : id === target ? [target] : []).map((uuid, i) => ({ uuid, payload: { adapter: { layer_index: i + 1 } } }))
 } as unknown as QdrantService;
-const authoring = { operation: 'update' as const, target_adapter_uri: 'squadrules://adapter/git-pr-protocol' };
+const authoring = { operation: 'update' as const, target_adapter_uri: 'squadrules://adapter/sample-pr-workflow' };
 const canonicalAuthoring = { ...authoring, target_adapter_uri: `squadrules://adapter/${target}` };
 const solution = { type: 'comment' as const, outcome: 'success' as const, evidence: { text: 'Checked' } };
 
@@ -113,7 +113,7 @@ describe('authoring intent from activation through continuation', () => {
   });
 
   test('context cannot be attached to target execution or an unknown continuation', async () => {
-    await expect(executeForward({}, store, db, { uri: 'squadrules://adapter/git-pr-protocol', authoring })).rejects.toMatchObject({ code: 'INVALID_AUTHORING_WORKFLOW' });
+    await expect(executeForward({}, store, db, { uri: 'squadrules://adapter/sample-pr-workflow', authoring })).rejects.toMatchObject({ code: 'INVALID_AUTHORING_WORKFLOW' });
     await expect(executeForward({}, store, db, { uri: `squadrules://layer/${head}?execution_id=${randomUUID()}`, solution, authoring })).rejects.toMatchObject({ code: 'AUTHORING_CONTEXT_MISMATCH' });
   });
 
@@ -138,7 +138,7 @@ describe('authoring intent from activation through continuation', () => {
   });
 
   test('shared slug retrieval maps lifecycle alias to original storage without changing other slugs', async () => {
-    for (const [input, expected] of [['author-adapter', 'author-adapter'], ['create-new-protocol', 'author-adapter'], ['git-pr-protocol', 'git-pr-protocol']]) {
+    for (const [input, expected] of [['author-adapter', 'author-adapter'], ['create-new-protocol', 'author-adapter'], ['sample-pr-workflow', 'sample-pr-workflow']]) {
       const scroll = jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({ points: [] });
       const conn = { executeWithReconnect: (fn: () => unknown) => fn(), client: { scroll }, collectionName: 'test' };
       await findFirstStepMemoryUuidBySlug(conn as never, input!);

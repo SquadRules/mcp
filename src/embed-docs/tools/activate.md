@@ -84,7 +84,7 @@ Do not supply this field when the user wants to execute an adapter.
   "query": "update existing PR adapter worktree isolation",
   "authoring": {
     "operation": "update",
-    "target_adapter_uri": "squadrules://adapter/git-pr-protocol"
+    "target_adapter_uri": "squadrules://adapter/sample-pr-workflow"
   }
 }
 ```
@@ -94,4 +94,4 @@ operation and target in `forward_first_call`. Copy that entire object to forward
 This is deterministic routing of a known operation; ordinary queries continue to
 use semantic discovery. Missing targets or unavailable authoring workflows fail
 without falling back to creation. This context is not a grant of permission.
-The original `author-adapter` name continues to resolve to the same workflow.
+The original `create-new-protocol` name continues to resolve to the same workflow.

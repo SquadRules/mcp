@@ -46,3 +46,4 @@ Rules of use:
 | [0014](0014-always-latest-mcp-spec-and-sdk.md) | Always track the latest Model Context Protocol spec and SDK | Accepted |
 | [0015](0015-cli-local-by-default-transport-agnostic-backend.md) | The CLI is local-by-default with a transport-agnostic backend and human-first output | Accepted |
 | [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Proposed |
+| [0017](0017-critic-loop-work-submission.md) | Critic-loop reviews a typed work submission, not a single input file | Accepted (extends 0010) |
