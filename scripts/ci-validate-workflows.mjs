@@ -42,7 +42,7 @@ assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.
 // lanes on a dorny/paths-filter `changes` job, and both merge gates must tolerate a
 // skipped lane so the required check still reports success on docs/harness-only PRs.
 const ciFilter = load(readFileSync('.github/paths/ci-filter.yml', 'utf8'));
-assert.deepEqual(Object.keys(ciFilter).sort(), ['code', 'harness', 'infra', 'tests']);
+assert.deepEqual(Object.keys(ciFilter).sort(), ['code', 'docs', 'harness', 'infra', 'tests']);
 for (const config of [integration, security]) {
   const changes = config.jobs.changes;
   assert.ok(changes, 'classifier changes job must exist');
@@ -80,7 +80,6 @@ assert.equal(syncReleasePr.permissions.contents, 'read');
 const syncStep = syncReleasePr.steps.find(s => s.name === 'Synchronize version-derived source on the Release PR');
 assert.match(syncStep.run ?? '', /npm run version:sync/);
 assert.match(syncStep.run ?? '', /build-embed-docs\.ts/);
-assert.match(syncStep.run ?? '', /qodercli.*wiki/);
 assert.match(syncStep.run ?? '', /\.qoder\/repowiki/);
 assert.match(syncStep.run ?? '', /git push origin "HEAD:\$RELEASE_BRANCH"/);
 assert.doesNotMatch(syncStep.run ?? '', /HEAD:main|refs\/heads\/main/);
@@ -176,4 +175,17 @@ if (result.status !== 0) throw new Error('actionlint failed');
 for (const file of ['scripts/npm-audit-fix.sh', 'tests/scripts/npm-audit-fix.test.sh']) {
   if (spawnSync('bash', ['-n', file], { stdio: 'inherit' }).status !== 0) throw new Error(`Shell syntax failed: ${file}`);
 }
+
+// Docs bot workflow: regenerates Qoder wiki and opens docs-typed PRs.
+const docs = load(readFileSync('.github/workflows/docs.yml', 'utf8'));
+assert.equal(docs.name, 'Docs wiki regeneration');
+assert.ok(docs.on.schedule?.some(s => s.cron === '17 4 * * *'), 'docs.yml must run daily at 04:17 UTC');
+assert.ok(docs.on.push?.paths?.includes('src/**'), 'docs.yml must trigger on src/** changes');
+assert.ok('workflow_dispatch' in docs.on, 'docs.yml must support manual trigger');
+assert.ok(docs.jobs['regenerate-wiki'], 'docs.yml must have regenerate-wiki job');
+assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.uses?.startsWith('actions/create-github-app-token@')), 'docs.yml must create GitHub App token');
+assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.env?.QODER_PERSONAL_ACCESS_TOKEN), 'docs.yml must use QODER_PERSONAL_ACCESS_TOKEN');
+assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.id === 'changes'), 'docs.yml must check for changes');
+assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
+
 console.log('Workflow, privilege-boundary, release-order and producer policy validation passed.');

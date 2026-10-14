@@ -141,8 +141,6 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           npm run release:verify-version -- "$VERSION"
 
-          # Regenerate Qoder Repo Wiki from current source tree
-          npx -y @qoder-ai/qodercli@latest wiki --language en
 
           UNEXPECTED="$(git status --porcelain=v1 | awk '{print $2}' | grep -Ev '^(\.agents/skills/.+/SKILL\.md|\.agents/skills/.+/references/SQUADRULES\.md|src/embed-docs/mem/.+\.md|src/resources/embedded-mcp-resources\.ts|\.qoder/repowiki/)' || true)"
           if [ -n "$UNEXPECTED" ]; then
