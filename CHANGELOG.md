@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.9.2](https://github.com/SquadRules/mcp/compare/v5.9.1...v5.9.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **ci:** use correct @qoder-ai/qodercli package for wiki generation ([#86](https://github.com/SquadRules/mcp/issues/86)) ([99a2db5](https://github.com/SquadRules/mcp/commit/99a2db5168f74a045786764f4b1a4ccd438c2fcf))
+* **ci:** use correct wiki command syntax ([#88](https://github.com/SquadRules/mcp/issues/88)) ([6ca2d72](https://github.com/SquadRules/mcp/commit/6ca2d72849c1e7d8e58ce06dfd9402230601f486))
+
 ## [5.9.1](https://github.com/SquadRules/mcp/compare/v5.9.0...v5.9.1) (2026-10-14)
 
 
