@@ -29,6 +29,8 @@ describe('Bug 1: stdio transport artifact URLs', () => {
 
   it('activate output schema accepts transport: stdio', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     process.env['SQUADRULES_LOCAL_ARTIFACT_DIRS'] = 'project://.local/squadrules/work';
 
     const { activateOutputSchema } = await import('../../src/tools/activate_schema.js');
@@ -119,10 +121,10 @@ describe('Bug 3: nonce schema and format', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('nonce generation produces 12 hex chars (6 bytes)', () => {
+  it('nonce generation produces 12 hex chars (6 bytes)', async () => {
     // Verify the nonce format directly: crypto.randomBytes(6).toString('hex')
     // produces exactly 12 hex characters.
-    const crypto = require('node:crypto');
+    const crypto = await import('node:crypto');
     const nonce = crypto.randomBytes(6).toString('hex');
     expect(nonce).toMatch(/^[0-9a-f]{12}$/);
     expect(nonce.length).toBe(12);
