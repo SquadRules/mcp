@@ -165,7 +165,7 @@ export function ProtocolEditStepCard({
                       shell: {
                         cmd: step.shell?.cmd ?? "",
                         timeout_seconds: step.shell?.timeout_seconds ?? 30,
-                        interpreter: e.target.value || undefined,
+                        interpreter: (e.target.value || undefined) as "bash" | "sh" | "python3" | "python" | "node" | undefined,
                         workdir: step.shell?.workdir,
                         flags: step.shell?.flags ?? [],
                         args: step.shell?.args ?? [],
