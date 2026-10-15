@@ -23,9 +23,7 @@ import { resolveCandidateProvider, getModelNameForProvider } from '../services/e
 export function composeStdioModeBanner(lancedbDir: string): string {
   const candidateProvider = resolveCandidateProvider();
   const candidateModel = getModelNameForProvider(candidateProvider);
-  const embeddingLine = candidateProvider === 'fastembed'
-    ? `EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; candidate=${candidateProvider} (${candidateModel}); not initialized`
-    : `EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; candidate=${candidateProvider} (${candidateModel}); not initialized`;
+  const embeddingLine = `EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; candidate=${candidateProvider} (${candidateModel})`;
   
   const lines = [
     `SquadRules MCP - ${describeRuntimeMode('stdio')} local mode (stdio transport)`,

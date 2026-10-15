@@ -51,6 +51,7 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
     const llmModelId = 'system-boot';
     let injectedCount = 0;
     let skippedCount = 0;
+    let failedCount = 0;
 
     for (const [slug, markdownContent] of Object.entries(memResources)) {
       if (typeof markdownContent !== 'string') continue;
@@ -114,12 +115,16 @@ export async function injectMemResourcesAtBoot(memoryStore: MemoryQdrantStore, o
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         structuredLogger.error(`boot injection: failed to inject adapter '${slug}': ${message}`);
+        failedCount++;
       }
     }
 
     structuredLogger.info(
-      `boot injection: ${injectedCount} adapter(s) trained, ${skippedCount} in sync (skipped), out of ${fileCount} file(s)`
+      `boot injection: ${injectedCount} trained, ${skippedCount} in sync (skipped), ${failedCount} failed, out of ${fileCount} file(s)`
     );
+    if (failedCount > 0) {
+      structuredLogger.warn(`boot injection: ${failedCount} adapter(s) failed to inject (${injectedCount} + ${failedCount} != ${fileCount})`);
+    }
 
     const { methods } = (memoryStore as any);
     if (methods) {
