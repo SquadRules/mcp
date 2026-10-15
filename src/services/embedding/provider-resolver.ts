@@ -83,10 +83,3 @@ export function setSuccessfulProvider(
 export function getSuccessfulProvider(): SuccessfulProviderDescriptor | null {
   return _successfulDescriptor;
 }
-
-/**
- * Clear the successful provider descriptor (for testing).
- */
-export function clearSuccessfulProvider(): void {
-  _successfulDescriptor = null;
-}

@@ -65,6 +65,17 @@ export class LanceRecordEngine {
     if (points.length === 0) return 0;
     const rows = points.map(toRow);
     const table = await this.ensureTableForWrite(rows[0]!);
+    
+    // Validate vector widths against stored schema
+    const schemaResult = await this.inspectStoredSchema();
+    if (schemaResult.status === 'valid') {
+      const vectors = rows.map(r => r.vs).filter((v): v is number[] => Array.isArray(v));
+      if (vectors.length > 0) {
+        const { validateVectorWidths } = await import('./lance-width-validation.js');
+        validateVectorWidths(vectors, schemaResult.primaryWidth, 'putPoints');
+      }
+    }
+    
     await withCommitRetry(
       () =>
         table
@@ -81,6 +92,17 @@ export class LanceRecordEngine {
   async putRows(rows: LanceRecordRow[]): Promise<void> {
     if (rows.length === 0) return;
     const table = await this.ensureTableForWrite(rows[0]!);
+    
+    // Validate vector widths against stored schema
+    const schemaResult = await this.inspectStoredSchema();
+    if (schemaResult.status === 'valid') {
+      const vectors = rows.map(r => r.vs).filter((v): v is number[] => Array.isArray(v));
+      if (vectors.length > 0) {
+        const { validateVectorWidths } = await import('./lance-width-validation.js');
+        validateVectorWidths(vectors, schemaResult.primaryWidth, 'putRows');
+      }
+    }
+    
     await withCommitRetry(
       () =>
         table

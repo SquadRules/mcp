@@ -102,20 +102,17 @@ export function validateVectorWidths(
   for (let i = 0; i < vectors.length; i++) {
     const vec = vectors[i];
     if (!Array.isArray(vec)) {
-      throw new Error(
-        `EMBEDDING_STORE_SCHEMA_INVALID: Vector at index ${i} is not an array during ${operation}`
+      throw new EmbeddingSchemaInvalidError(
+        `Vector at index ${i} is not an array during ${operation}`
       );
     }
     if (vec.length !== expectedWidth) {
-      throw new Error(
-        `EMBEDDING_STORE_WIDTH_MISMATCH: Vector at index ${i} has width ${vec.length}, ` +
-        `expected ${expectedWidth} during ${operation}`
-      );
+      throw new EmbeddingWidthMismatchError(expectedWidth, vec.length, operation);
     }
     // Check for non-finite values
     if (vec.some(v => !Number.isFinite(v))) {
-      throw new Error(
-        `EMBEDDING_STORE_SCHEMA_INVALID: Vector at index ${i} contains non-finite values during ${operation}`
+      throw new EmbeddingSchemaInvalidError(
+        `Vector at index ${i} contains non-finite values during ${operation}`
       );
     }
   }
