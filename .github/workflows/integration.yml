@@ -184,16 +184,23 @@ jobs:
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
-      - name: Restore Qdrant test snapshot cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: qdrant-snapshot-cache
-        with:
-          path: |
-            .local/qdrant-snapshot/squadrules_ci.snapshot
-            .local/qdrant-snapshot/squadrules_ci_traces.snapshot
-          key: ${{ runner.os }}-qdrant-snapshot-${{ hashFiles('scripts/seed-test-snapshot.sh', 'scripts/import-test-snapshot.sh', 'tests/test-data/AI_CODING_RULES.md') }}
-          restore-keys: |
-            ${{ runner.os }}-qdrant-snapshot-
+      # Qdrant snapshot cache disabled (2026-10-15):
+      # The snapshot only contained 1 test adapter (AI_CODING_RULES.md), not the 20-50
+      # initially expected. The 12 boot-injected app adapters (src/embed-docs/mem/) are
+      # always trained at startup, and warm boot is fast (~2s) thanks to the version-skip
+      # fix (PR #45). The snapshot mechanism was also broken: seed script requires
+      # review_evidence (critic-loop verdict) and had an unbound variable bug.
+      # Not worth maintaining cache for a single adapter.
+      # - name: Restore Qdrant test snapshot cache
+      #   uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      #   id: qdrant-snapshot-cache
+      #   with:
+      #     path: |
+      #       .local/qdrant-snapshot/squadrules_ci.snapshot
+      #       .local/qdrant-snapshot/squadrules_ci_traces.snapshot
+      #     key: ${{ runner.os }}-qdrant-snapshot-${{ hashFiles('scripts/seed-test-snapshot.sh', 'scripts/import-test-snapshot.sh', 'tests/test-data/AI_CODING_RULES.md') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-qdrant-snapshot-
 
       - name: Start app (from installed package, HTTP transport)
         env:
