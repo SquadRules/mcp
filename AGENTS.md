@@ -61,6 +61,10 @@ of truth; other contributor documents should link here.
 
 ## Development
 
+- **Task isolation — read before any edit:**
+  [`.qoder/rules/task-isolation.md`](.qoder/rules/task-isolation.md). The main
+  checkout is human-only; every task runs in its own linked worktree with an
+  ownership receipt.
 - **Contributor setup, build/test contract, code style, and design
   principles:** [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **Code-derivable reference** (architecture, auth, storage, search, workflow

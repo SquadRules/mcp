@@ -15,7 +15,7 @@ home; they never restate it ("rule of one").
 | Architecture, HTTP/MCP API, workflow engine, memory, auth internals, CLI surface, testing, UI, artifacts | Qoder RepoWiki (`.qoder/repowiki/en/content/`, generated) → published to GitHub Wiki | Auto (Qoder regenerates from code) |
 | Container-image pipeline (Dockerfile, build/scan/sign/publish), Docker Compose deployment, Helm chart values and operators | Sibling repos [`SquadRules/containers`](https://github.com/SquadRules/containers) and [`SquadRules/charts`](https://github.com/SquadRules/charts) — **not** in this repo | Owned per repo; parent `../AGENTS.md` documents the split |
 | Install secrets/env (npm path), Keycloak + Google IdP setup, business use-cases, threat model, incident runbook, known issues, test-snapshot ops | Slim `docs/` (curated; enumerated in the allowlist below) | DRY/structure enforced by agent + CI; content decisions by human/AI |
-| Agent operation, execution model, maintainer workflows | Skills (`.agents/skills/` — `squadrules`, `squadrules-dev`) + `AGENTS.md` | Human/AI |
+| Agent operation, execution model, maintainer workflows | Skills (`.agents/skills/` — `squadrules`, `squadrules-dev`) + `AGENTS.md`; always-on agent constraints in `.qoder/rules/` (e.g. `task-isolation.md`) | Human/AI |
 | Test fixtures, install and CLI functional inputs | `docs/examples/`, `docs/install/` (npm path only — no `docker-compose-*.md` or `helm.md`), `docs/CLI.md` | Tied to code/tests |
 | Root project docs | `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `TRADEMARK.md`, `AGENTS.md` | Human/AI |
 
