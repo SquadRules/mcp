@@ -18,7 +18,7 @@ Use native GitHub Actions `on.pull_request.paths` filtering to specify which pat
 
 Required aggregate gates need explicit successful results from every mandatory lane; skipped, failed, canceled, missing, and unknown results cannot satisfy them. Dependency review remains PR-only because it requires PR context; outside PR events, only that lane must be skipped.
 
-Keep the existing required check names, immutable event-revision checkout, and branch protection unchanged. The executable policy lives in the [workflows](../../.github/workflows/) and [validator](../../scripts/ci-validate-workflows.mjs). Regression tests execute the actual gate shell scripts, including the all-skipped result observed on PR #108.
+Keep the existing required check names, immutable event-revision checkout, and branch protection unchanged. The executable policy lives in the [workflows](../../.github/workflows/) and [tests](../../tests/scripts/workflow-structure.test.mjs). Regression tests execute the actual gate shell scripts, including the all-skipped result observed on PR #108.
 
 ## Consequences and rejected alternatives
 
