@@ -69,7 +69,8 @@ export class LanceRecordEngine {
     // Validate vector widths against stored schema
     const schemaResult = await this.inspectStoredSchema();
     if (schemaResult.status === 'valid') {
-      const vectors = rows.map(r => r.vs).filter((v): v is number[] => Array.isArray(v));
+      const vectorColumnName = `vs${schemaResult.primaryWidth}`;
+      const vectors = rows.map(r => r[vectorColumnName]).filter((v): v is number[] => Array.isArray(v));
       if (vectors.length > 0) {
         const { validateVectorWidths } = await import('./lance-width-validation.js');
         validateVectorWidths(vectors, schemaResult.primaryWidth, 'putPoints');
@@ -96,7 +97,8 @@ export class LanceRecordEngine {
     // Validate vector widths against stored schema
     const schemaResult = await this.inspectStoredSchema();
     if (schemaResult.status === 'valid') {
-      const vectors = rows.map(r => r.vs).filter((v): v is number[] => Array.isArray(v));
+      const vectorColumnName = `vs${schemaResult.primaryWidth}`;
+      const vectors = rows.map(r => r[vectorColumnName]).filter((v): v is number[] => Array.isArray(v));
       if (vectors.length > 0) {
         const { validateVectorWidths } = await import('./lance-width-validation.js');
         validateVectorWidths(vectors, schemaResult.primaryWidth, 'putRows');
