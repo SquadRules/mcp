@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.9.5](https://github.com/SquadRules/mcp/compare/v5.9.4...v5.9.5) (2026-10-15)
+
+
+### Bug Fixes
+
+* skip application-level cache for embedded LanceDB ([#96](https://github.com/SquadRules/mcp/issues/96)) ([aaadb34](https://github.com/SquadRules/mcp/commit/aaadb34196643ec5dede7071382f76e71c61a1eb)), closes [#95](https://github.com/SquadRules/mcp/issues/95)
+
+## [5.9.4](https://github.com/SquadRules/mcp/compare/v5.9.3...v5.9.4) (2026-10-15)
+
+
+### Bug Fixes
+
+* embedding provider resolution and store width binding ([#98](https://github.com/SquadRules/mcp/issues/98)) ([3c7b0d8](https://github.com/SquadRules/mcp/commit/3c7b0d8ea68a7b59a1fe5600889a01949927249a))
+
 ## [5.9.3](https://github.com/SquadRules/mcp/compare/v5.9.2...v5.9.3) (2026-10-15)
 
 

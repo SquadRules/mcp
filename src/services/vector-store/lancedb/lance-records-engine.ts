@@ -12,6 +12,7 @@ import type { LanceConnection, LanceTable } from '../lancedb-connection.js';
 import { openLanceConnection } from '../lancedb-connection.js';
 import { withCommitRetry } from '../commit-retry.js';
 import { toRow, buildWhere, sqlLiteral, type LanceRecordRow, type QdrantPointLike } from './lance-records-schema.js';
+import { inspectSchema, type SchemaInspectionResult } from './lance-width-validation.js';
 
 const RECORDS_TABLE = 'memory_records';
 /** Full scans use a generous limit; record counts per space are small. */
@@ -19,12 +20,26 @@ const SCAN_LIMIT = 100_000;
 
 export class LanceRecordEngine {
   private connectionPromise: Promise<LanceConnection> | null = null;
+  private cachedSchemaResult: SchemaInspectionResult | null = null;
 
   private getConnection(): Promise<LanceConnection> {
     if (!this.connectionPromise) {
       this.connectionPromise = openLanceConnection();
     }
     return this.connectionPromise;
+  }
+
+  /** Inspect the schema and cache the result. */
+  async inspectStoredSchema(): Promise<SchemaInspectionResult> {
+    if (this.cachedSchemaResult) return this.cachedSchemaResult;
+    const table = await this.openTableIfPresent();
+    this.cachedSchemaResult = await inspectSchema(table);
+    return this.cachedSchemaResult;
+  }
+
+  /** Clear the cached schema (e.g., after a write that changes the schema). */
+  clearSchemaCache(): void {
+    this.cachedSchemaResult = null;
   }
 
   /** Open the records table, or return null when nothing has been written yet. */
@@ -50,6 +65,18 @@ export class LanceRecordEngine {
     if (points.length === 0) return 0;
     const rows = points.map(toRow);
     const table = await this.ensureTableForWrite(rows[0]!);
+    
+    // Validate vector widths against stored schema
+    const schemaResult = await this.inspectStoredSchema();
+    if (schemaResult.status === 'valid') {
+      const vectorColumnName = `vs${schemaResult.primaryWidth}`;
+      const vectors = rows.map(r => r[vectorColumnName]).filter((v): v is number[] => Array.isArray(v));
+      if (vectors.length > 0) {
+        const { validateVectorWidths } = await import('./lance-width-validation.js');
+        validateVectorWidths(vectors, schemaResult.primaryWidth, 'putPoints');
+      }
+    }
+    
     await withCommitRetry(
       () =>
         table
@@ -66,6 +93,18 @@ export class LanceRecordEngine {
   async putRows(rows: LanceRecordRow[]): Promise<void> {
     if (rows.length === 0) return;
     const table = await this.ensureTableForWrite(rows[0]!);
+    
+    // Validate vector widths against stored schema
+    const schemaResult = await this.inspectStoredSchema();
+    if (schemaResult.status === 'valid') {
+      const vectorColumnName = `vs${schemaResult.primaryWidth}`;
+      const vectors = rows.map(r => r[vectorColumnName]).filter((v): v is number[] => Array.isArray(v));
+      if (vectors.length > 0) {
+        const { validateVectorWidths } = await import('./lance-width-validation.js');
+        validateVectorWidths(vectors, schemaResult.primaryWidth, 'putRows');
+      }
+    }
+    
     await withCommitRetry(
       () =>
         table

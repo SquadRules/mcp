@@ -3,6 +3,7 @@ import { OPENAI_API_KEY, EMBEDDING_PROVIDER, TEI_BASE_URL, TEI_MODEL, TEI_API_KE
 import { OPENAI_EMBEDDING_MODEL, OPENAI_ENDPOINT, TEI_EMBEDDING_ENDPOINT, setResolvedEmbeddingDimension } from './config.js';
 import { auditProviderCall } from './provider-audit.js';
 import { postEmbeddingsFastEmbed } from './fastembed-provider.js';
+import { setSuccessfulProvider } from './provider-resolver.js';
 
 function sleep(ms: number): Promise<void> { return new Promise((resolve) => setTimeout(resolve, ms)); }
 const RETRIABLE_NETWORK_TOKENS = ['fetch failed', 'timed out', 'econnreset', 'econnrefused', 'enotfound', 'eai_again'];
@@ -90,11 +91,19 @@ async function fetchWithRetries(url: string, init: RequestInit, provider: 'opena
     throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 async function postEmbeddingsOpenAI(input: string[] | string): Promise<number[][]> {
-    if (!OPENAI_API_KEY || !OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_API_KEY and OPENAI_EMBEDDING_MODEL to be configured');
+    if (!OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_EMBEDDING_MODEL to be configured');
+    // Keyless request is allowed when OPENAI_API_URL is explicitly overridden
+    if (!OPENAI_API_KEY && !process.env['OPENAI_API_URL']) {
+        throw new Error('OpenAI requires OPENAI_API_KEY or an explicitly overridden OPENAI_API_URL');
+    }
     const inputArray = Array.isArray(input) ? input : [input];
     const inputCharLength = inputArray.reduce((sum, value) => sum + value.length, 0);
     const body = { model: OPENAI_EMBEDDING_MODEL, input: inputArray };
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    // Only add Authorization when key is present
+    if (OPENAI_API_KEY) {
+        headers['Authorization'] = `Bearer ${OPENAI_API_KEY}`;
+    }
     let lastFailure = '';
     const deadline = computeDeadline();
 
@@ -171,7 +180,10 @@ async function postEmbeddingsOpenAI(input: string[] | string): Promise<number[][
             if (!Array.isArray(d?.embedding)) throw new Error('OpenAI returned invalid embedding shape');
             return d.embedding as number[];
         });
-        if (embeddings.length > 0 && embeddings[0]) setResolvedEmbeddingDimension(embeddings[0].length);
+        if (embeddings.length > 0 && embeddings[0]) {
+            setResolvedEmbeddingDimension(embeddings[0].length);
+            setSuccessfulProvider('openai', OPENAI_EMBEDDING_MODEL, embeddings[0].length);
+        }
         const dim = embeddings.length > 0 && embeddings[0] ? embeddings[0].length : 0;
         auditProviderCall({
             provider: 'openai',
@@ -265,6 +277,7 @@ async function postEmbeddingsTEI(input: string[] | string): Promise<number[][]> 
         }
         const dim = embeddings[0].length;
         setResolvedEmbeddingDimension(dim);
+        setSuccessfulProvider('tei', TEI_MODEL, dim);
         auditProviderCall({
             provider: 'tei',
             model: TEI_MODEL,
@@ -284,7 +297,10 @@ async function postEmbeddings(input: string[] | string): Promise<number[][]> {
     // Choose provider based on explicit ENV override or auto-discovery
     const providerPref = EMBEDDING_PROVIDER; // 'auto' | 'openai' | 'tei' | 'fastembed'
     if (providerPref === 'openai') {
-        if (!OPENAI_API_KEY || !OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_API_KEY and OPENAI_EMBEDDING_MODEL to be configured');
+        if (!OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_EMBEDDING_MODEL to be configured');
+        if (!OPENAI_API_KEY && !process.env['OPENAI_API_URL']) {
+            throw new Error('OpenAI requires OPENAI_API_KEY or an explicitly overridden OPENAI_API_URL');
+        }
         return await postEmbeddingsOpenAI(input);
     }
     if (providerPref === 'tei') {
@@ -295,9 +311,9 @@ async function postEmbeddings(input: string[] | string): Promise<number[][]> {
     if (providerPref === 'fastembed') {
         return await postEmbeddingsFastEmbed(input);
     }
-    // Auto detection: prefer OpenAI if both OPENAI vars present, otherwise TEI,
+    // Auto detection: prefer OpenAI if key or explicit URL present, otherwise TEI,
     // otherwise fall back to the local fastembed default (no key, no service).
-    if (OPENAI_API_KEY && OPENAI_EMBEDDING_MODEL) {
+    if (OPENAI_API_KEY || process.env['OPENAI_API_URL']) {
         try {
             return await postEmbeddingsOpenAI(input);
         } catch (err) {

@@ -68,11 +68,12 @@ export const SQUADRULES_LOCAL_ARTIFACT_DIRS: readonly string[] = parseLocalArtif
 /** Memory cache key prefix; keys starting with this are global (no space namespace). One key per UUID. */
 export const MEMORY_CACHE_KEY_PREFIX = 'mem:';
 export const OPENAI_EMBEDDING_MODEL = getEnvString('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small');
-/** Base URL for OpenAI API (e.g. https://api.openai.com or Azure endpoint). No trailing slash. */
-export const OPENAI_API_URL = getEnvString('OPENAI_API_URL', 'https://api.openai.com').replace(/\/$/, '');
-export const OPENAI_API_KEY = getEnvString('OPENAI_API_KEY', '');
-/** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'fastembed'. Auto prefers a configured
- * external provider, else the local fastembed default (issue #11). */
+/** Base URL for OpenAI API. No trailing slash. */
+const OPENAI_API_URL_RAW = process.env['OPENAI_API_URL'] || '';
+export const OPENAI_API_URL_EXPLICIT = OPENAI_API_URL_RAW.trim().length > 0;
+export const OPENAI_API_URL = (OPENAI_API_URL_RAW || 'https://api.openai.com').replace(/\/$/, '');
+export const OPENAI_API_KEY = getEnvString('OPENAI_API_KEY', '').trim();
+/** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'fastembed'. Auto prefers a configured external provider, else the local fastembed default (issue #11). */
 export const EMBEDDING_PROVIDER = getEnvString('EMBEDDING_PROVIDER', 'auto');
 // FASTEMBED_MODEL / FASTEMBED_CACHE_DIR defaults live in ./config/embedding-fastembed.ts (max-lines).
 export { FASTEMBED_MODEL, FASTEMBED_CACHE_DIR } from './config/embedding-fastembed.js';
