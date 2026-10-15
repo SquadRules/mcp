@@ -265,6 +265,31 @@ to avoid collisions between parallel sessions.
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```
 
+## Artifacts for Shell Contracts
+
+When a shell contract needs a reusable script (Python guard, validation logic,
+setup helper), **attach it as an artifact** rather than inlining it in the
+contract JSON:
+
+1. Write the script file.
+2. `train` with `mime: "text/x-python"`, `artifact_name: "isolation-guard.py"`,
+   `adapter_uri: "squadrules://adapter/my-adapter"`, and the script content in
+   `content`.
+3. In the shell contract, reference it via `export` with
+   `squadrules://artifact/{uuid}` at execution time.
+
+This keeps adapter markdown clean, makes scripts independently versionable,
+and avoids bloating contract JSON with large inline scripts.
+
+**Interpreter restriction:** The `interpreter` field in shell contracts accepts
+only: `bash`, `sh`, `python3`, `python`, `node`. Build tools (`terraform`,
+`docker`, `npm`, etc.) are **not** interpreters — wrap them in a `bash -c`
+command instead.
+
+```json
+{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
+```
+
 ## Reward Signal
 
 Only reachable after all prior steps are solved.

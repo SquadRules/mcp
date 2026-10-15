@@ -1,3 +1,5 @@
+import type { ShellInterpreter } from '../tools/shell-challenge-invocation.js';
+
 export interface AdapterInfo {
   id: string; // Stable adapter identifier (typically the head layer UUID)
   name: string; // Adapter title (H1)
@@ -37,7 +39,7 @@ export interface InferenceContractDefinition {
   shell?: {
     cmd: string;
     timeout_seconds: number;
-    interpreter?: string;
+    interpreter?: ShellInterpreter;
     flags?: string[];
     args?: string[];
     workdir?: string;

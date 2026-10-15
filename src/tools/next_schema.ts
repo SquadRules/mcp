@@ -5,6 +5,7 @@
  * Added error_code and retry_count for two-phase retry escalation.
  */
 import { z } from 'zod';
+import { SHELL_INTERPRETERS } from './shell-challenge-invocation.js';
 
 const layerUriSchema = z
   .string()
@@ -56,7 +57,7 @@ export const challengeSchema = z.object({
   shell: z.object({
     cmd: z.string(),
     timeout_seconds: z.number(),
-    interpreter: z.string().optional(),
+    interpreter: z.enum(SHELL_INTERPRETERS).optional(),
     flags: z.array(z.string()).optional(),
     args: z.array(z.string()).optional(),
     workdir: z.string().optional(),
