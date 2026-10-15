@@ -18,38 +18,42 @@ describe('resolveOutputFormat', () => {
   const originalEnv = process.env['SQUADRULES_FORMAT'];
 
   afterEach(() => {
-    process.stdout.isTTY = originalTty;
+    Object.defineProperty(process.stdout, 'isTTY', { value: originalTty, configurable: true });
     if (originalEnv === undefined) delete process.env['SQUADRULES_FORMAT'];
     else process.env['SQUADRULES_FORMAT'] = originalEnv;
   });
 
+  const setTty = (value: boolean | undefined) => {
+    Object.defineProperty(process.stdout, 'isTTY', { value, configurable: true });
+  };
+
   it('auto resolves to pretty on a TTY', () => {
     delete process.env['SQUADRULES_FORMAT'];
-    process.stdout.isTTY = true;
+    setTty(true);
     expect(resolveOutputFormat(fakeProgram({ format: 'auto' }))).toBe('pretty');
   });
 
   it('auto resolves to json when piped (non-TTY)', () => {
     delete process.env['SQUADRULES_FORMAT'];
-    process.stdout.isTTY = false;
+    setTty(false);
     expect(resolveOutputFormat(fakeProgram({}))).toBe('json');
   });
 
   it('explicit --format wins over both TTY and env', () => {
     process.env['SQUADRULES_FORMAT'] = 'text';
-    process.stdout.isTTY = true;
+    setTty(true);
     expect(resolveOutputFormat(fakeProgram({ format: 'json' }))).toBe('json');
   });
 
   it('SQUADRULES_FORMAT env applies when no --format flag is given', () => {
     process.env['SQUADRULES_FORMAT'] = 'text';
-    process.stdout.isTTY = true;
+    setTty(true);
     expect(resolveOutputFormat(fakeProgram({}))).toBe('text');
   });
 
   it('an unrecognized --format falls back to auto (TTY -> pretty)', () => {
     delete process.env['SQUADRULES_FORMAT'];
-    process.stdout.isTTY = true;
+    setTty(true);
     expect(resolveOutputFormat(fakeProgram({ format: 'markdown' }))).toBe('pretty');
   });
 
