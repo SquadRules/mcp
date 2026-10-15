@@ -16,6 +16,7 @@ import type { QdrantService } from '../services/qdrant/service.js';
 import { getEmbeddedRecordStore } from '../services/vector-store/embedded-store-singleton.js';
 import { resolveLanceDbDir } from '../services/vector-store/lancedb-connection.js';
 import { ensureEmbeddingDimension } from '../services/embedding/lazy-probe.js';
+import { getSuccessfulProvider } from '../services/embedding/provider-resolver.js';
 import { injectMemResourcesAtBoot } from '../resources/mem-resources-boot.js';
 import { triggerQdrantSnapshot } from '../services/qdrant/snapshots.js';
 import { MEM_BOOT_FORCE_INJECT } from '../config/mem-boot.js';
@@ -122,7 +123,15 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
   }
 
   structuredLogger.info(`vector store: ${isQdrantConfigured ? 'Qdrant' : 'LanceDB (embedded)'}`);
-  structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER}`);
+  
+  // Log the successful provider if initialized, otherwise the preference
+  const successfulProvider = getSuccessfulProvider();
+  if (successfulProvider) {
+    structuredLogger.info(`embedding: ${successfulProvider.provider} (${successfulProvider.model}, ${successfulProvider.dimension}d)`);
+  } else {
+    structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER} (initialization deferred)`);
+  }
+  
   await memoryStore.init();
   structuredLogger.debug('vector store: ready');
 

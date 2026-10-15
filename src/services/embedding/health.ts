@@ -2,6 +2,7 @@ import { logger } from '../../utils/structured-logger.js';
 import {
   EMBEDDING_PROVIDER,
   OPENAI_API_KEY,
+  OPENAI_API_URL_EXPLICIT,
   TEI_BASE_URL,
   TEI_MODEL,
   TEI_API_KEY
@@ -14,8 +15,11 @@ import {
 import { postEmbeddingsOpenAI, postEmbeddingsFastEmbed } from './providers.js';
 
 async function openaiHealth(): Promise<{ healthy: boolean; message: string }> {
-  if (!OPENAI_API_KEY || !OPENAI_EMBEDDING_MODEL) {
-    return { healthy: false, message: 'OpenAI requires OPENAI_API_KEY and OPENAI_EMBEDDING_MODEL' };
+  if (!OPENAI_EMBEDDING_MODEL) {
+    return { healthy: false, message: 'OpenAI requires OPENAI_EMBEDDING_MODEL' };
+  }
+  if (!OPENAI_API_KEY && !OPENAI_API_URL_EXPLICIT) {
+    return { healthy: false, message: 'OpenAI requires OPENAI_API_KEY or an explicitly overridden OPENAI_API_URL' };
   }
   try {
     const res = await postEmbeddingsOpenAI('health check');
@@ -97,7 +101,7 @@ export async function runEmbeddingHealthCheck(): Promise<{ healthy: boolean; mes
     // Auto: prefer configured external providers; a configured-but-failing OpenAI
     // is reported as-is (never masked by the fastembed fallback) to stay consistent
     // with the runtime path, which does not silently fall back once OpenAI is set.
-    if (OPENAI_API_KEY && OPENAI_EMBEDDING_MODEL) {
+    if ((OPENAI_API_KEY || OPENAI_API_URL_EXPLICIT) && OPENAI_EMBEDDING_MODEL) {
       const result = await openaiHealth();
       if (result.healthy) return result;
       if (TEI_BASE_URL && TEI_MODEL) {

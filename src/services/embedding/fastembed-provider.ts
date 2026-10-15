@@ -12,6 +12,7 @@ import { logger } from '../../utils/structured-logger.js';
 import { FASTEMBED_MODEL, FASTEMBED_CACHE_DIR } from '../../config.js';
 import { setResolvedEmbeddingDimension } from './config.js';
 import { auditProviderCall } from './provider-audit.js';
+import { setSuccessfulProvider } from './provider-resolver.js';
 
 /** Lazily-initialised fastembed model instance (memoized at module scope). */
 type FastEmbedModel = Awaited<ReturnType<typeof import('fastembed').FlagEmbedding.init>>;
@@ -52,6 +53,7 @@ export async function postEmbeddingsFastEmbed(input: string[] | string): Promise
         }
         const dim = embeddings[0].length;
         setResolvedEmbeddingDimension(dim);
+        setSuccessfulProvider('fastembed', FASTEMBED_MODEL, dim);
         auditProviderCall({
             provider: 'fastembed',
             model: FASTEMBED_MODEL,
