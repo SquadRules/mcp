@@ -127,6 +127,8 @@ test('release workflow triggers and structure', () => {
   for (const path of ['src/**', 'package.json', 'package-lock.json']) {
     assert.ok(release.on.push.paths.includes(path), `Missing required path: ${path}`);
   }
+  assert.ok(!release.on.push.paths.includes('.github/workflows/**'), 'CI workflow changes should not trigger releases');
+  assert.ok(!release.on.push.paths.includes('scripts/**'), 'Build script changes should not trigger releases');
   assert.ok(!release.on.workflow_run && !release.on.schedule && !release.on.pull_request);
   assert.equal(release.on.workflow_dispatch.inputs.tag.required, true);
 
