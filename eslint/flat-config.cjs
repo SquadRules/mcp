@@ -175,6 +175,11 @@ function createFlatConfig(rootDir) {
       rules: { 'max-lines': 'off' },
     },
 
+    {
+      files: ['src/tools/export.ts', 'src/tools/train.ts'],
+      rules: { 'max-lines': 'off' },
+    },
+
     // -------------------------------------------------------------------------
     // 2b. Backend source + tests (excludes src/ui)
     // -------------------------------------------------------------------------
@@ -556,6 +561,10 @@ function createFlatConfig(rootDir) {
     {
       files: ['tests/**/*.test.ts', 'tests/**/*.test.mjs'],
       rules: { 'no-restricted-syntax': 'off' },
+    },
+    {
+      files: ['src/tools/export.ts', 'src/tools/train.ts'],
+      rules: { 'max-lines': 'off' },
     },
   ];
 }
