@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.9.8](https://github.com/SquadRules/mcp/compare/v5.9.7...v5.9.8) (2026-10-15)
+
+
+### Bug Fixes
+
+* replace deprecated prom-client with @prometheus-io/client ([#77](https://github.com/SquadRules/mcp/issues/77)) ([#111](https://github.com/SquadRules/mcp/issues/111)) ([dba7fe4](https://github.com/SquadRules/mcp/commit/dba7fe4edb463fd6b6a8dfbe4f1acf0dbd1beaaa))
+
 ## [5.9.7](https://github.com/SquadRules/mcp/compare/v5.9.6...v5.9.7) (2026-10-15)
 
 
