@@ -26,16 +26,16 @@ Two deviations from that rule are present in code today:
 
 - **`OPENAI_API_URL` does not select OpenAI.** The auto branch tests
   `if (OPENAI_API_KEY && OPENAI_EMBEDDING_MODEL)`
-  ([`src/services/embedding/providers.ts`](../src/services/embedding/providers.ts)), and
+  ([`src/services/embedding/providers.ts`](../../src/services/embedding/providers.ts)), and
   `OPENAI_EMBEDDING_MODEL` has a non-empty default (`text-embedding-3-small`), so the test collapses
   to "is there a key". An operator pointing at an OpenAI-compatible endpoint (Ollama, vLLM, a proxy)
   with only `OPENAI_API_URL` set silently stays on fastembed. Note that the intended rule cannot be
   read as "the variable has a value" — `OPENAI_API_URL` always has one — it must mean *explicitly
   overridden*, which the config layer currently cannot distinguish.
 - **The logs report the preference, not the resolution.** `embedding: ${EMBEDDING_PROVIDER}` prints
-  `auto` ([`src/runtime/boot-local-runtime.ts`](../src/runtime/boot-local-runtime.ts)), and the stdio
+  `auto` ([`src/runtime/boot-local-runtime.ts`](../../src/runtime/boot-local-runtime.ts)), and the stdio
   banner prints `local model ${FASTEMBED_MODEL}`
-  unconditionally ([`src/stdio/stdio-banner.ts`](../src/stdio/stdio-banner.ts)). A process that
+  unconditionally ([`src/stdio/stdio-banner.ts`](../../src/stdio/stdio-banner.ts)). A process that
   resolved to OpenAI therefore advertises the local model. This is what made
   [#94](https://github.com/SquadRules/mcp/issues/94) self-diagnose incorrectly: the operator read the
   banner, believed fastembed, and the real resolution was only recoverable from the error string.

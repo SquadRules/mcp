@@ -103,7 +103,10 @@ export class LanceRecordMutator {
     const textChanged = typeof updates?.text === 'string' && updates.text !== existingPayload.text;
     if (textChanged) {
       const embeddingResult = await embeddingService.generateEmbedding(updates.text as string);
-      const primaryName = `vs${embeddingResult.embedding.length}`;
+      // Derive column name from the store's bound width, not the embedding length (#94)
+      const storedWidth = await this.engine.resolveStoredWidth();
+      const dim = storedWidth ?? embeddingResult.embedding.length;
+      const primaryName = `vs${dim}`;
       for (const key of Object.keys(vector)) {
         if (key.startsWith('vs')) delete vector[key];
       }
