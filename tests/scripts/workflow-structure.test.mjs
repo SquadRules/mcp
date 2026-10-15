@@ -123,6 +123,10 @@ test('automation policy runs required checks', () => {
 test('release workflow triggers and structure', () => {
   const release = workflow('release');
   assert.deepEqual(release.on.push.branches, ['main']);
+  assert.ok(Array.isArray(release.on.push.paths), 'release.yml must use native path filtering');
+  for (const path of ['src/**', 'package.json', 'package-lock.json']) {
+    assert.ok(release.on.push.paths.includes(path), `Missing required path: ${path}`);
+  }
   assert.ok(!release.on.workflow_run && !release.on.schedule && !release.on.pull_request);
   assert.equal(release.on.workflow_dispatch.inputs.tag.required, true);
 
