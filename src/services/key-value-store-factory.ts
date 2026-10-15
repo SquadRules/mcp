@@ -12,10 +12,10 @@ import { logger } from '../utils/structured-logger.js';
 
 function createKeyValueStore(): IKeyValueStore {
   if (!isRedisConfigured) {
-    logger.info('cache: in-memory');
+    logger.debug('cache: in-memory');
     return new MemoryStore();
   }
-  logger.info('cache: Redis');
+  logger.debug('cache: Redis');
   return new RedisService();
 }
 
