@@ -13,6 +13,10 @@ import { openLanceConnection } from '../lancedb-connection.js';
 import { withCommitRetry } from '../commit-retry.js';
 import { toRow, buildWhere, sqlLiteral, type LanceRecordRow, type QdrantPointLike } from './lance-records-schema.js';
 import { inspectSchema, type SchemaInspectionResult } from './lance-width-validation.js';
+import { readStoreMetadata, writeStoreMetadata } from './lance-store-metadata.js';
+import { resolveLanceDbDir } from '../lancedb-connection.js';
+import { getEmbeddingDimension } from '../../embedding/config.js';
+import { getSuccessfulProvider } from '../../embedding/provider-resolver.js';
 
 const RECORDS_TABLE = 'memory_records';
 /** Full scans use a generous limit; record counts per space are small. */
@@ -42,6 +46,22 @@ export class LanceRecordEngine {
     this.cachedSchemaResult = null;
   }
 
+  /**
+   * Resolve the store's bound vector width.
+   * Priority: metadata file > schema inspection > null (empty store).
+   * Used by search and write paths to derive column names from the store,
+   * not from the query vector length or current embedding dimension.
+   */
+  async resolveStoredWidth(): Promise<number | null> {
+    // Try metadata first (fastest, most reliable)
+    const meta = readStoreMetadata(resolveLanceDbDir());
+    if (meta) return meta.dimension;
+    // Fall back to schema inspection
+    const schema = await this.inspectStoredSchema();
+    if (schema.status === 'valid') return schema.primaryWidth;
+    return null;
+  }
+
   /** Open the records table, or return null when nothing has been written yet. */
   async openTableIfPresent(): Promise<LanceTable | null> {
     const connection = await this.getConnection();
@@ -57,7 +77,15 @@ export class LanceRecordEngine {
     if (names.includes(RECORDS_TABLE)) {
       return connection.openTable(RECORDS_TABLE);
     }
-    return connection.createTable(RECORDS_TABLE, [firstRow], { mode: 'create' });
+    const table = await connection.createTable(RECORDS_TABLE, [firstRow], { mode: 'create' });
+    // Persist store metadata on first creation (#94)
+    const resolved = getSuccessfulProvider();
+    writeStoreMetadata(resolveLanceDbDir(), {
+      provider: resolved?.provider ?? 'unknown',
+      model: resolved?.model ?? 'unknown',
+      dimension: getEmbeddingDimension()
+    });
+    return table;
   }
 
   /** Atomic upsert of Qdrant-shaped points (keyed by id) with commit retry. */
