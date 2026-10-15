@@ -1,12 +1,21 @@
-# Automatically merge main into open PR branches that have fallen behind.
-# Triggers on push to main so branches stay current without manual intervention.
-# Uses the Docs GitHub App for write access to push to PR branches (including forks).
-# Only performs git merge operations — does not run arbitrary code from PR branches.
+# Automatically update open PR branches that have fallen behind main.
+# Triggers on push to main plus an hourly backstop run.
+# Detection and merge are delegated to `gh pr update-branch` (GitHub's
+# server-side update-branch endpoint): it exits 0 without touching the branch
+# when the PR is already current, and merges the base head into the PR branch
+# when it is behind. No local clone/merge/push, and no mergeStateStatus
+# polling — that field is recomputed asynchronously and is stale right after
+# the push that triggers this run, so filtering on it silently finds nothing.
+# Uses the Docs GitHub App for write access to PR branches.
 name: Auto-update PR branches
 
 on:
   push:
     branches: [main]
+  schedule:
+    # Backstop: anything a push-triggered run missed (API blip, transient
+    # failure) is retried here instead of waiting for the next push to main.
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,81 +26,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  list-prs:
-    name: Find PRs that need updating
+  update-prs:
+    name: Update open PR branches
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      prs: ${{ steps.find.outputs.prs }}
-    steps:
-      - name: Generate GitHub App token (Docs bot)
-        id: app-token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
-        with:
-          app-id: ${{ vars.DOCS_APP_ID }}
-          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
-          repositories: ${{ github.event.repository.name }}
-          permission-pull-requests: read
-
-      - name: Find open PRs that are behind
-        id: find
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-
-          # shellcheck disable=SC2016
-          PR_JSON=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!) {
-              repository(owner: $owner, name: $repo) {
-                # NOTE: first: 100 caps at 100 open PRs
-                pullRequests(states: OPEN, baseRefName: "main", first: 100) {
-                  nodes {
-                    number
-                    isDraft
-                    mergeStateStatus
-                    headRefName
-                    headRepository { nameWithOwner }
-                    labels(first: 20) { nodes { name } }
-                  }
-                }
-              }
-            }
-          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}")
-
-          # Filter: not draft, BEHIND, no no-auto-update label
-          echo "$PR_JSON" | jq -c '
-            [.data.repository.pullRequests.nodes[]
-            | select(
-                .isDraft == false
-                and .mergeStateStatus == "BEHIND"
-                and ([.labels.nodes[].name] | contains(["no-auto-update"]) | not)
-              )
-            | {
-                number: .number,
-                head_ref: .headRefName,
-                head_repo: .headRepository.nameWithOwner
-              }
-            ]' > prs.json
-
-          PRS=$(cat prs.json)
-          echo "prs=$PRS" >> "$GITHUB_OUTPUT"
-          echo "Found $(echo "$PRS" | jq length) PRs that need updating"
-
-  update-branch:
-    name: "Update PR #${{ matrix.pr.number }}"
-    needs: list-prs
-    if: needs.list-prs.outputs.prs != '[]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    concurrency:
-      group: auto-update-pr-${{ matrix.pr.number }}
-      cancel-in-progress: false
-    strategy:
-      fail-fast: false
-      matrix:
-        pr: ${{ fromJSON(needs.list-prs.outputs.prs) }}
+    timeout-minutes: 10
     steps:
       - name: Generate GitHub App token (Docs bot)
         id: app-token
@@ -103,50 +41,38 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Merge main into PR branch
+      - name: Update every open non-draft PR branch
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          PR_NUMBER: ${{ matrix.pr.number }}
-          HEAD_REF: ${{ matrix.pr.head_ref }}
-          HEAD_REPO: ${{ matrix.pr.head_repo }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          # Validate refs against safe patterns to prevent injection
-          safe_ref_pattern='^[a-zA-Z0-9._/-]+$'
-          if [[ ! "$HEAD_REF" =~ $safe_ref_pattern ]] || [[ "$HEAD_REF" == *".."* ]] || [[ "$HEAD_REF" == .* ]]; then
-            echo "::error::Unsafe ref: HEAD_REF='$HEAD_REF'"
-            exit 1
-          fi
-          if [[ ! "$HEAD_REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
-            echo "::error::Unsafe repo: HEAD_REPO='$HEAD_REPO'"
-            exit 1
-          fi
-          if [[ ! "$REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
-            echo "::error::Unsafe repo: REPO='$REPO'"
-            exit 1
-          fi
+          # Candidates: open PRs into main, not draft, no no-auto-update label.
+          # NOTE: --limit 100 caps at 100 open PRs.
+          PRS=$(gh pr list --repo "$REPO" --state open --base main --limit 100 \
+            --json number,isDraft,labels \
+            --jq '.[] | select(.isDraft == false and ([.labels[].name] | contains(["no-auto-update"]) | not)) | .number')
 
-          # Clone the PR head repo (supports forks)
-          gh repo clone "$HEAD_REPO" work -- --branch "$HEAD_REF" --depth=50
-          cd work
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Fetch main from the upstream repo
-          git remote add upstream "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          git fetch upstream main --depth=50
-
-          # Attempt merge
-          if git merge upstream/main --no-edit -m "Merge branch 'main' into $HEAD_REF"; then
-            echo "Merge succeeded — pushing update to PR #$PR_NUMBER"
-            git push origin "HEAD:$HEAD_REF"
-          else
-            echo "Merge failed (conflicts) — aborting and commenting on PR #$PR_NUMBER"
-            git merge --abort
-            gh pr comment "$PR_NUMBER" --body \
-              "⚠️ Auto-update attempted but merge conflicts detected. Please resolve conflicts manually."
+          if [ -z "$PRS" ]; then
+            echo "No open PRs to consider"
             exit 0
           fi
+
+          # `gh pr update-branch` no-ops (exit 0) when the branch is current
+          # and merges main into it when behind. Failures (deleted head ref,
+          # merge conflict, fork restriction) must not fail the run for the
+          # remaining PRs, so they are reported as warnings.
+          while IFS= read -r PR; do
+            # PR identifiers come from gh pr list; accept digits only so no
+            # event-derived value can reach the shell unvalidated.
+            if ! [[ "$PR" =~ ^[0-9]+$ ]]; then
+              echo "::warning::Unexpected PR identifier from list: '$PR'"
+              continue
+            fi
+            if gh pr update-branch "$PR" --repo "$REPO"; then
+              echo "PR #$PR processed"
+            else
+              echo "::warning::gh pr update-branch failed for PR #$PR (deleted head ref, merge conflict, or fork restriction)"
+            fi
+          done <<< "$PRS"
