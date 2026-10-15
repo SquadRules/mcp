@@ -23,6 +23,9 @@ import {
   runExportTelemetryContext,
   setSkillZipDecodedBytes
 } from './export-telemetry.js';
+import { resolveAndValidateDirectory } from '../utils/directory-access.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 interface RegisterExportOptions {
   toolName?: string;
@@ -80,6 +83,44 @@ async function executeExportImpl(
   }
 
   const adapterUris = await resolveExportUris(memoryStore, input);
+
+  // Directory-based bulk export: write each adapter to <directory>/<slug>.md
+  if (typeof input.directory === 'string' && input.directory.trim()) {
+    const resolvedDir = resolveAndValidateDirectory(input.directory, 'export');
+    const manifest: Array<{ slug: string; path: string; bytes: number; status: 'written' | 'skipped' | 'error'; error?: string }> = [];
+
+    for (const uri of adapterUris) {
+      const parsed = parseSquadrulesUri(uri);
+      const slug = parsed.kind === 'adapter' ? parsed.id : uri;
+      const safeSlug = slug.replace(/[^a-z0-9-_]/gi, '_');
+      const filePath = path.join(resolvedDir, `${safeSlug}.md`);
+      try {
+        const { layerId } = await resolveExportAdapter(memoryStore, qdrantService, uri);
+        const dump = await executeDump(memoryStore, qdrantService, {
+          uri: `squadrules://layer/${layerId}`,
+          protocol: true
+        });
+        const content = toCurrentMarkdown(String(dump['content'] ?? ''));
+        fs.writeFileSync(filePath, content, 'utf8');
+        manifest.push({ slug: safeSlug, path: filePath, bytes: Buffer.byteLength(content, 'utf8'), status: 'written' });
+      } catch (error) {
+        manifest.push({ slug: safeSlug, path: filePath, bytes: 0, status: 'error', error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+
+    const primaryUri = adapterUris[0] ?? '';
+    return {
+      uri: primaryUri,
+      format: 'markdown' as const,
+      content_type: 'text/markdown',
+      content: '',
+      item_count: adapterUris.length,
+      export_adapter_count: adapterUris.length,
+      adapter_name: null,
+      adapter_version: null,
+      directory_manifest: manifest
+    };
+  }
 
   if (input.format === 'markdown') {
     if (adapterUris.length !== 1 || !input.uri) {

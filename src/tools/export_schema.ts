@@ -49,7 +49,8 @@ export const exportInputSchema = z
     space_name: z.string().optional(),
     format: exportFormatSchema.optional().default('skill_zip'),
     delivery: exportDeliverySchema.optional(),
-    include_reward: z.boolean().optional().default(true)
+    include_reward: z.boolean().optional().default(true),
+    directory: z.string().optional().describe('Absolute directory path to write per-adapter files. SIMPLE/stdio mode only. Each adapter is written as <directory>/<slug>.md (markdown) or <directory>/<slug>/ (skill_tree).')
   })
   .superRefine((data, ctx) => {
     const uriTrim = typeof data.uri === 'string' ? data.uri.trim() : '';
@@ -142,7 +143,15 @@ export const exportOutputSchema = z.object({
   /** Optional compact manifest JSON string for skill bundles. */
   skill_bundle_manifest: z.string().optional(),
   /** Short-lived capability URL for downloading ZIP bytes outside `/api`. */
-  download_ref: exportDownloadRefSchema.optional()
+  download_ref: exportDownloadRefSchema.optional(),
+  /** Present when `directory` was used: per-file write results. */
+  directory_manifest: z.array(z.object({
+    slug: z.string(),
+    path: z.string(),
+    bytes: z.number(),
+    status: z.enum(['written', 'skipped', 'error']),
+    error: z.string().optional()
+  })).optional()
 });
 
 export type ExportInput = z.infer<typeof exportInputSchema>;
