@@ -1,5 +1,5 @@
 ---
-version: "5.10.0"
+version: "5.10.1"
 slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---
@@ -51,6 +51,7 @@ code — use `shell` or `mcp` instead.
 - **clarify / approve** → `user_input`
 - **call a SQUADRULES / MCP tool** → `mcp`
 - **execute or verify local state** → `shell`
+- **delegate to another agent** → `subagent`
 - **pure reasoning with no observable artifact** → `comment`
 
 ### Decision Tree
@@ -64,7 +65,9 @@ Does the step call an MCP tool?
           ├─ YES → "shell"
           └─ NO → Does the step require human approval or choice?
                    ├─ YES → "user_input"
-                   └─ NO → "comment" only if there is no stronger observable contract
+                   └─ NO → Does the step delegate work to another agent?
+                            ├─ YES → "subagent" with optional context
+                            └─ NO → "comment" only if there is no stronger observable contract
 ```
 
 ### Challenge JSON Formats
@@ -98,6 +101,15 @@ proving the agent called the correct target — not just any `forward` call.
 ```json
 {"contract":{"type":"comment","comment":{"min_length":50},"required":true}}
 ```
+
+**subagent**
+```json
+{"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
+```
+
+Use `subagent` when a step delegates work to another agent (human or AI) rather
+than executing it directly. The optional `context` field provides task-specific
+guidance. Evidence of completion is collected via the anti-cheat evidence gate.
 
 ### Solution JSON Formats
 
@@ -163,12 +175,18 @@ Every solution, regardless of type, follows the same envelope:
 }
 ```
 
-### Compatibility
-
-The server also accepts older solution shapes where data is placed directly
-under the type key (e.g. `{ "type": "shell", "shell": { "exit_code": 0 } }`)
-instead of inside an `evidence` envelope. Always use the unified envelope with
-`outcome` and `evidence` for new protocols.
+**subagent solution**
+```json
+{
+  "type": "subagent",
+  "outcome": "success",
+  "evidence": {
+    "agent_id": "agent-uuid-or-name",
+    "artifacts": ["path/to/output"],
+    "summary": "Task completed successfully"
+  }
+}
+```
 
 ## Interpreter Selection
 
@@ -315,6 +333,31 @@ in an IDE:
   ```json
   {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
   ```
+
+```json
+{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
+```
+
+## Artifacts for Shell Contracts
+
+When a shell contract needs a reusable script (Python guard, validation logic,
+setup helper), **attach it as an artifact** rather than inlining it in the
+contract JSON:
+
+1. Write the script file.
+2. `train` with `mime: "text/x-python"`, `artifact_name: "isolation-guard.py"`,
+   `adapter_uri: "squadrules://adapter/my-adapter"`, and the script content in
+   `content`.
+3. In the shell contract, reference it via `export` with
+   `squadrules://artifact/{uuid}` at execution time.
+
+This keeps adapter markdown clean, makes scripts independently versionable,
+and avoids bloating contract JSON with large inline scripts.
+
+**Interpreter restriction:** The `interpreter` field in shell contracts accepts
+only: `bash`, `sh`, `python3`, `python`, `node`. Build tools (`terraform`,
+`docker`, `npm`, etc.) are **not** interpreters — wrap them in a `bash -c`
+command instead.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}

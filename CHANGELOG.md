@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.10.1](https://github.com/SquadRules/mcp/compare/v5.10.0...v5.10.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* clarify adapter boundaries and restrict interpreter enum ([#100](https://github.com/SquadRules/mcp/issues/100), [#103](https://github.com/SquadRules/mcp/issues/103)) ([#110](https://github.com/SquadRules/mcp/issues/110)) ([25e5550](https://github.com/SquadRules/mcp/commit/25e55508e394a1cc017182d2f9557e2839cdd782))
+
 ## [5.10.0](https://github.com/SquadRules/mcp/compare/v5.9.8...v5.10.0) (2026-10-15)
 
 

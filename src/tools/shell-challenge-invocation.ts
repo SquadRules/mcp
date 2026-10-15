@@ -5,11 +5,15 @@
 
 export type ShellChallengeFields = {
   cmd?: string;
-  interpreter?: string;
+  interpreter?: ShellInterpreter;
   flags?: string[];
   args?: string[];
   workdir?: string;
 };
+
+/** Allowed shell interpreters for shell challenges (#103). */
+export const SHELL_INTERPRETERS = ['bash', 'sh', 'python3', 'python', 'node'] as const;
+export type ShellInterpreter = typeof SHELL_INTERPRETERS[number];
 
 /**
  * Normalize loose proof/UI fields into argv input without assigning `undefined`
@@ -24,7 +28,7 @@ export function pickShellChallengeFields(shell: {
 }): ShellChallengeFields {
   const out: ShellChallengeFields = { cmd: shell.cmd };
   const interp = shell.interpreter?.trim();
-  if (interp) out.interpreter = interp;
+  if (interp) out.interpreter = interp as ShellInterpreter;
   if (shell.flags !== undefined) out.flags = shell.flags;
   if (shell.args !== undefined) out.args = shell.args;
   const wd = shell.workdir?.trim();
@@ -41,26 +45,7 @@ function normalizedInterpreter(raw: string | undefined): string | undefined {
 const INJECT_C = new Set(['python3', 'python', 'sh']);
 
 /** Interpreters that use -e for inline script (auto-injected when absent). */
-const INJECT_E = new Set(['perl', 'node', 'nodejs', 'ruby']);
-
-/**
- * Known "other" style: argv is interpreter + flags + cmd + args with no auto code flag
- * (subcommands live in flags and/or cmd per author).
- */
-const OTHER_STYLE = new Set([
-  'terraform',
-  'go',
-  'npx',
-  'npm',
-  'yarn',
-  'pnpm',
-  'cargo',
-  'rustc',
-  'make',
-  'docker',
-  'kubectl',
-  'ansible-playbook'
-]);
+const INJECT_E = new Set(['node']);
 
 function flagTokensLower(flags: string[] | undefined): Set<string> {
   const s = new Set<string>();
@@ -98,10 +83,6 @@ export function buildShellChallengeArgv(shell: ShellChallengeFields): string[] {
   }
 
   const low = interp.toLowerCase();
-
-  if (OTHER_STYLE.has(low)) {
-    return [interp, ...flags, ...(cmd.trim() ? [cmd] : []), ...args];
-  }
 
   if (INJECT_C.has(low)) {
     if (hasExplicitCodeFlagC(flags)) {
