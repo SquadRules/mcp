@@ -38,25 +38,44 @@ assert.equal(single['continue-on-error'], undefined, 'Single lane is required (n
 assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
 assert.ok(single.steps.some(s => s.run === 'npm test -- tests/unit'), 'Single lane runs unit tests under zero-config defaults');
 assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.ts')), 'Single lane runs stdio integration test to verify SINGLE mode end-to-end');
-// Tiered CI classifier lockstep: integration.yml and security.yml gate the expensive
-// lanes on a dorny/paths-filter `changes` job, and both merge gates must tolerate a
-// skipped lane so the required check still reports success on docs/harness-only PRs.
-const ciFilter = load(readFileSync('.github/paths/ci-filter.yml', 'utf8'));
-assert.deepEqual(Object.keys(ciFilter).sort(), ['code', 'docs', 'harness', 'infra', 'tests']);
-for (const config of [integration, security]) {
-  const changes = config.jobs.changes;
-  assert.ok(changes, 'classifier changes job must exist');
-  assert.equal(changes.permissions?.contents, 'read');
-  const filterStep = changes.steps.find(s => s.uses?.startsWith('dorny/paths-filter@'));
-  assert.ok(filterStep, 'changes job must run dorny/paths-filter');
-  assert.equal(filterStep.with.filters, '.github/paths/ci-filter.yml');
+// Native GitHub Actions path filtering replaces the classifier job.
+// Workflows only run when relevant paths change, preventing empty-diff bypasses.
+// Gate shell behavior (including skipped/missing results) is exercised by test:automation.
+const requiredPaths = {
+  integration: ['src/**', 'tests/**', 'package.json', 'package-lock.json'],
+  security: ['src/**', 'package.json', 'package-lock.json'],
+};
+for (const [config, gateId, required] of [
+  [integration, 'integration-pass', ['build', 'verify-integration-cluster', 'verify-integration-single']],
+  [security, 'security-pass', ['dependency-review', 'npm-audit', 'codeql']],
+]) {
+  assert.deepEqual(config.on.pull_request.branches, ['main']);
+  assert.ok(Array.isArray(config.on.pull_request.paths), 'Workflows must use native path filtering');
+  for (const path of requiredPaths[gateId.replace('-pass', '')]) {
+    assert.ok(config.on.pull_request.paths.includes(path), `Missing required path: ${path}`);
+  }
+  assert.equal(config.on.pull_request['paths-ignore'], undefined);
+  assert.ok(!config.on.pull_request.types || config.on.pull_request.types.includes('synchronize'));
+  assert.equal(config.jobs.changes, undefined, 'No path classifier may suppress required validation');
+  const gate = config.jobs[gateId];
+  assert.deepEqual([...gate.needs].sort(), [...required].sort());
+  assert.equal(gate.if, 'always()');
+  for (const id of [...required, gateId]) {
+    const job = config.jobs[id];
+    assert.equal(job['continue-on-error'], undefined, `${id} must fail closed`);
+    if (id !== gateId && id !== 'dependency-review') assert.equal(job.if, undefined);
+    for (const step of job.steps ?? []) assert.equal(step['continue-on-error'], undefined);
+  }
+  const gateStep = gate.steps.find(s => s.run);
+  for (const id of required) {
+    assert.ok(Object.values(gateStep.env).includes(`\${{ needs.${id}.result }}`), `${gateId} must check ${id}`);
+  }
 }
-assert.deepEqual(integration.jobs.build.needs, ['changes']);
-assert.match(integration.jobs.build.if ?? '', /needs\.changes\.outputs/);
-assert.match(security.jobs.codeql.if ?? '', /needs\.changes\.outputs/);
-assert.match(security.jobs['npm-audit'].if ?? '', /needs\.changes\.outputs/);
-assert.match(integration.jobs['integration-pass'].steps[0].run ?? '', /success\|skipped/);
-assert.match(security.jobs['security-pass'].steps[0].run ?? '', /success\|skipped/);
+assert.equal(integration.jobs.build.needs, undefined);
+assert.deepEqual(integration.jobs['verify-integration-cluster'].needs, ['build']);
+assert.equal(security.jobs.codeql.needs, undefined);
+assert.equal(security.jobs['npm-audit'].needs, undefined);
+assert.equal(security.jobs['dependency-review'].if, "github.event_name == 'pull_request'");
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
 assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 assert.deepEqual(release.on.push.branches, ['main']);

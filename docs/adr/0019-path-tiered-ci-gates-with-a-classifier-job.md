@@ -1,7 +1,7 @@
 # 0019 — Path-tiered CI gates with a classifier job, not workflow `on.paths`
 
-Status: **Proposed** — implemented on branch `ci/tiered-gates-classifier`; pending PR
-merge to `main`.
+Status: **Superseded** by [0023](0023-mandatory-ci-and-fail-closed-gates.md)
+on 2026-10-15 after the skipped-validation bypass on PR #108.
 Date: 2026-10-14
 
 ## Context
