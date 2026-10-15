@@ -93,16 +93,19 @@ export const trainInputSchema = z
     }).optional().describe(
       'Critic-loop review evidence. Required for adapter (markdown) train calls. '
       + 'Provide the verdict file path and shell proof that critic-loop returned PASS.'
-    )
+    ),
+    directory: z.string().optional().describe('Absolute directory path to scan for .md files (batch train). SIMPLE/stdio mode only. Each .md file is trained as a separate adapter.'),
+    recursive: z.boolean().optional().default(false).describe('When directory is set, scan subdirectories recursively.')
   })
   .superRefine((value, ctx) => {
     const md = typeof value.content === 'string' ? value.content.trim() : '';
     const src = typeof value.source_adapter_uri === 'string' ? value.source_adapter_uri.trim() : '';
-    if (md.length === 0 && !src) {
+    const dir = typeof value.directory === 'string' ? value.directory.trim() : '';
+    if (md.length === 0 && !src && !dir) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['content'],
-        message: 'Provide content and/or source_adapter_uri'
+        message: 'Provide content and/or source_adapter_uri, or a directory for batch train'
       });
     }
 
@@ -183,7 +186,13 @@ export const trainOutputSchema = z.object({
     tags: z.array(z.string()),
     content_type: z.string().optional()
   })),
-  status: z.literal('stored')
+  status: z.literal('stored'),
+  batch_manifest: z.array(z.object({
+    source_file: z.string(),
+    status: z.enum(['ok', 'failed']),
+    uri: z.string().optional(),
+    error: z.string().optional()
+  })).optional()
 }).strict();
 
 export type TrainInput = z.infer<typeof trainInputSchema>;

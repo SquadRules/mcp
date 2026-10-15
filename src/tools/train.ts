@@ -24,6 +24,8 @@ import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js'
 import { mcpRateLimitErrorResult } from './mcp-runtime-error.js';
 import { resolveCanonicalAdapterUriForArtifact } from './train-artifact-adapter-uri.js';
 import { assertReviewEvidencePassed } from './review-evidence-check.js';
+import { resolveAndValidateDirectory, scanMarkdownFiles } from '../utils/directory-access.js';
+import fs from 'node:fs';
 interface RegisterTrainOptions {
   toolName?: string;
   qdrantService?: QdrantService;
@@ -298,6 +300,37 @@ export function registerTrainTool(server: any, memoryStore: MemoryQdrantStore, o
         return mcpToolInputValidationErrorResult('train', parsedInput.error, params);
       }
       const input = parsedInput.data;
+
+      // Directory-based batch train
+      if (typeof input.directory === 'string' && input.directory.trim()) {
+        const resolvedDir = resolveAndValidateDirectory(input.directory, 'train');
+        const mdFiles = scanMarkdownFiles(resolvedDir, input.recursive ?? false);
+        const batchManifest: Array<{ source_file: string; status: 'ok' | 'failed'; uri?: string; error?: string }> = [];
+        const allItems: TrainOutput['items'] = [];
+
+        for (const filePath of mdFiles) {
+          const content = fs.readFileSync(filePath, 'utf8');
+          try {
+            const { directory: _dir, recursive: _rec, ...baseInput } = input;
+            const singleInput: typeof input = { ...baseInput, content, recursive: false };
+            const result = await executeTrain(memoryStore, singleInput, (fn) => runWithSpaceContextAsync(narrowedContext, fn), qdrantService);
+            allItems.push(...result.items);
+            const firstUri = result.items[0]?.uri;
+            const entry: { source_file: string; status: 'ok' | 'failed'; uri?: string } = { source_file: filePath, status: 'ok' };
+            if (firstUri) entry.uri = firstUri;
+            batchManifest.push(entry);
+          } catch (error) {
+            batchManifest.push({ source_file: filePath, status: 'failed', error: error instanceof Error ? error.message : String(error) });
+          }
+        }
+
+        mcpToolCalls.inc({ tool: toolName, status: 'success', tenant_id: tenantId });
+        const output: TrainOutput = { items: allItems, status: 'stored', batch_manifest: batchManifest };
+        mcpToolOutputSize.observe({ tool: toolName, tenant_id: tenantId }, JSON.stringify(output).length);
+        timer({ tool: toolName, status: 'success' });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(output) }], structuredContent: output };
+      }
+
       try {
         const output = await executeTrain(memoryStore, input, (fn) => runWithSpaceContextAsync(narrowedContext, fn), qdrantService);
         mcpToolCalls.inc({ tool: toolName, status: 'success', tenant_id: tenantId });
