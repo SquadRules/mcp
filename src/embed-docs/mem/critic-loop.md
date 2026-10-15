@@ -1,5 +1,5 @@
 ---
-version: "5.9.8"
+version: "5.10.0"
 slug: critic-loop
 title: Critic Loop
 ---
