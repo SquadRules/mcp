@@ -264,3 +264,12 @@ test('docs workflow has correct triggers and structure', () => {
   assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.id === 'changes'), 'docs.yml must check for changes');
   assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
 });
+
+test('auto-update workflow delegates sync detection to gh pr update-branch', () => {
+  const autoUpdate = workflow('auto-update-pr-branches');
+  assert.ok(Object.hasOwn(autoUpdate.on, 'push'), 'Updates must run as soon as main advances');
+  assert.ok(autoUpdate.on.schedule?.some(s => s.cron === '17 * * * *'), 'Hourly backstop must catch PRs a push run missed');
+  const updateStep = autoUpdate.jobs['update-prs'].steps.find(s => s.run?.includes('gh pr update-branch'));
+  assert.ok(updateStep, 'update-prs must delegate detection and merge to gh pr update-branch, which no-ops on current branches');
+  assert.doesNotMatch(updateStep.run, /mergeStateStatus|git merge|git push|gh repo clone/, 'No async-stale status fields and no local merge machinery');
+});

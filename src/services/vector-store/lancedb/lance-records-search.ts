@@ -101,9 +101,12 @@ export class LanceRecordSearch {
     const queryKey = (query || '').trim();
     if (!queryKey) return { memories: [], scores: [] };
     const { embedding: queryVector } = await embeddingService.generateEmbedding(queryKey);
-    const primaryName = getPrimaryVectorName(queryVector.length);
-    const titleName = getAdapterTitleVectorName(queryVector.length);
-    const activationName = getActivationPatternVectorName(queryVector.length);
+    // Derive column names from the store's bound width, not the query vector length (#94)
+    const storedWidth = await this.engine.resolveStoredWidth();
+    const dim = storedWidth ?? queryVector.length;
+    const primaryName = getPrimaryVectorName(dim);
+    const titleName = getAdapterTitleVectorName(dim);
+    const activationName = getActivationPatternVectorName(dim);
     const queryTokens = tokenize(queryKey);
     const rows = await this.engine.scroll(headFilter());
     const scored = rows.map((row) => {
@@ -126,7 +129,8 @@ export class LanceRecordSearch {
     const queryKey = (query || '').trim();
     if (!queryKey) return { memories: [], scores: [] };
     const { embedding: queryVector } = await embeddingService.generateEmbedding(queryKey);
-    const titleName = getAdapterTitleVectorName(queryVector.length);
+    const storedWidth = await this.engine.resolveStoredWidth();
+    const titleName = getAdapterTitleVectorName(storedWidth ?? queryVector.length);
     const rows = await this.engine.scroll(headFilter());
     const scored = rows.map((row) => ({
       memory: pointToMemory({ id: row.id, payload: payloadOf(row) }),
