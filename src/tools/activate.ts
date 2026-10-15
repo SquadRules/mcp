@@ -15,7 +15,7 @@ import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js'
 import { mcpRateLimitErrorResult } from './mcp-runtime-error.js';
 import { SQUADRULES_ACTIVATE_TOOL_UI_META } from '../mcp-apps/squadrules-ui-constants.js';
 import { SQUADRULES_CREATION_FOOTER_NEXT_ACTION } from '../constants/builtin-search-meta.js';
-import { SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { SQUADRULES_LOCAL_ARTIFACT_DIRS, TRANSPORT_TYPE } from '../config.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
 import { listAdapterArtifacts } from './artifact-catalog.js';
@@ -54,6 +54,7 @@ async function mapSearchToActivate(
   const escapeShellDoubleQuoted = (value: string): string => value.replace(/["\\$`]/g, '\\$&');
   const safeArtifactFileName = (value: string): string => value.replace(/[/\\]/g, '_');
   const defaultArtifactRelativePath = (fileName: string): string => `artifacts/${safeArtifactFileName(fileName)}`;
+  const isStdio = TRANSPORT_TYPE === 'stdio';
   const materializeCommand = (url: string, relativePath: string, sha256: string): string => {
     const relForPath = escapeShellDoubleQuoted(relativePath);
     const relEscaped = escapeShellSingleQuoted(relativePath);
@@ -65,6 +66,10 @@ async function mapSearchToActivate(
       parentDir.length > 0
         ? `mkdir -p "$SQUADRULES_LOCAL_ARTIFACT_DIR/${parentDirForPath}" && `
         : '';
+    if (isStdio) {
+      // stdio transport has no HTTP listener; use `squadrules export` instead of curl.
+      return `${mkdirPart}squadrules export --uri '${urlEscaped}' --format source > "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
+    }
     return `${mkdirPart}curl -fsSL '${urlEscaped}' -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
   };
 
@@ -141,14 +146,19 @@ async function mapSearchToActivate(
               sha256: artifact.sha256,
               relativePath
             });
+            // stdio transport: no HTTP listener available; use squadrules:// artifact URI
+            // so the agent calls `squadrules export` instead of curl.
+            const downloadUrl = isStdio
+              ? `squadrules://artifact/${artifact.slug}`
+              : capability.url;
             return {
               slug: artifact.slug,
               filename: artifact.name,
               relative_path: relativePath,
-              download_url: capability.url,
+              download_url: downloadUrl,
               sha256: artifact.sha256,
               content_type: artifact.content_type,
-              materialize: materializeCommand(capability.url, relativePath, artifact.sha256)
+              materialize: materializeCommand(downloadUrl, relativePath, artifact.sha256)
             };
           })
         );
@@ -204,6 +214,7 @@ async function mapSearchToActivate(
     execution_id: options.executionId,
     query,
     choices,
+    transport: TRANSPORT_TYPE,
     ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
   };
 }
@@ -245,7 +256,8 @@ export async function executeActivate(
           next_action: 'Call forward with the complete forward_first_call to start the specified authoring operation.',
           forward_first_call: { uri, authoring }
         }],
-        ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
+        ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
+        transport: TRANSPORT_TYPE
       };
     };
     return input.space ?? input.space_id
