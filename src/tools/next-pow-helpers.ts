@@ -302,6 +302,12 @@ export async function handleProofSubmission(
     }
     record.status = 'success';
     record.comment = { text: comment.text };
+  } else if (proofType === 'subagent') {
+    const subagent = submission.subagent;
+    if (!subagent || !subagent.report || subagent.report.trim().length === 0) {
+      return blocked('Subagent proof requires evidence.report — include the subagent\'s actual delegation report in solution.evidence.report', 'MISSING_FIELD');
+    }
+    record.status = 'success';
   }
 
   const existing = await proofOfWorkStore.getResult(uuid);
