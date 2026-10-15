@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.9.3](https://github.com/SquadRules/mcp/compare/v5.9.2...v5.9.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* **security:** exclude js/user-controlled-bypass CodeQL false positives ([#90](https://github.com/SquadRules/mcp/issues/90)) ([caff1e9](https://github.com/SquadRules/mcp/commit/caff1e91b2d62ee6461babc72f139d359e548d0f))
+
 ## [5.9.2](https://github.com/SquadRules/mcp/compare/v5.9.1...v5.9.2) (2026-10-14)
 
 
