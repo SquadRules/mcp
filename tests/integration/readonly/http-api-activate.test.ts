@@ -17,7 +17,7 @@ _d('HTTP REST API Activate Endpoint', () => {
       expect(response.status).toBe(200);
       const data = (await response.json()) as Record<string, unknown>;
       // Activate HTTP response keeps canonical top-level keys; artifact-dir aliases are optional.
-      const baseSearchKeys = ['choices', 'message', 'must_obey', 'next_action', 'query'];
+      const baseSearchKeys = ['choices', 'message', 'must_obey', 'next_action', 'query', 'transport'];
       const optionalKeys = [
         ...('execution_id' in data ? ['execution_id'] : []),
         ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : [])

@@ -6,6 +6,7 @@ export function buildEvidenceHint(contractType: string): string {
     case 'shell': return '.exit_code = <exit code>, .stdout, .stderr';
     case 'mcp': return '.tool_name, .arguments, .response';
     case 'user_input': return '.confirmation = "<user reply>"';
+    case 'subagent': return '.report = "<subagent delegation report>"';
     default: return '';
   }
 }
@@ -21,6 +22,7 @@ export function buildEmptySolutionTemplate(contractType: ForwardOutput['contract
       case 'shell': return { exit_code: 0 };
       case 'mcp': return { tool_name: '', arguments: {}, response: {} };
       case 'user_input': return { confirmation: '' };
+      case 'subagent': return { report: '' };
       default: return {};
     }
   })();

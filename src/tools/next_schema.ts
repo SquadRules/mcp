@@ -14,7 +14,7 @@ const layerUriSchema = z
   );
 
 export const solutionSchema = z.object({
-  type: z.enum(['shell', 'mcp', 'user_input', 'comment']).describe('Must match challenge.type'),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']).describe('Must match challenge.type'),
   nonce: z.string().optional().describe('Echo nonce from challenge'),
   proof_hash: z.string().optional().describe('Echo proof_hash from previous challenge or response'),
   shell: z.object({
@@ -33,23 +33,25 @@ export const solutionSchema = z.object({
     confirmation: z.string(),
     timestamp: z.string().optional()
   }).optional(),
-  comment: z.object({ text: z.string() }).optional()
+  comment: z.object({ text: z.string() }).optional(),
+  subagent: z.object({ report: z.string() }).optional()
 }).refine(
-  (data) => !!(data.shell || data.mcp || data.user_input || data.comment),
-  { message: 'At least one type-specific field (shell, mcp, user_input, or comment) must be provided' }
+  (data) => !!(data.shell || data.mcp || data.user_input || data.comment || data.subagent),
+  { message: 'At least one type-specific field (shell, mcp, user_input, comment, or subagent) must be provided' }
 ).refine(
   (data) => {
     if (data.type === 'shell' && !data.shell) return false;
     if (data.type === 'mcp' && !data.mcp) return false;
     if (data.type === 'user_input' && !data.user_input) return false;
     if (data.type === 'comment' && !data.comment) return false;
+    if (data.type === 'subagent' && !data.subagent) return false;
     return true;
   },
   { message: 'The type-specific field must match the solution type' }
 );
 
 export const challengeSchema = z.object({
-  type: z.enum(['shell', 'mcp', 'user_input', 'comment']),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']),
   description: z.string(),
   nonce: z.string().optional().describe('Echo back as solution.nonce'),
   proof_hash: z.string().optional().describe('Echo back as solution.proof_hash'),
@@ -73,6 +75,9 @@ export const challengeSchema = z.object({
   }).optional(),
   comment: z.object({
     min_length: z.number().optional()
+  }).optional(),
+  subagent: z.object({
+    context: z.string().optional()
   }).optional()
 });
 
@@ -94,6 +99,7 @@ export const nextOutputSchema = z.object({
   message: z.string().optional(),
   error_code: z.string().optional().describe('Machine-readable error code (e.g., NONCE_MISMATCH, MAX_RETRIES_EXCEEDED)'),
   retry_count: z.number().optional().describe('Number of retries on this step (present on error responses)'),
+  retry_nonce: z.string().optional().describe('Convenience copy of challenge.nonce for NONCE_MISMATCH recovery; paste directly into solution.nonce.'),
   /**
    * Ordered URI hints (preferred first) for the run's local handoff dir. Resolve **on the client**:
    * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`.
