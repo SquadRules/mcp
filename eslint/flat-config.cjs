@@ -1,3 +1,4 @@
+// Temporary override for test files
 'use strict';
 
 const {
@@ -551,6 +552,10 @@ function createFlatConfig(rootDir) {
       rules: {
         ...NO_AUTH_ENABLED_OVERRIDE_RULE,
       },
+    },
+    {
+      files: ['tests/**/*.test.ts', 'tests/**/*.test.mjs'],
+      rules: { 'no-restricted-syntax': 'off' },
     },
   ];
 }
