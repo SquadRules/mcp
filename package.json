@@ -1,6 +1,6 @@
 {
   "name": "@squadrules/mcp",
-  "version": "5.9.4",
+  "version": "5.9.6",
   "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
@@ -49,7 +49,7 @@
     "test:ui": "vitest run --config vitest.config.ts",
     "test:audit-fix-workflow": "bash tests/scripts/npm-audit-fix.test.sh",
     "test:automation": "node --test tests/scripts/*.test.mjs",
-    "lint:workflows": "node scripts/ci-validate-workflows.mjs",
+    "lint:workflows": "node scripts/lint-workflows.mjs",
     "lint:renovate": "node scripts/ci-renovate.mjs validate",
     "ci:controller": "node scripts/ci-automation.mjs",
     "ci:renovate": "node scripts/ci-renovate.mjs",

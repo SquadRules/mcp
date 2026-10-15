@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.9.6](https://github.com/SquadRules/mcp/compare/v5.9.5...v5.9.6) (2026-10-15)
+
+
+### Bug Fixes
+
+* **ci:** use native path filtering to prevent empty-diff bypass ([#116](https://github.com/SquadRules/mcp/issues/116)) ([456cce8](https://github.com/SquadRules/mcp/commit/456cce891107b8a1e271f2c5eb9a4413db9b757c))
+
+## [5.9.5](https://github.com/SquadRules/mcp/compare/v5.9.4...v5.9.5) (2026-10-15)
+
+
+### Bug Fixes
+
+* skip application-level cache for embedded LanceDB ([#96](https://github.com/SquadRules/mcp/issues/96)) ([aaadb34](https://github.com/SquadRules/mcp/commit/aaadb34196643ec5dede7071382f76e71c61a1eb)), closes [#95](https://github.com/SquadRules/mcp/issues/95)
+
 ## [5.9.4](https://github.com/SquadRules/mcp/compare/v5.9.3...v5.9.4) (2026-10-15)
 
 

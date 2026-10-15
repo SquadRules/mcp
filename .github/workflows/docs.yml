@@ -3,17 +3,14 @@
 # without manual intervention. The wiki is code-derivable (never hand-edit
 # .qoder/repowiki/en/content/); this workflow regenerates it from source.
 #
-# Triggers: schedule (daily at 04:17 UTC), workflow_dispatch (manual), and push
-# to main when src/** changes (the wiki derives from source code). The docs bot
-# uses QODER_PERSONAL_ACCESS_TOKEN to run the Qoder CLI wiki generation, and
-# DOCS_APP_ID + DOCS_APP_PRIVATE_KEY to create and auto-merge the PR.
+# Triggers: workflow_dispatch (manual) and push to main when src/** changes (the
+# wiki derives from source code). The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
+# to run the Qoder CLI wiki generation, and DOCS_APP_ID + DOCS_APP_PRIVATE_KEY
+# to create and auto-merge the PR. Schedule trigger disabled to reduce CI noise.
 
 name: Docs wiki regeneration
 
 on:
-  schedule:
-    # Daily at 04:17 UTC (off-peak, after most PRs merge).
-    - cron: '17 4 * * *'
   workflow_dispatch:
   push:
     branches: [main]
