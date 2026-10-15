@@ -40,7 +40,9 @@ export class LanceArtifactWriter {
       typeof options.relativePath === 'string' && options.relativePath.trim().length > 0 ? options.relativePath.trim() : options.name;
     const artifact = extractArtifactMetadata(content, slugSourceInput);
     const sha256 = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
-    const vectorSize = getEmbeddingDimension();
+    // Use the store's bound width for column names, not the current embedding dimension (#94)
+    const storedWidth = await this.engine.resolveStoredWidth();
+    const vectorSize = storedWidth ?? getEmbeddingDimension();
     const zeroVector = Array.from({ length: vectorSize }, () => 0);
     const context = getSpaceContext();
     const spaceId = context.defaultWriteSpaceId;

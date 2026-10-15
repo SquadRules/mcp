@@ -147,8 +147,10 @@ export class LanceRecordWriter {
     }
   }
 
-  private vectorNames(): { primary: string; title: string; activation: string } {
-    const size = getEmbeddingDimension();
+  private async vectorNames(): Promise<{ primary: string; title: string; activation: string }> {
+    // Use the store's bound width, not the current embedding dimension (#94)
+    const storedWidth = await this.engine.resolveStoredWidth();
+    const size = storedWidth ?? getEmbeddingDimension();
     return { primary: getPrimaryVectorName(size), title: getAdapterTitleVectorName(size), activation: getActivationPatternVectorName(size) };
   }
 
@@ -164,7 +166,7 @@ export class LanceRecordWriter {
     await this.repo.handleDuplicateAdapter(adapterUuid, forceUpdate);
     const protocolSlug = await this.repo.allocateAdapterSlugForMint(slugInput, adapterUuid);
 
-    const names = this.vectorNames();
+    const names = await this.vectorNames();
     const vectors = await this.embedActivation(memories);
     const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
     const context = getSpaceContext();
@@ -267,7 +269,7 @@ export class LanceRecordWriter {
       };
     });
 
-    const names = this.vectorNames();
+    const names = await this.vectorNames();
     const vectors = await this.embedActivation(memories);
     const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
     const context = getSpaceContext();
