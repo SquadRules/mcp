@@ -31,6 +31,7 @@ jobs:
           app-id: ${{ vars.DOCS_APP_ID }}
           private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: read
 
       - name: Find open PRs that are behind
         id: find
@@ -44,6 +45,7 @@ jobs:
           PR_JSON=$(gh api graphql -f query='
             query($owner: String!, $repo: String!) {
               repository(owner: $owner, name: $repo) {
+                # NOTE: first: 100 caps at 100 open PRs
                 pullRequests(states: OPEN, baseRefName: "main", first: 100) {
                   nodes {
                     number
@@ -146,5 +148,5 @@ jobs:
             git merge --abort
             gh pr comment "$PR_NUMBER" --body \
               "⚠️ Auto-update attempted but merge conflicts detected. Please resolve conflicts manually."
-            exit 1
+            exit 0
           fi
