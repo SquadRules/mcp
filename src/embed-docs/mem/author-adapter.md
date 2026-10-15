@@ -1,6 +1,6 @@
 ---
 slug: author-adapter
-version: "5.10.0"
+version: "5.10.1"
 title: Author Adapter (Create / Review / Refactor)
 ---
 
@@ -187,6 +187,26 @@ Summarise gathered requirements or findings.
 ```
 
 ## Draft Markdown
+
+### MCP / Local-Filesystem Boundary
+
+The MCP database and the local repo/filesystem are **independent environments**.
+
+- A personal adapter stored in MCP **cannot** reference local files
+  (`.qoder/rules/`, `src/`, etc.) — those files do not exist inside the MCP
+  execution context.
+- A personal adapter **cannot** use `mcp forward` contracts with
+  `squadrules://adapter/` URIs pointing to other personal adapters — the target
+  may not exist in every user's space.
+- Only **system adapters** (bundled in the server) can chain to other system
+  adapters via `forward`.
+- Personal adapters must be **self-contained**. If guidance text references a
+  local constraint file, it is prose-only context for the drafting agent, not a
+  runtime dependency.
+- When a shell contract needs a reusable script, attach it as an **artifact**
+  via `train` (with `mime`, `artifact_name`, `adapter_uri`) rather than
+  inlining it in the contract JSON. At execution time, reference it via
+  `export` with `squadrules://artifact/{uuid}`.
 
 ### For `create` — draft new adapter markdown
 

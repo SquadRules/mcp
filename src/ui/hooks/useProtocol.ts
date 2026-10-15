@@ -58,6 +58,8 @@ export interface ParsedStep {
   challengePayload?: ChallengePayload;
 }
 
+import type { ShellInterpreter } from '../../tools/shell-challenge-invocation.js';
+
 /** Per-step form state for the protocol editor. */
 export interface StepFormState {
   label: string;
@@ -66,7 +68,7 @@ export interface StepFormState {
   shell?: {
     cmd: string;
     timeout_seconds: number;
-    interpreter?: string;
+    interpreter?: ShellInterpreter;
     workdir?: string;
     flags: string[];
     args: string[];
