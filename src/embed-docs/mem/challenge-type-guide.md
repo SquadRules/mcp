@@ -206,6 +206,61 @@ to avoid collisions between parallel sessions.
 - Reward Signal cleans it up
 - never write credentials or secrets to files
 
+### Resolving `project://` and `user://` URI hints
+
+The server returns relative URI hints — it never names an absolute path on its
+own filesystem. Resolve on your machine:
+
+| Scheme | Resolution | Example |
+|--------|-----------|--------|
+| `project://<rel>` | `<IDE project root>/<rel>` | `project://.local/squadrules/work` → `/home/user/repos/my-project/.local/squadrules/work` |
+| `user://<rel>` | `<$XDG_CONFIG_HOME or $HOME>/<rel>` | `user://.config/squadrules/work` → `/home/user/.config/squadrules/work` |
+
+When your session spans multiple projects, prefer `user://` to avoid ambiguity
+about which project root applies. When you have exactly one project context,
+`project://` is fine.
+
+### Worktree placement (for task-isolation adapters)
+
+When an adapter requires a git worktree for isolation, the worktree path MUST
+be **outside** every existing checkout. A common mistake is placing the worktree
+inside `$REPO_ROOT` (e.g. `$REPO_ROOT/.mcp.worktrees/...`), which the setup
+script correctly rejects.
+
+**Correct placement — absolute path examples:**
+
+```
+REPO_ROOT=/home/user/repos/my-project
+# RIGHT: sibling of the repo, not inside it
+WT=/home/user/repos/mcp.worktrees/<task-id>
+
+# WRONG: inside the checkout (rejected by setup script)
+# WT=/home/user/repos/my-project/.mcp.worktrees/<task-id>
+```
+
+**Common mistakes:**
+- `$REPO_ROOT/.mcp.worktrees/...` — inside checkout, rejected
+- `./mcp.worktrees/...` — relative path resolves inside checkout
+- `$REPO_ROOT/../mcp.worktrees/...` — correct only if `..` actually exits the repo
+
+**Rule of thumb:** `$(dirname "$REPO_ROOT")/mcp.worktrees/<task-id>`
+
+### IDE worktree access limitations
+
+Most IDE file tools (Write, Read, Edit) scope operations to the open project
+root. They **cannot** reach worktrees placed outside `$REPO_ROOT`. When working
+in an IDE:
+
+1. Use the **terminal/shell tool** (not IDE file tools) to read/write files in
+   external worktrees.
+2. Shell commands: `cat`, `tee`, `cp`, or your editor's CLI mode work on any
+   absolute path.
+3. If you need to edit a worktree file with IDE assistance, open the worktree
+   as a separate project window or use `code <worktree-path>` to add it to the
+   workspace.
+4. The `squadrules export` MCP tool can retrieve adapter content without
+   filesystem access to the worktree.
+
 ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```

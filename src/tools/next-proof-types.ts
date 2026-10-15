@@ -25,6 +25,9 @@ export type ProofOfWorkSubmission = {
   comment?: {
     text: string;
   };
+  subagent?: {
+    report: string;
+  };
 };
 
 export type BuildChallengeOptions = {

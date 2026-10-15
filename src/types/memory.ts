@@ -28,7 +28,7 @@ export interface TensorContractDetails {
   condition?: string;
 }
 
-export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment';
+export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
 
 export interface InferenceContractDefinition {
   type?: InferenceContractType;
@@ -57,6 +57,9 @@ export interface InferenceContractDefinition {
     min_length?: number;
   };
   tensor?: TensorContractDetails;
+  subagent?: {
+    context?: string;
+  };
 }
 
 export interface TensorValue {
