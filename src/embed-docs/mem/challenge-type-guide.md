@@ -51,6 +51,7 @@ code — use `shell` or `mcp` instead.
 - **clarify / approve** → `user_input`
 - **call a SQUADRULES / MCP tool** → `mcp`
 - **execute or verify local state** → `shell`
+- **delegate to another agent** → `subagent`
 - **pure reasoning with no observable artifact** → `comment`
 
 ### Decision Tree
@@ -64,7 +65,9 @@ Does the step call an MCP tool?
           ├─ YES → "shell"
           └─ NO → Does the step require human approval or choice?
                    ├─ YES → "user_input"
-                   └─ NO → "comment" only if there is no stronger observable contract
+                   └─ NO → Does the step delegate work to another agent?
+                            ├─ YES → "subagent" with optional context
+                            └─ NO → "comment" only if there is no stronger observable contract
 ```
 
 ### Challenge JSON Formats
@@ -98,6 +101,15 @@ proving the agent called the correct target — not just any `forward` call.
 ```json
 {"contract":{"type":"comment","comment":{"min_length":50},"required":true}}
 ```
+
+**subagent**
+```json
+{"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
+```
+
+Use `subagent` when a step delegates work to another agent (human or AI) rather
+than executing it directly. The optional `context` field provides task-specific
+guidance. Evidence of completion is collected via the anti-cheat evidence gate.
 
 ### Solution JSON Formats
 
@@ -159,6 +171,19 @@ Every solution, regardless of type, follows the same envelope:
   "outcome": "success",
   "evidence": {
     "text": "Verified all 78 issues now have repo: labels."
+  }
+}
+```
+
+**subagent solution**
+```json
+{
+  "type": "subagent",
+  "outcome": "success",
+  "evidence": {
+    "agent_id": "agent-uuid-or-name",
+    "artifacts": ["path/to/output"],
+    "summary": "Task completed successfully"
   }
 }
 ```
