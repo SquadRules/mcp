@@ -3,7 +3,7 @@
  * Separates "what we'll try" (candidate) from "what worked" (successful descriptor).
  */
 
-import { EMBEDDING_PROVIDER, OPENAI_API_KEY, OPENAI_API_URL_EXPLICIT, TEI_BASE_URL, TEI_MODEL, OPENAI_EMBEDDING_MODEL } from '../../config.js';
+import { EMBEDDING_PROVIDER, OPENAI_API_KEY, OPENAI_API_URL_EXPLICIT, TEI_BASE_URL, TEI_MODEL, OPENAI_EMBEDDING_MODEL, FASTEMBED_MODEL } from '../../config.js';
 
 /**
  * Successful embedding provider descriptor.
@@ -57,11 +57,7 @@ function isOpenAiUrlExplicitlyOverridden(): boolean {
  */
 export function getModelNameForProvider(provider: 'openai' | 'tei' | 'fastembed'): string {
   if (provider === 'tei') return TEI_MODEL;
-  if (provider === 'fastembed') {
-    // Lazy import to avoid circular dependency
-    const { FASTEMBED_MODEL } = require('../../config.js');
-    return FASTEMBED_MODEL;
-  }
+  if (provider === 'fastembed') return FASTEMBED_MODEL;
   return OPENAI_EMBEDDING_MODEL;
 }
 
