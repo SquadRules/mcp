@@ -20,6 +20,7 @@ import { getSuccessfulProvider } from '../services/embedding/provider-resolver.j
 import { injectMemResourcesAtBoot } from '../resources/mem-resources-boot.js';
 import { triggerQdrantSnapshot } from '../services/qdrant/snapshots.js';
 import { MEM_BOOT_FORCE_INJECT } from '../config/mem-boot.js';
+import { checkWidthConsistency } from '../services/vector-store/lancedb/lance-store-metadata.js';
 import {
   isQdrantConfigured,
   EMBEDDING_PROVIDER,
@@ -130,6 +131,15 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
     structuredLogger.info(`embedding: ${successfulProvider.provider} (${successfulProvider.model}, ${successfulProvider.dimension}d)`);
   } else {
     structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER} (initialization deferred)`);
+  }
+
+  // Width reconciliation: check stored width vs current provider dimension (#94)
+  if (!isQdrantConfigured && successfulProvider) {
+    const lancedbDir = resolveLanceDbDir();
+    const check = checkWidthConsistency(lancedbDir, successfulProvider.provider, successfulProvider.model, successfulProvider.dimension);
+    if (!check.consistent) {
+      structuredLogger.warn(`vector width mismatch: ${check.reason}`);
+    }
   }
   
   await memoryStore.init();
