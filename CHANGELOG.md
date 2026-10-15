@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.9.5](https://github.com/SquadRules/mcp/compare/v5.9.4...v5.9.5) (2026-10-15)
+
+
+### Bug Fixes
+
+* skip application-level cache for embedded LanceDB ([#96](https://github.com/SquadRules/mcp/issues/96)) ([aaadb34](https://github.com/SquadRules/mcp/commit/aaadb34196643ec5dede7071382f76e71c61a1eb)), closes [#95](https://github.com/SquadRules/mcp/issues/95)
+
 ## [5.9.4](https://github.com/SquadRules/mcp/compare/v5.9.3...v5.9.4) (2026-10-15)
 
 
