@@ -94,6 +94,7 @@ export const nextOutputSchema = z.object({
   message: z.string().optional(),
   error_code: z.string().optional().describe('Machine-readable error code (e.g., NONCE_MISMATCH, MAX_RETRIES_EXCEEDED)'),
   retry_count: z.number().optional().describe('Number of retries on this step (present on error responses)'),
+  retry_nonce: z.string().optional().describe('Convenience copy of challenge.nonce for NONCE_MISMATCH recovery; paste directly into solution.nonce.'),
   /**
    * Ordered URI hints (preferred first) for the run's local handoff dir. Resolve **on the client**:
    * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`.
