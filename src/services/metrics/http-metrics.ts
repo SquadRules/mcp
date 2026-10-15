@@ -1,4 +1,4 @@
-import { Counter, Histogram, Gauge } from 'prom-client';
+import { Counter, Histogram, Gauge } from '@prometheus-io/client';
 import { register } from './registry.js';
 
 
