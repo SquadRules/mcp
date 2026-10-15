@@ -35,6 +35,8 @@ describe('directory-access: resolveAndValidateDirectory', () => {
 
   it('rejects relative paths', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     process.env['SQUADRULES_ALLOWED_EXPORT_DIRS'] = tmpDir;
     const { resolveAndValidateDirectory } = await import('../../src/utils/directory-access.js');
     expect(() => resolveAndValidateDirectory('relative/path', 'export')).toThrow(/absolute path/);
@@ -42,6 +44,8 @@ describe('directory-access: resolveAndValidateDirectory', () => {
 
   it('rejects paths with .. segments', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     process.env['SQUADRULES_ALLOWED_EXPORT_DIRS'] = tmpDir;
     const { resolveAndValidateDirectory } = await import('../../src/utils/directory-access.js');
     // Use a literal string with .. to avoid path.join resolving it
@@ -50,6 +54,8 @@ describe('directory-access: resolveAndValidateDirectory', () => {
 
   it('rejects paths outside allowlist', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     process.env['SQUADRULES_ALLOWED_EXPORT_DIRS'] = '/opt/allowed';
     const { resolveAndValidateDirectory } = await import('../../src/utils/directory-access.js');
     expect(() => resolveAndValidateDirectory(tmpDir, 'export')).toThrow(/not within the allowed/);
@@ -57,6 +63,8 @@ describe('directory-access: resolveAndValidateDirectory', () => {
 
   it('accepts valid directory within allowlist', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     process.env['SQUADRULES_ALLOWED_EXPORT_DIRS'] = tmpDir;
     const { resolveAndValidateDirectory } = await import('../../src/utils/directory-access.js');
     const resolved = resolveAndValidateDirectory(tmpDir, 'export');
@@ -66,6 +74,8 @@ describe('directory-access: resolveAndValidateDirectory', () => {
 
   it('rejects symlink escape attempts', async () => {
     process.env['TRANSPORT_TYPE'] = 'stdio';
+    process.env['AUTH_ENABLED'] = 'false';
+    process.env['QDRANT_URL'] = '';
     const allowedDir = path.join(tmpDir, 'allowed');
     fs.mkdirSync(allowedDir);
     const targetDir = path.join(tmpDir, 'target');
