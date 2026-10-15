@@ -1,99 +1,130 @@
-# Automatically merge the base branch into PR branches that have fallen behind.
-# Eliminates the "This branch is out-of-date with the base branch" friction by
-# keeping PR branches up-to-date with main without manual intervention.
-#
-# Uses pull_request_target for write access to push to PR branches (including forks).
-# Only performs git merge operations — does not run arbitrary code from the PR branch.
+# Automatically merge main into open PR branches that have fallen behind.
+# Triggers on push to main so branches stay current without manual intervention.
+# Uses the Docs GitHub App for write access to push to PR branches (including forks).
+# Only performs git merge operations — does not run arbitrary code from PR branches.
 name: Auto-update PR branches
 
 on:
-  pull_request_target:
+  push:
     branches: [main]
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
-  group: auto-update-pr-${{ github.event.pull_request.number }}
+  group: auto-update-prs
   cancel-in-progress: false
 
 jobs:
-  update-branch:
-    # Skip draft PRs and PRs opted out with the no-auto-update label.
-    if: >-
-      github.event.pull_request.draft == false &&
-      !contains(github.event.pull_request.labels.*.name, 'no-auto-update')
+  list-prs:
+    name: Find PRs that need updating
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      prs: ${{ steps.find.outputs.prs }}
     steps:
-      - name: Check if branch is behind base
-        id: check
+      - name: Generate GitHub App token (Docs bot)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.DOCS_APP_ID }}
+          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: read
+
+      - name: Find open PRs that are behind
+        id: find
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          # Query mergeable state via GraphQL to determine if branch is behind
           # shellcheck disable=SC2016
-          MERGE_STATE=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!, $pr: Int!) {
+          PR_JSON=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!) {
               repository(owner: $owner, name: $repo) {
-                pullRequest(number: $pr) {
-                  mergeStateStatus
+                # NOTE: first: 100 caps at 100 open PRs
+                pullRequests(states: OPEN, baseRefName: "main", first: 100) {
+                  nodes {
+                    number
+                    isDraft
+                    mergeStateStatus
+                    headRefName
+                    headRepository { nameWithOwner }
+                    labels(first: 20) { nodes { name } }
+                  }
                 }
               }
             }
-          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -F pr="$PR_NUMBER" \
-            --jq '.data.repository.pullRequest.mergeStateStatus')
+          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}")
 
-          echo "merge_state=$MERGE_STATE" >> "$GITHUB_OUTPUT"
+          # Filter: not draft, BEHIND, no no-auto-update label
+          echo "$PR_JSON" | jq -c '
+            [.data.repository.pullRequests.nodes[]
+            | select(
+                .isDraft == false
+                and .mergeStateStatus == "BEHIND"
+                and ([.labels.nodes[].name] | contains(["no-auto-update"]) | not)
+              )
+            | {
+                number: .number,
+                head_ref: .headRefName,
+                head_repo: .headRepository.nameWithOwner
+              }
+            ]' > prs.json
 
-          if [ "$MERGE_STATE" = "BEHIND" ]; then
-            echo "Branch is behind base — will update"
-            echo "needs_update=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Branch is up-to-date or has conflicts ($MERGE_STATE) — skipping"
-            echo "needs_update=false" >> "$GITHUB_OUTPUT"
-          fi
+          PRS=$(cat prs.json)
+          echo "prs=$PRS" >> "$GITHUB_OUTPUT"
+          echo "Found $(echo "$PRS" | jq length) PRs that need updating"
 
-      - name: Merge base branch into PR branch
-        if: steps.check.outputs.needs_update == 'true'
+  update-branch:
+    name: "Update PR #${{ matrix.pr.number }}"
+    needs: list-prs
+    if: needs.list-prs.outputs.prs != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: auto-update-pr-${{ matrix.pr.number }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: ${{ fromJSON(needs.list-prs.outputs.prs) }}
+    steps:
+      - name: Generate GitHub App token (Docs bot)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.DOCS_APP_ID }}
+          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Merge main into PR branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ matrix.pr.number }}
+          HEAD_REF: ${{ matrix.pr.head_ref }}
+          HEAD_REPO: ${{ matrix.pr.head_repo }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          # Validate refs: git branch names must match safe pattern (alphanumeric, hyphens, slashes, dots, underscores).
-          # Reject anything with shell metacharacters, backticks, or path traversal.
+          # Validate refs against safe patterns to prevent injection
           safe_ref_pattern='^[a-zA-Z0-9._/-]+$'
-          for ref_name in HEAD_REF BASE_REF; do
-            ref_value="${!ref_name}"
-            if [[ ! "$ref_value" =~ $safe_ref_pattern ]]; then
-              echo "::error::Unsafe ref detected: $ref_name='$ref_value'"
-              exit 1
-            fi
-            # Reject refs with consecutive dots or starting with dot (git disallows)
-            if [[ "$ref_value" == *".."* ]] || [[ "$ref_value" == .* ]]; then
-              echo "::error::Invalid ref: $ref_name='$ref_value'"
-              exit 1
-            fi
-          done
-          # Validate repo full_name (owner/repo pattern)
+          if [[ ! "$HEAD_REF" =~ $safe_ref_pattern ]] || [[ "$HEAD_REF" == *".."* ]] || [[ "$HEAD_REF" == .* ]]; then
+            echo "::error::Unsafe ref: HEAD_REF='$HEAD_REF'"
+            exit 1
+          fi
           if [[ ! "$HEAD_REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
-            echo "::error::Unsafe repo name: HEAD_REPO='$HEAD_REPO'"
+            echo "::error::Unsafe repo: HEAD_REPO='$HEAD_REPO'"
             exit 1
           fi
           if [[ ! "$REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
-            echo "::error::Unsafe repo name: REPO='$REPO'"
+            echo "::error::Unsafe repo: REPO='$REPO'"
             exit 1
           fi
 
@@ -104,39 +135,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch the base branch from the upstream repo
+          # Fetch main from the upstream repo
           git remote add upstream "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          git fetch upstream "$BASE_REF" --depth=50
+          git fetch upstream main --depth=50
 
           # Attempt merge
-          if git merge "upstream/$BASE_REF" --no-edit -m "Merge branch '$BASE_REF' into $HEAD_REF"; then
-            echo "Merge succeeded — pushing update"
+          if git merge upstream/main --no-edit -m "Merge branch 'main' into $HEAD_REF"; then
+            echo "Merge succeeded — pushing update to PR #$PR_NUMBER"
             git push origin "HEAD:$HEAD_REF"
-            echo "updated=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Merge failed (conflicts) — aborting and commenting on PR"
+            echo "Merge failed (conflicts) — aborting and commenting on PR #$PR_NUMBER"
             git merge --abort
-            echo "updated=false" >> "$GITHUB_OUTPUT"
-
-            # Comment on the PR about the conflict (refs are validated above)
             gh pr comment "$PR_NUMBER" --body \
-              "⚠️ Auto-update attempted but merge conflicts detected. Please resolve conflicts manually:"
-
-            exit 1
-          fi
-        id: merge
-
-      - name: Summary
-        if: always()
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          NEEDS_UPDATE: ${{ steps.check.outputs.needs_update }}
-          UPDATED: ${{ steps.merge.outputs.updated }}
-        run: |
-          if [ "$NEEDS_UPDATE" != "true" ]; then
-            echo "PR #$PR_NUMBER: branch up-to-date, no update needed"
-          elif [ "$UPDATED" = "true" ]; then
-            echo "PR #$PR_NUMBER: branch updated successfully"
-          else
-            echo "PR #$PR_NUMBER: update attempted but conflicts found (comment posted)"
+              "⚠️ Auto-update attempted but merge conflicts detected. Please resolve conflicts manually."
+            exit 0
           fi
