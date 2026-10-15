@@ -35,6 +35,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
+
           # Query mergeable state via GraphQL to determine if branch is behind
           # shellcheck disable=SC2016
           MERGE_STATE=$(gh api graphql -f query='
@@ -42,11 +44,10 @@ jobs:
               repository(owner: $owner, name: $repo) {
                 pullRequest(number: $pr) {
                   mergeStateStatus
-                  mergeable
                 }
               }
             }
-          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -f pr="$PR_NUMBER" \
+          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -F pr="$PR_NUMBER" \
             --jq '.data.repository.pullRequest.mergeStateStatus')
 
           echo "merge_state=$MERGE_STATE" >> "$GITHUB_OUTPUT"
