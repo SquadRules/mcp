@@ -8,8 +8,6 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig*.json'
-      - '.github/workflows/**'
-      - 'scripts/**'
   workflow_dispatch:
     inputs:
       tag:
