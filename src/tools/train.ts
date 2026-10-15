@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
