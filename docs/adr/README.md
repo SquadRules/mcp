@@ -49,3 +49,4 @@ Rules of use:
 | [0017](0017-critic-loop-work-submission.md) | Critic-loop reviews a typed work submission, not a single input file | Accepted (extends 0010) |
 | [0018](0018-automated-dependency-pr-merge-via-reconcile.md) | Automated dependency PR merge via reconcile every 6 hours | Accepted |
 | [0019](0019-path-tiered-ci-gates-with-a-classifier-job.md) | Tier CI by gating expensive jobs on a dorny/paths-filter classifier, never by path-skipping a required workflow | Proposed — branch `ci/tiered-gates-classifier` |
+| [0020](0020-codeql-false-positive-query-exclusions.md) | CodeQL false positives are excluded in `codeql-config.yml` `query-filters`, not via inert inline `// codeql[]` comments | Accepted — clears `js/user-controlled-bypass` alerts [#1](https://github.com/SquadRules/mcp/security/code-scanning/1)/[#2](https://github.com/SquadRules/mcp/security/code-scanning/2) |
