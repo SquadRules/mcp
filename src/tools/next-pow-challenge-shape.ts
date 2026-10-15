@@ -36,6 +36,10 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
       const minLength = proof.comment?.min_length || 10;
       result['description'] = `Provide a verification comment (minimum ${minLength} characters) that genuinely summarises what was done in this step; do not paste unrelated text.`;
       result['comment'] = { min_length: minLength };
+    } else if (proofType === 'subagent') {
+      const context = proof.subagent?.context ?? '';
+      result['description'] = `Delegate this task to a subagent and return its actual report. Do not perform the task yourself.${context ? ` Context: ${context}` : ''}`;
+      result['subagent'] = { context };
     }
     return result;
   })() : {
