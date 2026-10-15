@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.10.1](https://github.com/SquadRules/mcp/compare/v5.10.0...v5.10.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* clarify adapter boundaries and restrict interpreter enum ([#100](https://github.com/SquadRules/mcp/issues/100), [#103](https://github.com/SquadRules/mcp/issues/103)) ([#110](https://github.com/SquadRules/mcp/issues/110)) ([25e5550](https://github.com/SquadRules/mcp/commit/25e55508e394a1cc017182d2f9557e2839cdd782))
+
+## [5.10.0](https://github.com/SquadRules/mcp/compare/v5.9.8...v5.10.0) (2026-10-15)
+
+
+### Features
+
+* add subagent contract type with anti-cheat evidence gate ([#99](https://github.com/SquadRules/mcp/issues/99), [#97](https://github.com/SquadRules/mcp/issues/97)) ([#114](https://github.com/SquadRules/mcp/issues/114)) ([8ebc7fc](https://github.com/SquadRules/mcp/commit/8ebc7fc6adb2f06bd16a1d2ef76d348886653e01))
+
+
+### Bug Fixes
+
+* resolve 5 agent retry friction points ([#105](https://github.com/SquadRules/mcp/issues/105)) ([#112](https://github.com/SquadRules/mcp/issues/112)) ([7e5a886](https://github.com/SquadRules/mcp/commit/7e5a8866d9d65fc22512ff8376691822c3014892))
+
 ## [5.9.8](https://github.com/SquadRules/mcp/compare/v5.9.7...v5.9.8) (2026-10-15)
 
 

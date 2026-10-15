@@ -5,6 +5,7 @@
  * Added error_code and retry_count for two-phase retry escalation.
  */
 import { z } from 'zod';
+import { SHELL_INTERPRETERS } from './shell-challenge-invocation.js';
 
 const layerUriSchema = z
   .string()
@@ -14,7 +15,7 @@ const layerUriSchema = z
   );
 
 export const solutionSchema = z.object({
-  type: z.enum(['shell', 'mcp', 'user_input', 'comment']).describe('Must match challenge.type'),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']).describe('Must match challenge.type'),
   nonce: z.string().optional().describe('Echo nonce from challenge'),
   proof_hash: z.string().optional().describe('Echo proof_hash from previous challenge or response'),
   shell: z.object({
@@ -33,30 +34,32 @@ export const solutionSchema = z.object({
     confirmation: z.string(),
     timestamp: z.string().optional()
   }).optional(),
-  comment: z.object({ text: z.string() }).optional()
+  comment: z.object({ text: z.string() }).optional(),
+  subagent: z.object({ report: z.string() }).optional()
 }).refine(
-  (data) => !!(data.shell || data.mcp || data.user_input || data.comment),
-  { message: 'At least one type-specific field (shell, mcp, user_input, or comment) must be provided' }
+  (data) => !!(data.shell || data.mcp || data.user_input || data.comment || data.subagent),
+  { message: 'At least one type-specific field (shell, mcp, user_input, comment, or subagent) must be provided' }
 ).refine(
   (data) => {
     if (data.type === 'shell' && !data.shell) return false;
     if (data.type === 'mcp' && !data.mcp) return false;
     if (data.type === 'user_input' && !data.user_input) return false;
     if (data.type === 'comment' && !data.comment) return false;
+    if (data.type === 'subagent' && !data.subagent) return false;
     return true;
   },
   { message: 'The type-specific field must match the solution type' }
 );
 
 export const challengeSchema = z.object({
-  type: z.enum(['shell', 'mcp', 'user_input', 'comment']),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']),
   description: z.string(),
   nonce: z.string().optional().describe('Echo back as solution.nonce'),
   proof_hash: z.string().optional().describe('Echo back as solution.proof_hash'),
   shell: z.object({
     cmd: z.string(),
     timeout_seconds: z.number(),
-    interpreter: z.string().optional(),
+    interpreter: z.enum(SHELL_INTERPRETERS).optional(),
     flags: z.array(z.string()).optional(),
     args: z.array(z.string()).optional(),
     workdir: z.string().optional(),
@@ -73,6 +76,9 @@ export const challengeSchema = z.object({
   }).optional(),
   comment: z.object({
     min_length: z.number().optional()
+  }).optional(),
+  subagent: z.object({
+    context: z.string().optional()
   }).optional()
 });
 

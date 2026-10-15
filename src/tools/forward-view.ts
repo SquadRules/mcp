@@ -14,6 +14,10 @@ import { buildLayerUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { buildEvidenceHint, buildEmptySolutionTemplate } from './forward-helpers.js';
 
+/** Mandatory instruction auto-appended to subagent contract context (#99). */
+export const MANDATORY_DELEGATION_INSTRUCTION =
+  'Delegate this task to a separate subagent. Wait for completion and return its actual report. Do not perform the task yourself. If delegation is unavailable, report failure.';
+
 export function extractUuid(uri: string): string {
   return uri.split('/').pop()?.split('?')[0] ?? '';
 }
@@ -77,6 +81,9 @@ function summarizeContract(contract: InferenceContractDefinition): string {
   if (contract.type === 'user_input') {
     return `Collect user input: ${contract.user_input?.prompt ?? 'confirmation required'}`;
   }
+  if (contract.type === 'subagent') {
+    return 'Delegate to subagent and collect report';
+  }
   return `Provide a verification comment (${contract.comment?.min_length ?? 10}+ chars)`;
 }
 
@@ -117,6 +124,9 @@ export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmissi
   } else if (solution.type === 'comment' && e) {
     const commentText = typeof e['text'] === 'string' ? e['text'] : typeof e['comment'] === 'string' ? e['comment'] : undefined;
     if (commentText) base.comment = { text: commentText };
+  } else if (solution.type === 'subagent' && e) {
+    const reportText = typeof e['report'] === 'string' ? e['report'] : undefined;
+    if (reportText) base.subagent = { report: reportText };
   }
 
   if (base.shell === undefined && solution.shell) {
@@ -149,30 +159,18 @@ export async function loadMemoryForParsedUri(
   parsed: ReturnType<typeof parseSquadrulesUri>
 ): Promise<LoadMemoryForParsedUriResult> {
   if (parsed.kind === 'layer') {
-    const memory = await memoryStore.getMemory(parsed.id);
-    return { memory };
+    return { memory: await memoryStore.getMemory(parsed.id) };
   }
-  if (!qdrantService) {
-    throw new Error('Adapter resolution requires qdrantService');
-  }
+  if (!qdrantService) throw new Error('Adapter resolution requires qdrantService');
   if (parsed.idKind === 'slug') {
     const outcome = await qdrantService.findFirstStepMemoryUuidBySlug(parsed.id);
-    if (!outcome.layerUuid) {
-      return { memory: null };
-    }
+    if (!outcome.layerUuid) return { memory: null };
     const memory = await memoryStore.getMemory(outcome.layerUuid);
-    return {
-      memory,
-      ...(outcome.disambiguation_note ? { slug_disambiguation_note: outcome.disambiguation_note } : {})
-    };
+    return { memory, ...(outcome.disambiguation_note ? { slug_disambiguation_note: outcome.disambiguation_note } : {}) };
   }
   const layers = await qdrantService.getAdapterLayers(parsed.id);
   const firstLayer = layers[0]?.uuid;
-  if (firstLayer) {
-    const memory = await memoryStore.getMemory(firstLayer);
-    return { memory };
-  }
-  const memory = await memoryStore.getMemory(parsed.id);
+  const memory = firstLayer ? await memoryStore.getMemory(firstLayer) : await memoryStore.getMemory(parsed.id);
   return { memory };
 }
 async function challengeReuseOptions(memory: Memory): Promise<{ existingNonce: string } | undefined> {
@@ -294,7 +292,12 @@ export async function buildForwardView(
       : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}${chainHint}`,
     execution_id: executionId,
     ...(options?.proofHash && { proof_hash: options.proofHash }),
-    ...(options?.message ? { message: options.message } : {}),
+    ...(options?.message || contract.type === 'subagent' ? {
+      message: [
+        options?.message,
+        ...(contract.type === 'subagent' ? [`SUBAGENT_DELEGATION: ${MANDATORY_DELEGATION_INSTRUCTION}`] : [])
+      ].filter(Boolean).join(' — ')
+    } : {}),
     ...(options?.errorCode && { error_code: options.errorCode }),
     ...(options?.retryCount !== undefined && { retry_count: options.retryCount }),
     ...(slugNote ? { slug_disambiguation_note: slugNote } : {})
@@ -333,11 +336,7 @@ export async function mapLayerPayloadShapeToForwardView(
 }
 export interface LayerPayload {
   must_obey: boolean;
-  current_step?: {
-    uri: string;
-    content: string;
-    mimeType: 'text/markdown';
-  } | null;
+  current_step?: { uri: string; content: string; mimeType: 'text/markdown' } | null;
   challenge: ForwardOutput['contract'];
   next_action: string;
   proof_hash?: string;

@@ -1,5 +1,5 @@
 ---
-version: "5.9.8"
+version: "5.10.1"
 slug: protocol-linking-guide
 title: Protocol Linking Guide
 ---
@@ -212,6 +212,23 @@ calls that bypass `activate`.
 - `chain_root` must refer to an existing slug (the chain entry point).
 - `forward` calls within a chain are unaffected — `chain_root` only changes
   `activate` output routing.
+
+```json
+{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
+```
+
+## Personal vs System Adapter Linking
+
+| Adapter type | Can `forward` to | Can be `forward`'d from |
+|---|---|---|
+| System adapter (bundled) | Other system adapters (slug guaranteed to exist) | System or personal adapters |
+| Personal adapter (MCP database) | **Nothing** — must be self-contained | Only via `activate` (runtime discovery) |
+
+Personal adapters use `comment` contracts to describe what the agent should do
+next (e.g. "activate a TDD execution adapter"), not `mcp forward` contracts to
+other personal adapters. A personal adapter that chains to
+`squadrules://adapter/some-personal-slug` will fail at runtime when that slug
+does not exist in the caller's MCP database.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}

@@ -1,3 +1,5 @@
+import type { ShellInterpreter } from '../tools/shell-challenge-invocation.js';
+
 export interface AdapterInfo {
   id: string; // Stable adapter identifier (typically the head layer UUID)
   name: string; // Adapter title (H1)
@@ -26,7 +28,7 @@ export interface TensorContractDetails {
   condition?: string;
 }
 
-export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment';
+export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
 
 export interface InferenceContractDefinition {
   type?: InferenceContractType;
@@ -37,7 +39,7 @@ export interface InferenceContractDefinition {
   shell?: {
     cmd: string;
     timeout_seconds: number;
-    interpreter?: string;
+    interpreter?: ShellInterpreter;
     flags?: string[];
     args?: string[];
     workdir?: string;
@@ -55,6 +57,9 @@ export interface InferenceContractDefinition {
     min_length?: number;
   };
   tensor?: TensorContractDetails;
+  subagent?: {
+    context?: string;
+  };
 }
 
 export interface TensorValue {
