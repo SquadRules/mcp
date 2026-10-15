@@ -4,10 +4,8 @@
  * publish() is a no-op (returns 0); no cross-process invalidation.
  * Selected automatically by key-value-store-factory when isRedisConfigured is false.
  *
- * TODO(multi-instance): when several MCP processes share one embedded LanceDB
- * directory without Redis, each keeps its own cache and publish() is a no-op, so a
- * tune/update/delete in one process is not seen by another until it restarts or reads
- * with `fresh`. See docs/known-issues-and-limitations.md (Embedded LanceDB limitations).
+ * Note: Application-level caching is disabled for embedded LanceDB (see RedisCacheService.shouldCache).
+ * Nonce/proof-of-work values still use this store for transient adapter flow state.
  */
 
 import { logger } from '../utils/structured-logger.js';
