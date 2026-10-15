@@ -115,7 +115,8 @@ export const activateOutputSchema = z.object({
    * spans multiple projects. Export the resolved absolute path as `SQUADRULES_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.
    */
-  squadrules_local_artifact_dir: z.array(z.string()).optional()
+  squadrules_local_artifact_dir: z.array(z.string()).optional(),
+  transport: z.enum(['stdio', 'http']).optional().describe('MCP transport mode. When "stdio", no HTTP listener is available; use squadrules:// artifact URIs and `squadrules export` instead of curl.')
 }).strict();
 
 export type ActivateInput = z.infer<typeof activateInputSchema>;

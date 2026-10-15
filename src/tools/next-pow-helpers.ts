@@ -47,7 +47,7 @@ export async function buildChallenge(
       // Refresh TTL so repeated forward previews (no solution) do not expire the active challenge.
       await proofOfWorkStore.setNonce(memory.memory_uuid, options.existingNonce);
     } else {
-      const nonce = crypto.randomBytes(16).toString('hex');
+      const nonce = crypto.randomBytes(6).toString('hex');
       await proofOfWorkStore.setNonce(memory.memory_uuid, nonce);
       base.nonce = nonce;
     }
@@ -182,7 +182,12 @@ export async function handleProofSubmission(
       challengePayload = { ...challengePayload, proof_hash: options.expectedPreviousHash };
     }
     return {
-      blockedPayload: buildErrorPayload(memory, current, challengePayload, msg, code, retryCount)
+      blockedPayload: {
+        ...buildErrorPayload(memory, current, challengePayload, msg, code, retryCount),
+        // Top-level convenience field: agents can copy this directly into solution.nonce
+        // without digging into the challenge object. Mirrors challenge.nonce.
+        retry_nonce: storedNonce ?? undefined
+      }
     };
   };
 
@@ -200,9 +205,14 @@ export async function handleProofSubmission(
       // Rotate nonce so the error response carries a fresh challenge.
       // Without rotation the response echoes the same stale nonce the agent
       // already tried, creating an unrecoverable NONCE_MISMATCH loop.
-      const freshNonce = crypto.randomBytes(16).toString('hex');
+      const freshNonce = crypto.randomBytes(6).toString('hex');
       await proofOfWorkStore.setNonce(memory.memory_uuid, freshNonce);
-      return blocked('Nonce mismatch. A fresh nonce has been issued — use the nonce from THIS response.', 'NONCE_MISMATCH');
+      const receivedSnippet = (submission.nonce ?? '(empty)').slice(0, 12);
+      const expectedSnippet = storedNonce.slice(0, 12);
+      return blocked(
+        `Nonce mismatch. Expected: ${expectedSnippet}…, got: ${receivedSnippet}…. Use the retry_nonce from THIS response.`,
+        'NONCE_MISMATCH'
+      );
     }
   }
 
