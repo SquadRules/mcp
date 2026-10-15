@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { load } from 'js-yaml';
 import {
   GitHub, dependencyTitle, managedPull, orderPulls, gateRuns, reconcile,
   assertProtection, conventionalTitle,
@@ -270,3 +272,70 @@ test('protection must bind all required gates to Actions with strict base', () =
   assert.doesNotThrow(() => assertProtection(settings));
   assert.throws(() => assertProtection({ ...settings, required_status_checks: { strict: false, checks: [] } }));
 });
+
+const validation = name => load(readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
+const mandatoryJobs = {
+  integration: ['build', 'verify-integration-cluster', 'verify-integration-single'],
+  security: ['npm-audit', 'codeql', 'dependency-review'],
+};
+const requiredPaths = {
+  integration: ['src/**', 'tests/**', 'package.json', 'package-lock.json'],
+  security: ['src/**', 'package.json', 'package-lock.json'],
+};
+
+for (const [name, jobs] of Object.entries(mandatoryJobs)) {
+  const config = validation(name);
+  const gate = config.jobs[`${name}-pass`];
+  test(`${name}: native path filtering prevents empty-diff bypass`, () => {
+    assert.ok(Object.hasOwn(config.on, 'pull_request'));
+    assert.deepEqual(config.on.pull_request.branches, ['main']);
+    assert.ok(Array.isArray(config.on.pull_request.paths), 'Workflows must use native path filtering');
+    for (const path of requiredPaths[name]) {
+      assert.ok(config.on.pull_request.paths.includes(path), `Missing required path: ${path}`);
+    }
+    assert.equal(config.on.pull_request['paths-ignore'], undefined);
+    assert.ok(!config.on.pull_request.types || config.on.pull_request.types.includes('synchronize'));
+    assert.equal(config.jobs.changes, undefined, 'No classifier may suppress mandatory validation');
+    assert.deepEqual([...gate.needs].sort(), [...jobs].sort());
+    assert.equal(gate.if, 'always()');
+    for (const id of jobs) {
+      assert.notEqual(config.jobs[id]['continue-on-error'], true);
+      if (id !== 'dependency-review') assert.equal(config.jobs[id].if, undefined);
+    }
+  });
+  // Run the real workflow shell, resolving only the needs/event expressions it consumes.
+  const runGate = (results, event = 'pull_request') => {
+    const step = gate.steps.find(s => s.run);
+    const env = Object.fromEntries(Object.entries(step.env).map(([key, expression]) => {
+      const need = expression.match(/^\$\{\{ needs\.([\w-]+)\.result \}\}$/);
+      if (need) return [key, results[need[1]] ?? ''];
+      if (expression === '${{ github.event_name }}') return [key, event];
+      assert.equal(expression, "${{ join(needs.*.result, ',') }}");
+      return [key, gate.needs.map(id => results[id] ?? '').join(',')];
+    }));
+    const result = spawnSync('bash', ['-e', '-c', step.run], { env: { ...process.env, ...env }, encoding: 'utf8' });
+    assert.ifError(result.error);
+    return result.status;
+  };
+  const successful = Object.fromEntries(jobs.map(id => [id, 'success']));
+  test(`${name}: the all-skipped PR 108 result cannot pass`, () => {
+    assert.notEqual(runGate(Object.fromEntries(jobs.map(id => [id, id === 'dependency-review' ? 'success' : 'skipped']))), 0);
+    assert.notEqual(runGate({}), 0);
+  });
+  for (const event of ['pull_request', 'push', 'merge_group', 'workflow_dispatch', 'schedule']) {
+    test(`${name}: ${event} accepts only successful mandatory jobs`, () => {
+      const results = { ...successful };
+      if (name === 'security' && event !== 'pull_request') results['dependency-review'] = 'skipped';
+      assert.equal(runGate(results, event), 0);
+      for (const id of jobs) {
+        if (id === 'dependency-review' && event !== 'pull_request') continue;
+        for (const bad of ['skipped', 'failure', 'cancelled', '', 'unknown']) {
+          assert.notEqual(runGate({ ...results, [id]: bad }, event), 0, `${id}=${bad} must block ${event}`);
+        }
+      }
+      if (name === 'security' && event !== 'pull_request') {
+        for (const bad of ['failure', 'cancelled', '']) assert.notEqual(runGate({ ...results, 'dependency-review': bad }, event), 0);
+      }
+    });
+  }
+}
