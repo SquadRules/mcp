@@ -13,7 +13,7 @@
  */
 
 import { logger } from '../../utils/structured-logger.js';
-import { EMBEDDING_PROVIDER, OPENAI_API_KEY, TEI_BASE_URL, TEI_MODEL, FASTEMBED_MODEL } from '../../config.js';
+import { EMBEDDING_PROVIDER, OPENAI_API_KEY, TEI_BASE_URL, TEI_MODEL } from '../../config.js';
 import { OPENAI_EMBEDDING_MODEL, getResolvedEmbeddingDimension } from './config.js';
 import { postEmbeddings } from './providers.js';
 import type { EmbeddingResult, BatchEmbeddingResult } from './types.js';
@@ -31,6 +31,7 @@ import {
   logEmbeddingAuditSuccess
 } from './audit.js';
 import { runEmbeddingHealthCheck } from './health.js';
+import { resolveCandidateProvider, getModelNameForProvider } from './provider-resolver.js';
 
 // Re-export types
 export type { EmbeddingResult, BatchEmbeddingResult } from './types.js';
@@ -41,9 +42,7 @@ export class EmbeddingService {
     }
 
     private getModelName(provider: 'openai' | 'tei' | 'fastembed'): string {
-        if (provider === 'tei') return TEI_MODEL;
-        if (provider === 'fastembed') return FASTEMBED_MODEL;
-        return OPENAI_EMBEDDING_MODEL;
+        return getModelNameForProvider(provider);
     }
 
     async generateEmbedding(text: string): Promise<EmbeddingResult> {
@@ -258,13 +257,8 @@ export class EmbeddingService {
     }
 
     getProvider(): 'openai' | 'tei' | 'fastembed' {
-        const pref = EMBEDDING_PROVIDER;
-        if (pref === 'openai') return 'openai';
-        if (pref === 'tei') return 'tei';
-        if (pref === 'fastembed') return 'fastembed';
-        if (OPENAI_API_KEY && OPENAI_EMBEDDING_MODEL) return 'openai';
-        if (TEI_BASE_URL && TEI_MODEL) return 'tei';
-        return 'fastembed'; // local default (no key, no service)
+        // Return the candidate provider (what we'll try), not what succeeded
+        return resolveCandidateProvider();
     }
 
     getConfig() {

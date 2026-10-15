@@ -1,9 +1,12 @@
 # 0004 — fastembed is the only embedding provider in CI
 
-Status: Accepted — the embedding provider is resolved at runtime on `main`: a process embeds
-with OpenAI (or Ollama/TEI) only when the matching key/env is set, and otherwise falls back to
-the embedded fastembed model. Every lane therefore uses the embedded model **by default** unless
-a key/Ollama is set. The Single lane ([0007](0007-single-lane-stdio-integration-with-model-cache.md))
+Status: Accepted for CI scope — the embedding provider is resolved at runtime on `main`: a process
+embeds with OpenAI (or Ollama/TEI) only when the matching key/env is set, and otherwise falls back
+to the embedded fastembed model. Every lane therefore uses the embedded model **by default** unless
+a key/Ollama is set. Scope note: this record is about CI lanes only (they blank the key, so `auto`
+lands on fastembed). The `auto` resolution rule itself is the product contract and is recorded in
+[ADR 0021](0021-embedding-provider-auto-resolution-and-store-width-binding.md), together with the
+store vector width that the resolved provider binds. The Single lane ([0007](0007-single-lane-stdio-integration-with-model-cache.md))
 is key-free by construction. The cluster lane passes `OPENAI_API_KEY` into `.env` generation only
 when that repository secret exists; the secret is still present today, so that lane currently
 embeds with OpenAI until the secret is deleted — deleting it flips the lane to the embedded model
@@ -12,7 +15,7 @@ model (`fast-bge-small-en-v1.5`, 384-d). The record below was written on the
 [#26](https://github.com/SquadRules/mcp/pull/26) branch (closed unmerged) and described a hard
 "no lane may hold a key" gate; read its Decision and Consequences as that branch's design,
 superseded by the env-resolved default now on `main`.
-Date: 2026-10-06 (status refreshed 2026-10-12)
+Date: 2026-10-06 (status refreshed 2026-10-12; CI-scope supersession note added 2026-10-15)
 
 ## Context
 
@@ -113,3 +116,11 @@ The `integration.yml` steps named above ("Force key-free fastembed embeddings", 
 embedded backend and key-free fastembed") and the `ci-validate-workflows.mjs` fastembed
 assertions exist only on the [#26](https://github.com/SquadRules/mcp/pull/26) branch; on
 `main` the integration lanes still pass `secrets.OPENAI_API_KEY`.
+
+## Related
+
+- [ADR 0021](0021-embedding-provider-auto-resolution-and-store-width-binding.md) — the `auto`
+  resolution rule as the product contract, and the store vector width it binds. It does not change
+  the CI decision recorded here; it states the runtime rule that the Status line above only
+  describes, and adds the store-width consequences
+  ([#94](https://github.com/SquadRules/mcp/issues/94)).

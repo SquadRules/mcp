@@ -10,11 +10,10 @@
 import {
   AUTH_ENABLED,
   EMBEDDING_PROVIDER,
-  FASTEMBED_CACHE_DIR,
-  FASTEMBED_MODEL,
   isQdrantConfigured
 } from '../config.js';
 import { describeRuntimeMode } from '../config/runtime-mode.js';
+import { resolveCandidateProvider, getModelNameForProvider } from '../services/embedding/provider-resolver.js';
 
 /**
  * Compose the banner text. The LanceDB directory is passed in rather than resolved
@@ -22,6 +21,12 @@ import { describeRuntimeMode } from '../config/runtime-mode.js';
  * the caller uses `resolveLanceDbDir()` from the vector-store layer.
  */
 export function composeStdioModeBanner(lancedbDir: string): string {
+  const candidateProvider = resolveCandidateProvider();
+  const candidateModel = getModelNameForProvider(candidateProvider);
+  const embeddingLine = candidateProvider === 'fastembed'
+    ? `EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; candidate=${candidateProvider} (${candidateModel}); not initialized`
+    : `EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; candidate=${candidateProvider} (${candidateModel}); not initialized`;
+  
   const lines = [
     `SquadRules MCP - ${describeRuntimeMode('stdio')} local mode (stdio transport)`,
     `  store:      ${
@@ -29,7 +34,7 @@ export function composeStdioModeBanner(lancedbDir: string): string {
         ? 'external Qdrant (not supported in stdio; startup is rejected above)'
         : `embedded LanceDB at ${lancedbDir}`
     }`,
-    `  embedding:  EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER}; local model ${FASTEMBED_MODEL} (cache ${FASTEMBED_CACHE_DIR})`,
+    `  embedding:  ${embeddingLine}`,
     `  auth:       ${AUTH_ENABLED ? 'enabled' : 'disabled - single user, writes land in your personal space'}`,
     '  http:       no listener (/api, /ui, metrics and the OAuth callback are unavailable)',
     '  state:      proof-of-work nonces, retry counters and caches are in-memory and lost on restart'
