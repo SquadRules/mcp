@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.9.7](https://github.com/SquadRules/mcp/compare/v5.9.6...v5.9.7) (2026-10-15)
+
+
+### Bug Fixes
+
+* **ci:** add path filtering to release workflow ([#119](https://github.com/SquadRules/mcp/issues/119)) ([a2f08f1](https://github.com/SquadRules/mcp/commit/a2f08f122fc9be9ca7014114379d90a913299e6f))
+* filter redirect tombstones from activate results and demote boot logs to debug ([#70](https://github.com/SquadRules/mcp/issues/70)) ([#109](https://github.com/SquadRules/mcp/issues/109)) ([5c8ed6e](https://github.com/SquadRules/mcp/commit/5c8ed6eea057cbe7d302aa6156df5c511e2b87da))
+
 ## [5.9.6](https://github.com/SquadRules/mcp/compare/v5.9.5...v5.9.6) (2026-10-15)
 
 
