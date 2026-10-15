@@ -2,7 +2,7 @@ import { keyValueStore } from './key-value-store-factory.js';
 import { logger } from '../utils/structured-logger.js';
 
 export type ProofOfWorkStatus = 'success' | 'failed';
-export type ProofOfWorkType = 'shell' | 'mcp' | 'user_input' | 'comment';
+export type ProofOfWorkType = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
 
 export interface ProofOfWorkResultRecord {
   result_id: string;
