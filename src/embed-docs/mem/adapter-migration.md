@@ -1,5 +1,5 @@
 ---
-version: "5.9.5"
+version: "5.9.6"
 slug: adapter-migration
 title: Adapter Migration Protocol
 ---
