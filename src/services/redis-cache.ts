@@ -1,7 +1,7 @@
 import type { Memory } from '../types/memory.js';
 import { logger } from '../utils/structured-logger.js';
 import { keyValueStore } from './key-value-store-factory.js';
-import { SQUADRULES_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX } from '../config.js';
+import { SQUADRULES_REDIS_PREFIX, MEMORY_CACHE_KEY_PREFIX, isRedisConfigured } from '../config.js';
 import { getSpaceIdFromStorage } from '../utils/tenant-context.js';
 import { buildLayerUri } from '../tools/squadrules-uri.js';
 
@@ -26,6 +26,11 @@ export class RedisCacheService {
   /** Bounded TTL for cached memory resources — safety net when invalidation fails. */
   static readonly MEMORY_CACHE_TTL_SECONDS = 3600;
 
+  /** Whether to use application-level caching. Disabled for embedded LanceDB. */
+  private get shouldCache(): boolean {
+    return isRedisConfigured;
+  }
+
   constructor() {
     // Backend is determined by keyValueStore; capability line emitted by the factory.
   }
@@ -36,6 +41,7 @@ export class RedisCacheService {
   }
 
   async getSearchResult(query: string, limit: number, opts?: { collapse?: boolean }): Promise<CachedSearchResult | null> {
+    if (!this.shouldCache) return null;
     try {
       const key = this.getCacheKey(query, limit, opts);
       const cached = await keyValueStore.getJson<CachedSearchResult>(key);
@@ -54,6 +60,7 @@ export class RedisCacheService {
   }
 
   async setSearchResult(query: string, limit: number, result: SearchResult, opts?: { collapse?: boolean }): Promise<void> {
+    if (!this.shouldCache) return;
     try {
       const key = this.getCacheKey(query, limit, opts);
       const ttl = 300; // 5 minutes
@@ -72,6 +79,7 @@ export class RedisCacheService {
   }
 
   async invalidateSearchCache(): Promise<void> {
+    if (!this.shouldCache) return;
     try {
       logger.debug(`[RedisCacheService] Search cache invalidation requested`);
       // Delete keys matching search cache pattern (all collapse modes)
@@ -99,6 +107,7 @@ export class RedisCacheService {
   // Remove cached memory by UUID. Key is global (prefix+mem:uuid), so one del invalidates for all spaces.
   // Errors are caught and logged; callers that need strict invalidation should use invalidateMemoryCacheStrict.
   async invalidateMemoryCache(uuid: string): Promise<void> {
+    if (!this.shouldCache) return;
     try {
       if (!uuid || typeof uuid !== 'string') {
         logger.warn('[RedisCacheService] invalidateMemoryCache called with invalid uuid');
@@ -119,6 +128,7 @@ export class RedisCacheService {
    * Use after writes where a stale cache would cause a false-success response.
    */
   async invalidateMemoryCacheStrict(uuid: string): Promise<void> {
+    if (!this.shouldCache) return;
     if (!uuid || typeof uuid !== 'string') {
       throw new Error(`Cannot invalidate memory cache: invalid uuid "${uuid}"`);
     }
@@ -175,6 +185,7 @@ export class RedisCacheService {
 
   // Memory resource caching methods
   async getMemoryResource(uuid: string): Promise<Memory | null> {
+    if (!this.shouldCache) return null;
     try {
       const key = `${this.memoryPrefix}${uuid}`;
       const cached = await keyValueStore.getJson<Memory>(key);
@@ -190,6 +201,7 @@ export class RedisCacheService {
   }
 
   async setMemoryResource(memory: Memory): Promise<void> {
+    if (!this.shouldCache) return;
     try {
       const key = `${this.memoryPrefix}${memory.memory_uuid}`;
       // Bounded TTL prevents permanent stale data if invalidation fails
@@ -202,6 +214,7 @@ export class RedisCacheService {
 
   // Invalidate the cached activation/search result set
   async invalidateBeginCache(): Promise<void> {
+    if (!this.shouldCache) return;
     try {
       logger.debug(`[RedisCacheService] Begin/activate cache invalidation requested`);
       const patterns = ['begin:*', 'activate:*'];
@@ -230,6 +243,7 @@ export class RedisCacheService {
   // For atomic operations as per plan
   // System is mostly read-heavy, so invalidate aggressively on writes
   async invalidateAfterUpdate(): Promise<void> {
+    if (!this.shouldCache) return;
     logger.debug('[RedisCacheService] Cache invalidation after Qdrant update - clearing all search and begin caches');
     await Promise.all([
       this.invalidateSearchCache(),
