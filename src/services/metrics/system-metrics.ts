@@ -1,4 +1,4 @@
-import { Gauge } from 'prom-client';
+import { Gauge } from '@prometheus-io/client';
 import { register } from './registry.js';
 
 /**
