@@ -123,14 +123,14 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
     structuredLogger.debug(`embedding dimension: ${embeddingDim}`);
   }
 
-  structuredLogger.info(`vector store: ${isQdrantConfigured ? 'Qdrant' : 'LanceDB (embedded)'}`);
+  structuredLogger.debug(`vector store: ${isQdrantConfigured ? 'Qdrant' : 'LanceDB (embedded)'}`);
   
   // Log the successful provider if initialized, otherwise the preference
   const successfulProvider = getSuccessfulProvider();
   if (successfulProvider) {
-    structuredLogger.info(`embedding: ${successfulProvider.provider} (${successfulProvider.model}, ${successfulProvider.dimension}d)`);
+    structuredLogger.debug(`embedding: ${successfulProvider.provider} (${successfulProvider.model}, ${successfulProvider.dimension}d)`);
   } else {
-    structuredLogger.info(`embedding: ${EMBEDDING_PROVIDER} (initialization deferred)`);
+    structuredLogger.debug(`embedding: ${EMBEDDING_PROVIDER} (initialization deferred)`);
   }
 
   // Width reconciliation: check stored width vs current provider dimension (#94)
