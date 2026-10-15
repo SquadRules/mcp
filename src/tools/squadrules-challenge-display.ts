@@ -54,7 +54,7 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
       }
       result['description'] = description;
       const shellOut: Record<string, unknown> = { cmd, timeout_seconds: timeout };
-      if (interpreter !== undefined && interpreter !== '') shellOut['interpreter'] = interpreter;
+      if (interpreter !== undefined) shellOut['interpreter'] = interpreter;
       if (flags !== undefined && flags.length > 0) shellOut['flags'] = flags;
       if (args !== undefined && args.length > 0) shellOut['args'] = args;
       if (workdir !== undefined && workdir !== '') shellOut['workdir'] = workdir;
