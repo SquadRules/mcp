@@ -1,0 +1,141 @@
+# Automatically merge the base branch into PR branches that have fallen behind.
+# Eliminates the "This branch is out-of-date with the base branch" friction by
+# keeping PR branches up-to-date with main without manual intervention.
+#
+# Uses pull_request_target for write access to push to PR branches (including forks).
+# Only performs git merge operations — does not run arbitrary code from the PR branch.
+name: Auto-update PR branches
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-update-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  update-branch:
+    # Skip draft PRs and PRs opted out with the no-auto-update label.
+    if: >-
+      github.event.pull_request.draft == false &&
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-update')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check if branch is behind base
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Query mergeable state via GraphQL to determine if branch is behind
+          # shellcheck disable=SC2016
+          MERGE_STATE=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  mergeStateStatus
+                  mergeable
+                }
+              }
+            }
+          ' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -f pr="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.mergeStateStatus')
+
+          echo "merge_state=$MERGE_STATE" >> "$GITHUB_OUTPUT"
+
+          if [ "$MERGE_STATE" = "BEHIND" ]; then
+            echo "Branch is behind base — will update"
+            echo "needs_update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Branch is up-to-date or has conflicts ($MERGE_STATE) — skipping"
+            echo "needs_update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge base branch into PR branch
+        if: steps.check.outputs.needs_update == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Validate refs: git branch names must match safe pattern (alphanumeric, hyphens, slashes, dots, underscores).
+          # Reject anything with shell metacharacters, backticks, or path traversal.
+          safe_ref_pattern='^[a-zA-Z0-9._/-]+$'
+          for ref_name in HEAD_REF BASE_REF; do
+            ref_value="${!ref_name}"
+            if [[ ! "$ref_value" =~ $safe_ref_pattern ]]; then
+              echo "::error::Unsafe ref detected: $ref_name='$ref_value'"
+              exit 1
+            fi
+            # Reject refs with consecutive dots or starting with dot (git disallows)
+            if [[ "$ref_value" == *".."* ]] || [[ "$ref_value" == .* ]]; then
+              echo "::error::Invalid ref: $ref_name='$ref_value'"
+              exit 1
+            fi
+          done
+          # Validate repo full_name (owner/repo pattern)
+          if [[ ! "$HEAD_REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
+            echo "::error::Unsafe repo name: HEAD_REPO='$HEAD_REPO'"
+            exit 1
+          fi
+          if [[ ! "$REPO" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]; then
+            echo "::error::Unsafe repo name: REPO='$REPO'"
+            exit 1
+          fi
+
+          # Clone the PR head repo (supports forks)
+          gh repo clone "$HEAD_REPO" work -- --branch "$HEAD_REF" --depth=50
+          cd work
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch the base branch from the upstream repo
+          git remote add upstream "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git fetch upstream "$BASE_REF" --depth=50
+
+          # Attempt merge
+          if git merge "upstream/$BASE_REF" --no-edit -m "Merge branch '$BASE_REF' into $HEAD_REF"; then
+            echo "Merge succeeded — pushing update"
+            git push origin "HEAD:$HEAD_REF"
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Merge failed (conflicts) — aborting and commenting on PR"
+            git merge --abort
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+
+            # Comment on the PR about the conflict (refs are validated above)
+            gh pr comment "$PR_NUMBER" --body \
+              "⚠️ Auto-update attempted but merge conflicts detected. Please resolve conflicts manually:"
+
+            exit 1
+          fi
+        id: merge
+
+      - name: Summary
+        if: always()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          NEEDS_UPDATE: ${{ steps.check.outputs.needs_update }}
+          UPDATED: ${{ steps.merge.outputs.updated }}
+        run: |
+          if [ "$NEEDS_UPDATE" != "true" ]; then
+            echo "PR #$PR_NUMBER: branch up-to-date, no update needed"
+          elif [ "$UPDATED" = "true" ]; then
+            echo "PR #$PR_NUMBER: branch updated successfully"
+          else
+            echo "PR #$PR_NUMBER: update attempted but conflicts found (comment posted)"
+          fi
