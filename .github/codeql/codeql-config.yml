@@ -10,11 +10,23 @@ name: "SQUADRULES CodeQL config"
 # js/http-to-file-access: `squadrules export --format skill_zip` writes the authenticated export ZIP
 # from download_ref (or decodes inline base64) to --zip-out or a cwd-local name — same product as
 # piping markdown export to a file. Path hints are basename-sanitized in src/cli/skill-zip-local-write.ts.
+#
+# js/user-controlled-bypass: fires on the AUTH_ENABLED branches in src/http/http-auth-middleware.ts
+# because request attributes (Authorization-header presence at the Bearer branch, req.method at the
+# login-redirect branch) legitimately select the auth path. Both are false positives — no branch grants
+# unauthenticated access: the Bearer branch cryptographically validates the token (issuer/audience/exp
+# via validateBearerToken) before runNext and 401s otherwise; the redirect branch only issues a
+# server-generated OIDC login 302 for recognized GETs and returns 401 JSON for every other verb/path.
+# Inline `// codeql[...]` suppression comments at those sites are NOT honored by GitHub code scanning
+# (confirmed upstream: github/codeql#9298), so the exclusion must live here — same mechanism already
+# used for js/file-access-to-http above.
 query-filters:
   - exclude:
       id: js/file-access-to-http
   - exclude:
       id: js/http-to-file-access
+  - exclude:
+      id: js/user-controlled-bypass
 
 paths-ignore:
   - "**/*.test.ts"
