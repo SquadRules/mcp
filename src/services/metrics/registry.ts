@@ -1,4 +1,4 @@
-import { Registry } from 'prom-client';
+import { Registry } from '@prometheus-io/client';
 import { getBuildVersion } from '../../utils/build-version.js';
 import os from 'os';
 

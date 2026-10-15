@@ -1,4 +1,4 @@
-import { Counter } from 'prom-client';
+import { Counter } from '@prometheus-io/client';
 import { register } from './registry.js';
 
 export const anomalyEvents = new Counter({
