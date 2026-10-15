@@ -188,13 +188,6 @@ Every solution, regardless of type, follows the same envelope:
 }
 ```
 
-### Compatibility
-
-The server also accepts older solution shapes where data is placed directly
-under the type key (e.g. `{ "type": "shell", "shell": { "exit_code": 0 } }`)
-instead of inside an `evidence` envelope. Always use the unified envelope with
-`outcome` and `evidence` for new protocols.
-
 ## Interpreter Selection
 
 | Task | Use bash | Use perl | Use python3 |
