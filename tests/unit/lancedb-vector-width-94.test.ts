@@ -16,15 +16,13 @@ import path from 'node:path';
 import {
   readStoreMetadata,
   writeStoreMetadata,
-  checkWidthConsistency,
-  type LanceStoreMetadata
+  checkWidthConsistency
 } from '../../src/services/vector-store/lancedb/lance-store-metadata.js';
 import {
   inspectSchema,
   validateVectorWidths,
   EmbeddingWidthMismatchError,
-  EmbeddingSchemaInvalidError,
-  type SchemaInspectionResult
+  EmbeddingSchemaInvalidError
 } from '../../src/services/vector-store/lancedb/lance-width-validation.js';
 
 let tmpDir: string;
