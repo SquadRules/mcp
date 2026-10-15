@@ -93,7 +93,7 @@ export class ModelStatsService {
             this.statsState.healerBonuses = this.statsState.healerBonuses || {};
 
             this.initialized = true;
-            logger.info('model stats: persistent');
+            logger.debug('model stats: persistent');
         } catch (error) {
             logger.error('model stats: persistent init failed', error);
             // proceed with in-memory defaults
