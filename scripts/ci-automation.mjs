@@ -96,7 +96,7 @@ export function managedPull(pr, files, repo, actorId) {
     (pr.user.login === 'dependabot[bot]' && pr.user.id === 49699333 && pr.head.ref.startsWith('dependabot/')) ||
     (pr.user.login === 'renovate[bot]' && pr.user.id === 29139614 && pr.head.ref.startsWith('renovate/')));
   const own = Number.isSafeInteger(actorId) && actorId > 0 && pr.user?.id === actorId &&
-    (pr.head.ref.startsWith('automation/renovate/') || pr.head.ref === 'automation/audit-fix');
+    pr.head.ref === 'automation/audit-fix';
   return Boolean((native || own) && files.length > 0 &&
     (pr.changed_files === undefined || pr.changed_files === files.length) &&
     files.every(f => dependencyFile(f.filename) && (!f.previous_filename || dependencyFile(f.previous_filename))));

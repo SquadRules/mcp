@@ -54,7 +54,7 @@ test('trusted REST bot identity and dependency paths are both required', () => {
 
 test('managed producers require numeric credential identity, prefix, same origin', () => {
   const p = pull(1, { user: { id: 42, login: 'owner', type: 'User' },
-    head: { sha, ref: 'automation/renovate/react', repo: { full_name: repo } } });
+    head: { sha, ref: 'automation/audit-fix', repo: { full_name: repo } } });
   assert.equal(managedPull(p, files, repo, 42), true);
   assert.equal(managedPull(p, files, repo, 43), false);
   assert.equal(managedPull({ ...p, labels: [{ name: 'security' }], user: { id: 43 } }, files, repo, 42), false);
@@ -190,11 +190,6 @@ for (const status of [403, 409, 422]) {
   });
 }
 
-test('renovate runner does not force-enable and ignores require-config', () => {
-  const runner = readFileSync('scripts/ci-renovate.mjs', 'utf8');
-  assert.doesNotMatch(runner, /RENOVATE_FORCE: JSON.stringify\(\{ enabled:/, 'Forced enabled would override release-managed image exclusions');
-  assert.match(runner, /RENOVATE_REQUIRE_CONFIG: 'ignored'/);
-});
 
 function auditFixture({ existing = false, orphan = false } = {}) {
   const mutations = [];

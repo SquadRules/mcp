@@ -65,7 +65,7 @@ deliverables.
 - Generate a CycloneDX SBOM for the release container image and attach it (and the npm package SBOM) to the GitHub Release.
 - Sign published container images with Cosign keyless signing.
 - Trivy container scan (CRITICAL/HIGH) before creating the GitHub Release.
-- Keep Renovate vulnerability alerts enabled and prioritize security updates.
+- Keep Dependabot vulnerability alerts enabled and prioritize security updates.
 
 ## CI security scans
 

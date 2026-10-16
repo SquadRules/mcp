@@ -35,4 +35,3 @@ jobs:
       - run: npm run test:automation
       - run: npm run test:audit-fix-workflow
       - run: npm run lint:workflows
-      - run: npm run lint:renovate

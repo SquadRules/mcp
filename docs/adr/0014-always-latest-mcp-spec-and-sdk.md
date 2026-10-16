@@ -44,8 +44,7 @@ it. Concretely:
 The SDK major bump itself is executed as a separate dependency change
 (fast-follow), not bundled into the CLI overhaul
 ([#47](https://github.com/SquadRules/mcp/issues/47)), to keep that change
-reviewable and stable. Note that Renovate is disabled in this repo
-(`renovate.json` sets `enabled: false`; Dependabot owns security PRs), so SDK
+reviewable and stable. Dependabot owns security PRs in this repo, so SDK
 currency is a deliberate manual or scheduled dependency task — there is no
 auto-merge rule to point at "latest".
 

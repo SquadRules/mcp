@@ -2,7 +2,7 @@ import { GitHub, report } from './ci-automation.mjs';
 
 const api = new GitHub();
 const checks = [
-  ['renovate.yml', 8 * 60], ['npm-audit-fix.yml', 3 * 60],
+  ['npm-audit-fix.yml', 3 * 60],
   ['release.yml', null],
 ];
 const issues = await api.pages('/issues?state=open&creator=github-actions%5Bbot%5D');
