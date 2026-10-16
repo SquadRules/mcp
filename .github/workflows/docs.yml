@@ -1,7 +1,7 @@
-# Docs bot: regenerate the Qoder wiki when source changes, open a docs-typed PR,
+# Docs bot: update the Qoder wiki when source changes, open a docs-typed PR,
 # and auto-merge via the Docs GitHub App. This keeps the wiki in sync with code
 # without manual intervention. The wiki is code-derivable (never hand-edit
-# .qoder/repowiki/en/content/); this workflow regenerates it from source.
+# .qoder/repowiki/en/content/); this workflow updates it incrementally from source.
 #
 # Triggers: workflow_dispatch (manual) and push to main when src/** changes (the
 # wiki derives from source code). The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
@@ -58,10 +58,10 @@ jobs:
           QODER_PERSONAL_ACCESS_TOKEN: ${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
-          # Qoder CLI wiki generation (regenerates .qoder/repowiki/en/content/ from source).
-          # The wiki is code-derivable; this workflow keeps it fresh.
-          npx -y @qoder-ai/qodercli@latest wiki --repo . --language en
-          echo "Wiki regenerated at $(date -u)"
+          # Qoder CLI wiki incremental update (.qoder/repowiki/en/content/ from source).
+          # --update regenerates only pages affected by source changes, not the full wiki.
+          npx -y @qoder-ai/qodercli@latest wiki --update -f .qoder/repowiki/wiki_plan.yaml --repo . --language en
+          echo "Wiki updated at $(date -u)"
 
       - name: Check for changes
         id: changes
