@@ -6,12 +6,14 @@ Accepted
 
 ## Context
 
-Dependency updates arrive through three producers: Dependabot (native GitHub
-security advisories, daily), Renovate (general version bumps, every 6 hours)
-and the consolidated `npm-audit-fix` workflow (hourly fallback for production
-moderate-or-higher advisories). Each producer opens a PR that must pass the
-same three required gates as human PRs (Integration, Security, Automation
-policy) before it can merge.
+Dependency updates arrive through two producers: Dependabot (native GitHub
+security advisories, daily) and the consolidated `npm-audit-fix` workflow
+(hourly fallback for production moderate-or-higher advisories). Each producer
+opens a PR that must pass the same three required gates as human PRs
+(Integration, Security, Automation policy) before it can merge. Renovate was
+removed (see [Issue #73](https://github.com/SquadRules/mcp/issues/73));
+Dependabot owns all version updates and Dependabot security PRs remain
+enabled in repository settings.
 
 Without an automated merge step, these PRs sit open until a maintainer reviews
 and merges them manually. When `AUTOMATION_ENABLED` was `false`, all three
@@ -22,7 +24,7 @@ had passed.
 
 The `reconcile()` function in `scripts/ci-automation.mjs` already implements
 the full merge gating: it lists eligible dependency PRs from trusted producers
-(Dependabot, Renovate, audit-fix), verifies all three required gates passed on
+(Dependabot, audit-fix), verifies all three required gates passed on
 the PR head SHA, confirms mergeable state is clean and the base is current,
 then squash-merges with a conventional commit title. Security PRs are
 prioritised first via `orderPulls()`. The function is fully unit-tested.
@@ -30,14 +32,13 @@ prioritised first via `orderPulls()`. The function is fully unit-tested.
 ## Decision
 
 Add a dedicated `auto-merge-deps.yml` workflow that runs `ci-automation.mjs`
-reconcile every 6 hours. The workflow uses the same `GH_PAT` token as Renovate
-and audit-fix publish. It calls `assertProtection()` before any merge to verify
+reconcile every 6 hours. The workflow uses the same `GH_PAT` token as
+audit-fix publish. It calls `assertProtection()` before any merge to verify
 branch protection requires the three standard checks with strict base
 protection and admin enforcement.
 
-The 6-hour cadence matches the existing Renovate schedule, so version bump PRs
-are merged within one cycle of creation. Security PRs from Dependabot and the
-audit-fix fallback are prioritised and merged first.
+The 6-hour cadence ensures dependency PRs are merged promptly. Security PRs
+from Dependabot and the audit-fix fallback are prioritised and merged first.
 
 `AUTOMATION_ENABLED` is set to `true` to unblock all three producers.
 
@@ -51,10 +52,8 @@ audit-fix fallback are prioritised and merged first.
 - The `npm-audit-fix` fallback continues to produce its own PR when Dependabot
   cannot resolve an advisory; the reconcile workflow merges it through the same
   path.
-- Renovate's `automerge: false` in `renovate.json` and `RENOVATE_FORCE` is
-  intentionally kept -- Renovate does not merge its own PRs; the reconcile
-  workflow does. This separation keeps Renovate's role as a PR producer and the
-  merge decision in a single, auditable location.
+- Dependabot's `open-pull-requests-limit: 0` disables version PRs; only
+  security PRs are opened. The reconcile workflow merges them automatically.
 - If a dependency PR fails CI, it stays open for manual investigation -- the
   reconcile function skips PRs with failed or pending gate runs.
 

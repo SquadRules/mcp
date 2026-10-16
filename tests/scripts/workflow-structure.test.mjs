@@ -117,7 +117,6 @@ test('integration and security job dependencies are correct', () => {
 test('automation policy runs required checks', () => {
   const policy = workflow('automation-policy');
   assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run test:automation'));
-  assert.ok(policy.jobs.policy.steps.some(s => s.run === 'npm run lint:renovate'));
 });
 
 test('release workflow triggers and structure', () => {
@@ -226,15 +225,10 @@ test('package.json has correct publish configuration', () => {
   assert.equal(pkg.publishConfig.provenance, true);
 });
 
-test('dependabot and renovate are correctly configured', () => {
+test('dependabot is correctly configured', () => {
   const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));
   assert.equal(dependabot.updates.length, 2);
   assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
-  const renovate = JSON.parse(readFileSync('renovate.json', 'utf8'));
-  assert.equal(renovate.enabled, false, 'Hosted execution stays disabled');
-  assert.equal(renovate.automerge, false);
-  assert.equal(renovate.osvVulnerabilityAlerts, false);
-  assert.equal(renovate.vulnerabilityAlerts.enabled, false);
 });
 
 test('auto-merge-deps workflow is correctly configured', () => {

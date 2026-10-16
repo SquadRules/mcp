@@ -91,7 +91,7 @@ Attackers can send costly input patterns or abuse compromised provider keys.
 - **Mitigations in place**
   - Rate limiting on HTTP and MCP routes.
   - Structured embedding audit records with request metrics.
-  - Security-focused Renovate and release pipeline controls.
+  - Security-focused Dependabot and release pipeline controls.
   - Incident playbooks for key rotation and traffic anomaly containment.
 
 ### Supply-chain and release compromise
@@ -102,7 +102,7 @@ Compromise of dependencies or release artifacts can introduce backdoors.
   - CI scanning for vulnerabilities and static analysis.
   - CycloneDX SBOM generation in release workflow.
   - Cosign image signing in release workflow.
-  - Security update prioritization in Renovate configuration.
+  - Security update prioritization in Dependabot configuration.
 
 ## Residual risks
 

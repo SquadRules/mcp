@@ -13,9 +13,8 @@ protected `main` directly.
 |----------|----------------|
 | [Integration](integration.yml) | npm ci, lint, typecheck, Knip, UI/spec checks, build and consumer-package tests on Node 24 and 26; service tests on Node 24 |
 | [Security](security.yml) | Read-only production npm audit, CodeQL, and dependency review on PRs |
-| [Automation policy](automation-policy.yml) | Conventional PR titles, automation regression tests, workflow and Renovate validation |
+| [Automation policy](automation-policy.yml) | Conventional PR titles, automation regression tests, and workflow validation |
 | [Release](release.yml) | Release Please Release PRs; protected-main version commits; GitHub Release + npm OIDC/provenance publication |
-| [Renovate](renovate.yml) | Dependency PR producer every six hours |
 | [npm audit fix](npm-audit-fix.yml) | Hourly dependency remediation through a PR, separate from validation |
 | [Auto-merge dependencies](auto-merge-deps.yml) | Every-6-hour reconcile and squash-merge of eligible security and version dependency PRs |
 | [Automation health](automation-health.yml) | Monitor producers and latest main release outcome |
