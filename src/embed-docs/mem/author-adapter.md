@@ -1,6 +1,6 @@
 ---
 slug: author-adapter
-version: "5.10.1"
+version: "5.11.0"
 title: Author Adapter (Create / Review / Refactor)
 ---
 

@@ -1,5 +1,5 @@
 ---
-version: "5.10.1"
+version: "5.11.0"
 slug: create-new-protocol
 title: Create New Protocol (Redirect to Author Adapter)
 ---
