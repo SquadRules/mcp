@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.11.0](https://github.com/SquadRules/mcp/compare/v5.10.1...v5.11.0) (2026-10-16)
+
+
+### Features
+
+* directory parameter for MCP export/train in SIMPLE mode ([#102](https://github.com/SquadRules/mcp/issues/102)) ([#113](https://github.com/SquadRules/mcp/issues/113)) ([2194f1d](https://github.com/SquadRules/mcp/commit/2194f1dbd50a39afee08ba374b3853a6f3f752eb))
+
+
+### Bug Fixes
+
+* auto-update open PR branches via gh pr update-branch loop ([#128](https://github.com/SquadRules/mcp/issues/128)) ([f8beadf](https://github.com/SquadRules/mcp/commit/f8beadfba5c215ec3580429c4ffa001788c49f44))
+* auto-update open PRs with a gh pr update-branch loop ([f8beadf](https://github.com/SquadRules/mcp/commit/f8beadfba5c215ec3580429c4ffa001788c49f44))
+* bind store vector width to provider, fix reads/writes ([#94](https://github.com/SquadRules/mcp/issues/94)) ([#115](https://github.com/SquadRules/mcp/issues/115)) ([8f2e47c](https://github.com/SquadRules/mcp/commit/8f2e47c890fe871847e0e72be05cb38a10ea0d2e))
+* **ci:** exclude CI and script paths from release triggers ([#121](https://github.com/SquadRules/mcp/issues/121)) ([9034d4a](https://github.com/SquadRules/mcp/commit/9034d4af83b390f0c2582da85d91db81dbedb989))
+
 ## [5.10.1](https://github.com/SquadRules/mcp/compare/v5.10.0...v5.10.1) (2026-10-15)
 
 
