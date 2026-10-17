@@ -1,11 +1,11 @@
 # Docs bot: update the Qoder wiki when source changes, open a docs-typed PR,
-# and auto-merge via the Docs GitHub App. This keeps the wiki in sync with code
+# and auto-merge via the SquadRules auto GitHub App. This keeps the wiki in sync with code
 # without manual intervention. The wiki is code-derivable (never hand-edit
 # .qoder/repowiki/en/content/); this workflow updates it incrementally from source.
 #
 # Triggers: workflow_dispatch (manual) and push to main when src/** changes (the
 # wiki derives from source code). The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
-# to run the Qoder CLI wiki generation, and DOCS_APP_ID + DOCS_APP_PRIVATE_KEY
+# to run the Qoder CLI wiki generation, and AUTO_APP_ID + AUTO_APP_PRIVATE_KEY
 # to create and auto-merge the PR. Schedule trigger disabled to reduce CI noise.
 
 name: Docs wiki regeneration
@@ -29,12 +29,12 @@ jobs:
     outputs:
       changed: ${{ steps.changes.outputs.changed }}
     steps:
-      - name: Generate GitHub App token (Docs bot)
+      - name: Generate GitHub App token (SquadRules auto)
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ vars.DOCS_APP_ID }}
-          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.AUTO_APP_ID }}
+          private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
 
       - name: Checkout
@@ -104,12 +104,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Generate GitHub App token (Docs bot)
+      - name: Generate GitHub App token (SquadRules auto)
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ vars.DOCS_APP_ID }}
-          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.AUTO_APP_ID }}
+          private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
 
       - name: Auto-merge the docs PR

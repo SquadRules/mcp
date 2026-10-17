@@ -256,7 +256,7 @@ test('producer credentials and validation remain separated in workflow wiring', 
   const workflow = readFileSync('.github/workflows/npm-audit-fix.yml', 'utf8');
   const [assessment, publishing] = workflow.split('\n  publish:');
   assert.doesNotMatch(assessment, /secrets.GH_PAT/);
-  assert.match(publishing, /GH_TOKEN: \$\{\{ secrets.GH_PAT \}\}/);
+  assert.match(publishing, /GH_TOKEN: \$\{\{ steps\.app-token\.outputs\.token \}\}/);
   assert.doesNotMatch(publishing, /npm (ci|install|run)/);
 });
 

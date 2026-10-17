@@ -173,8 +173,8 @@ test('release auto-merge is correctly configured', () => {
   for (const job of [release.jobs['release-please'], syncReleasePr, autoMerge]) {
     const token = job.steps.find(s => s.id === 'app-token');
     assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
-    assert.equal(token.with['app-id'], '${{ vars.RELEASE_APP_ID }}');
-    assert.equal(token.with['private-key'], '${{ secrets.RELEASE_APP_PRIVATE_KEY }}');
+    assert.equal(token.with['app-id'], '${{ vars.AUTO_APP_ID }}');
+    assert.equal(token.with['private-key'], '${{ secrets.AUTO_APP_PRIVATE_KEY }}');
     assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
     assert.equal(token.with['permission-administration'], undefined);
     assert.equal(job.permissions.contents, 'read');
@@ -244,7 +244,7 @@ test('auto-merge-deps workflow is correctly configured', () => {
   assert.equal(autoMergeCheckout.with['persist-credentials'], false);
   const autoMergeStep = autoMergeJob.steps.find(s => s.run?.includes('ci-automation.mjs'));
   assert.ok(autoMergeStep, 'Auto-merge must invoke ci-automation.mjs');
-  assert.equal(autoMergeStep.env.GH_TOKEN, '${{ secrets.GH_PAT }}');
+  assert.equal(autoMergeStep.env.GH_TOKEN, '${{ steps.app-token.outputs.token }}');
   assert.doesNotMatch(JSON.stringify(autoMergeDeps), /git push|npm audit fix/);
 });
 

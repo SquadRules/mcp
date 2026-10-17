@@ -49,8 +49,8 @@ test('release producer and merger use scoped short-lived App tokens, never dispa
     const job = workflow.jobs[name];
     const token = job.steps.find(step => step.id === 'app-token');
     assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
-    assert.equal(token.with['app-id'], '${{ vars.RELEASE_APP_ID }}');
-    assert.equal(token.with['private-key'], '${{ secrets.RELEASE_APP_PRIVATE_KEY }}');
+    assert.equal(token.with['app-id'], '${{ vars.AUTO_APP_ID }}');
+    assert.equal(token.with['private-key'], '${{ secrets.AUTO_APP_PRIVATE_KEY }}');
     assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
     assert.equal(token.with['permission-contents'], 'write');
     assert.equal(token.with['permission-pull-requests'], name === 'sync-release-pr' ? undefined : 'write');
@@ -67,7 +67,7 @@ test('unattended release fails early when App credentials are missing', () => {
   const step = workflow.jobs['release-please'].steps[0];
   for (const [id, key, expected] of [['', '', 1], ['123', '', 1], ['', 'test-key', 1], ['123', 'test-key', 0]]) {
     const result = spawnSync('bash', ['-e', '-c', step.run], {
-      encoding: 'utf8', env: { ...process.env, RELEASE_APP_ID: id, RELEASE_APP_PRIVATE_KEY: key },
+      encoding: 'utf8', env: { ...process.env, AUTO_APP_ID: id, AUTO_APP_PRIVATE_KEY: key },
     });
     assert.equal(result.status, expected);
     assert.doesNotMatch(result.stdout + result.stderr, /test-key/);

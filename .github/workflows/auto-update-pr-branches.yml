@@ -6,7 +6,7 @@
 # when it is behind. No local clone/merge/push, and no mergeStateStatus
 # polling — that field is recomputed asynchronously and is stale right after
 # the push that triggers this run, so filtering on it silently finds nothing.
-# Uses the Docs GitHub App for write access to PR branches.
+# Uses the SquadRules auto GitHub App for write access to PR branches.
 name: Auto-update PR branches
 
 on:
@@ -31,12 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Generate GitHub App token (Docs bot)
+      - name: Generate GitHub App token (SquadRules auto)
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ vars.DOCS_APP_ID }}
-          private-key: ${{ secrets.DOCS_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.AUTO_APP_ID }}
+          private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
           permission-pull-requests: write
