@@ -70,7 +70,7 @@ events run the required checks without a human approval step. After synchronizat
 the workflow enables protected auto-merge on the exact Release PR head. GitHub waits
 for the required checks and merges; the App-authored merge triggers publication.
 `workflow_dispatch` checks do not satisfy required PR checks and are not used as a
-substitute. Configure `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` once, following
+substitute. Configure `AUTO_APP_ID` and `AUTO_APP_PRIVATE_KEY` once, following
 the runbook; absent credentials fail early instead of falling back to approvals.
 npm publication uses Trusted
 Publishing/OIDC and never needs a long-lived npm token. A manual `release.yml`

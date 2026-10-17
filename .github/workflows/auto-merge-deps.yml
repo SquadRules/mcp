@@ -1,6 +1,5 @@
 # Every-6-hour reconcile and squash-merge of eligible dependency PRs.
-# Covers Dependabot security PRs, Renovate version bumps and the consolidated
-# npm-audit-fix fallback. Security PRs are merged first (priority ordering).
+# Covers Dependabot security PRs and the consolidated npm-audit-fix fallback. Security PRs are merged first (priority ordering).
 name: Auto-merge dependencies
 
 on:
@@ -26,6 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Create repository-scoped SquadRules auto App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.AUTO_APP_ID }}
+          private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+          permission-actions: read
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: refs/heads/main
@@ -35,7 +47,7 @@ jobs:
           node-version: '24'
       - name: Merge eligible dependency PRs
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           AUTOMATION_USER_ID: ${{ vars.AUTOMATION_USER_ID }}
           AUTOMATION_ENABLED: ${{ vars.AUTOMATION_ENABLED }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run && 'true' || 'false' }}
