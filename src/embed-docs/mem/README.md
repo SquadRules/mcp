@@ -5,7 +5,7 @@ documents that are injected into the Squadrules app space at boot.
 
 <!-- squadrules-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
 
-Version: **4.3.0**
+Version: **4.4.0**
 
 ## Philosophy
 
@@ -18,13 +18,48 @@ observable verification over polished but weak wording.
 
 **Autonomy (AI-ownership).** The bundle is written for autonomous execution:
 adapters resolve intent from context, run critic-loop in a loop until it returns
-`PASS`, and gate irreversible remote mutations with objective pre/post contracts
-(shell/mcp) rather than human confirmation. They do **not** stop to ask a human to
-approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
-or a hard blocker (a required tool/auth that cannot be established automatically).
+`PASS`, and gate irreversible remote mutations with objective pre/post **shell**
+checks — every shell contract names a required `interpreter` — rather than human
+confirmation. They do **not** stop to ask a human to approve or acknowledge.
+`user_input` is an **emergency gate only**: a human explicitly requiring
+involvement, or a dangerous operation where a human answer materially raises the
+agent's confidence. It is never a post-critic-FAIL approval or a routine
+confirmation.
 
 Bundled mem resources that intentionally use **protocol** and **adapter** as
 synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing trigger phrases.
+
+## Contract policy
+
+The server accepts four operative proof types — `shell`, `subagent`, `user_input`,
+`comment` (`tensor` is reserved). The `mcp` type has been **erased**; the
+[`subagent`](challenge-type-guide.md) delegation pattern replaces it. See
+[ADR 0024](../../../docs/adr/0024-verification-ladder-erase-mcp-required-interpreter.md).
+
+**Verification ladder** — for any step that needs more than a textual
+acknowledgement, prefer, in order:
+
+1. a **`shell` empirical check** — a short, observable safety gate (a file
+   written, an exit code, a directory state);
+2. a **critic-loop `subagent` call**, looped until it returns `PASS`;
+3. a **`subagent` instructed to call the MCP tool** and verify its outcome from a
+   re-read;
+4. fallback: a single **`comment`** acknowledgement.
+
+**Shell contracts are safety gates, not puzzles.** Keep `cmd` short and readable.
+`interpreter` is **required** (`bash | sh | python3 | python | node`) — there is
+no default, and `train`/`tune` reject a shell contract without one. When a step
+needs multi-line or structured logic, especially anything that touches **JSON**,
+attach a **script artifact** to the adapter's frontmatter; the executing agent
+exports it into its working directory and runs it. Match the script language to
+the repository (`node` for JS/TS, `python3` for Python tooling; `bash` only for
+light file/text work). Full rules and examples live in
+[`challenge-type-guide.md`](challenge-type-guide.md).
+
+**One contract per adapter is the default.** Guidance and reference documents
+carry a single `comment` acknowledgement, not one per section. More contracts
+appear only where each step is independently executable and gated (an executable
+adapter such as [`author-adapter.md`](author-adapter.md)).
 
 ## Protocols
 
@@ -33,7 +68,6 @@ synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing 
 | [author-adapter.md](author-adapter.md) | `author-adapter` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
 | [critic-loop.md](critic-loop.md) | `critic-loop` | Phase-boundary adversarial review — verify claims against evidence |
-| [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |
 
 ### Linked authoring flow
 
@@ -46,19 +80,8 @@ author-adapter (Author) → forward(squadrules://adapter/critic-loop) → critic
 | File | Slug | Purpose |
 |------|------|---------|
 | [challenge-type-guide.md](challenge-type-guide.md) | `challenge-type-guide` | Challenge type selection, interpreter choice, and stronger verification patterns |
-| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chaining back/forward, multi-layer conductor vs extension URI, chain-root collapsing, MCP argument validation |
+| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chaining back/forward, multi-layer conductor vs extension URI, chain-root collapsing, chain-link target handling |
 | [critic-loop-guide.md](critic-loop-guide.md) | `critic-loop-guide` | Critic-loop integration rules, mutation gates, solution check vs critic decision table |
-
-## Redirect tombstones
-
-Retired slugs kept as thin one-layer redirects so stored adapters that still
-reference them resolve instead of dangling (see ADR 0012):
-
-| File | Slug | Redirects to |
-|------|------|--------------|
-| [phase-critic.md](phase-critic.md) | `phase-critic` | `critic-loop` |
-| [phase-critic-guide.md](phase-critic-guide.md) | `phase-critic-guide` | `critic-loop-guide` |
-| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | `author-adapter` |
 
 ## Cross-Protocol Linking
 
@@ -90,23 +113,22 @@ call forward with squadrules://adapter/implement-terraform and no solution to st
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
 
-### Verifying chain links with MCP argument checks
+### Verifying chain links
 
-A bare `mcp` contract checks only the tool name:
-
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward"},"required":true}}
-```
-
-An `mcp` contract **with `arguments`** verifies the exact target:
+The `mcp` argument-check contract was **erased** (ADR 0024); there is no longer
+a server-side argument-superset check. Link integrity is carried by the
+verification ladder (see **Contract policy** above). To require that a specific
+downstream link actually ran, delegate it to a **`subagent`** instructed to call
+`forward` on the exact slug and report the outcome it earned:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Delegate: call forward with squadrules://adapter/code-review-policy, then report the final contract type and the result."},"required":true}}
 ```
 
-The server validates that `solution.mcp.arguments` is a superset of the
-contract's `mcp.arguments` (subset/deep matching). This proves the agent
-called `forward` with the correct slug, not just any `forward` call.
+Because a delegation is observable only through the returned report, gate a
+hard-to-undo link with an objective `shell` check or a critic-loop `subagent` PASS
+wherever an artifact makes that possible; reserve the bare delegation for steps
+with nothing empirically observable.
 
 ### When to use `activate` vs `forward` + slug
 

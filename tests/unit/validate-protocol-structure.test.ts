@@ -41,6 +41,10 @@ Do it.
 
 Only reachable after all prior layers are solved.`;
 
+// Single-quoted concatenation so the ``` fences do not clash with a template literal.
+const shellDoc = (s: string) =>
+  '# T\n\n## Activation Patterns\nr\n\n## Step\nx\n\n```json\n{"contract":{"type":"shell","shell":' + s + ',"required":true}}\n```\n\n## Reward Signal\nd.';
+
 describe('validateProtocolStructure', () => {
   test('valid doc passes', () => {
     const result = validateProtocolStructure(validDoc);
@@ -167,7 +171,6 @@ Done.`;
     expect(result.missing).not.toContain('reward_signal');
   });
 
-
   test('rejects doc with plain fence containing contract (mixed fences)', () => {
     const doc = `# My Adapter
 
@@ -286,7 +289,7 @@ Ready.
 Do it.
 
 \`\`\`json
-{"contract":{"type":"comment|user_input|mcp|shell","comment":{"min_length":10},"required":true}}
+{"contract":{"type":"comment|user_input|subagent|shell","comment":{"min_length":10},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -295,7 +298,38 @@ Done.`;
     const result = validateProtocolStructure(doc);
     expect(result.valid).toBe(false);
     expect(result.missing).toContain('invalid_contract_type');
-    expect(result.message).toMatch(/tensor, shell, mcp, user_input, or comment/);
+    expect(result.message).toMatch(/tensor, shell, user_input, comment, or subagent/);
+  });
+
+  test('subagent contract block is accepted as a valid type', () => {
+    const doc = `# My Adapter
+
+## Activation Patterns
+
+Run when needed.
+
+## Preflight Dependencies
+Ready.
+
+## Step 1
+
+Delegate the review to a subagent.
+
+\`\`\`json
+{"contract":{"type":"subagent","subagent":{"context":"Forward squadrules://adapter/critic-loop"},"required":true}}
+\`\`\`
+
+## Reward Signal
+
+Done.`;
+    const result = validateProtocolStructure(doc);
+    expect(result.valid).toBe(true);
+    expect(result.missing).toHaveLength(0);
+  });
+
+  test('shell contract requires interpreter (no default)', () => {
+    expect(validateProtocolStructure(shellDoc('{"cmd":"c","timeout_seconds":5}')).missing).toContain('shell_interpreter_required');
+    expect(validateProtocolStructure(shellDoc('{"cmd":"c","interpreter":"bash","timeout_seconds":5}')).valid).toBe(true);
   });
 
   test('embedded author-adapter markdown passes validation', () => {

@@ -9,8 +9,8 @@ title: Protocol Linking Guide
 # Protocol Linking Guide
 
 Decision rules for structuring adapter relationships: layers vs chains,
-`activate` vs `forward` + slug, chain-root collapsing, and MCP argument
-validation for deterministic cross-protocol linking.
+`activate` vs `forward` + slug, chain-root collapsing, and subagent-delegated
+chain links for deterministic cross-protocol linking.
 
 ## Activation Patterns
 
@@ -58,10 +58,6 @@ cohesive concern.
 Chaining is NOT a replacement for layers. A 6-step protocol that fits in 350
 lines should stay as one adapter with 6 H2 layers.
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
-
 ## `activate` vs `forward` + slug
 
 | Situation | Use |
@@ -74,10 +70,6 @@ lines should stay as one adapter with 6 H2 layers.
 
 Never call `activate` just to get a slug you already know — it wastes a
 round-trip and introduces non-determinism.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
 
 ## Chaining Back and Forward
 
@@ -130,12 +122,8 @@ To run an extension adapter, call **`forward`** with
 `squadrules://adapter/<slug>` as a **new** first call (adapter URI; omit
 `solution`). That starts a **separate** execution with its own layers. Common
 pattern: complete the conductor with **`reward`**, then **`forward`** to the
-extension slug when coding or PR-shaped work should run under that adapter’s
+extension slug when coding or PR-shaped work should run under that adapter's
 contracts.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
 
 ## System adapters vs user adapters
 
@@ -149,34 +137,20 @@ call forward with squadrules://adapter/implement-terraform ...
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
+## Chain links and target matching
 
-## MCP argument validation for chain links
+The server no longer performs argument matching on chain links — the `mcp`
+contract type has been removed. A chain link is a `subagent` contract whose
+`context` names the exact target slug and instructs the delegate to call
+`forward` on it. Routing correctness now rests on the following objective
+`shell` FAIL-gate (assert the returned first layer / produced artifact), not on
+contract-argument superset checks.
 
-A bare `mcp` contract checks only the tool name:
+  ```json
+  {"contract":{"type":"subagent","subagent":{"context":"Call forward with uri=squadrules://adapter/code-review-policy and report the first layer's content heading."},"required":true}}
+  ```
 
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward"},"required":true}}
-```
-
-An `mcp` contract **with `arguments`** verifies the exact target:
-
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
-```
-
-The server validates that `solution.mcp.arguments` is a superset of the
-contract's `mcp.arguments` (subset/deep matching). This proves the agent
-called `forward` with the correct slug, not just any `forward` call.
-
-Use the `arguments` form whenever a step's purpose is to invoke a specific
-known adapter.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
+Use this form whenever a step's purpose is to invoke a specific known adapter.
 
 ## Chain-root collapsing
 
@@ -213,10 +187,6 @@ calls that bypass `activate`.
 - `forward` calls within a chain are unaffected — `chain_root` only changes
   `activate` output routing.
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
-
 ## Personal vs System Adapter Linking
 
 | Adapter type | Can `forward` to | Can be `forward`'d from |
@@ -224,9 +194,11 @@ calls that bypass `activate`.
 | System adapter (bundled) | Other system adapters (slug guaranteed to exist) | System or personal adapters |
 | Personal adapter (MCP database) | **Nothing** — must be self-contained | Only via `activate` (runtime discovery) |
 
-Personal adapters use `comment` contracts to describe what the agent should do
-next (e.g. "activate a TDD execution adapter"), not `mcp forward` contracts to
-other personal adapters. A personal adapter that chains to
+Personal adapters are self-contained: they must not `forward` to a slug that is
+absent from the caller's own space. Prefer an objective `shell` check for any
+observable artifact, and a `subagent` contract whose `context` names the tool or
+slug to delegate (e.g. "activate a TDD execution adapter"), reserving a single
+`comment` ACK for genuinely read-only steps. A personal adapter that chains to
 `squadrules://adapter/some-personal-slug` will fail at runtime when that slug
 does not exist in the caller's MCP database.
 
@@ -242,7 +214,7 @@ The agent can now:
 1. decide when to use layers vs chains
 2. choose `activate` vs `forward` + slug correctly
 3. use slug-based linking for all adapters (system and user)
-4. apply MCP argument validation for deterministic chain links
+4. delegate chain links through a `subagent` contract that names the target slug
 5. implement `chain_root` collapsing with defense-in-depth safeguards
 6. document chaining back (`chain_root` + prerequisites) and chaining forward
    (`forward` with known slugs) for root + extension families

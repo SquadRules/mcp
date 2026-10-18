@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed; implemented by the accompanying PR.
+Accepted — implemented. The rename to `author-adapter` and the explicit authoring
+operation/target across activation and forward remain in force. Note: the
+`create-new-protocol` redirect-tombstone this record originally relied on was
+later erased by
+[ADR 0024](0024-verification-ladder-erase-mcp-required-interpreter.md); the old
+slug no longer resolves.
 
 ## Context
 

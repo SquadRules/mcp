@@ -73,21 +73,6 @@ export function solutionToTensorValue(solution: ForwardSolution): TensorValue | 
       }
     };
   }
-  if (solution.mcp) {
-    return { name: 'mcp_result', value: solution.mcp };
-  }
-  if (solution.type === 'mcp' && e && typeof e['tool_name'] === 'string') {
-    return {
-      name: 'mcp_result',
-      value: {
-        tool_name: e['tool_name'],
-        ...(e['arguments'] !== undefined ? { arguments: e['arguments'] } : {}),
-        ...(e['response'] !== undefined ? { response: e['response'] } : {}),
-        ...(e['result'] !== undefined ? { result: e['result'] } : {}),
-        ...(typeof e['success'] === 'boolean' ? { success: e['success'] } : {})
-      }
-    };
-  }
   return undefined;
 }
 

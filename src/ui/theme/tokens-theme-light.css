@@ -21,8 +21,8 @@
   --color-focus-ring: var(--color-primary);
   --badge-shell-bg: #fef3c7;
   --badge-shell-fg: #92400e;
-  --badge-mcp-bg: #dbeafe;
-  --badge-mcp-fg: #1e40af;
+  --badge-subagent-bg: #dbeafe;
+  --badge-subagent-fg: #1e40af;
   --badge-user-input-bg: #ede9fe;
   --badge-user-input-fg: #5b21b6;
   --badge-comment-bg: #e2e8f0;

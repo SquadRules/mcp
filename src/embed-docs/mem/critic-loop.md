@@ -122,7 +122,7 @@ are broken.
 **Output:** verified preconditions or early-abort diagnostics
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","timeout_seconds":3},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","interpreter":"bash","timeout_seconds":3},"required":true}}
 ```
 
 ## Resolve Submission [SUBAGENT]
@@ -275,7 +275,7 @@ Turn the audit into a final PASS / FAIL result.
 **Output:** final verdict file
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"$VERDICT_FILE\" && head -1 \"$VERDICT_FILE\" | grep -qiE '^(PASS|FAIL)$' && sed -n '2p' \"$VERDICT_FILE\" | grep -qiE '^(High|Medium|Low)$'","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"$VERDICT_FILE\" && head -1 \"$VERDICT_FILE\" | grep -qiE '^(PASS|FAIL)$' && sed -n '2p' \"$VERDICT_FILE\" | grep -qiE '^(High|Medium|Low)$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Reward Signal

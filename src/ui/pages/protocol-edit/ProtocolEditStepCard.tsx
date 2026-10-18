@@ -79,7 +79,7 @@ export function ProtocolEditStepCard({
                           args: step.shell?.args ?? [],
                         }
                       : undefined,
-                  mcp: type === "mcp" ? { tool_name: step.mcp?.tool_name ?? "" } : undefined,
+                  subagent: type === "subagent" ? { context: step.subagent?.context ?? "" } : undefined,
                   user_input: type === "user_input" ? { prompt: step.user_input?.prompt ?? "" } : undefined,
                   comment: type === "comment" ? { min_length: step.comment?.min_length ?? 10 } : undefined,
                 })
@@ -243,15 +243,15 @@ export function ProtocolEditStepCard({
               </div>
             </>
           )}
-          {step.type === "mcp" && (
+          {step.type === "subagent" && (
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--color-text-heading)]">
-                {t("protocolEdit.mcpToolName")}
+                {t("protocolEdit.subagentContext")}
               </label>
               <input
                 type="text"
-                value={step.mcp?.tool_name ?? ""}
-                onChange={(e) => setStep(index, { mcp: { tool_name: e.target.value } })}
+                value={step.subagent?.context ?? ""}
+                onChange={(e) => setStep(index, { subagent: { context: e.target.value } })}
                 className={elevatedInputClass}
               />
             </div>

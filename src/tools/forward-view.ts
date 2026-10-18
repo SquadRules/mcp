@@ -72,12 +72,6 @@ function summarizeContract(contract: InferenceContractDefinition): string {
   if (contract.type === 'shell') {
     return `Execute shell command: ${contract.shell?.cmd ?? contract.cmd ?? 'unknown command'}`;
   }
-  if (contract.type === 'mcp') {
-    const tool = contract.mcp?.tool_name ?? 'unknown tool';
-    const args = contract.mcp?.arguments;
-    const argsBit = args !== undefined ? ` (arguments: ${JSON.stringify(args)})` : '';
-    return `Call MCP tool: ${tool}${argsBit}`;
-  }
   if (contract.type === 'user_input') {
     return `Collect user input: ${contract.user_input?.prompt ?? 'confirmation required'}`;
   }
@@ -108,14 +102,6 @@ export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmissi
       ...(typeof e['stderr'] === 'string' ? { stderr: e['stderr'] } : {}),
       ...(typeof e['duration_seconds'] === 'number' ? { duration_seconds: e['duration_seconds'] } : {})
     };
-  } else if (solution.type === 'mcp' && e && typeof e['tool_name'] === 'string') {
-    const outcomeSuccess = solution.outcome === undefined ? true : solution.outcome === 'success';
-    base.mcp = {
-      tool_name: e['tool_name'],
-      ...(e['arguments'] !== undefined ? { arguments: e['arguments'] } : {}),
-      result: e['response'] !== undefined ? e['response'] : (e['result'] ?? null),
-      success: typeof e['success'] === 'boolean' ? e['success'] : outcomeSuccess
-    };
   } else if (solution.type === 'user_input' && e && typeof e['confirmation'] === 'string') {
     base.user_input = {
       confirmation: e['confirmation'],
@@ -137,7 +123,6 @@ export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmissi
       ...(solution.shell.duration_seconds !== undefined ? { duration_seconds: solution.shell.duration_seconds } : {})
     };
   }
-  if (base.mcp === undefined && solution.mcp) base.mcp = solution.mcp;
   if (base.user_input === undefined && solution.user_input) {
     base.user_input = {
       confirmation: solution.user_input.confirmation,
@@ -237,11 +222,52 @@ export type BuildForwardViewOptions = {
   slugDisambiguationNote?: string;
 };
 
+const EMITTABLE_CONTRACT_TYPES = new Set(['tensor', 'shell', 'user_input', 'comment', 'subagent']);
+
+/**
+ * Fail-closed guard (mcp erasure): a stored adapter layer may still carry a contract
+ * type that no longer exists server-side (a removed `mcp` type). Detect it before the challenge
+ * is constructed or execution advances, so forward surfaces a recoverable structured
+ * error instructing `tune` instead of emitting an invalid challenge.
+ */
+function unsupportedStoredContractType(memory: Memory, options?: BuildForwardViewOptions): string | undefined {
+  if (options?.final) return undefined;
+  if (options?.contractOverride) {
+    const t = options.contractOverride.type;
+    return t && !EMITTABLE_CONTRACT_TYPES.has(t) ? String(t) : undefined;
+  }
+  const storedType = normalizeContract(memory)?.type;
+  return storedType && !EMITTABLE_CONTRACT_TYPES.has(storedType) ? String(storedType) : undefined;
+}
+
+function buildUnsupportedContractTypeView(memory: Memory, executionId: string, badType: string): ForwardOutput {
+  const layer = currentLayer(memory, executionId);
+  return {
+    must_obey: true,
+    current_layer: layer,
+    contract: finalContract(),
+    next_call: {
+      kind: 'forward',
+      args: { uri: layer.uri, solution_template: buildEmptySolutionTemplate('comment') }
+    },
+    next_action: `call tune to replace the stored "${badType}" contract on ${layer.uri} with an objective shell check or a subagent delegation contract, then re-forward this layer`,
+    error_code: 'UNSUPPORTED_CONTRACT_TYPE',
+    message: `Adapter layer stores the "${badType}" contract type, which is no longer supported (the mcp proof type was removed). Retune this layer before continuing. Execution did not advance.`,
+    execution_id: executionId,
+    ...buildForwardUiSummary(memory),
+    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS)
+  };
+}
+
 export async function buildForwardView(
   memory: Memory,
   executionId: string,
   options?: BuildForwardViewOptions
 ): Promise<ForwardOutput> {
+  const badType = unsupportedStoredContractType(memory, options);
+  if (badType) {
+    return buildUnsupportedContractTypeView(memory, executionId, badType);
+  }
   const { contract, tensorIn } = options?.contractOverride
     ? { contract: options.contractOverride, tensorIn: options.tensorInOverride }
     : options?.final

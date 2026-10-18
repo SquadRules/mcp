@@ -43,73 +43,98 @@ drafting and review.
 
 ## Core Rules
 
-`comment` is the challenge type of **last resort**. If a step produces any
-observable artifact — a file, a git state change, an API response, or an exit
-code — use `shell` or `mcp` instead.
+Choose the **strongest verifiable contract** for each step — an objective,
+empirically checkable proof beats a narrative one. The verification ladder, in
+preferred order:
+
+1. **Shell empirical check** — run a command that observes the real artifact
+   (file, git state, command output, exit code). This is the default proof.
+2. **Critic-loop subagent** — when a step's result cannot be shell-verified,
+   delegate an adversarial review to the `critic-loop` adapter via a `subagent`
+   contract.
+3. **Subagent instructed to call an MCP tool** — when the only way to complete a
+   step is a real MCP call (`train`/`tune`/`export`/`forward`/…), use a
+   `subagent` contract whose `context` instructs the delegate to make that call
+   and report the result.
+4. **Fallback: a single `comment` contract with an AI ACK** — only for read-only
+   or knowledge-only adapters, where no artifact exists to check.
+
+**Per-adapter contract-count rules:**
+- Every adapter carries **at least one** contract: a `shell` check for executable
+  adapters, or a single `comment` ACK for knowledge-only adapters.
+- Ideally one **aggregate shell proof** per adapter, plus an additional `shell`
+  precondition check before every hard-to-undo boundary (canonical example:
+  assert the branch is not `main` and is a task worktree before commit/push).
+- `subagent` contracts: as many as make sense for the steps that need them.
+- **At most one `comment`** contract per adapter, and it is **never mixed** with
+  other contract types in the same adapter.
+- Any contract whose result cannot be empirically shell-verified must be followed
+  by a **critic-loop `subagent` call before reward**.
+
+**`user_input` is an emergency-only gate.** Use it only when a human gate is
+absolutely a must: (a) the human explicitly requires involvement, or (b) the
+operation is dangerous and a human answer materially boosts the agent's
+confidence. Never use it as an approval gate after a critic FAIL, and never as a
+routine confirmation. Default behaviour is full-autonomy, end-to-end execution —
+hard blockers are reported and stopped, not pushed to the human for permission.
 
 **Mode before challenge type:**
-- **clarify / approve** → `user_input`
-- **call a SQUADRULES / MCP tool** → `mcp`
 - **execute or verify local state** → `shell`
-- **delegate to another agent** → `subagent`
-- **pure reasoning with no observable artifact** → `comment`
+- **review / delegate / call an MCP tool** → `subagent`
+- **genuine human emergency gate** → `user_input`
+- **pure knowledge, no observable artifact** → a single `comment` ACK
 
 ### Decision Tree
 
 ```
-Does the step call an MCP tool?
- ├─ YES → Is the step a chain link to another adapter?
- │         ├─ YES → "mcp" with tool_name + arguments (forward + slug URI)
- │         └─ NO  → "mcp" with tool_name only
- └─ NO → Does the step produce or verify a file, command result, or system state?
-          ├─ YES → "shell"
-          └─ NO → Does the step require human approval or choice?
-                   ├─ YES → "user_input"
-                   └─ NO → Does the step delegate work to another agent?
-                            ├─ YES → "subagent" with optional context
-                            └─ NO → "comment" only if there is no stronger observable contract
+Does the step produce or verify a file, command result, or system state?
+ ├─ YES → "shell" (empirical check; the default)
+ └─ NO → Does the step need a critic review, delegation, or a real MCP tool call?
+          ├─ YES → "subagent" (context names the review/tool/slug to delegate)
+          └─ NO → Is this a genuine human emergency gate?
+                   ├─ YES → "user_input" (only the two emergency conditions)
+                   └─ NO → a single "comment" ACK (read-only / knowledge-only only)
 ```
 
 ### Challenge JSON Formats
 
+The example blocks below are indented so this guide parses as a single `comment`
+ACK; de-indent them when you author an adapter.
+
 **shell**
-```json
-{"contract":{"type":"shell","shell":{"cmd":"<command>","timeout_seconds":30},"required":true}}
-```
+  ```json
+  {"contract":{"type":"shell","shell":{"cmd":"<command>","interpreter":"bash","timeout_seconds":30},"required":true}}
+  ```
 
-**mcp**
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"<tool>"},"required":true}}
-```
+`interpreter` is **required** (no default) and accepts exactly `bash | sh |
+python3 | python | node`. `train` / `tune` reject a shell contract that omits it,
+so every shell gate must name the runtime it executes under. The invoker maps each
+interpreter: `bash`/`sh` run `-c <cmd>`, `python3`/`python` inject `-c`, `node`
+injects `-e`. `flags`, `args` and `workdir` are supported too. The forward shell
+contract surfaces `cmd`, `timeout_seconds` and `interpreter`, `flags`, `args`,
+`workdir`. See **Interpreter Selection** below for when to pick each interpreter.
 
-**mcp with arguments (chain link)**
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/<slug>"}},"required":true}}
-```
+**user_input** *(emergency-only — see Core Rules)*
+  ```json
+  {"contract":{"type":"user_input","user_input":{"prompt":"<specific question>"},"required":true}}
+  ```
 
-Use the `arguments` form when the step's purpose is to invoke a specific
-adapter via `forward`. The server validates that `solution.mcp.arguments`
-is a superset of the contract's `mcp.arguments` (subset/deep matching),
-proving the agent called the correct target — not just any `forward` call.
-
-**user_input**
-```json
-{"contract":{"type":"user_input","user_input":{"prompt":"<specific question>"},"required":true}}
-```
-
-**comment**
-```json
-{"contract":{"type":"comment","comment":{"min_length":50},"required":true}}
-```
+**comment** *(fallback-only — a single ACK per read-only / knowledge-only
+adapter, never mixed with other types)*
+  ```json
+  {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
+  ```
 
 **subagent**
-```json
-{"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
-```
+  ```json
+  {"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
+  ```
 
-Use `subagent` when a step delegates work to another agent (human or AI) rather
-than executing it directly. The optional `context` field provides task-specific
-guidance. Evidence of completion is collected via the anti-cheat evidence gate.
+Use `subagent` when a step delegates work to another agent — a critic-loop
+review, or a real MCP tool call (`train`/`tune`/`export`/`forward`) the subagent
+is instructed to make. The `context` names the target or tool. The mandatory
+delegation instruction is appended by the server to the forward response
+`message` (`SUBAGENT_DELEGATION: …`), not stored inside the contract.
 
 ### Solution JSON Formats
 
@@ -135,19 +160,6 @@ Every solution, regardless of type, follows the same envelope:
     "stdout": "...",
     "stderr": "",
     "duration_seconds": 1.2
-  }
-}
-```
-
-**mcp solution**
-```json
-{
-  "type": "mcp",
-  "outcome": "success",
-  "evidence": {
-    "tool_name": "activate",
-    "arguments": { "query": "example search" },
-    "response": { "choices": [...] }
   }
 }
 ```
@@ -181,30 +193,34 @@ Every solution, regardless of type, follows the same envelope:
   "type": "subagent",
   "outcome": "success",
   "evidence": {
-    "agent_id": "agent-uuid-or-name",
-    "artifacts": ["path/to/output"],
-    "summary": "Task completed successfully"
+    "report": "<the actual subagent report — verdict, tool-result summary, or analysis>"
   }
 }
 ```
 
+A subagent proof accepts any non-empty `report`, so the report text alone is a
+weak gate. When the step is a critic review, the objective guard is the following
+`shell` FAIL-gate on the verdict file, not the report body.
+
 ## Interpreter Selection
 
-| Task | Use bash | Use perl | Use python3 |
+Only `bash`, `sh`, `python3`, `python` and `node` are valid `interpreter`
+values. Non-enum values (`perl`, `ruby`, `terraform`, `docker`, `npm`, …) are
+rejected by the contract schema — build tools are wrapped in a `bash -c`
+command, and text/data processing that once leaned on Perl now uses `python3`.
+
+| Task | Use bash | Use python3 | Use node |
 |---|---|---|---|
 | File exists, tool installed, git state | yes | no | no |
 | Simple content grep | yes | no | no |
 | Multi-line regex | no | yes | no |
 | Paragraph processing | no | yes | no |
 | JSON validation | maybe | yes | yes |
-| YAML / complex data structure checks | no | no | yes |
+| YAML / complex data structure checks | no | yes | no |
 
 **Rule of thumb:** if bash requires `while read`, `grep | awk`, or heavy quote
-escaping, rewrite in Perl. If you need imports for data formats, use Python.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
+escaping, use `python3` (or `node` for JS-native data). Reach for an interpreter
+only when the shell genuinely cannot express the check.
 
 ## Security and Working Directory Rules
 
@@ -279,10 +295,6 @@ in an IDE:
 4. The `squadrules export` MCP tool can retrieve adapter content without
    filesystem access to the worktree.
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
-
 ## Composition Patterns
 
 **Multi-check compound command**
@@ -319,24 +331,21 @@ in an IDE:
 - then call `critic-loop` for adversarial review
 
 **Dry-run before execution**
-- dry-run command
-- human review
+- dry-run command (objective `shell` precondition)
+- critic-loop `subagent` review of the plan when the change is hard to undo
 - real command
 
-**Chain-link via forward + slug**
-- layer N's contract requires `forward` with a specific adapter slug
-- agent calls `forward` to start the next adapter (new `execution_id`)
-- next adapter runs its own layer chain through to `reward`
+**Chain-link via subagent delegation**
+- layer N carries a `subagent` contract whose `context` instructs the delegate to
+  call `forward` on a specific adapter slug
+- the delegate starts the next adapter (new `execution_id`) and reports back
+- the objective guard is a following `shell` FAIL-gate on the verdict/result file
 - use when the protocol exceeds 350 lines or needs multi-path routing
 - NOT a replacement for layers — layers remain the primary unit of work
-- example contract:
+- example contract (indented so this guide parses as its single ACK):
   ```json
-  {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
+  {"contract":{"type":"subagent","subagent":{"context":"Call forward with uri=squadrules://adapter/implement-plan and report the first layer returned."},"required":true}}
   ```
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
 
 ## Artifacts for Shell Contracts
 
@@ -366,6 +375,10 @@ command instead.
 ## Reward Signal
 
 Only reachable after all prior steps are solved.
+
+> **Migration note:** the former `mcp` contract type no longer exists — steps
+> that need a real MCP tool call or an adapter chain-link are delegated through a
+> `subagent` contract whose `context` names the target.
 
 The agent can now:
 1. pick the correct challenge type for each protocol step

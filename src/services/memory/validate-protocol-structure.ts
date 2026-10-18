@@ -6,6 +6,7 @@
  */
 
 import { findAllLayerContractBlocks, hasPlainFenceLayerContractBlock } from './adapter-contract-blocks.js';
+import { SHELL_INTERPRETERS } from '../../tools/shell-challenge-invocation.js';
 export const CREATION_PROTOCOL_URI = 'squadrules://adapter/author-adapter';
 
 export type ValidationResult = {
@@ -20,8 +21,9 @@ const MISSING_H1 = 'h1_title';
 const MISSING_CONTRACT_BLOCK = 'contract_block';
 const MIXED_CONTRACT_FENCES = 'mixed_contract_fences';
 const INVALID_CONTRACT_TYPE = 'invalid_contract_type';
+const SHELL_INTERPRETER_REQUIRED = 'shell_interpreter_required';
 
-const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'tensor']);
+const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'user_input', 'comment', 'subagent', 'tensor']);
 
 /**
  * Extract H1 and H2 headings from markdown, ignoring lines inside fenced code blocks.
@@ -157,6 +159,15 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
       missing.push(INVALID_CONTRACT_TYPE);
       break;
     }
+    // Validate-on-write: a shell contract must name its interpreter (no server-side
+    // default). Existing stored layers still parse leniently; new imports are gated here.
+    if (t === 'shell') {
+      const interpreter = (block.contract as { shell?: { interpreter?: unknown } }).shell?.interpreter;
+      if (typeof interpreter !== 'string' || !(SHELL_INTERPRETERS as readonly string[]).includes(interpreter)) {
+        missing.push(SHELL_INTERPRETER_REQUIRED);
+        break;
+      }
+    }
   }
 
   const valid = missing.length === 0;
@@ -175,7 +186,10 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
         return 'use only ```json for contract blocks (no plain ``` with contract JSON)';
       }
       if (m === INVALID_CONTRACT_TYPE) {
-        return 'each ```json block must set type to exactly tensor, shell, mcp, user_input, or comment (no placeholders or combined values)';
+        return 'each ```json block must set type to exactly tensor, shell, user_input, comment, or subagent (no placeholders or combined values)';
+      }
+      if (m === SHELL_INTERPRETER_REQUIRED) {
+        return `each shell contract must set shell.interpreter to one of ${SHELL_INTERPRETERS.join(', ')} (required, no default)`;
       }
       return m;
     });

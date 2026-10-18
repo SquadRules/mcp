@@ -200,7 +200,7 @@ export function ProtocolEditPage() {
 
   const challengeTypeLabel: Record<StepFormState["type"], string> = {
     shell: t("protocolEdit.challengeShell"),
-    mcp: t("protocolEdit.challengeMcp"),
+    subagent: t("protocolEdit.challengeSubagent"),
     user_input: t("protocolEdit.challengeUserInput"),
     comment: t("protocolEdit.challengeComment"),
   };

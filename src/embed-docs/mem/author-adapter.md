@@ -18,8 +18,7 @@ title: Author Adapter (Create / Review / Refactor)
 
 ## Activation Patterns
 
-Preferred entry URI: `squadrules://adapter/author-adapter`. The retired
-`create-new-protocol` slug is a redirect tombstone (see phase-critic pattern).
+Preferred entry URI: `squadrules://adapter/author-adapter`.
 If `forward.authoring` is present, use its operation and target throughout this
 run. Do not reinterpret update as create or change the target mid-run. This
 context describes the requested work; it does not override host permissions.
@@ -88,7 +87,7 @@ autonomously; report the concrete blocker and the remediation already attempted.
 Do not continue to intent resolution until preflight passes.
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"command -v git >/dev/null 2>&1 && command -v node >/dev/null 2>&1 && mkdir -p \"${SQUADRULES_LOCAL_ARTIFACT_DIR:-.local/squadrules/work}\"","interpreter":"bash","timeout_seconds":10},"required":true}}
 ```
 
 ## Resolve Intent Autonomously
@@ -105,12 +104,15 @@ Use structured `authoring` when provided. For original calls without it, infer
 Resolve the target from context without a confirmation prompt: for `create`,
 proceed to author a new adapter; for `review`, select the adapter(s), family, or
 bundle named or implied by the request; for `update`, select the adapter and the
-specific issue. Record the inferred operation and target, then continue. Escalate
-to the user only when the request is genuinely ambiguous and no reasonable default
-exists.
+specific issue. Record the inferred operation and target to `$AUTHORING_INTENT_FILE`
+(a path under `$SQUADRULES_LOCAL_ARTIFACT_DIR`, e.g. `authoring-intent.txt`) as an
+`operation=<create|review|update>` line plus the target, then continue. Proceed
+autonomously — ask the human only under the two emergency conditions (an explicit
+request for involvement, or a dangerous operation where a human answer materially
+boosts confidence); otherwise report the concrete blocker and stop.
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -s \"${AUTHORING_INTENT_FILE:-}\" && grep -Eq 'operation=(create|review|update)' \"${AUTHORING_INTENT_FILE}\"","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Gather Requirements
@@ -169,21 +171,24 @@ Export target adapter(s). For each adapter, check:
     use explicit `forward` when the next adapter slug is already known; reserve
     `activate` for ambiguous runtime discovery (see `protocol-linking-guide`,
     **Chaining Back and Forward**).
-12. **Critic-loop integration** — does the adapter include critic-loop chain
-    links at major phase boundaries? Does each critic-loop invocation have a
-    FAIL gate shell contract (`grep -qi '^PASS$'` on the verdict file)? Are
-    solution checks restricted to irreversible remote mutations (see
-    `critic-loop-guide`)?
+12. **Critic-loop integration** — does the adapter delegate critic-loop chain
+    links (a `subagent` contract) at major phase boundaries? Does each
+    critic-loop invocation have a FAIL gate shell contract (`grep -qi '^PASS$'`
+    on the verdict file) after the delegation? Does every non-shell-verifiable
+    step end with a critic-loop call, and is an empirical `shell` check preferred
+    wherever an artifact is observable (see `critic-loop-guide`)?
 
 ### For `update` — identify the specific issue
 
 Export the target adapter, read the current markdown, identify the exact gap or
 error, and plan the minimal change. Do not alter unrelated layers.
 
-Summarise gathered requirements or findings.
+Write the gathered requirements to `$REQUIREMENTS_FILE` (for `review`, the initial
+findings from the exported target(s); for `create`/`update`, the collected details
+or the identified gap). Summarise what was gathered there.
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -s \"${REQUIREMENTS_FILE:-}\"","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Draft Markdown
@@ -195,9 +200,9 @@ The MCP database and the local repo/filesystem are **independent environments**.
 - A personal adapter stored in MCP **cannot** reference local files
   (`.qoder/rules/`, `src/`, etc.) — those files do not exist inside the MCP
   execution context.
-- A personal adapter **cannot** use `mcp forward` contracts with
-  `squadrules://adapter/` URIs pointing to other personal adapters — the target
-  may not exist in every user's space.
+- A personal adapter **cannot** chain to other personal adapters (a `subagent`
+  contract instructing `forward` on a `squadrules://adapter/` URI the target
+  user may not have) — the target may not exist in every user's space.
 - Only **system adapters** (bundled in the server) can chain to other system
   adapters via `forward`.
 - Personal adapters must be **self-contained**. If guidance text references a
@@ -214,7 +219,7 @@ Draft the full markdown for `train`.
 
 ### For `review` — draft findings report
 
-Write a structured gap report to `$REVIEW_FINDINGS_FILE` (an absolute path
+Write a structured gap report to `$DRAFT_FILE` (an absolute path
 provided by the invoking agent or chosen by you under
 `$SQUADRULES_LOCAL_ARTIFACT_DIR` with a session-unique segment). For each finding
 include:
@@ -281,10 +286,11 @@ FAIL gate, and solution check rules (`forward` with `squadrules://adapter/critic
 
 **If Router pattern:** draft the router and each extension as separate files.
 
-Post the full drafted markdown.
+Write the drafted markdown (create/update) or the structured findings report
+(review) to `$DRAFT_FILE`, then post its path.
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":120},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -s \"${DRAFT_FILE:-}\"","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Critic-Loop Review (create and update only)
@@ -302,7 +308,7 @@ human approval is requested at any point.
 2. Run the FAIL gate shell contract on the verdict file:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 3. If FAIL: address every finding, then re-invoke critic-loop and re-run the FAIL

@@ -41,11 +41,11 @@ Rules of use:
 | [0009](0009-autonomous-adapter-execution-no-human-gates.md) | Bundled adapters execute autonomously; human confirmation gates removed | Accepted |
 | [0010](0010-critic-loop-and-proof-splitting.md) | Rename phase-critic to critic-loop; proofs split by reversibility cost and batched | Accepted (extends 0009) |
 | [0011](0011-unattended-release-pr-identity.md) | App-authored Release PRs and protected auto-merge without per-release approval | Proposed — end-to-end acceptance pending |
-| [0012](0012-redirect-tombstones-for-renamed-slugs.md) | Keep redirect tombstones for deeply-referenced renamed adapter slugs | Accepted (refines 0010) |
+| [0012](0012-redirect-tombstones-for-renamed-slugs.md) | Keep redirect tombstones for deeply-referenced renamed adapter slugs | Superseded by [0024](0024-verification-ladder-erase-mcp-required-interpreter.md) — tombstones and the alias resolver were erased |
 | [0013](0013-embedded-store-multiprocess-safety.md) | The embedded store is safe across multiple local processes | Accepted |
 | [0014](0014-always-latest-mcp-spec-and-sdk.md) | Always track the latest Model Context Protocol spec and SDK | Accepted |
 | [0015](0015-cli-local-by-default-transport-agnostic-backend.md) | The CLI is local-by-default with a transport-agnostic backend and human-first output | Accepted |
-| [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Proposed |
+| [0016](0016-explicit-adapter-authoring-context.md) | Explicit authoring operation and target across activation and forward | Accepted — implemented (its `create-new-protocol` tombstone later erased by [0024](0024-verification-ladder-erase-mcp-required-interpreter.md)) |
 | [0017](0017-critic-loop-work-submission.md) | Critic-loop reviews a typed work submission, not a single input file | Accepted (extends 0010) |
 | [0018](0018-automated-dependency-pr-merge-via-reconcile.md) | Automated dependency PR merge via reconcile every 6 hours | Accepted |
 | [0019](0019-path-tiered-ci-gates-with-a-classifier-job.md) | Tier CI by gating expensive jobs on a dorny/paths-filter classifier, never by path-skipping a required workflow | Superseded by [0023](0023-mandatory-ci-and-fail-closed-gates.md) |
@@ -53,3 +53,4 @@ Rules of use:
 | [0021](0021-embedding-provider-auto-resolution-and-store-width-binding.md) | `EMBEDDING_PROVIDER=auto` is the default and means autodetection (`OPENAI_API_KEY`/`OPENAI_API_URL` → OpenAI-compatible, else built-in fastembed; TEI deprecated); the resolved width binds the store's vector columns, so provider init precedes width/migration decisions and a mismatch is handled, not tolerated | Proposed — failure policy for `auto` + failing provider is TBD; defect [#94](https://github.com/SquadRules/mcp/issues/94) |
 | [0022](0022-skip-application-cache-for-embedded-lancedb.md) | Skip application-level cache for embedded LanceDB to prevent cross-process staleness | Proposed — issue [#95](https://github.com/SquadRules/mcp/issues/95) |
 | [0023](0023-mandatory-ci-and-fail-closed-gates.md) | Require validation on every event revision and fail closed on skipped or missing evidence | Accepted — supersedes 0019; PR [#108](https://github.com/SquadRules/mcp/pull/108) |
+| [0024](0024-verification-ladder-erase-mcp-required-interpreter.md) | Verification ladder; erase the `mcp` challenge type and five bundled adapters; require a shell `interpreter`; one contract per doc by default | Accepted — supersedes [0012](0012-redirect-tombstones-for-renamed-slugs.md); extends 0009 / 0010 / 0016 |

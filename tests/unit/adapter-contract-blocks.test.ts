@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { findAllLayerContractBlocks } from '../../src/services/memory/adapter-contract-blocks.js';
 
-const ALLOWED = new Set(['shell', 'mcp', 'user_input', 'comment']);
+const ALLOWED = new Set(['shell', 'user_input', 'comment', 'subagent']);
 
 describe('adapter-contract-blocks', () => {
   describe('findAllLayerContractBlocks', () => {

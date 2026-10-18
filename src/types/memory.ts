@@ -28,7 +28,7 @@ export interface TensorContractDetails {
   condition?: string;
 }
 
-export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+export type InferenceContractType = 'tensor' | 'shell' | 'user_input' | 'comment' | 'subagent';
 
 export interface InferenceContractDefinition {
   type?: InferenceContractType;
@@ -43,12 +43,6 @@ export interface InferenceContractDefinition {
     flags?: string[];
     args?: string[];
     workdir?: string;
-  };
-  mcp?: {
-    tool_name: string;
-    /** When set (including `{}`), submission must supply a plain object `solution.mcp.arguments` matching these keys (subset semantics). */
-    arguments?: Record<string, unknown>;
-    expected_result?: unknown;
   };
   user_input?: {
     prompt?: string;

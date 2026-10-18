@@ -24,6 +24,23 @@ const SQUADRULES_FORBIDDEN_LEGACY_REFERENCE_NAMES = [
 ];
 
 /**
+ * Erased adapter slugs (ADR 0024). The `phase-critic` / `phase-critic-guide` /
+ * `create-new-protocol` redirect tombstones and the `adapter-migration` /
+ * `bulk-insert-adapters-via-cli` executable adapters were removed from the
+ * bundle, and the slug-alias / redirect-tombstone resolver was dismantled.
+ * Referencing them in code is a defect, so the slugs are forbidden and any
+ * lingering pointer fails lint. Markdown files (ADRs, README) are outside this
+ * rule's scope (eslint globally ignores them) and may still cite them as history.
+ */
+const SQUADRULES_FORBIDDEN_RETIRED_ADAPTER_SLUGS = [
+  'create-new-protocol',
+  'phase-critic',
+  'phase-critic-guide',
+  'adapter-migration',
+  'bulk-insert-adapters-via-cli',
+];
+
+/**
  * Multi-word phrases (case-insensitive). Tokens are split on spaces here; in source,
  * one or more `[\W_]` (non-word chars or `_`) may appear between each pair — so multiple
  * spaces, newlines, `-`, `.`, `/`, and `natural_language` all match, but CamelCase like
@@ -93,6 +110,9 @@ function escapeRegExp(s) {
  * @returns {string}
  */
 function squadrulesForbiddenLegacyReferenceMessage(canonical, matched) {
+  if (SQUADRULES_FORBIDDEN_RETIRED_ADAPTER_SLUGS.includes(canonical)) {
+    return `Disallowed erased adapter slug "${matched}" (case-insensitive; same as "${canonical}"). This adapter and its redirect/alias resolution were removed from the shipped bundle (ADR 0024 — mcp erasure + verification ladder). Do not reference or recreate it. Markdown records (ADRs, README) may still cite it as history; code may not.`;
+  }
   if (canonical === 'SQUADRULES_BEARER_TOKEN') {
     return `Disallowed legacy env key "${matched}" (same as ${canonical}, case-insensitive). Use the config file for tokens; authenticate (e.g. squadrules login or OAuth PKCE) instead of embedding this in source.`;
   }
@@ -177,7 +197,10 @@ const squadrulesForbiddenTextPlugin = {
         const text = sourceCode.getText();
         const seenAt = new Set();
         const compatSurfaceFile = hasSquadrulesCompatSurfaceMarker(text);
-        for (const canonical of SQUADRULES_FORBIDDEN_LEGACY_REFERENCE_NAMES) {
+        for (const canonical of [
+          ...SQUADRULES_FORBIDDEN_LEGACY_REFERENCE_NAMES,
+          ...SQUADRULES_FORBIDDEN_RETIRED_ADAPTER_SLUGS,
+        ]) {
           if (canonical === 'legacy') {
             continue;
           }

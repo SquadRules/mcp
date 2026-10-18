@@ -99,10 +99,6 @@ Is this skill specific to ONE project's codebase?
 2. Write to `.agents/skills/{slug}/SKILL.md`
 3. Optionally `delete` from server
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
-
 ## Fetch the Current Skill Format Spec
 
 Do NOT rely on a frozen copy of the SKILL.md format. The Agent Skills format
@@ -141,10 +137,6 @@ sections *after* this one layer on top of that generic spec.
 - Record which source and (if available) which version/date you fetched, so the
   authoring decision is auditable.
 
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
-
 ## SQUADRULES Customizations (apply after the generic spec)
 
 Everything below is SQUADRULES-specific and layers on top of the fetched Agent
@@ -162,10 +154,6 @@ behavior the generic spec does not cover.
   to auto-trigger. Only add fields the fetched spec actually recognizes.
 - **Reference depth** — keep references one level deep (SKILL.md → reference
   file, never deeper), consistent with the spec's progressive-disclosure model.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
 
 ## Quality Gates
 
@@ -212,10 +200,6 @@ Match instruction specificity to the task's fragility:
 | High (text guidelines) | Multiple valid approaches | Code review guidelines |
 | Medium (templates/pseudocode) | Preferred pattern, acceptable variation | Report generation |
 | Low (exact scripts) | Fragile operations, consistency critical | DB migrations |
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
 
 ## Finalisation Paths
 

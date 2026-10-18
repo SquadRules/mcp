@@ -13,7 +13,6 @@ import type {
   HandleProofResult,
   ProofOfWorkSubmission
 } from './next-proof-types.js';
-import { validateMcpSubmissionAgainstContract } from './mcp-contract-match.js';
 import { buildLayerUri } from './squadrules-uri.js';
 import { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
@@ -252,22 +251,6 @@ export async function handleProofSubmission(
     if (shell.stdout !== undefined) record.stdout = shell.stdout;
     if (shell.stderr !== undefined) record.stderr = shell.stderr;
     if (shell.duration_seconds !== undefined) record.duration_seconds = shell.duration_seconds;
-  } else if (proofType === 'mcp') {
-    const mcp = submission.mcp;
-    if (!mcp) {
-      return blocked('MCP proof requires mcp field', 'MISSING_FIELD');
-    }
-    const mcpContractCheck = validateMcpSubmissionAgainstContract(proof, mcp);
-    if (!mcpContractCheck.ok) {
-      return blocked(mcpContractCheck.message, mcpContractCheck.code);
-    }
-    record.status = mcp.success ? 'success' : 'failed';
-    record.mcp = {
-      tool_name: mcp.tool_name,
-      arguments: mcp.arguments,
-      result: mcp.result,
-      success: mcp.success
-    };
   } else if (proofType === 'user_input') {
     const userInput = submission.user_input;
     if (!userInput || !userInput.confirmation) {

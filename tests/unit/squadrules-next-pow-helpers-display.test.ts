@@ -35,22 +35,24 @@ describe('buildChallengeShapeForDisplay', () => {
     expect(String(shape.description)).toContain('PATH');
   });
 
-  test('mcp challenge includes arguments in payload and description', () => {
+  test('subagent challenge is preserved with context and a delegation description', () => {
     const shape = buildChallengeShapeForDisplay({
       required: true,
-      type: 'mcp',
-      mcp: { tool_name: 'activate', arguments: { query: 'x' } }
+      type: 'subagent',
+      subagent: { context: 'forward squadrules://adapter/critic-loop' }
     } as any);
-    expect(shape.type).toBe('mcp');
-    expect((shape.mcp as Record<string, unknown>).arguments).toEqual({ query: 'x' });
-    expect(String(shape.description)).toContain('subset');
+    expect(shape.type).toBe('subagent');
+    expect((shape.subagent as Record<string, unknown>).context).toBe(
+      'forward squadrules://adapter/critic-loop'
+    );
+    expect(String(shape.description)).toMatch(/delegate/i);
   });
 
   test('invalid stored type is coerced to comment with valid schema fields', () => {
     const warn = jest.spyOn(structuredLogger, 'warn').mockImplementation(() => {});
 
     const shape = buildChallengeShapeForDisplay({
-      type: 'comment|user_input|mcp|shell' as any,
+      type: 'comment|user_input|shell' as any,
       required: true,
       comment: { min_length: 50 }
     } as any);

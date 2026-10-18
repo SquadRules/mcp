@@ -68,7 +68,7 @@ Write your analysis as the solution.
 Using Step 1, construct one refined query with 3–8 specific words. Do not reuse
 the vague phrase that already failed.
 
-Call `activate` with it.
+Call `activate` with it, then record the refined query and the match it returned.
 
 - **Strong match (score >= 0.5):** pick that choice and `forward`.
 - **Weak matches only:** ask the user to clarify or offer the create path.
@@ -78,8 +78,8 @@ Do not loop more than once.
 ```json
 {
   "contract": {
-    "type": "mcp",
-    "mcp": { "tool_name": "activate" },
+    "type": "comment",
+    "comment": { "min_length": 60 },
     "required": true
   }
 }

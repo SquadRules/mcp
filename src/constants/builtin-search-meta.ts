@@ -1,4 +1,3 @@
-import { AUTHORING_ADAPTER_SLUG } from '../utils/adapter-alias.js';
 import type { Memory } from '../types/memory.js';
 import { getMetaDoc } from '../resources/embedded-mcp-resources.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
@@ -6,11 +5,13 @@ import { parseFrontmatter } from '../utils/frontmatter.js';
 /** Refine-help protocol; always appended as an **activate** footer choice (not a vector match). */
 export const SQUADRULES_REFINING_PROTOCOL_SLUG = 'refine-search';
 
-/** Built-in adapter authoring flow; always appended as an **activate** footer choice (not a vector match). */
+/** Built-in adapter authoring flow (create / review / update); always appended as an
+ * **activate** footer choice (not a vector match). Retired redirect tombstones and their
+ * slug aliasing were erased (ADR 0024), so this is a plain current slug with no remapping. */
 export const SQUADRULES_CREATION_PROTOCOL_SLUG = 'author-adapter';
 
 /** Set of built-in protocol slugs used for search filtering. */
-export const BUILTIN_PROTOCOL_SLUGS = new Set([SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG, AUTHORING_ADAPTER_SLUG]);
+export const BUILTIN_PROTOCOL_SLUGS = new Set([SQUADRULES_REFINING_PROTOCOL_SLUG, SQUADRULES_CREATION_PROTOCOL_SLUG]);
 
 function getMetaDocTitle(slug: string, fallbackTitle: string): string {
   const doc = getMetaDoc(slug);
@@ -45,4 +46,9 @@ export const SQUADRULES_CREATION_FOOTER_NEXT_ACTION =
 export function memoryIsBuiltinSearchFooterProtocol(m: Memory): boolean {
   const slug = m.slug ?? '';
   return slug.length > 0 && BUILTIN_PROTOCOL_SLUGS.has(slug);
+}
+
+/** True when the given slug is the authoring adapter (case/space-insensitive). */
+export function isAuthoringAdapterSlug(slug: string): boolean {
+  return (slug || '').trim().toLowerCase() === SQUADRULES_CREATION_PROTOCOL_SLUG;
 }

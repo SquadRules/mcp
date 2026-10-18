@@ -1,4 +1,3 @@
-import { resolveAdapterSlugAlias } from '../../../utils/adapter-alias.js';
 /**
  * Lance read/query layer for memory records.
  *
@@ -130,7 +129,7 @@ export class LanceRecordReader {
 
   /** Exact slug -> adapter entry-layer point, deterministic on ambiguity. */
   async findFirstStepMemoryUuidBySlug(slug: string): Promise<SlugResolveOutcome> {
-    const normalized = resolveAdapterSlugAlias((slug || '').trim().toLowerCase());
+    const normalized = (slug || '').trim().toLowerCase();
     if (!normalized) return { layerUuid: null };
     const filter = buildSpaceFilter(getSearchSpaceIds(), {
       must: [

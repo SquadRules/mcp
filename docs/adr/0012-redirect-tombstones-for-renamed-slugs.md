@@ -2,8 +2,18 @@
 
 ## Status
 
-Accepted — refines [ADR 0010](0010-critic-loop-and-proof-splitting.md); supersedes
-its "no compatibility alias" decision for slugs that are deeply referenced.
+**Superseded by [ADR 0024](0024-verification-ladder-erase-mcp-required-interpreter.md).**
+The redirect-tombstone mechanism was retired: the tombstone adapters and the
+bundled `adapter-migration` / bulk-insert adapters were erased from the shipped
+bundle, the slug-alias / redirect-tombstone resolver was dismantled, and the
+retired slugs are now forbidden in code by the `squadrules-forbidden-text` lint
+rule. External stored adapters that still forward to a retired slug now fail to
+resolve (accepted breaking trade-off). The original rationale is retained below
+for the record.
+
+Previously: Accepted — refines [ADR 0010](0010-critic-loop-and-proof-splitting.md);
+supersedes its "no compatibility alias" decision for slugs that are deeply
+referenced.
 
 ## Context
 

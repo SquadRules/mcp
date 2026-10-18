@@ -1,6 +1,6 @@
 const TYPE_BADGE_CLASS: Record<string, string> = {
   shell: "bg-[var(--badge-shell-bg)] text-[var(--badge-shell-fg)]",
-  mcp: "bg-[var(--badge-mcp-bg)] text-[var(--badge-mcp-fg)]",
+  subagent: "bg-[var(--badge-subagent-bg)] text-[var(--badge-subagent-fg)]",
   user_input: "bg-[var(--badge-user-input-bg)] text-[var(--badge-user-input-fg)]",
   comment: "bg-[var(--badge-comment-bg)] text-[var(--badge-comment-fg)]",
 };
@@ -8,16 +8,15 @@ const TYPE_BADGE_CLASS: Record<string, string> = {
 /** Human-readable challenge names (editor mockups, previews). */
 export const CHALLENGE_TYPE_LABEL: Record<string, string> = {
   shell: "Shell command",
-  mcp: "MCP tool call",
+  subagent: "Subagent delegation",
   user_input: "User input",
   comment: "Comment",
 };
 
 export type ChallengePayload = {
   cmd?: string;
-  tool_name?: string;
-  /** Expected MCP tool arguments from the layer contract (subset match on submit). */
-  arguments?: Record<string, unknown>;
+  /** Task-specific context for the delegated subagent (from the layer contract). */
+  context?: string;
   prompt?: string;
   min_length?: number;
 };
@@ -41,12 +40,11 @@ export function ChallengeCard({ type, payload }: { type: string; payload?: Chall
           </code>
         </div>
       )}
-      {payload?.tool_name && <div className="mt-2 text-sm text-[var(--color-text)]">Tool: {payload.tool_name}</div>}
-      {payload?.arguments !== undefined && (
+      {payload?.context && (
         <div className="mt-2">
-          <div className="text-xs text-[var(--color-text-muted)]">Expected arguments (subset)</div>
-          <code className="mt-0.5 block max-h-40 overflow-auto break-all rounded bg-[var(--color-surface-elevated)] px-3 py-2 font-mono text-xs text-[var(--color-text)]">
-            {JSON.stringify(payload.arguments, null, 2)}
+          <div className="text-xs text-[var(--color-text-muted)]">Delegation context</div>
+          <code className="mt-0.5 block max-h-40 overflow-auto break-all rounded bg-[var(--color-surface-elevated)] px-3 py-2 font-mono text-xs text-[var(--color-text)] whitespace-pre-wrap">
+            {payload.context}
           </code>
         </div>
       )}

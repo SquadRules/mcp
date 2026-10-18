@@ -1,4 +1,4 @@
-import { AUTHORING_ADAPTER_SLUG } from '../utils/adapter-alias.js';
+import { SQUADRULES_CREATION_PROTOCOL_SLUG } from '../constants/builtin-search-meta.js';
 import { authoringContextSchema } from './authoring-context.js';
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
@@ -232,7 +232,7 @@ export async function executeActivate(
 
   if (input.authoring) {
     let authoring = authoringContextSchema.parse(input.authoring);
-    const uri = buildAdapterUri(AUTHORING_ADAPTER_SLUG);
+    const uri = buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG);
     const discover = async (): Promise<ActivateOutput> => {
       const resolved = await resolveExportAdapter(memoryStore, qdrantService, uri);
       const memory = await memoryStore.getMemory(resolved.layerId);
@@ -249,7 +249,7 @@ export async function executeActivate(
         execution_id: executionId,
         query: input.query,
         choices: [{
-          uri, slug: AUTHORING_ADAPTER_SLUG, label: 'Author Adapter (create / review / update)',
+          uri, slug: SQUADRULES_CREATION_PROTOCOL_SLUG, label: 'Author Adapter (create / review / update)',
           adapter_name: memory.adapter?.name ?? 'Author Adapter', adapter_version: null,
           activation_score: 1, role: 'match', tags: ['authoring', authoring.operation],
           space_name: null,

@@ -2,7 +2,7 @@ import { keyValueStore } from './key-value-store-factory.js';
 import { logger } from '../utils/structured-logger.js';
 
 export type ProofOfWorkStatus = 'success' | 'failed';
-export type ProofOfWorkType = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+export type ProofOfWorkType = 'shell' | 'user_input' | 'comment' | 'subagent';
 
 export interface ProofOfWorkResultRecord {
   result_id: string;
@@ -20,12 +20,6 @@ export interface ProofOfWorkResultRecord {
     stdout?: string;
     stderr?: string;
     duration_seconds?: number;
-  };
-  mcp?: {
-    tool_name: string;
-    arguments?: any;
-    result: any;
-    success: boolean;
   };
   user_input?: {
     confirmation: string;

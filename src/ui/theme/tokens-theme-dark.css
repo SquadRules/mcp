@@ -21,8 +21,8 @@ html[data-theme="dark"] {
   --color-focus-ring: #2dd4bf;
   --badge-shell-bg: #78350f;
   --badge-shell-fg: #fde68a;
-  --badge-mcp-bg: #1e3a8a;
-  --badge-mcp-fg: #bfdbfe;
+  --badge-subagent-bg: #1e3a8a;
+  --badge-subagent-fg: #bfdbfe;
   --badge-user-input-bg: #4c1d95;
   --badge-user-input-fg: #ddd6fe;
   --badge-comment-bg: #334155;

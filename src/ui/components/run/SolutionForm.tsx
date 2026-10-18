@@ -27,10 +27,8 @@ export function SolutionForm({
   const [stderr, setStderr] = useState("");
   const [tensorValueText, setTensorValueText] = useState("");
 
-  const toolName = contract.mcp?.tool_name ?? "";
-  const [mcpSuccess, setMcpSuccess] = useState(true);
-  const [mcpArgsText, setMcpArgsText] = useState("");
-  const [mcpResultText, setMcpResultText] = useState("");
+  const subagentContext = contract.subagent?.context ?? "";
+  const [report, setReport] = useState("");
 
   const prompt = contract.user_input?.prompt ?? "";
   const [confirmation, setConfirmation] = useState("");
@@ -46,21 +44,19 @@ export function SolutionForm({
     setStdout("");
     setStderr("");
     setTensorValueText("");
-    setMcpSuccess(true);
-    setMcpArgsText("");
-    setMcpResultText("");
+    setReport("");
     setConfirmation("");
     setComment("");
-  }, [type, toolName, prompt, minLen]);
+  }, [type, subagentContext, prompt, minLen]);
 
   const isValid = useMemo(() => {
     if (type === "tensor") return tensorValueText.trim().length > 0;
     if (type === "shell") return Number.isFinite(exitCode);
-    if (type === "mcp") return toolName.trim().length > 0;
+    if (type === "subagent") return report.trim().length > 0;
     if (type === "user_input") return confirmation.trim().length > 0;
     if (type === "comment") return comment.trim().length >= minLen;
     return false;
-  }, [type, exitCode, toolName, confirmation, comment, minLen]);
+  }, [type, exitCode, report, confirmation, comment, minLen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,17 +88,10 @@ export function SolutionForm({
         return;
       }
 
-      if (type === "mcp") {
-        const args = parseJsonOrThrow(mcpArgsText);
-        const result = parseJsonOrThrow(mcpResultText);
+      if (type === "subagent") {
         onSubmit({
           type,
-          mcp: {
-            tool_name: toolName,
-            ...(args !== null ? { arguments: args } : {}),
-            result,
-            success: mcpSuccess,
-          },
+          evidence: { report: report.trim() },
         });
         return;
       }
@@ -212,44 +201,20 @@ export function SolutionForm({
         </div>
       )}
 
-      {type === "mcp" && (
+      {type === "subagent" && (
         <div className="space-y-4">
           <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <div className="text-sm text-[var(--color-text-muted)]">{t("run.mcp.toolName")}</div>
-            <div className="font-medium text-[var(--color-text-heading)] break-all">{toolName || t("run.mcp.toolMissing")}</div>
-          </div>
-          <label className="inline-flex items-center gap-2 min-h-[44px]">
-            <input
-              type="checkbox"
-              checked={mcpSuccess}
-              onChange={(e) => setMcpSuccess(e.target.checked)}
-              disabled={disabled}
-              className="h-4 w-4"
-            />
-            <span className="text-sm text-[var(--color-text)]">{t("run.mcp.success")}</span>
-          </label>
-          <div>
-            <label htmlFor="run-mcp-args" className="block font-medium text-[var(--color-text-heading)] mb-2">
-              {t("run.mcp.arguments")}
-            </label>
-            <textarea
-              id="run-mcp-args"
-              value={mcpArgsText}
-              onChange={(e) => setMcpArgsText(e.target.value)}
-              placeholder='{ "example": true }'
-              className="w-full min-h-[6rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
-              disabled={disabled}
-            />
+            <div className="text-sm text-[var(--color-text-muted)]">{t("run.subagent.context")}</div>
+            <div className="font-medium text-[var(--color-text-heading)] whitespace-pre-wrap break-words">{subagentContext || t("run.subagent.contextMissing")}</div>
           </div>
           <div>
-            <label htmlFor="run-mcp-result" className="block font-medium text-[var(--color-text-heading)] mb-2">
-              {t("run.mcp.result")}
+            <label htmlFor="run-subagent-report" className="block font-medium text-[var(--color-text-heading)] mb-2">
+              {t("run.subagent.report")}
             </label>
             <textarea
-              id="run-mcp-result"
-              value={mcpResultText}
-              onChange={(e) => setMcpResultText(e.target.value)}
-              placeholder='{ "ok": true }'
+              id="run-subagent-report"
+              value={report}
+              onChange={(e) => setReport(e.target.value)}
               className="w-full min-h-[10rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
               disabled={disabled}
               required

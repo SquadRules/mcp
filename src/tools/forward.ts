@@ -1,5 +1,5 @@
 import { authoringContextSchema } from './authoring-context.js';
-import { isAuthoringAdapterSlug } from '../utils/adapter-alias.js';
+import { isAuthoringAdapterSlug } from '../constants/builtin-search-meta.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
 import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
