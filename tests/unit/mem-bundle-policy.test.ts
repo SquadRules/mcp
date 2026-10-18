@@ -26,7 +26,6 @@ const MEM_DIR = join(process.cwd(), 'src', 'embed-docs', 'mem');
 /** Knowledge-only docs: exactly one comment ACK, nothing else. */
 const KNOWLEDGE_DOCS = [
   'challenge-type-guide',
-  'contract-rationale',
   'critic-loop-guide',
   'protocol-linking-guide',
   'skill-format-guide'
