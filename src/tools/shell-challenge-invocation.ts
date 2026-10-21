@@ -5,7 +5,8 @@
 
 export type ShellChallengeFields = {
   cmd?: string;
-  interpreter?: ShellInterpreter;
+  /** Required (ADR 0026): an absent interpreter is an invalid contract, not a request for `bash`. */
+  interpreter: ShellInterpreter;
   flags?: string[];
   args?: string[];
   workdir?: string;
@@ -15,9 +16,18 @@ export type ShellChallengeFields = {
 export const SHELL_INTERPRETERS = ['bash', 'sh', 'python3', 'python', 'node'] as const;
 export type ShellInterpreter = typeof SHELL_INTERPRETERS[number];
 
+/** Clear error for the (post-validation, should-not-happen) case of a missing interpreter. */
+function missingInterpreterError(): Error {
+  return new Error(
+    `shell contract is missing its required interpreter (one of: ${SHELL_INTERPRETERS.join(', ')})`
+  );
+}
+
 /**
  * Normalize loose proof/UI fields into argv input without assigning `undefined`
  * to optional keys (required when `exactOptionalPropertyTypes` is enabled).
+ * The interpreter is required (ADR 0026): a missing or blank value throws
+ * rather than silently defaulting to `bash`.
  */
 export function pickShellChallengeFields(shell: {
   cmd: string;
@@ -26,9 +36,9 @@ export function pickShellChallengeFields(shell: {
   args?: string[] | undefined;
   workdir?: string | undefined;
 }): ShellChallengeFields {
-  const out: ShellChallengeFields = { cmd: shell.cmd };
   const interp = shell.interpreter?.trim();
-  if (interp) out.interpreter = interp as ShellInterpreter;
+  if (!interp) throw missingInterpreterError();
+  const out: ShellChallengeFields = { cmd: shell.cmd, interpreter: interp as ShellInterpreter };
   if (shell.flags !== undefined) out.flags = shell.flags;
   if (shell.args !== undefined) out.args = shell.args;
   const wd = shell.workdir?.trim();
@@ -68,7 +78,10 @@ function hasScriptCarrierE(flags: string[] | undefined): boolean {
 }
 
 /**
- * argv for the challenge. Default path: no interpreter or bash → bash -c cmd [-- args].
+ * argv for the challenge. The interpreter is required (ADR 0026): `bash` uses
+ * `-c`; `sh`/`python3`/`python` use `-c` and `node` uses `-e` (auto-injected
+ * when the contract's flags do not already carry it). A missing interpreter is
+ * an invalid contract and throws — it should already be rejected by validation.
  */
 export function buildShellChallengeArgv(shell: ShellChallengeFields): string[] {
   const cmd = shell.cmd ?? '';
@@ -76,13 +89,15 @@ export function buildShellChallengeArgv(shell: ShellChallengeFields): string[] {
   const args = shell.args ?? [];
   const interp = normalizedInterpreter(shell.interpreter);
 
-  if (!interp || interp.toLowerCase() === 'bash') {
-    const out: string[] = ['bash', '-c', cmd.trim() || 'true'];
+  if (!interp) throw missingInterpreterError();
+
+  const low = interp.toLowerCase();
+
+  if (low === 'bash') {
+    const out: string[] = ['bash', '-c', cmd.trim()];
     if (args.length) out.push('--', ...args);
     return out;
   }
-
-  const low = interp.toLowerCase();
 
   if (INJECT_C.has(low)) {
     if (hasExplicitCodeFlagC(flags)) {

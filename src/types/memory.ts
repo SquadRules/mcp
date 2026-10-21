@@ -39,7 +39,8 @@ export interface InferenceContractDefinition {
   shell?: {
     cmd: string;
     timeout_seconds: number;
-    interpreter?: ShellInterpreter;
+    /** Required (ADR 0026): the argv a shell contract runs must be fully specified by the contract. */
+    interpreter: ShellInterpreter;
     flags?: string[];
     args?: string[];
     workdir?: string;

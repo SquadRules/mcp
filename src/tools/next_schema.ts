@@ -59,7 +59,7 @@ export const challengeSchema = z.object({
   shell: z.object({
     cmd: z.string(),
     timeout_seconds: z.number(),
-    interpreter: z.enum(SHELL_INTERPRETERS).optional(),
+    interpreter: z.enum(SHELL_INTERPRETERS),
     flags: z.array(z.string()).optional(),
     args: z.array(z.string()).optional(),
     workdir: z.string().optional(),
@@ -84,7 +84,7 @@ export const challengeSchema = z.object({
 
 export const nextInputSchema = z.object({
   uri: layerUriSchema.describe('Current layer URI (from next_action of previous response)'),
-  solution: solutionSchema.describe('Proof matching challenge.type: shell/mcp/user_input/comment')
+  solution: solutionSchema.describe('Proof matching challenge.type: shell/mcp/user_input/comment/subagent')
 });
 
 export const nextOutputSchema = z.object({
