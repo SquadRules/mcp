@@ -34,7 +34,7 @@ import {
   mapLayerPayloadShapeToForwardView,
   mapProofSolution,
 } from './forward-view.js';
-import { appendExecutionTrace, handleTensorForward, solutionToTensorValue } from './forward-trace.js';
+import { appendExecutionTrace, solutionToTensorValue } from './forward-trace.js';
 import { SquadrulesError } from '../types/index.js';
 
 function traceFireAndForget(op: Promise<void>): void {
@@ -156,9 +156,6 @@ export async function executeForward(
   }
 
   const contract = getInferenceContract(memory);
-  if (contract?.type === 'tensor') {
-    return handleTensorForward(memoryStore, memory, executionId, input.solution, qdrantService);
-  }
 
   const tenantId = getTenantId();
   const tryElicit = (currentMemory: typeof memory, solution: ProofOfWorkSubmission, requestedUri: string) =>

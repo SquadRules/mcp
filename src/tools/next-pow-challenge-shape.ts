@@ -4,13 +4,6 @@ import { GENESIS_HASH } from './squadrules-genesis-proof-hash.js';
 /** Build challenge shape from proof only (no nonce, no store). Used by forward / next proof flow. */
 export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Record<string, unknown> {
   const base: Record<string, unknown> = proof ? (() => {
-    if (proof.type === 'tensor') {
-      return {
-        type: 'tensor',
-        description: `Emit tensor output "${proof.tensor?.output.name ?? 'unnamed'}".`,
-        ...(proof.tensor ? { tensor: proof.tensor } : {})
-      };
-    }
     const proofType: ProofOfWorkType = proof.type ?? 'shell';
     const result: Record<string, unknown> = { type: proofType, description: '' };
     if (proofType === 'shell') {

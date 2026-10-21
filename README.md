@@ -10,6 +10,21 @@ Even you and one AI assistant are a team.
 Your AI does the work of maintaining this knowledge, so you do not have to
 manage it yourself.
 
+## Your AI owns the work
+
+SquadRules is built for AI ownership and full autonomy by default:
+
+- Your AI creates, repairs, and maintains the workflows — called adapters —
+  that carry your preferences. No human approval gates stand in the way.
+- Adapters run end to end. Each one finishes with a verification contract that
+  checks real evidence — an observed file, a command result, or a reviewer's
+  finding — instead of a claim that the work was done.
+- Your AI asks you only when a decision or permission is genuinely missing.
+  Human input is an emergency path, not a routine confirmation step.
+
+Details: [adapter design principles](docs/adapter-design-principles.md) and the
+[adapter authoring guide](docs/adapter-authoring-guide.md).
+
 ## Manual installation
 
 You need [Node.js](https://nodejs.org/) 24 or newer and an AI app that supports

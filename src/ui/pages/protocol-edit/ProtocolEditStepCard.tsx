@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import type { StepFormState } from "@/hooks/useProtocol";
 import { CHALLENGE_TYPE_KEYS } from "./constants";
+import { SHELL_INTERPRETERS, type ShellInterpreter } from "../../../tools/shell-challenge-invocation.js";
 
 const inputClass =
   "min-h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)] focus-visible:outline-offset-2";
@@ -157,15 +158,15 @@ export function ProtocolEditStepCard({
                 <label className="mb-2 block text-sm font-medium text-[var(--color-text-heading)]">
                   {t("protocolEdit.shellInterpreter")}
                 </label>
-                <input
-                  type="text"
+                <select
+                  required
                   value={step.shell?.interpreter ?? ""}
                   onChange={(e) =>
                     setStep(index, {
                       shell: {
                         cmd: step.shell?.cmd ?? "",
                         timeout_seconds: step.shell?.timeout_seconds ?? 30,
-                        interpreter: (e.target.value || undefined) as "bash" | "sh" | "python3" | "python" | "node" | undefined,
+                        interpreter: (e.target.value || undefined) as ShellInterpreter | undefined,
                         workdir: step.shell?.workdir,
                         flags: step.shell?.flags ?? [],
                         args: step.shell?.args ?? [],
@@ -173,7 +174,15 @@ export function ProtocolEditStepCard({
                     })
                   }
                   className={elevatedInputClass}
-                />
+                >
+                  <option value="">{t("protocolEdit.shellInterpreterPlaceholder")}</option>
+                  {SHELL_INTERPRETERS.map((interp) => (
+                    <option key={interp} value={interp}>
+                      {interp}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">{t("protocolEdit.shellInterpreterHint")}</p>
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-[var(--color-text-heading)]">

@@ -68,6 +68,11 @@ export interface StepFormState {
   shell?: {
     cmd: string;
     timeout_seconds: number;
+    /**
+     * Required for shell steps (ADR 0026). Optional in form state only so the
+     * editor can represent the pre-selection state; the step card's required
+     * select and server-side validation block saving without it.
+     */
     interpreter?: ShellInterpreter;
     workdir?: string;
     flags: string[];
@@ -139,10 +144,6 @@ export function parseProtocolMarkdown(md: string): {
             const prompt = challenge?.user_input?.prompt;
             summary = prompt ? `User input: ${String(prompt)}` : "User input";
             if (prompt) challengePayload = { prompt: String(prompt) };
-          } else if (type === "tensor") {
-            const name = challenge?.tensor?.output?.name;
-            const outputType = challenge?.tensor?.output?.type;
-            summary = name ? `Tensor: ${String(name)}${outputType ? ` (${String(outputType)})` : ""}` : "Tensor";
           } else if (type === "comment") {
             const min = challenge?.comment?.min_length;
             summary = min ? `Comment: min ${Number(min)} chars` : "Comment";
@@ -225,6 +226,9 @@ export function buildMarkdownFromForm(state: ProtocolFormState): string {
         timeout_seconds: step.shell?.timeout_seconds ?? 30,
       };
       const interp = step.shell?.interpreter?.trim();
+      // interpreter is a required shell-contract field (ADR 0026). The editor's
+      // required select guarantees it; leaving an empty value out stays
+      // fail-closed (train rejects with shell_interpreter_required).
       if (interp) shell.interpreter = interp;
       const wd = step.shell?.workdir?.trim();
       if (wd) shell.workdir = wd;

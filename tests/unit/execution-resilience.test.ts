@@ -127,14 +127,6 @@ describe('Fix 2: Copy-paste-ready next_call objects', () => {
     expect(parsed.next_call).toMatchObject({ kind: 'forward' });
   });
 
-  test('tensor contracts carry no proof-of-work tokens and still validate', () => {
-    const contract = { type: 'tensor', tensor: { required_inputs: ['a'], output: { name: 'out', type: 'number' } } };
-    const template = templateFromContract(contract);
-    expect(template.nonce).toBeUndefined();
-    expect(template.proof_hash).toBeUndefined();
-    expect(() => forwardOutputSchema.parse(forwardOutput(contract, template))).not.toThrow();
-  });
-
   test('solution_template stays strict, so a rogue model cannot smuggle extra keys', () => {
     const smuggled = { ...templateFromContract(commentContract), executed_by: 'hallucinated' };
     expect(() => forwardOutputSchema.parse(forwardOutput(commentContract, smuggled))).toThrow();

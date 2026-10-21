@@ -295,7 +295,7 @@ Done.`;
     const result = validateProtocolStructure(doc);
     expect(result.valid).toBe(false);
     expect(result.missing).toContain('invalid_contract_type');
-    expect(result.message).toMatch(/tensor, shell, mcp, user_input, or comment/);
+    expect(result.message).toMatch(/shell, mcp, user_input, comment, or subagent/);
   });
 
   test('embedded author-adapter markdown passes validation', () => {

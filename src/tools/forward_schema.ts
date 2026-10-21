@@ -12,29 +12,12 @@ const layerUriSchema = z
 
 const forwardUriSchema = z.union([adapterUriSchema, layerUriSchema]);
 
-const tensorOutputSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  min_length: z.number().optional(),
-  max_length: z.number().optional(),
-  min_items: z.number().optional(),
-  max_items: z.number().optional()
-});
-
-const tensorContractSchema = z.object({
-  required_inputs: z.array(z.string()),
-  output: tensorOutputSchema,
-  merge: z.string().optional(),
-  condition: z.string().optional()
-});
-
 export const forwardContractSchema = z.object({
-  type: z.enum(['tensor', 'shell', 'mcp', 'user_input', 'comment', 'subagent']),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']),
   required: z.boolean().optional(),
   description: z.string().optional(),
   nonce: z.string().optional(),
   proof_hash: z.string().optional(),
-  tensor: tensorContractSchema.optional(),
   shell: z.object({
     cmd: z.string(),
     timeout_seconds: z.number()
@@ -55,7 +38,7 @@ export const forwardContractSchema = z.object({
   }).optional()
 });
 
-const solutionTypeSchema = z.enum(['tensor', 'shell', 'mcp', 'user_input', 'comment', 'subagent']);
+const solutionTypeSchema = z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']);
 
 const solutionTemplateSchema = z
   .object({
@@ -64,7 +47,6 @@ const solutionTemplateSchema = z
     nonce: z.string().optional(),
     proof_hash: z.string().optional(),
     evidence: z.record(z.string(), z.unknown()).optional(),
-    tensor: z.record(z.string(), z.unknown()).optional(),
     shell: z.record(z.string(), z.unknown()).optional(),
     mcp: z.record(z.string(), z.unknown()).optional(),
     user_input: z.record(z.string(), z.unknown()).optional(),
@@ -72,9 +54,8 @@ const solutionTemplateSchema = z
   })
   .strict()
   .superRefine((value: z.infer<typeof solutionTemplateSchema>, ctx: z.RefinementCtx) => {
-    type PayloadField = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+    type PayloadField = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
     const typeToField: Record<z.infer<typeof solutionTypeSchema>, PayloadField> = {
-      tensor: 'tensor',
       shell: 'shell',
       mcp: 'mcp',
       user_input: 'user_input',
@@ -92,7 +73,7 @@ const solutionTemplateSchema = z
       return;
     }
     const expectedField = typeToField[value.type];
-    const directFieldNames = ['tensor', 'shell', 'mcp', 'user_input', 'comment'] as const;
+    const directFieldNames = ['shell', 'mcp', 'user_input', 'comment'] as const;
     const providedFields = directFieldNames.filter((f) => value[f] !== undefined);
     if (value.evidence === undefined && !providedFields.includes(value.type)) {
       ctx.addIssue({
@@ -181,7 +162,7 @@ function normalizeForwardSolutionFormat(raw: unknown): unknown {
     return solution;
   }
   const type = solution['type'];
-  if (typeof type === 'string' && ['tensor', 'shell', 'mcp', 'user_input', 'comment', 'subagent'].includes(type)) {
+  if (typeof type === 'string' && ['shell', 'mcp', 'user_input', 'comment', 'subagent'].includes(type)) {
     const typeSpecificData = solution[type];
     if (typeSpecificData !== undefined && typeof typeSpecificData === 'object') {
       const v2Solution: Record<string, unknown> = { type, outcome: 'success', evidence: typeSpecificData, nonce: solution['nonce'], proof_hash: solution['proof_hash'], trace: solution['trace'] };
@@ -202,15 +183,11 @@ function normalizeForwardSolutionFormat(raw: unknown): unknown {
 }
 
 const forwardSolutionShapeSchema = z.object({
-  type: z.enum(['tensor', 'shell', 'mcp', 'user_input', 'comment', 'subagent']).describe('Must match contract.type on continuation calls'),
+  type: z.enum(['shell', 'mcp', 'user_input', 'comment', 'subagent']).describe('Must match contract.type on continuation calls'),
   outcome: z.enum(['success', 'failure', 'skipped']).optional().describe('Universal outcome signal. Required in v2 format.'),
   evidence: z.record(z.string(), z.unknown()).optional().describe('Type-specific proof of execution. Shape depends on solution.type.'),
   nonce: z.string().optional().describe('Echo nonce from contract for proof-based layers'),
   proof_hash: z.string().optional().describe('Echo proof_hash from previous layer when required'),
-  tensor: z.object({
-    name: z.string(),
-    value: z.any()
-  }).optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
   shell: z.object({
     exit_code: z.number(),
     stdout: z.string().optional(),
@@ -222,11 +199,10 @@ const forwardSolutionShapeSchema = z.object({
   comment: forwardCommentSolutionCanonicalSchema.optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
   trace: z.string().optional().describe('Optional reasoning trace stored with the execution trace')
 }).refine(
-  (data: any) => !!(data.tensor || data.shell || data.mcp || data.user_input || data.comment || data.evidence),
+  (data: any) => !!(data.shell || data.mcp || data.user_input || data.comment || data.evidence),
   { message: 'At least one type-specific field must be provided' }
 ).refine(
   (data: any) => {
-    if (data.type === 'tensor' && !data.tensor && !data.evidence) return false;
     if (data.type === 'shell' && !data.shell && !data.evidence) return false;
     if (data.type === 'mcp' && !data.mcp && !data.evidence) return false;
     if (data.type === 'user_input' && !data.user_input && !data.evidence) return false;
@@ -286,14 +262,13 @@ export const forwardInputSchema = z.object({
 
 const forwardWireSolutionShapeSchema = z.object({
   type: z
-    .enum(['tensor', 'shell', 'mcp', 'user_input', 'comment', 'subagent'])
+    .enum(['shell', 'mcp', 'user_input', 'comment', 'subagent'])
     .optional()
     .describe('Required for continuation calls; must match contract.type. Do not send `solution` at all on start calls.'),
   outcome: z.enum(['success', 'failure', 'skipped']).optional().describe('Universal outcome signal. Required in v2 format.'),
   evidence: z.record(z.string(), z.unknown()).optional().describe('Type-specific proof of execution. Shape depends on solution.type.'),
   nonce: z.string().optional(),
   proof_hash: z.string().optional(),
-  tensor: z.object({ name: z.string().optional(), value: z.any().optional() }).optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
   shell: z.object({ exit_code: z.number().optional(), stdout: z.string().optional(), stderr: z.string().optional(), duration_seconds: z.number().optional() }).optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
   mcp: z.object({ tool_name: z.string().optional(), arguments: z.any().optional(), result: z.any().optional(), success: z.boolean().optional() }).optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
   user_input: z.object({ confirmation: z.string().optional(), timestamp: z.string().optional() }).optional().describe('Deprecated: Use \'evidence\' envelope instead. Still accepted.'),
@@ -325,7 +300,6 @@ export const forwardOutputSchema = z.object({
   must_obey: z.boolean(),
   current_layer: z.object({ uri: layerUriSchema, content: z.string(), mimeType: z.literal('text/markdown') }).optional().nullable(),
   contract: forwardContractSchema,
-  tensor_in: z.record(z.string(), z.unknown()).optional(),
   next_action: z.string(),
   proof_hash: z.string().optional(),
   execution_id: z.string().optional(),

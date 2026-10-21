@@ -10,7 +10,7 @@ describe('buildChallengeShapeForDisplay', () => {
   test('undefined type defaults to shell challenge shape', () => {
     const shape = buildChallengeShapeForDisplay({
       required: true,
-      shell: { cmd: 'echo hi', timeout_seconds: 5 }
+      shell: { cmd: 'echo hi', timeout_seconds: 5, interpreter: 'bash' }
     } as any);
     expect(shape.type).toBe('shell');
     expect(shape.shell).toMatchObject({ cmd: 'echo hi', timeout_seconds: 5 });

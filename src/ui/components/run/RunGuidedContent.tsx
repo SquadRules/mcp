@@ -157,19 +157,6 @@ export function RunGuidedContent({
           </div>
         </details>
 
-        {run.contract.type === "tensor" && (
-          <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <div className="text-sm text-[var(--color-text-muted)]">Tensor output</div>
-            <div className="font-medium text-[var(--color-text-heading)]">
-              {run.contract.tensor?.output.name ?? "tensor"} ({run.contract.tensor?.output.type ?? "unknown"})
-            </div>
-            {run.contract.tensor?.required_inputs?.length ? (
-              <div className="mt-2 text-sm text-[var(--color-text-muted)]">
-                Required inputs: {run.contract.tensor.required_inputs.join(", ")}
-              </div>
-            ) : null}
-          </div>
-        )}
       </section>
 
       {run.status !== "completed" && run.status !== "ready_to_reward" && (

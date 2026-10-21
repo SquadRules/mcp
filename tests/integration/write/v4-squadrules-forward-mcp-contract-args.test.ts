@@ -5,13 +5,14 @@ import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
-function trainSingleMcpLayer(title: string, tool: string, args?: Record<string, unknown>) {
-  const mcp: Record<string, unknown> = { tool_name: tool };
-  if (args !== undefined) mcp.arguments = args;
+function trainSingleMcpLayer(title: string, targetSlug: string) {
   const fence = JSON.stringify({
     contract: {
       type: 'mcp',
-      mcp,
+      mcp: {
+        tool_name: 'forward',
+        arguments: { uri: `squadrules://adapter/${targetSlug}` }
+      },
       required: true
     }
   });
@@ -45,7 +46,7 @@ describe('v4-forward MCP contract tool and arguments', () => {
 
   test('wrong tool_name yields MCP_TOOL_MISMATCH', async () => {
     const ts = Date.now();
-    const doc = trainSingleMcpLayer(`McpContractArgs ${ts}`, 'spaces', { limit: 1 });
+    const doc = trainSingleMcpLayer(`McpContractArgs ${ts}`, 'target-slug');
     const storeResult = await mcpConnection.client.callTool({
       name: 'train',
       arguments: { content: doc, llm_model_id: 'test-v4-mcp-contract-args', force_update: true,
@@ -71,8 +72,8 @@ describe('v4-forward MCP contract tool and arguments', () => {
           nonce,
           proof_hash: proofHash,
           mcp: {
-            tool_name: 'forward',
-            arguments: { limit: 1 },
+            tool_name: 'spaces',
+            arguments: { uri: 'squadrules://adapter/target-slug' },
             result: {},
             success: true
           }
@@ -87,7 +88,7 @@ describe('v4-forward MCP contract tool and arguments', () => {
 
   test('wrong arguments yields MCP_ARGUMENTS_MISMATCH', async () => {
     const ts = Date.now();
-    const doc = trainSingleMcpLayer(`McpContractArgs2 ${ts}`, 'spaces', { limit: 1 });
+    const doc = trainSingleMcpLayer(`McpContractArgs2 ${ts}`, 'target-slug');
     const storeResult = await mcpConnection.client.callTool({
       name: 'train',
       arguments: { content: doc, llm_model_id: 'test-v4-mcp-contract-args', force_update: true,
@@ -112,8 +113,8 @@ describe('v4-forward MCP contract tool and arguments', () => {
           nonce,
           proof_hash: proofHash,
           mcp: {
-            tool_name: 'spaces',
-            arguments: { limit: 2 },
+            tool_name: 'forward',
+            arguments: { uri: 'squadrules://adapter/wrong-slug' },
             result: {},
             success: true
           }
@@ -128,7 +129,7 @@ describe('v4-forward MCP contract tool and arguments', () => {
 
   test('matching tool_name and arguments advances run', async () => {
     const ts = Date.now();
-    const doc = trainSingleMcpLayer(`McpContractArgs3 ${ts}`, 'spaces', { limit: 1 });
+    const doc = trainSingleMcpLayer(`McpContractArgs3 ${ts}`, 'target-slug');
     const storeResult = await mcpConnection.client.callTool({
       name: 'train',
       arguments: { content: doc, llm_model_id: 'test-v4-mcp-contract-args', force_update: true,
@@ -153,8 +154,8 @@ describe('v4-forward MCP contract tool and arguments', () => {
           nonce,
           proof_hash: proofHash,
           mcp: {
-            tool_name: 'spaces',
-            arguments: { limit: 1, extra: true },
+            tool_name: 'forward',
+            arguments: { uri: 'squadrules://adapter/target-slug', extra: true },
             result: { ok: true },
             success: true
           }

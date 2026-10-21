@@ -25,7 +25,6 @@ export function SolutionForm({
   const [exitCode, setExitCode] = useState<number>(0);
   const [stdout, setStdout] = useState("");
   const [stderr, setStderr] = useState("");
-  const [tensorValueText, setTensorValueText] = useState("");
 
   const toolName = contract.mcp?.tool_name ?? "";
   const [mcpSuccess, setMcpSuccess] = useState(true);
@@ -45,7 +44,6 @@ export function SolutionForm({
     setExitCode(0);
     setStdout("");
     setStderr("");
-    setTensorValueText("");
     setMcpSuccess(true);
     setMcpArgsText("");
     setMcpResultText("");
@@ -54,7 +52,6 @@ export function SolutionForm({
   }, [type, toolName, prompt, minLen]);
 
   const isValid = useMemo(() => {
-    if (type === "tensor") return tensorValueText.trim().length > 0;
     if (type === "shell") return Number.isFinite(exitCode);
     if (type === "mcp") return toolName.trim().length > 0;
     if (type === "user_input") return confirmation.trim().length > 0;
@@ -68,18 +65,6 @@ export function SolutionForm({
     if (!isValid) return;
 
     try {
-      if (type === "tensor") {
-        const parsedValue = parseJsonOrThrow(tensorValueText);
-        onSubmit({
-          type,
-          tensor: {
-            name: contract.tensor?.output.name ?? "tensor",
-            value: parsedValue,
-          },
-        });
-        return;
-      }
-
       if (type === "shell") {
         onSubmit({
           type,
@@ -177,36 +162,6 @@ export function SolutionForm({
               onChange={(e) => setStderr(e.target.value)}
               className="w-full min-h-[6rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
               disabled={disabled}
-            />
-          </div>
-        </div>
-      )}
-
-      {type === "tensor" && (
-        <div className="space-y-4">
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <div className="text-sm text-[var(--color-text-muted)]">Output tensor</div>
-            <div className="font-medium text-[var(--color-text-heading)]">
-                {contract.tensor?.output.name ?? "tensor"} ({contract.tensor?.output.type ?? "unknown"})
-            </div>
-            {contract.tensor?.required_inputs?.length ? (
-              <div className="text-sm text-[var(--color-text-muted)] mt-2">
-                Required inputs: {contract.tensor.required_inputs.join(", ")}
-              </div>
-            ) : null}
-          </div>
-          <div>
-            <label htmlFor="run-tensor-value" className="block font-medium text-[var(--color-text-heading)] mb-2">
-              Tensor value (JSON)
-            </label>
-            <textarea
-              id="run-tensor-value"
-              value={tensorValueText}
-              onChange={(e) => setTensorValueText(e.target.value)}
-              placeholder='"example string" or ["item1", "item2"]'
-              className="w-full min-h-[10rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
-              disabled={disabled}
-              required
             />
           </div>
         </div>

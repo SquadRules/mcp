@@ -63,29 +63,6 @@ function currentLayer(memory: Memory, executionId: string) {
 export function normalizeContract(memory: Memory): InferenceContractDefinition | undefined {
   return getInferenceContract(memory);
 }
-function summarizeContract(contract: InferenceContractDefinition): string {
-  if (contract.type === 'tensor') {
-    const outputName = contract.tensor?.output.name ?? 'tensor';
-    const outputType = contract.tensor?.output.type ?? 'unknown';
-    return `Produce tensor ${outputName} (${outputType})`;
-  }
-  if (contract.type === 'shell') {
-    return `Execute shell command: ${contract.shell?.cmd ?? contract.cmd ?? 'unknown command'}`;
-  }
-  if (contract.type === 'mcp') {
-    const tool = contract.mcp?.tool_name ?? 'unknown tool';
-    const args = contract.mcp?.arguments;
-    const argsBit = args !== undefined ? ` (arguments: ${JSON.stringify(args)})` : '';
-    return `Call MCP tool: ${tool}${argsBit}`;
-  }
-  if (contract.type === 'user_input') {
-    return `Collect user input: ${contract.user_input?.prompt ?? 'confirmation required'}`;
-  }
-  if (contract.type === 'subagent') {
-    return 'Delegate to subagent and collect report';
-  }
-  return `Provide a verification comment (${contract.comment?.min_length ?? 10}+ chars)`;
-}
 
 export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmission {
   const evidence = solution.evidence;
@@ -182,7 +159,7 @@ async function buildContractResponse(
   memory: Memory,
   executionId: string,
   proofHash?: string
-): Promise<{ contract: ForwardOutput['contract']; tensorIn?: Record<string, unknown> }> {
+): Promise<{ contract: ForwardOutput['contract'] }> {
   const storedContract = normalizeContract(memory);
   if (!storedContract) {
     const reuse = await challengeReuseOptions(memory);
@@ -191,22 +168,6 @@ async function buildContractResponse(
       fallback.proof_hash = proofHash;
     }
     return { contract: fallback };
-  }
-
-  if (storedContract.type === 'tensor') {
-    const requiredInputs = storedContract.tensor?.required_inputs ?? [];
-    const tensorIn = executionId
-      ? await forwardRuntimeStore.requireTensorInputs(executionId, requiredInputs)
-      : {};
-    return {
-      contract: {
-        type: 'tensor',
-        required: storedContract.required,
-        description: summarizeContract(storedContract),
-        tensor: storedContract.tensor
-      },
-      tensorIn
-    };
   }
 
   const reuse = await challengeReuseOptions(memory);
@@ -233,7 +194,6 @@ export type BuildForwardViewOptions = {
   retryCount?: number;
   mustObey?: boolean;
   contractOverride?: ForwardOutput['contract'];
-  tensorInOverride?: Record<string, unknown>;
   slugDisambiguationNote?: string;
 };
 
@@ -242,10 +202,10 @@ export async function buildForwardView(
   executionId: string,
   options?: BuildForwardViewOptions
 ): Promise<ForwardOutput> {
-  const { contract, tensorIn } = options?.contractOverride
-    ? { contract: options.contractOverride, tensorIn: options.tensorInOverride }
+  const { contract } = options?.contractOverride
+    ? { contract: options.contractOverride }
     : options?.final
-      ? { contract: finalContract(), tensorIn: undefined }
+      ? { contract: finalContract() }
       : await buildContractResponse(memory, executionId, options?.proofHash);
   const layer = currentLayer(memory, executionId);
   const final = options?.final === true;
@@ -284,7 +244,6 @@ export async function buildForwardView(
     ...(meta?.authoring ? { authoring: meta.authoring } : {}),
     contract,
     next_call: nextCall,
-    ...(tensorIn && Object.keys(tensorIn).length > 0 ? { tensor_in: tensorIn } : {}),
     ...buildForwardUiSummary(memory),
     ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
     next_action: final
@@ -316,7 +275,6 @@ export async function mapLayerPayloadShapeToForwardView(
     throw new Error('Layer payload did not include a resolvable current layer');
   }
   const final = nextExecutionResult.next_action.includes('reward');
-  const displayContract = normalizeContract(displayMemory);
   const options: BuildForwardViewOptions = {
     final,
     ...(nextExecutionResult.message
@@ -330,7 +288,7 @@ export async function mapLayerPayloadShapeToForwardView(
     ...(nextExecutionResult.error_code ? { errorCode: nextExecutionResult.error_code } : {}),
     ...(nextExecutionResult.retry_count !== undefined ? { retryCount: nextExecutionResult.retry_count } : {}),
     mustObey: nextExecutionResult.must_obey,
-    ...(!final && displayContract?.type !== 'tensor' && { contractOverride: nextExecutionResult.challenge })
+    ...(!final && { contractOverride: nextExecutionResult.challenge })
   };
   return buildForwardView(displayMemory, executionId, options);
 }

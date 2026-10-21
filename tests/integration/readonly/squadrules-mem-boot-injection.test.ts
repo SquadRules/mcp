@@ -10,15 +10,16 @@ import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 
 const SQUADRULES_APP_SPACE_NAME = 'Squadrules app';
-const EXPECTED_BOOT_ADAPTER_COUNT = 6;
+const EXPECTED_BOOT_ADAPTER_COUNT = 8;
 const STATIC_SYSTEM_ADAPTERS: Array<{ slug: string }> = [
   { slug: 'author-adapter' },
   { slug: 'refine-search' },
   { slug: 'challenge-type-guide' },
   { slug: 'critic-loop' },
+  { slug: 'critic-loop-guide' },
   { slug: 'protocol-linking-guide' },
-  { slug: 'phase-critic' },
-  { slug: 'phase-critic-guide' },
+  { slug: 'adapter-migration' },
+  { slug: 'bulk-insert-adapters-via-cli' },
 ];
 
 describe('Mem boot injection', () => {

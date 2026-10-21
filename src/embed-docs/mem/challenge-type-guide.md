@@ -4,18 +4,15 @@ slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---
 
-
-
 # Challenge Type Selection Guide
 
 Decision rules, JSON formats, interpreter selection, and anti-patterns for
-choosing SQUADRULES challenge types. Loaded by protocol-authoring agents during
+choosing SQUADRULES challenge types. Loaded by adapter-authoring agents during
 drafting and review.
 
 ## Activation Patterns
 
-**Typically invoked by:** `author-adapter` and
-`critic-loop`.
+**Typically invoked by:** `author-adapter` and `critic-loop`.
 
 **Can be invoked directly when agent needs:**
 - "challenge type reference" / "which challenge type to use"
@@ -25,31 +22,31 @@ drafting and review.
 **Trigger pattern:** **challenge** + (type | format | selection | guide).
 
 **Must Never:**
-- Be used as an execution protocol.
+- Be used as an execution adapter.
 - Select `comment` merely because it is easy.
 
 **Must Always:**
-- Be consulted before assigning challenge types to protocol steps.
+- Be consulted before assigning challenge types to adapter steps.
 - Choose the strongest observable contract available.
 - Match challenge choice to the mode of the step: ask, decide, act, verify, or review.
 
 **Good trigger examples:**
-- drafting a new protocol and need challenge types → load this
+- drafting a new adapter and need challenge types → load this
 - reviewing challenge type selection in a draft → load this
 
 **Bad trigger examples:**
-- "Create a new protocol" → use `author-adapter`
-- "Review my protocol draft" → use `critic-loop`
+- "Create a new adapter" → use `author-adapter`
+- "Review my adapter draft" → use `critic-loop`
 
 ## Core Rules
 
 `comment` is the challenge type of **last resort**. If a step produces any
 observable artifact — a file, a git state change, an API response, or an exit
-code — use `shell` or `mcp` instead.
+code — use `shell` or `subagent` instead.
 
 **Mode before challenge type:**
 - **clarify / approve** → `user_input`
-- **call a SQUADRULES / MCP tool** → `mcp`
+- **chain to another adapter** → `mcp` (forward-link only)
 - **execute or verify local state** → `shell`
 - **delegate to another agent** → `subagent`
 - **pure reasoning with no observable artifact** → `comment`
@@ -57,63 +54,59 @@ code — use `shell` or `mcp` instead.
 ### Decision Tree
 
 ```
-Does the step call an MCP tool?
- ├─ YES → Is the step a chain link to another adapter?
- │         ├─ YES → "mcp" with tool_name + arguments (forward + slug URI)
- │         └─ NO  → "mcp" with tool_name only
+Does the step chain to another adapter via forward?
+ ├─ YES → "mcp" forward-link (tool_name: "forward", arguments.uri: squadrules://adapter/<slug>)
  └─ NO → Does the step produce or verify a file, command result, or system state?
-          ├─ YES → "shell"
+          ├─ YES → "shell" (with interpreter)
           └─ NO → Does the step require human approval or choice?
                    ├─ YES → "user_input"
                    └─ NO → Does the step delegate work to another agent?
-                            ├─ YES → "subagent" with optional context
-                            └─ NO → "comment" only if there is no stronger observable contract
+                            ├─ YES → "subagent"
+                            └─ NO → "comment" (last resort — no stronger contract possible)
 ```
 
 ### Challenge JSON Formats
 
-**shell**
+**shell** (interpreter is REQUIRED)
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"<command>","timeout_seconds":30},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"<command>","interpreter":"bash","timeout_seconds":30},"required":true}}
 ```
 
-**mcp**
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"<tool>"},"required":true}}
-```
+Allowed interpreters: `bash`, `sh`, `python3`, `python`, `node`. Build tools
+(`terraform`, `docker`, `npm`, etc.) are **not** interpreters — wrap them in a
+`bash` command instead.
 
-**mcp with arguments (chain link)**
+**mcp** (forward-link only — bare tool_name checks are not valid)
 ```json
 {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/<slug>"}},"required":true}}
 ```
 
-Use the `arguments` form when the step's purpose is to invoke a specific
-adapter via `forward`. The server validates that `solution.mcp.arguments`
-is a superset of the contract's `mcp.arguments` (subset/deep matching),
-proving the agent called the correct target — not just any `forward` call.
+The server validates that `solution.mcp.arguments` is a superset of the
+contract's `mcp.arguments` (subset/deep matching), proving the agent called
+`forward` with the correct target slug.
 
 **user_input**
 ```json
 {"contract":{"type":"user_input","user_input":{"prompt":"<specific question>"},"required":true}}
 ```
 
-**comment**
+**subagent**
+```json
+{"contract":{"type":"subagent","subagent":{"instruction":"<task description>"},"required":true}}
+```
+
+Use `subagent` when a step delegates work to another agent (human or AI) rather
+than executing it directly. The `instruction` field provides task-specific
+guidance. Evidence of completion is collected via the anti-cheat evidence gate.
+
+**comment** (last resort — max 1 per adapter, closing ACK only)
 ```json
 {"contract":{"type":"comment","comment":{"min_length":50},"required":true}}
 ```
 
-**subagent**
-```json
-{"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
-```
-
-Use `subagent` when a step delegates work to another agent (human or AI) rather
-than executing it directly. The optional `context` field provides task-specific
-guidance. Evidence of completion is collected via the anti-cheat evidence gate.
-
 ### Solution JSON Formats
 
-Every solution, regardless of type, follows the same envelope:
+Every solution follows the same envelope:
 
 ```json
 {
@@ -127,84 +120,43 @@ Every solution, regardless of type, follows the same envelope:
 
 **shell solution**
 ```json
-{
-  "type": "shell",
-  "outcome": "success",
-  "evidence": {
-    "exit_code": 0,
-    "stdout": "...",
-    "stderr": "",
-    "duration_seconds": 1.2
-  }
-}
+{"type":"shell","outcome":"success","evidence":{"exit_code":0,"stdout":"...","stderr":"","duration_seconds":1.2}}
 ```
 
 **mcp solution**
 ```json
-{
-  "type": "mcp",
-  "outcome": "success",
-  "evidence": {
-    "tool_name": "activate",
-    "arguments": { "query": "example search" },
-    "response": { "choices": [...] }
-  }
-}
-```
-
-**user_input solution**
-```json
-{
-  "type": "user_input",
-  "outcome": "success",
-  "evidence": {
-    "confirmation": "agreed. proceed",
-    "timestamp": "2026-05-18T14:49:00Z"
-  }
-}
-```
-
-**comment solution**
-```json
-{
-  "type": "comment",
-  "outcome": "success",
-  "evidence": {
-    "text": "Verified all 78 issues now have repo: labels."
-  }
-}
+{"type":"mcp","outcome":"success","evidence":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"},"response":{}}}
 ```
 
 **subagent solution**
 ```json
-{
-  "type": "subagent",
-  "outcome": "success",
-  "evidence": {
-    "agent_id": "agent-uuid-or-name",
-    "artifacts": ["path/to/output"],
-    "summary": "Task completed successfully"
-  }
-}
+{"type":"subagent","outcome":"success","evidence":{"agent_id":"agent-uuid","artifacts":["path/to/output"],"summary":"Task completed"}}
+```
+
+**comment solution**
+```json
+{"type":"comment","outcome":"success","evidence":{"text":"Verified all items are complete."}}
+```
+
+**user_input solution**
+```json
+{"type":"user_input","outcome":"success","evidence":{"confirmation":"agreed. proceed","timestamp":"2026-05-18T14:49:00Z"}}
 ```
 
 ## Interpreter Selection
 
-| Task | Use bash | Use perl | Use python3 |
-|---|---|---|---|
-| File exists, tool installed, git state | yes | no | no |
-| Simple content grep | yes | no | no |
-| Multi-line regex | no | yes | no |
-| Paragraph processing | no | yes | no |
-| JSON validation | maybe | yes | yes |
-| YAML / complex data structure checks | no | no | yes |
+| Task | Interpreter |
+|---|---|
+| File exists, tool installed, git state | `bash` |
+| Simple content grep | `bash` |
+| Multi-line regex or paragraph processing | `python3` |
+| JSON validation | `bash` (jq) or `python3` |
+| YAML / complex data structure checks | `python3` |
+| Node.js ecosystem tools | `node` |
 
-**Rule of thumb:** if bash requires `while read`, `grep | awk`, or heavy quote
-escaping, rewrite in Perl. If you need imports for data formats, use Python.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
+**Rule of thumb:** default to `bash`. If you need multi-line regex, imports for
+data formats, or complex string processing, use `python3`. Use `node` only when
+the check requires the Node.js runtime.
 
 ## Security and Working Directory Rules
 
@@ -216,148 +168,79 @@ to avoid collisions between parallel sessions.
 - all file paths in shell challenges reference variables (e.g., `$DRAFT_FILE`,
   `$VERDICT_FILE`) set by the parent agent — never hardcode filenames
 - the parent agent constructs collision-free paths under
-  `$SQUADRULES_LOCAL_ARTIFACT_DIR` (e.g., with a session ID or random suffix)
-- when using SQUADRULES MCP, the latest `activate` / `forward` / `next` response field `squadrules_local_artifact_dir` is an ordered array of URI hints (`project://<rel>`, `user://<rel>`); pick one (`project://` when you have exactly one project context, otherwise `user://`), resolve on your machine, and `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` if your shell does not already define it
-- if the server-returned path is not usable on your local filesystem, resolve
-  locally to `$PROJECT_DIR/.local/squadrules/work` and keep it stable for the run
-- prerequisites create the directory
-- Reward Signal cleans it up
+  `$SQUADRULES_LOCAL_ARTIFACT_DIR`
+- when using SQUADRULES MCP, the latest `activate` / `forward` / `next` response
+  field `squadrules_local_artifact_dir` is an ordered array of URI hints
+  (`project://<rel>`, `user://<rel>`); pick one, resolve on your machine, and
+  `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"`
+- prerequisites create the directory; Reward Signal cleans it up
 - never write credentials or secrets to files
 
 ### Resolving `project://` and `user://` URI hints
 
-The server returns relative URI hints — it never names an absolute path on its
-own filesystem. Resolve on your machine:
-
 | Scheme | Resolution | Example |
 |--------|-----------|--------|
-| `project://<rel>` | `<IDE project root>/<rel>` | `project://.local/squadrules/work` → `/home/user/repos/my-project/.local/squadrules/work` |
-| `user://<rel>` | `<$XDG_CONFIG_HOME or $HOME>/<rel>` | `user://.config/squadrules/work` → `/home/user/.config/squadrules/work` |
+| `project://<rel>` | `<IDE project root>/<rel>` | `project://.local/squadrules/work` |
+| `user://<rel>` | `<$XDG_CONFIG_HOME or $HOME>/<rel>` | `user://.config/squadrules/work` |
 
-When your session spans multiple projects, prefer `user://` to avoid ambiguity
-about which project root applies. When you have exactly one project context,
-`project://` is fine.
+When your session spans multiple projects, prefer `user://` to avoid ambiguity.
 
 ### Worktree placement (for task-isolation adapters)
 
 When an adapter requires a git worktree for isolation, the worktree path MUST
-be **outside** every existing checkout. A common mistake is placing the worktree
-inside `$REPO_ROOT` (e.g. `$REPO_ROOT/.mcp.worktrees/...`), which the setup
-script correctly rejects.
-
-**Correct placement — absolute path examples:**
+be **outside** every existing checkout:
 
 ```
 REPO_ROOT=/home/user/repos/my-project
-# RIGHT: sibling of the repo, not inside it
+# RIGHT: sibling of the repo
 WT=/home/user/repos/mcp.worktrees/<task-id>
-
-# WRONG: inside the checkout (rejected by setup script)
+# WRONG: inside the checkout
 # WT=/home/user/repos/my-project/.mcp.worktrees/<task-id>
 ```
-
-**Common mistakes:**
-- `$REPO_ROOT/.mcp.worktrees/...` — inside checkout, rejected
-- `./mcp.worktrees/...` — relative path resolves inside checkout
-- `$REPO_ROOT/../mcp.worktrees/...` — correct only if `..` actually exits the repo
 
 **Rule of thumb:** `$(dirname "$REPO_ROOT")/mcp.worktrees/<task-id>`
 
 ### IDE worktree access limitations
 
-Most IDE file tools (Write, Read, Edit) scope operations to the open project
-root. They **cannot** reach worktrees placed outside `$REPO_ROOT`. When working
-in an IDE:
-
-1. Use the **terminal/shell tool** (not IDE file tools) to read/write files in
-   external worktrees.
-2. Shell commands: `cat`, `tee`, `cp`, or your editor's CLI mode work on any
-   absolute path.
-3. If you need to edit a worktree file with IDE assistance, open the worktree
-   as a separate project window or use `code <worktree-path>` to add it to the
-   workspace.
-4. The `squadrules export` MCP tool can retrieve adapter content without
-   filesystem access to the worktree.
-
-```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
-```
+Most IDE file tools scope operations to the open project root. They **cannot**
+reach worktrees placed outside `$REPO_ROOT`. Use the terminal/shell tool for
+external worktrees, or open the worktree as a separate project window.
 
 ## Composition Patterns
 
-**Multi-check compound command**
-- chain with `&&`
-- let the first failure stop execution
+**Multi-check compound command** — chain with `&&`, let the first failure stop.
 
-**Agent-readable shell status**
-- use when failure can produce no output, especially `test`, quiet `grep`,
-  JSON probes, pipelines, or commands that redirect stderr
-- empty stdout or stderr is not success; success is the real process status
-  reported as `solution.shell.exit_code`
-- print the final status marker to stderr when stdout is machine-readable
-- preserve the original status exactly:
-  ```bash
-  ( set -o pipefail; <command> ); rc=$?; printf '\nSQUADRULES_SHELL_EXIT=%s\n' "$rc" >&2; exit "$rc"
-  ```
-- keep `&&` inside `<command>` for ordered checks; use the final
-  `; rc=$?; ...` trailer only to capture, print, and return the process status
-- do not use `<command> || echo ERROR && false`; shell operators group
-  left-to-right, so that form can fail after a successful command and it loses
-  the original status
+**Agent-readable shell status** — preserve the original exit status:
+```bash
+( set -o pipefail; <command> ); rc=$?; printf '\nSQUADRULES_SHELL_EXIT=%s\n' "$rc" >&2; exit "$rc"
+```
 
-**Freeze-then-verify**
-- step N writes checksum
-- step N+1 verifies checksum before publish
+**Freeze-then-verify** — step N writes checksum, step N+1 verifies before publish.
 
-**Write-then-grep**
-- subagent writes a verdict file
-- main agent checks the first line for `PASS`
+**Write-then-grep** — subagent writes a verdict file, main agent checks line 1.
 
-**Phase-batch with critic**
-- batch related TODO items into one phase
-- verify hard artifacts with shell
-- then call `critic-loop` for adversarial review
+**Phase-batch with critic** — batch related items, verify hard artifacts with
+shell, then call `critic-loop` for adversarial review.
 
-**Dry-run before execution**
-- dry-run command
-- human review
-- real command
-
-**Chain-link via forward + slug**
-- layer N's contract requires `forward` with a specific adapter slug
-- agent calls `forward` to start the next adapter (new `execution_id`)
-- next adapter runs its own layer chain through to `reward`
-- use when the protocol exceeds 350 lines or needs multi-path routing
-- NOT a replacement for layers — layers remain the primary unit of work
-- example contract:
-  ```json
-  {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
-  ```
-
+**Chain-link via forward + slug** — layer N's contract requires `forward` with a
+specific adapter slug. Use when the adapter exceeds 350 lines or needs
+multi-path routing. Example:
 ```json
-{"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
+{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
 ```
 
 ## Artifacts for Shell Contracts
 
-When a shell contract needs a reusable script (Python guard, validation logic,
-setup helper), **attach it as an artifact** rather than inlining it in the
-contract JSON:
+When a shell contract needs a reusable script, **attach it as an artifact**
+rather than inlining it in the contract JSON:
 
 1. Write the script file.
 2. `train` with `mime: "text/x-python"`, `artifact_name: "isolation-guard.py"`,
-   `adapter_uri: "squadrules://adapter/my-adapter"`, and the script content in
-   `content`.
+   `adapter_uri: "squadrules://adapter/my-adapter"`, and the script content.
 3. In the shell contract, reference it via `export` with
    `squadrules://artifact/{uuid}` at execution time.
 
-This keeps adapter markdown clean, makes scripts independently versionable,
-and avoids bloating contract JSON with large inline scripts.
-
-**Interpreter restriction:** The `interpreter` field in shell contracts accepts
-only: `bash`, `sh`, `python3`, `python`, `node`. Build tools (`terraform`,
-`docker`, `npm`, etc.) are **not** interpreters — wrap them in a `bash -c`
-command instead.
+This keeps adapter markdown clean and makes scripts independently versionable.
 
 ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
@@ -368,9 +251,10 @@ command instead.
 Only reachable after all prior steps are solved.
 
 The agent can now:
-1. pick the correct challenge type for each protocol step
+1. pick the correct challenge type for each adapter step
 2. match challenge type to the step's mode
-3. choose the right interpreter
+3. choose the right interpreter (bash, python3, node)
 4. apply working-directory and security rules
-5. preserve real shell statuses for silent checks
-6. use stronger verification patterns instead of weak narrative checks
+5. use forward-link mcp contracts for chain links
+6. use subagent contracts for delegated work
+7. apply stronger verification patterns instead of weak comment checks

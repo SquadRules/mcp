@@ -34,7 +34,7 @@ Run when user says "export single".
 Body for export single.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo ok","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo ok","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -88,14 +88,14 @@ Run when user says "export protocol".
 First step.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo one","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo one","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Second
 Second step.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo two","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo two","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Reward Signal

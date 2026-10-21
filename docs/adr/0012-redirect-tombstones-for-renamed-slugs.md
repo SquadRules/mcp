@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted — refines [ADR 0010](0010-critic-loop-and-proof-splitting.md); supersedes
-its "no compatibility alias" decision for slugs that are deeply referenced.
+**Superseded** by [ADR 0027](0027-retire-redirect-tombstones.md) on 2026-10-21:
+the revisit condition below is met — no live instance references the retired slugs.
+Body preserved unchanged per ADR doctrine.
 
 ## Context
 

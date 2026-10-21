@@ -1,7 +1,15 @@
 # 0011 — An App identity for unattended Release PRs
 
-- Status: Proposed — implementation prepared; external App provisioning and an
-  unattended end-to-end release are still required.
+- Status: Accepted — the App identity is provisioned and an unattended App-authored
+  release is observed: `v5.11.0`
+  ([#132](https://github.com/SquadRules/mcp/pull/132)) landed as a squash commit
+  authored by `squadrules-release[bot]`, not by a human and not by `GITHUB_TOKEN`.
+  Caveat, stated so it is not lost: that release ran under the prior per-purpose
+  App. [#135](https://github.com/SquadRules/mcp/pull/135) then consolidated the
+  identities into the single `SquadRules auto` App and
+  [#137](https://github.com/SquadRules/mcp/pull/137) fixed installation-token
+  identity verification, so no release has yet been observed end to end under the
+  consolidated identity.
 - Date: 2026-10-12
 - Revisit: if GitHub changes which events satisfy required PR checks or permits
   unattended PR validation from its built-in token; track through the migration PR.

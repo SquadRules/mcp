@@ -6,6 +6,8 @@
  */
 
 import { findAllLayerContractBlocks, hasPlainFenceLayerContractBlock } from './adapter-contract-blocks.js';
+import type { InferenceContractDefinition } from '../../types/memory.js';
+import { SHELL_INTERPRETERS } from '../../tools/shell-challenge-invocation.js';
 export const CREATION_PROTOCOL_URI = 'squadrules://adapter/author-adapter';
 
 export type ValidationResult = {
@@ -20,8 +22,85 @@ const MISSING_H1 = 'h1_title';
 const MISSING_CONTRACT_BLOCK = 'contract_block';
 const MIXED_CONTRACT_FENCES = 'mixed_contract_fences';
 const INVALID_CONTRACT_TYPE = 'invalid_contract_type';
+/** A `shell` contract must name an interpreter from the allowed set (ADR 0026). */
+const SHELL_INTERPRETER_REQUIRED = 'shell_interpreter_required';
+/** An `mcp` contract must be a forward link to another adapter (ADR 0025). */
+const MCP_LINK_ONLY = 'mcp_link_only';
 
-const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'tensor']);
+const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'subagent']);
+
+/** Interpreter values a `shell` contract may name (ADR 0026). */
+const ALLOWED_SHELL_INTERPRETERS = new Set<string>(SHELL_INTERPRETERS);
+
+/** Forward-link target an `mcp` contract must name (ADR 0025): squadrules://adapter/<slug>. */
+const ADAPTER_FORWARD_LINK_URI = /^squadrules:\/\/adapter\/[^\s/]+$/;
+
+/**
+ * Per-type structural rules, expressed as data so a new contract type is a
+ * table entry (plus a line in ALLOWED_CONTRACT_TYPES), not a validator rewrite.
+ * `requiredFields` checks presence and, optionally, an allowed-value set;
+ * `validate` covers shape rules beyond presence. Each yields the `missing` code
+ * to report, or null when the contract is acceptable.
+ */
+type ContractTypePolicy = {
+  requiredFields?: readonly {
+    /** Dotted path relative to the contract, e.g. `shell.interpreter`. */
+    path: string;
+    /** `missing` code reported when the field is absent or not an allowed value. */
+    code: string;
+    /** When set, the trimmed string value must be a member. */
+    allowedValues?: ReadonlySet<string>;
+  }[];
+  validate?: (contract: InferenceContractDefinition) => string | null;
+};
+
+const CONTRACT_TYPE_POLICIES: Record<string, ContractTypePolicy> = {
+  shell: {
+    requiredFields: [
+      { path: 'shell.interpreter', code: SHELL_INTERPRETER_REQUIRED, allowedValues: ALLOWED_SHELL_INTERPRETERS },
+    ],
+  },
+  mcp: {
+    validate: (contract) => (isMcpForwardLink(contract) ? null : MCP_LINK_ONLY),
+  },
+  subagent: {},
+  user_input: {},
+  comment: {},
+};
+
+/** Read a dotted path off an untrusted contract without trusting its static type. */
+function resolveContractPath(contract: InferenceContractDefinition, path: string): unknown {
+  let current: unknown = contract;
+  for (const segment of path.split('.')) {
+    if (current === null || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
+/** An `mcp` contract is valid only as a forward link to another adapter (ADR 0025). */
+function isMcpForwardLink(contract: InferenceContractDefinition): boolean {
+  const mcp = contract.mcp;
+  if (!mcp || mcp.tool_name !== 'forward') return false;
+  const uri = mcp.arguments?.['uri'];
+  return typeof uri === 'string' && ADAPTER_FORWARD_LINK_URI.test(uri);
+}
+
+/** Run a type's policy; returns the first violated rule's `missing` code, or null. */
+function validateContractAgainstPolicy(
+  contract: InferenceContractDefinition,
+  policy: ContractTypePolicy
+): string | null {
+  for (const field of policy.requiredFields ?? []) {
+    const raw = resolveContractPath(contract, field.path);
+    const value = typeof raw === 'string' ? raw.trim() : raw;
+    if (value === undefined || value === null || value === '') return field.code;
+    if (field.allowedValues && !(typeof value === 'string' && field.allowedValues.has(value))) {
+      return field.code;
+    }
+  }
+  return policy.validate ? policy.validate(contract) : null;
+}
 
 /**
  * Extract H1 and H2 headings from markdown, ignoring lines inside fenced code blocks.
@@ -150,13 +229,21 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
     missing.push(MISSING_CONTRACT_BLOCK);
   }
 
+  const addMissingCode = (code: string): void => {
+    if (!missing.includes(code)) missing.push(code);
+  };
+
   for (const block of contractBlocks) {
     const t = block.contract.type;
     if (t === undefined) continue;
     if (typeof t !== 'string' || !ALLOWED_CONTRACT_TYPES.has(t)) {
-      missing.push(INVALID_CONTRACT_TYPE);
-      break;
+      addMissingCode(INVALID_CONTRACT_TYPE);
+      continue;
     }
+    const policy = CONTRACT_TYPE_POLICIES[t];
+    if (!policy) continue;
+    const violation = validateContractAgainstPolicy(block.contract, policy);
+    if (violation) addMissingCode(violation);
   }
 
   const valid = missing.length === 0;
@@ -175,7 +262,13 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
         return 'use only ```json for contract blocks (no plain ``` with contract JSON)';
       }
       if (m === INVALID_CONTRACT_TYPE) {
-        return 'each ```json block must set type to exactly tensor, shell, mcp, user_input, or comment (no placeholders or combined values)';
+        return 'each ```json block must set type to exactly shell, mcp, user_input, comment, or subagent (no placeholders or combined values)';
+      }
+      if (m === SHELL_INTERPRETER_REQUIRED) {
+        return 'shell contracts must set shell.interpreter to one of bash, sh, python3, python, or node';
+      }
+      if (m === MCP_LINK_ONLY) {
+        return 'mcp contracts must be a forward link to another adapter (mcp.tool_name "forward" with mcp.arguments.uri = squadrules://adapter/<slug>)';
       }
       return m;
     });
