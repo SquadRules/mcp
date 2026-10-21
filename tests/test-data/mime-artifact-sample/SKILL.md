@@ -43,12 +43,12 @@ Layer text: run the JavaScript artifact with **`node`** as interpreter; **`cmd`*
 {"contract":{"type":"shell","required":true,"shell":{"interpreter":"node","timeout_seconds":25,"cmd":"require('child_process').spawnSync('node', ['scripts/hello.cjs'], {stdio: 'inherit'}).status && process.exit(1)"}}}
 ```
 
-## Run hello.pl (perl)
+## Run hello.pl (sh)
 
-Layer text: run the Perl artifact with **`perl`** and **`-w`** in **`flags`**; **`cmd`** runs `scripts/hello.pl` via **`system`** and exits with the child status.
+Layer text: run the Perl artifact with **`sh`** as interpreter; **`cmd`** invokes `perl -w scripts/hello.pl` so the shell dispatches to perl.
 
 ```json
-{"contract":{"type":"shell","required":true,"shell":{"interpreter":"perl","flags":["-w"],"timeout_seconds":20,"cmd":"system($^X, 'scripts/hello.pl'); exit($? >> 8)"}}}
+{"contract":{"type":"shell","required":true,"shell":{"interpreter":"sh","timeout_seconds":20,"cmd":"perl -w scripts/hello.pl"}}}
 ```
 
 ## Reward Signal

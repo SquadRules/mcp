@@ -43,7 +43,7 @@ This document exists to test activate after train.
 Body.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo ok","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo ok","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Reward Signal

@@ -7,7 +7,7 @@ export interface ProofStepDefinition {
 
 function challengeBlock(cmd: string, timeoutSeconds: number): string {
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  return `\n\n\`\`\`json\n{"contract":{"type":"shell","shell":{"cmd":"${esc(cmd)}","timeout_seconds":${timeoutSeconds}},"required":true}}\n\`\`\``;
+  return `\n\n\`\`\`json\n{"contract":{"type":"shell","shell":{"cmd":"${esc(cmd)}","interpreter":"bash","timeout_seconds":${timeoutSeconds}},"required":true}}\n\`\`\``;
 }
 
 export function buildProofMarkdown(title: string, steps: ProofStepDefinition[]): string {

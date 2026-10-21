@@ -34,7 +34,7 @@ describe('Train basic functionality', () => {
         const proofCmd = s.proof || `echo step-${index + 1}`;
         const timeout = s.timeout || 30;
         const cmdEsc = proofCmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const block = `\n\n\`\`\`json\n{"contract":{"type":"shell","shell":{"cmd":"${cmdEsc}","timeout_seconds":${timeout}},"required":true}}\n\`\`\``;
+        const block = `\n\n\`\`\`json\n{"contract":{"type":"shell","shell":{"cmd":"${cmdEsc}","interpreter":"bash","timeout_seconds":${timeout}},"required":true}}\n\`\`\``;
         return `\n\n## ${s.h2}\n${s.body}${block}`;
       })
       .join('');
@@ -97,14 +97,14 @@ Run when user says "unique store".
 Alpha
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo alpha","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo alpha","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Step 2
 Beta
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo beta","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo beta","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -181,7 +181,7 @@ Run when user says "similar shape".
 Content
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo ok","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo ok","interpreter":"bash","timeout_seconds":5},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -252,7 +252,7 @@ class DataProcessor {
 \`\`\`
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo implement-processor","timeout_seconds":45},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo implement-processor","interpreter":"bash","timeout_seconds":45},"required":true}}
 \`\`\`
 
 ## Usage Example
@@ -266,7 +266,7 @@ console.log(result); // ['HELLO', 'WORLD']
 This demonstrates the data processing functionality.
 
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo run-processor","timeout_seconds":45},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo run-processor","interpreter":"bash","timeout_seconds":45},"required":true}}
 \`\`\`
 
 ## Reward Signal

@@ -2,8 +2,6 @@
 
 Short adapter example: a **read-only / knowledge adapter** whose only output is guidance the agent has now read. The closing `comment` acknowledgement is the honest minimum for adapters that produce no observable artifact and require no judgment. Ready to train with `train`.
 
-## When to use `comment`
-
 The `comment` contract is a **last resort** ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §4):
 
 - At most **one** `comment` contract per adapter.

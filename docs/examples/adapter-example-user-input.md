@@ -2,8 +2,6 @@
 
 Short adapter example: one step that requires a human decision the agent **cannot** resolve autonomously. Ready to train with `train`.
 
-## When to use `user_input`
-
 The `user_input` contract is for **emergencies only** ([ADR 0009](../adr/0009-autonomous-adapter-execution-no-human-gates.md)):
 
 - A genuine authority gap: the agent lacks permission to choose between options that have irreversible or high-cost consequences.
