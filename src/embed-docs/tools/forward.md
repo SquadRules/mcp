@@ -4,7 +4,7 @@ Return an **adapter** layer's instructions and advance its workflow state.
 and quality feedback. It returns shell/MCP contracts for the caller to execute;
 it does **not** execute those shell commands, invoke the described MCP tools,
 edit repository files, or train/tune adapter content. A user-input contract may
-request host elicitation on continuation. Tensor contracts evaluate workflow data.
+request host elicitation on continuation.
 This is stateful, not a read-only tool. Later actions remain subject to their own
 scope and host permissions; starting a workflow does not authorize all its steps.
 
@@ -134,19 +134,6 @@ Every solution, regardless of type, follows the same envelope:
   "evidence": {
     "confirmation": "agreed. proceed",
     "timestamp": "2026-05-18T14:49:00Z"
-  }
-}
-```
-
-#### tensor
-
-```json
-{
-  "type": "tensor",
-  "outcome": "success",
-  "evidence": {
-    "name": "priority_score",
-    "value": [0.85, 0.72, 0.91]
   }
 }
 ```

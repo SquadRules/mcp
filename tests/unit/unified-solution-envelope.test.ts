@@ -1,7 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 import { forwardSolutionSchema } from '../../src/tools/forward_schema.js';
 import { mapProofSolution } from '../../src/tools/forward-view.js';
-import { solutionToTensorValue } from '../../src/tools/forward-trace.js';
 
 describe('unified-solution-envelope', () => {
   test('v2 shell evidence maps to proof submission shell', () => {
@@ -62,15 +61,6 @@ describe('unified-solution-envelope', () => {
     const submission = mapProofSolution(parsed);
     expect(submission.type).toBe('comment');
     expect(submission.comment?.text).toBe('done');
-  });
-
-  test('v2 tensor evidence produces tensor trace value', () => {
-    const parsed = forwardSolutionSchema.parse({
-      type: 'tensor',
-      outcome: 'success',
-      evidence: { name: 'foo', value: 123 }
-    });
-    expect(solutionToTensorValue(parsed)).toEqual({ name: 'foo', value: 123 });
   });
 
   test('nonce and proof_hash inside evidence are extracted when not at top level', () => {

@@ -12,23 +12,7 @@ export interface AdapterInfo {
   chain_root?: string;
 }
 
-export interface TensorOutputSpec {
-  name: string;
-  type: string;
-  min_length?: number;
-  max_length?: number;
-  min_items?: number;
-  max_items?: number;
-}
-
-export interface TensorContractDetails {
-  required_inputs: string[];
-  output: TensorOutputSpec;
-  merge?: string;
-  condition?: string;
-}
-
-export type InferenceContractType = 'tensor' | 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+export type InferenceContractType = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
 
 export interface InferenceContractDefinition {
   type?: InferenceContractType;
@@ -57,7 +41,6 @@ export interface InferenceContractDefinition {
   comment?: {
     min_length?: number;
   };
-  tensor?: TensorContractDetails;
   subagent?: {
     context?: string;
   };
@@ -126,5 +109,5 @@ export interface Memory {
 }
 
 // Transitional alias kept to reduce churn while the internal codebase moves to adapter terminology.
-export type ProofOfWorkType = Exclude<InferenceContractType, 'tensor'>;
+export type ProofOfWorkType = InferenceContractType;
 export type ProofOfWorkDefinition = InferenceContractDefinition;

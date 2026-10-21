@@ -24,10 +24,6 @@ jest.unstable_mockModule('../../src/services/forward-runtime-store.js', () => ({
   forwardRuntimeStore: {
     getExecution: async () => null,
     startExecution: async () => {},
-    setTensor: async () => {},
-    getTensor: async () => null,
-    getTensorInputs: async () => ({}),
-    requireTensorInputs: async () => ({}),
     deleteExecution: async () => {}
   }
 }));

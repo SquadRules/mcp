@@ -191,9 +191,6 @@ export async function handleProofSubmission(
     };
   };
 
-  if (requiredTypeRaw === 'tensor') {
-    return blocked('Tensor contracts must be handled by the forward runtime.', 'INVALID_PROOF_TYPE');
-  }
   const requiredType: ProofOfWorkType = requiredTypeRaw ?? 'shell';
   if (memory.memory_uuid) {
     const storedNonce = await proofOfWorkStore.getNonce(memory.memory_uuid);

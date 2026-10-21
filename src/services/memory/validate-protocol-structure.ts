@@ -27,7 +27,7 @@ const SHELL_INTERPRETER_REQUIRED = 'shell_interpreter_required';
 /** An `mcp` contract must be a forward link to another adapter (ADR 0025). */
 const MCP_LINK_ONLY = 'mcp_link_only';
 
-const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'tensor', 'subagent']);
+const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'subagent']);
 
 /** Interpreter values a `shell` contract may name (ADR 0026). */
 const ALLOWED_SHELL_INTERPRETERS = new Set<string>(SHELL_INTERPRETERS);
@@ -66,7 +66,6 @@ const CONTRACT_TYPE_POLICIES: Record<string, ContractTypePolicy> = {
   subagent: {},
   user_input: {},
   comment: {},
-  tensor: {},
 };
 
 /** Read a dotted path off an untrusted contract without trusting its static type. */
@@ -263,7 +262,7 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
         return 'use only ```json for contract blocks (no plain ``` with contract JSON)';
       }
       if (m === INVALID_CONTRACT_TYPE) {
-        return 'each ```json block must set type to exactly tensor, shell, mcp, user_input, comment, or subagent (no placeholders or combined values)';
+        return 'each ```json block must set type to exactly shell, mcp, user_input, comment, or subagent (no placeholders or combined values)';
       }
       if (m === SHELL_INTERPRETER_REQUIRED) {
         return 'shell contracts must set shell.interpreter to one of bash, sh, python3, python, or node';

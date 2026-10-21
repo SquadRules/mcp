@@ -25,7 +25,7 @@ jest.unstable_mockModule('../../src/services/execution-trace-store.js', () => ({
   executionTraceStore: { startExecution: traces }
 }));
 jest.unstable_mockModule('../../src/tools/forward-trace.js', () => ({
-  appendExecutionTrace: traces, solutionToTensorValue: () => undefined, handleTensorForward: jest.fn()
+  appendExecutionTrace: traces, solutionToTensorValue: () => undefined
 }));
 jest.unstable_mockModule('../../src/tools/next.js', () => ({ updateStepQuality: async () => {} }));
 jest.unstable_mockModule('../../src/tools/next-previous-step.js', () => ({

@@ -144,10 +144,6 @@ export function parseProtocolMarkdown(md: string): {
             const prompt = challenge?.user_input?.prompt;
             summary = prompt ? `User input: ${String(prompt)}` : "User input";
             if (prompt) challengePayload = { prompt: String(prompt) };
-          } else if (type === "tensor") {
-            const name = challenge?.tensor?.output?.name;
-            const outputType = challenge?.tensor?.output?.type;
-            summary = name ? `Tensor: ${String(name)}${outputType ? ` (${String(outputType)})` : ""}` : "Tensor";
           } else if (type === "comment") {
             const min = challenge?.comment?.min_length;
             summary = min ? `Comment: min ${Number(min)} chars` : "Comment";
