@@ -2,9 +2,38 @@
 
 ## Status
 
-Proposed — records the intended contract and two open questions. The `auto` preference and the
-Qdrant-side migration already exist in code; what is missing is the embedded-store half
-([#94](https://github.com/SquadRules/mcp/issues/94)) and the parts flagged TBD.
+Accepted — the Decision is implemented on `main`. Reconciled 2026-10-21 against
+the code; evidence note below, body preserved unchanged.
+
+[#94](https://github.com/SquadRules/mcp/issues/94) is closed by `v5.11.0`
+("bind store vector width to provider, fix reads/writes",
+[#115](https://github.com/SquadRules/mcp/pull/115)). All six Decision bullets are
+in place: the `auto` predicate is `OPENAI_API_KEY || OPENAI_API_URL` explicitly
+overridden (`src/services/embedding/provider-resolver.ts`), the provider is
+probed before any store decision (`src/runtime/boot-local-runtime.ts`), the store
+records provider/model/dimension
+(`src/services/vector-store/lancedb/lance-store-metadata.ts`), width mismatch is
+handled (`lance-width-validation.ts`), reads use the stored width
+(`resolveStoredWidth()` in `lance-records-search.ts`), and startup reports the
+resolution rather than the preference.
+
+Two of the three TBDs are settled by what shipped. **TBD 3** —
+`OPENAI_API_URL` explicitness — is `OPENAI_API_URL_EXPLICIT` in `src/config.ts`.
+**TBD 2** — migration UX — chose refuse over re-embed: boot warns via
+`checkWidthConsistency`, and writes throw `EMBEDDING_STORE_WIDTH_MISMATCH` with
+the bound-width message; there is no automatic LanceDB re-embed.
+
+**TBD 1 remains open**: the failure policy for `auto` with a configured-but-failing
+provider was never decided between options (a)/(b)/(c). The shipped behaviour is
+de facto option (a) — `postEmbeddings`'s `auto` branch tries OpenAI, falls back to
+TEI only if TEI is configured, and otherwise rethrows; it never reaches fastembed.
+This is tracked, not resolved.
+
+The Context section describes two "deviations present in code today" and states
+"LanceDB has no migration in this codebase". Both were accurate when written and
+are now historical: the deviations are fixed and the embedded half landed. Per ADR
+doctrine the body is not rewritten; read those passages as the pre-fix state that
+motivated the Decision.
 
 ## Context
 

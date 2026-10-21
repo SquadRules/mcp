@@ -2,7 +2,18 @@
 
 ## Status
 
-Proposed; implemented by the accompanying PR.
+Accepted — implemented on `main`. `src/embed-docs/mem/author-adapter.md` carries
+the renamed slug; `src/tools/authoring-context.ts` defines the
+create/review/update discriminated union with a required `target_adapter_uri` for
+review and update; `src/tools/activate.ts` selects the authoring adapter on
+explicit context without semantic ranking; `src/tools/forward.ts` pins the context
+for the run and rejects changes (`AUTHORING_CONTEXT_MISMATCH`,
+`INVALID_AUTHORING_WORKFLOW`, `NOT_FOUND` on a missing target).
+
+One clause is superseded: the `create-new-protocol` redirect tombstone this
+Decision created is retired by
+[ADR 0027](0027-retire-redirect-tombstones.md). The rename and the authoring
+context are unaffected, and the body below is preserved unchanged.
 
 ## Context
 

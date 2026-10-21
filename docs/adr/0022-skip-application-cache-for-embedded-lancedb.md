@@ -2,7 +2,21 @@
 
 ## Status
 
-Proposed
+Accepted — implemented on `main`. Reconciled 2026-10-21 against the code; body
+preserved unchanged.
+
+The `shouldCache` getter exists in `src/services/redis-cache.ts` and returns
+`isRedisConfigured`; every cache method returns early when it is false
+(`getSearchResult`, `setSearchResult`, `invalidateSearchCache`,
+`invalidateMemoryCache`, `invalidateMemoryCacheStrict`, `getMemoryResource`,
+`setMemoryResource`, `invalidateBeginCache`, `invalidateAfterUpdate`).
+`openLanceConnection` in `src/services/vector-store/lancedb-connection.ts`
+connects with `readConsistencyInterval: 0`. The TODO this record cites at
+`src/services/memory-store.ts` is now a resolved note pointing at
+`RedisCacheService.shouldCache`, and confirms that nonce/proof-of-work values
+still use the key-value store for transient adapter flow state.
+
+[#95](https://github.com/SquadRules/mcp/issues/95) is the tracking issue.
 
 ## Context
 
