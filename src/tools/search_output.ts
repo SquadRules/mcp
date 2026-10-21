@@ -26,7 +26,6 @@ import {
 } from '../constants/builtin-search-meta.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { normalizeAuthorSlug, slugifyFromTitle } from '../utils/protocol-slug.js';
-import { isRedirectTombstone } from '../utils/adapter-alias.js';
 
 /** Slug-form `squadrules://adapter/{slug}` for search/activate wire (never UUID adapter segments). */
 function adapterWireUriFromMemory(memory: Memory): string {
@@ -132,10 +131,7 @@ export async function generateUnifiedOutput(
   const spaceNamesById = getSpaceContextFromStorage().spaceNamesById;
 
   for (const result of results) {
-    // Skip redirect tombstones (ADR 0012) — they are inert forwarding stubs,
-    // not real match choices. The replacement adapter appears separately.
     const adapterSlug = getAdapterSlugForSearchOutput(result.memory);
-    if (adapterSlug && isRedirectTombstone(adapterSlug)) continue;
 
     const head = await resolveHead(result.memory, qdrantService);
     const sid = result.memory.space_id ?? SQUADRULES_APP_SPACE_ID;

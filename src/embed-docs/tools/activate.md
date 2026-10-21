@@ -94,4 +94,3 @@ operation and target in `forward_first_call`. Copy that entire object to forward
 This is deterministic routing of a known operation; ordinary queries continue to
 use semantic discovery. Missing targets or unavailable authoring workflows fail
 without falling back to creation. This context is not a grant of permission.
-The original `create-new-protocol` name continues to resolve to the same workflow.

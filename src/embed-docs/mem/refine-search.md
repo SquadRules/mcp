@@ -4,16 +4,14 @@ slug: refine-search
 title: Get help refining your search
 ---
 
-
-
 # Get help refining your search
 
 **You are an AI agent.** You ran `activate` and got no solid match, or only weak
 / ambiguous matches. This adapter helps you turn a vague request into a better
 query so the next `activate` can find the right adapter.
 
-SQUADRULES principle: before acting, understand the user better. The goal is not to
-repeat the failed phrase with minor edits. The goal is to recover the user's
+SQUADRULES principle: before acting, understand the user better. The goal is not
+to repeat the failed phrase with minor edits. The goal is to recover the user's
 real intent.
 
 ## Activation Patterns
@@ -33,17 +31,17 @@ real intent.
 - Infer the real goal, context, and missing constraints from the user's request.
 - Build a more specific query than the one that failed.
 - Run at most once per user request; if the second activation still fails, stop
-  and offer clarification or protocol creation.
+  and offer clarification or adapter creation.
 
 **Good trigger examples:**
 - activate returned only "refine" / weak matches → run this adapter
-- "No protocol matched 'do the thing'" → run this adapter
+- "No adapter matched 'do the thing'" → run this adapter
 
 **Bad trigger examples:**
 - activate returned a strong match → use that match instead
 - user asked "what adapters exist?" → use `activate` / `spaces`, not this
 
-## Step 1: Extract what the user actually wants
+## Extract User Intent
 
 From the user's original message, identify:
 - the real goal
@@ -51,38 +49,17 @@ From the user's original message, identify:
 - missing constraints
 - likely wording that would help SQUADRULES find the right adapter
 
-Write your analysis as the solution.
+Write your analysis, then construct one refined query with 3–8 specific words.
+Do not reuse the vague phrase that already failed.
 
-```json
-{
-  "contract": {
-    "type": "comment",
-    "comment": { "min_length": 60 },
-    "required": true
-  }
-}
-```
-
-## Step 2: Build and run a refined activate query
-
-Using Step 1, construct one refined query with 3–8 specific words. Do not reuse
-the vague phrase that already failed.
-
-Call `activate` with it.
-
+Call `activate` with the refined query as your next action:
 - **Strong match (score >= 0.5):** pick that choice and `forward`.
 - **Weak matches only:** ask the user to clarify or offer the create path.
 
 Do not loop more than once.
 
 ```json
-{
-  "contract": {
-    "type": "mcp",
-    "mcp": { "tool_name": "activate" },
-    "required": true
-  }
-}
+{"contract":{"type":"comment","comment":{"min_length":60},"required":true}}
 ```
 
 ## Reward Signal

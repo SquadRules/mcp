@@ -100,7 +100,7 @@ Split proofs by **reversibility cost**, not by step count:
   sub-condition (`A && B && C && echo OK`):
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"$OUT_A\" && test -f \"$OUT_B\" && grep -q \"$EXPECTED\" \"$OUT_A\" && echo OK","timeout_seconds":10},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"$OUT_A\" && test -f \"$OUT_B\" && grep -q \"$EXPECTED\" \"$OUT_A\" && echo OK","interpreter":"bash","timeout_seconds":10},"required":true}}
 ```
 
 - **Never let an aggregate proof degrade to `echo "done"`.** A proof that asserts
@@ -115,7 +115,7 @@ it happens — for example, confirm you are on a throwaway worktree and branch (
 `main`, not the human's active checkout) **before** making changes:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test \"$(git rev-parse --abbrev-ref HEAD)\" != main && git rev-parse --git-common-dir | grep -q worktrees","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test \"$(git rev-parse --abbrev-ref HEAD)\" != main && git rev-parse --git-common-dir | grep -q worktrees","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## How to Chain Critic-Loop into an Adapter
@@ -154,7 +154,7 @@ Record `work` in the handoff file pointed to by `$WORK_MANIFEST`, as flat keys �
 stays a machine-checkable file test instead of prose:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","timeout_seconds":3},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","interpreter":"bash","timeout_seconds":3},"required":true}}
 ```
 
 Anything that cannot be resolved is `verification_blocked` — an item the critic
@@ -194,7 +194,7 @@ fails when the verdict is not PASS. This is the mechanical guard that prevents
 weaker agents from proceeding after FAIL:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 If the critic wrote FAIL, this shell command exits non-zero. The server rejects
@@ -229,15 +229,17 @@ Assert the preconditions with a shell or mcp contract so the action only runs fr
 valid state — never with a `user_input` "are you sure?" prompt:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -n \"$TARGET_REPO\" && test -n \"$TARGET_BRANCH\"","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -n \"$TARGET_REPO\" && test -n \"$TARGET_BRANCH\"","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ### Post-mutation verification (objective)
 
-Confirm the mutation actually took effect by reading the remote state back:
+Confirm the mutation actually took effect by reading the remote state back.
+Use a `subagent` contract when the verification requires multi-step reasoning
+or tool orchestration beyond a single shell command:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"getMergeRequest","arguments":{"repo":"X"}},"required":true}}
+{"contract":{"type":"subagent","subagent":{"instruction":"Verify the remote mutation took effect: read back the created/updated resource and confirm its state matches the intended outcome."},"required":true}}
 ```
 
 The guarantee comes from critic-loop (truth of intent) plus these objective

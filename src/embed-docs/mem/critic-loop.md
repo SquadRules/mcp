@@ -96,7 +96,7 @@ This protocol produces:
 }
 ```
 
-## Precondition Check [SUBAGENT]
+## Precondition Check
 
 Verify foundational preconditions before deep investigation. Early-abort if any
 are broken.
@@ -122,10 +122,10 @@ are broken.
 **Output:** verified preconditions or early-abort diagnostics
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","timeout_seconds":3},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","interpreter":"bash","timeout_seconds":3},"required":true}}
 ```
 
-## Resolve Submission [SUBAGENT]
+## Resolve Submission
 
 Turn the submission into the material under review. What cannot be resolved is
 never guessed at.
@@ -150,8 +150,7 @@ never guessed at.
      stderr as the material.
    - `inline` — the text recorded in the manifest is the material.
 3. Record the resolved inventory before auditing: `kind`, item count, per-item
-   status (`resolved` or `blocked`), and where each item's evidence lives. The
-   audit investigates this inventory and nothing else.
+   status (`resolved` or `blocked`), and where each item's evidence lives.
 4. A `pr` or `git_diff` submission is reviewed as a diff: claims are checked
    against the changed lines and the tests they touch, never against the
    description written alongside them.
@@ -159,10 +158,10 @@ never guessed at.
 **Output:** resolved work inventory for the audit
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
+{"contract":{"type":"subagent","subagent":{"instruction":"Resolve the work submission into reviewable material: read the manifest, resolve each item by kind from work.root, and record the resolved inventory with per-item status."},"required":true}}
 ```
 
-## Audit [SUBAGENT]
+## Audit
 
 Perform bounded adversarial review of the target against the resolved work
 submission and invariants.
@@ -187,14 +186,8 @@ Extract every verifiable claim that matters operationally:
 4. continue reviewing all in-scope claims even after a normal FAIL condition is met;
    only a precondition failure stops the audit early
 
-**High-risk areas**
-- setup steps and prerequisites
-- CLI commands and flags
-- configuration keys and environment variables
-- authentication, identity, and permissions
-- deployment and release behaviour
-- external publishing actions
-- destructive or irreversible operations
+**High-risk areas:** setup steps, CLI commands, configuration keys, authentication,
+deployment, external publishing, destructive operations.
 
 **Step 3 — Gather evidence using the hierarchy**
 
@@ -207,43 +200,29 @@ Extract every verifiable claim that matters operationally:
 | 5 | external docs, web pages, linked references |
 | 6 | conversational assumption or indirect inference |
 
-**Rules:**
-- higher-priority evidence overrides lower-priority evidence
-- priority 5–6 alone is not enough for `verified`
-- a submitted link or PR description is priority 5 evidence: verify the claim
-  against the fetched content or the actual diff, never against the summary
+**Rules:** higher-priority evidence overrides lower; priority 5–6 alone is not
+enough for `verified`; a submitted link or PR description is priority 5.
 
 **Step 4 — Produce claim verdicts**
-
-For each claim, record:
-- CLAIM
-- EVIDENCE
-- EVIDENCE PRIORITY
-- VERDICT: `verified` / `partially_verified` / `unverifiable` / `incorrect`
-
+For each claim: CLAIM, EVIDENCE, EVIDENCE PRIORITY, VERDICT
+(`verified` / `partially_verified` / `unverifiable` / `incorrect`).
 A claim must not be marked `verified` without positive supporting evidence.
 
 **Step 5 — Review the phase boundary**
-Check whether the calling protocol preserved the right mode boundary:
-- was execution reviewed independently?
-- were review and execution kept separate?
-- did the protocol switch to verification when it should have?
-- is escalation needed because certainty was overstated?
+Check whether the calling adapter preserved the right mode boundary.
 
 **Step 6 — Check requirement coverage**
-For every item in the supplied `requirements` list, confirm the target addresses
-it with positive evidence and record it as `covered` / `partial` / `missing`. An
-omitted requirement leaves no trace in the output, so coverage can only be judged
-against the list, never from the artifact alone. Any `missing` item — or any
-`partial` high-risk item — forces a FAIL with `failure_class: requirement_gap`.
+For every item in `requirements`, confirm coverage with positive evidence.
+Any `missing` item — or any `partial` high-risk item — forces FAIL with
+`failure_class: requirement_gap`.
 
 **Output:** structured audit findings for the verdict step
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":120},"required":true}}
+{"contract":{"type":"subagent","subagent":{"instruction":"Perform bounded adversarial audit: extract claims, investigate with scope discipline, gather evidence by priority hierarchy, produce claim verdicts, review phase boundary, and check requirement coverage."},"required":true}}
 ```
 
-## Verdict [SUBAGENT]
+## Verdict
 
 Turn the audit into a final PASS / FAIL result.
 
@@ -275,7 +254,7 @@ Turn the audit into a final PASS / FAIL result.
 **Output:** final verdict file
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"$VERDICT_FILE\" && head -1 \"$VERDICT_FILE\" | grep -qiE '^(PASS|FAIL)$' && sed -n '2p' \"$VERDICT_FILE\" | grep -qiE '^(High|Medium|Low)$'","timeout_seconds":5},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"test -f \"$VERDICT_FILE\" && head -1 \"$VERDICT_FILE\" | grep -qiE '^(PASS|FAIL)$' && sed -n '2p' \"$VERDICT_FILE\" | grep -qiE '^(High|Medium|Low)$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Reward Signal

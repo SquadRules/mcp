@@ -1,11 +1,11 @@
-# Bundled meta-protocols
+# Bundled meta-adapters
 
 This directory contains the bundled SQUADRULES-internal adapters and policy
 documents that are injected into the Squadrules app space at boot.
 
-<!-- squadrules-doc-keep: directory-local authority for the shipped meta-protocol bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
+<!-- squadrules-doc-keep: directory-local authority for the shipped meta-adapter bundle (slugs, versions, chain-linking rules); source of truth for these files, not a restatement of wiki Core Concepts -->
 
-Version: **4.3.0**
+Version: **5.0.0**
 
 ## Philosophy
 
@@ -23,17 +23,32 @@ adapters resolve intent from context, run critic-loop in a loop until it returns
 approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
 or a hard blocker (a required tool/auth that cannot be established automatically).
 
-Bundled mem resources that intentionally use **protocol** and **adapter** as
-synonyms. Prefer **adapter** in new copy when you are not mirroring user-facing trigger phrases.
+**Verification ladder (hard enforcement).** Every contract must use the strongest
+observable verification available:
 
-## Protocols
+1. `shell` — for file/state/command verification. **`interpreter` is REQUIRED**
+   (allowed: `bash`, `sh`, `python3`, `python`, `node`).
+2. `mcp` — **forward-links only**. Must use `tool_name: "forward"` with
+   `arguments.uri` matching `squadrules://adapter/<slug>`. Bare tool-name-only
+   mcp contracts are not valid.
+3. `subagent` — for delegated work that requires multi-step reasoning or tool
+   orchestration by another agent.
+4. `user_input` — only for genuine human decisions.
+5. `comment` — last resort. Max 1 per adapter, only as closing ACK for
+   knowledge/reference adapters.
+
+Bundled mem resources intentionally use **adapter** and **workflow** as preferred
+terms. Avoid bare "protocol" in new copy.
+
+## Adapters
 
 | File | Slug | Purpose |
 |------|------|---------|
-| [author-adapter.md](author-adapter.md) | `author-adapter` | Authoring adapter — create, review, or refactor SQUADRULES protocols |
+| [author-adapter.md](author-adapter.md) | `author-adapter` | Authoring adapter — create, review, or update SQUADRULES adapters |
 | [refine-search.md](refine-search.md) | `refine-search` | Refine search — recover user intent after failed `activate` |
 | [critic-loop.md](critic-loop.md) | `critic-loop` | Phase-boundary adversarial review — verify claims against evidence |
 | [adapter-migration.md](adapter-migration.md) | `adapter-migration` | Batch structural migration — update all adapters to latest scheme |
+| [bulk-insert-adapters-via-cli.md](bulk-insert-adapters-via-cli.md) | `bulk-insert-adapters-via-cli` | Bulk train adapters from a local directory via CLI |
 
 ### Linked authoring flow
 
@@ -45,22 +60,11 @@ author-adapter (Author) → forward(squadrules://adapter/critic-loop) → critic
 
 | File | Slug | Purpose |
 |------|------|---------|
-| [challenge-type-guide.md](challenge-type-guide.md) | `challenge-type-guide` | Challenge type selection, interpreter choice, and stronger verification patterns |
-| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chaining back/forward, multi-layer conductor vs extension URI, chain-root collapsing, MCP argument validation |
+| [challenge-type-guide.md](challenge-type-guide.md) | `challenge-type-guide` | Challenge type selection, interpreter choice, and verification patterns |
+| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chain-root collapsing, MCP forward-link validation |
 | [critic-loop-guide.md](critic-loop-guide.md) | `critic-loop-guide` | Critic-loop integration rules, mutation gates, solution check vs critic decision table |
 
-## Redirect tombstones
-
-Retired slugs kept as thin one-layer redirects so stored adapters that still
-reference them resolve instead of dangling (see ADR 0012):
-
-| File | Slug | Redirects to |
-|------|------|--------------|
-| [phase-critic.md](phase-critic.md) | `phase-critic` | `critic-loop` |
-| [phase-critic-guide.md](phase-critic-guide.md) | `phase-critic-guide` | `critic-loop-guide` |
-| [create-new-protocol.md](create-new-protocol.md) | `create-new-protocol` | `author-adapter` |
-
-## Cross-Protocol Linking
+## Cross-Adapter Linking
 
 ### Layers vs chains
 
@@ -75,7 +79,7 @@ cohesive concern.
 - runtime routing to different adapters is needed (Router pattern)
 - a step is reusable across multiple parent adapters (e.g. `critic-loop`)
 
-Chaining is NOT a replacement for layers. A 6-step protocol that fits in 350
+Chaining is NOT a replacement for layers. A 6-step adapter that fits in 350
 lines should stay as one adapter with 6 H2 layers.
 
 ### How forward + slug works
@@ -90,15 +94,9 @@ call forward with squadrules://adapter/implement-terraform and no solution to st
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
 
-### Verifying chain links with MCP argument checks
+### MCP forward-link contracts
 
-A bare `mcp` contract checks only the tool name:
-
-```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward"},"required":true}}
-```
-
-An `mcp` contract **with `arguments`** verifies the exact target:
+All `mcp` contracts must be forward-links with arguments:
 
 ```json
 {"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
@@ -116,7 +114,7 @@ called `forward` with the correct slug, not just any `forward` call.
 | Target adapter is known at authoring time | `forward` + slug |
 | Target depends on runtime classification the current adapter cannot resolve | `activate` |
 | Linking to the next adapter in a chain | `forward` + slug |
-| Reusable sub-protocol invoked by multiple parents | `forward` + slug |
+| Reusable sub-adapter invoked by multiple parents | `forward` + slug |
 
 Never call `activate` just to get a slug you already know — it wastes a
 round-trip and introduces non-determinism.
@@ -125,7 +123,7 @@ round-trip and introduces non-determinism.
 
 When a chain has multiple adapters, `activate` might match a mid-chain adapter
 directly. Without protection, the agent would start at the wrong step, missing
-prerequisite context gathered by earlier phases.
+prerequisite context gathered by earlier steps.
 
 **`chain_root` frontmatter field** solves this at the server level. Add it to
 every mid-chain adapter:
@@ -144,11 +142,10 @@ choice's `uri` and `next_action` to point there. Multiple mid-chain matches
 from the same chain are deduplicated to a single entry. The agent always
 starts at the chain entry point.
 
-**Defense in depth — protocol-level safeguards:** In addition to server-side
-collapsing, each mid-chain adapter should include a **Prerequisites** paragraph
-in its Activation Patterns section that lists required inputs from earlier
-phases and directs the agent to start from the chain root if those inputs are
-missing. This catches direct `forward` calls that bypass `activate`.
+**Defense in depth:** Each mid-chain adapter should include a **Prerequisites**
+paragraph in its Activation Patterns section that lists required inputs from
+earlier steps and directs the agent to start from the chain root if those inputs
+are missing.
 
 **Rules:**
 
