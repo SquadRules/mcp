@@ -1,5 +1,7 @@
 # Twelve Step Linear Test Adapter
 
+<!-- S1 exemption: deliberate multi-contract UI/long-run test fixture per ADR 0024 -->
+
 ## Activation Patterns
 
 - Twelve Step Linear Test Adapter twelve layers

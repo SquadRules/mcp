@@ -1,16 +1,17 @@
-# SquadRules challenge types — trainable examples
+# SquadRules contract types — trainable examples
 
 The documents in this folder are **real markdown adapters ready for `train`**. Each has one H1 (adapter title), one or more H2 steps, and a trailing ` ```json ` block per step with `{"contract": { ... }}`. Copy the contents of any example into a file and pass it to `train` (with `llm_model_id` and optional `force_update`).
 
 ## Example adapter documents
 
-| File | Challenge type(s) | Description |
-|------|------------------|-------------|
-| [adapter-example-shell.md](adapter-example-shell.md) | shell | Step 1: run a command. Step 2: show output to user (no challenge). |
-| [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Step 1: get human confirmation. Step 2: show output to user (no challenge). |
-| [adapter-example-comment.md](adapter-example-comment.md) | comment | Step 1: provide a text summary (min length). Step 2: show output to user (no challenge). |
-| [adapter-example-mcp.md](adapter-example-mcp.md) | mcp | Step 1: call an MCP tool and report success. Step 2: show output to user (no challenge). |
-| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, user_input, comment | Steps 1–4: one per type. Step 5: show outputs to user (no challenge). |
+| File | Contract type(s) | Description |
+|------|-----------------|-------------|
+| [adapter-example-shell.md](adapter-example-shell.md) | shell | Empirical check with required `interpreter` field. |
+| [adapter-example-mcp.md](adapter-example-mcp.md) | shell, mcp | Work step plus tail forward link to another adapter. |
+| [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Emergency authority gap — not routine confirmation. |
+| [adapter-example-comment.md](adapter-example-comment.md) | comment | Knowledge adapter closing acknowledgement (last resort). |
+| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, subagent, user_input, comment | Reference demonstration of every contract shape. |
+| [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | UI/long-run test fixture (exempt from ≤1 comment rule). |
 
 ## How to train
 
@@ -18,23 +19,76 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 2. Ensure each step ends with a single ` ```json ` block containing an object with a `contract` key (see the examples).
 3. Call `train` with `content`, `llm_model_id`, and optionally `force_update: true`.
 
+## Contract types and structural rules
+
+### shell
+
+Rung 1 of the verification ladder ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md)). Observes the work empirically.
+
+**Required fields:**
+
+- `shell.interpreter` — must be one of: `bash`, `sh`, `python3`, `python`, `node` ([ADR 0026](../adr/0026-shell-interpreter-required.md)). Absent interpreter is an invalid contract, not a request for `bash`.
+- `shell.cmd` — the command to execute.
+- `shell.timeout_seconds` — execution timeout.
+
+Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a `bash -c` invocation or export the script and pick `node` / `python3`.
+
+### mcp
+
+**Forward-link only** ([ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)). An `mcp` contract must chain to another adapter:
+
+- `mcp.tool_name` — must be exactly `"forward"`.
+- `mcp.arguments.uri` — must match `squadrules://adapter/<slug>`.
+
+Bare MCP tool calls (`activate`, `export`, `getMergeRequest`, etc.) are **not** valid `mcp` contracts. Validation rejects them with `mcp_link_only`. Use `subagent` for delegated tool work.
+
+### subagent
+
+Rung 2 (delegated judgment) or rung 3 (delegated MCP tool work) of the verification ladder. The subagent performs the work and returns only its report — the tool transcript never reaches the caller's context.
+
+**Fields:**
+
+- `subagent.context` — task-specific context for the delegated subagent. The application auto-appends the mandatory delegation instruction.
+
+Proof requires `evidence.report` containing the subagent's actual report.
+
+### user_input
+
+**Emergency only** ([ADR 0009](../adr/0009-autonomous-adapter-execution-no-human-gates.md)). For genuine authority gaps or missing decisions the agent cannot resolve autonomously. Not for routine confirmation or approval gates.
+
+**Fields:**
+
+- `user_input.prompt` — states what the agent determined, why it cannot decide alone, and what specific answer it needs.
+
+### comment
+
+**Last resort** ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §4). Only for read-only or knowledge adapters with no observable artifact and no judgment required.
+
+- At most **one** per adapter.
+- **Never combined** with another contract type.
+
+**Fields:**
+
+- `comment.min_length` — minimum character count for the acknowledgement.
+
 ## Solution shapes (for forward)
 
-When the server returns a challenge, the agent submits a solution in `forward`. The solution must match the challenge type.
+When the server returns a challenge, the agent submits a solution in `forward`. The solution must match the contract type.
 
 | Type | Solution shape | Pass condition |
 |------|----------------|----------------|
 | **shell** | `type: "shell"`, `shell: { exit_code, stdout?, stderr?, duration_seconds? }` | `exit_code === 0` |
-| **mcp** | `type: "mcp"`, `mcp: { tool_name, result, success, arguments? }` | `success === true` |
+| **mcp** | `type: "mcp"`, `mcp: { tool_name, result, success, arguments }` | `success === true`; `arguments.uri` matches contract |
+| **subagent** | `type: "subagent"`, `evidence: { report }` | `report` is non-empty |
 | **user_input** | `type: "user_input"`, `user_input: { confirmation, timestamp? }` | Agent supplies confirmation from user |
-| **comment** | `type: "comment"`, `comment: { text }` | `text.length` ≥ challenge `min_length` (and optional semantic check) |
+| **comment** | `type: "comment"`, `comment: { text }` | `text.length` ≥ contract `min_length` |
 
 Always echo `nonce` and `proof_hash` from the challenge (or previous response) when present; the server generates them.
 
 After the final **`forward`** for the run, the server directs the client to
 call **`reward`** to finish the run.
 
-For execution semantics (how to perform each challenge type, not infer or
+For execution semantics (how to perform each contract type, not infer or
 fabricate), see the **`activate`**, **`forward`**, and **`reward`** tool
 descriptions (and the companion workflow topics in the [project Wiki](https://github.com/SquadRules/mcp/wiki)
 where noted).

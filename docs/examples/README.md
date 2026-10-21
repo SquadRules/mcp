@@ -1,22 +1,29 @@
 # SquadRules adapter examples
 
-This folder contains **markdown adapters ready for `train`** and a short reference for challenge types and solution shapes. These examples are the canonical source for **dev/qa workflow tests**: imports, activate + run, update layer, and update adapter.
+This folder contains **markdown adapters ready for `train`** and a short reference for contract types and solution shapes. These examples are the canonical source for **dev/qa workflow tests**: imports, activate + run, update layer, and update adapter.
+
+## Structural rules (hard-enforced)
+
+All examples in this folder conform to the structural validation rules:
+
+- **Shell contracts must name an interpreter** — one of `bash`, `sh`, `python3`, `python`, `node`. Absent interpreter is rejected with `shell_interpreter_required` ([ADR 0026](../adr/0026-shell-interpreter-required.md)).
+- **MCP contracts are forward-links only** — `tool_name: "forward"` with `arguments.uri` matching `squadrules://adapter/<slug>`. Bare tool calls are rejected with `mcp_link_only` ([ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)).
+- **`subagent` is a valid contract type** — for delegated judgment or delegated MCP tool work ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §2).
 
 ## Example adapters
 
-Each file below is a complete adapter (H1 + H2 steps with ````json` challenge blocks). Every example ends with a **final step** with no challenge: "Show the output from [prior step(s)] to the user." Only reachable after all prior challenges are solved. The agent just shows the prior output to the user; no additional challenge to solve.
+Each file below is a complete adapter (H1 title + H2 steps with ````json` contract blocks). Every example ends with a **final step** with no challenge: "Show the output from [prior step(s)] to the user." Only reachable after all prior contracts are solved.
 
+| File | Contract type(s) | MCP-only (no shell) |
+| ---- | ---------------- | ------------------- |
+| [adapter-example-shell.md](adapter-example-shell.md) | shell | No |
+| [adapter-example-mcp.md](adapter-example-mcp.md) | shell, mcp | No |
+| [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Yes |
+| [adapter-example-comment.md](adapter-example-comment.md) | comment | Yes |
+| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, subagent, user_input, comment | No |
+| [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | Yes |
 
-| File                                                             | Challenge type(s)               | MCP-only (no shell) |
-| ---------------------------------------------------------------- | ------------------------------- | ------------------- |
-| [adapter-example-shell.md](adapter-example-shell.md)           | shell                           | No                  |
-| [adapter-example-user-input.md](adapter-example-user-input.md) | user_input                      | Yes                 |
-| [adapter-example-comment.md](adapter-example-comment.md)       | comment                         | Yes                 |
-| [adapter-example-mcp.md](adapter-example-mcp.md)               | mcp                             | Yes                 |
-| [adapter-example-all-types.md](adapter-example-all-types.md)   | shell, mcp, user_input, comment | No                  |
-
-
-**MCP-only** means the adapter has no `shell` challenge; safe for workflow tests that forbid shell and local filesystem (only MCP tools and writing to `reports/`).
+**MCP-only** means the adapter has no `shell` contract; safe for workflow tests that forbid shell and local filesystem (only MCP tools and writing to `reports/`).
 
 ## Use in dev/qa workflow tests
 
@@ -28,7 +35,7 @@ When running **MCP-only** workflow tests (no shell, no filesystem except `report
 
 ## Reference
 
-- **[Challenge types](challenge-types.md)** — Table of trainable example docs, how to train, and solution shapes for `forward`.
+- **[Contract types](challenge-types.md)** — Table of trainable example docs, how to train, structural rules per type, and solution shapes for `forward`.
 
 ## Related docs
 
@@ -37,4 +44,3 @@ When running **MCP-only** workflow tests (no shell, no filesystem except `report
 - Building SquadRules workflows is described in the tool descriptions for
   **`train`** and **`forward`**.
 - [Agent-facing design principles](../../CONTRIBUTING.md#agent-facing-design-principles) — For contributors designing or reviewing MCP tools and APIs.
-
