@@ -50,7 +50,6 @@ const { executeActivate } = await import('../../src/tools/activate.js');
 const { executeForward } = await import('../../src/tools/forward.js');
 const { activateInputSchema, activateOutputSchema } = await import('../../src/tools/activate_schema.js');
 const { forwardInputSchema, forwardMcpWireInputSchema, forwardOutputSchema } = await import('../../src/tools/forward_schema.js');
-const { resolveAdapterSlugAlias } = await import('../../src/utils/adapter-alias.js');
 const { LanceRecordReader } = await import('../../src/services/vector-store/lancedb/lance-records-reads.js');
 const { findFirstStepMemoryUuidBySlug } = await import('../../src/services/qdrant/memory-retrieval.js');
 
@@ -66,7 +65,7 @@ function layer(id: string, index: number, slug = 'author-adapter'): Memory {
 const memories = new Map([[head, layer(head, 1)], [next, layer(next, 2)], [target, layer(target, 1, 'sample-pr-workflow')]]);
 const store = { getMemory: async (id: string) => memories.get(id) ?? null } as unknown as MemoryQdrantStore;
 const db = {
-  findFirstStepMemoryUuidBySlug: async (slug: string) => ({ layerUuid: resolveAdapterSlugAlias(slug) === 'author-adapter' ? head : slug === 'sample-pr-workflow' ? target : null }),
+  findFirstStepMemoryUuidBySlug: async (slug: string) => ({ layerUuid: slug === 'author-adapter' ? head : slug === 'sample-pr-workflow' ? target : null }),
   getAdapterLayers: async (id: string) => (id === head ? [head, next] : id === target ? [target] : []).map((uuid, i) => ({ uuid, payload: { adapter: { layer_index: i + 1 } } }))
 } as unknown as QdrantService;
 const authoring = { operation: 'update' as const, target_adapter_uri: 'squadrules://adapter/sample-pr-workflow' };
@@ -112,8 +111,8 @@ describe('authoring intent from activation through continuation', () => {
     expect(nextTemplate?.proof_hash).toBe(continued.contract.proof_hash);
   });
 
-  test.each(['author-adapter', 'create-new-protocol'])('%s starts the same existing adapter', async slug => {
-    const result = await executeForward({}, store, db, { uri: `squadrules://adapter/${slug}`, authoring });
+  test('author-adapter starts the existing adapter', async () => {
+    const result = await executeForward({}, store, db, { uri: 'squadrules://adapter/author-adapter', authoring });
     expect(result.current_layer!.uri).toContain(head);
   });
 
@@ -159,8 +158,8 @@ describe('authoring intent from activation through continuation', () => {
     }
   });
 
-  test('shared slug retrieval maps lifecycle alias to original storage without changing other slugs', async () => {
-    for (const [input, expected] of [['author-adapter', 'author-adapter'], ['create-new-protocol', 'author-adapter'], ['sample-pr-workflow', 'sample-pr-workflow']]) {
+  test('shared slug retrieval resolves known slugs to their storage layer', async () => {
+    for (const [input, expected] of [['author-adapter', 'author-adapter'], ['sample-pr-workflow', 'sample-pr-workflow']]) {
       const scroll = jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({ points: [] });
       const conn = { executeWithReconnect: (fn: () => unknown) => fn(), client: { scroll }, collectionName: 'test' };
       await findFirstStepMemoryUuidBySlug(conn as never, input!);

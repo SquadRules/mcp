@@ -3,11 +3,13 @@
  * Tests that only line-start ```json blocks are parsed as steps.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { findAllLayerContractBlocks } from '../../src/services/memory/adapter-contract-blocks.js';
+import { SHELL_INTERPRETERS } from '../../src/tools/shell-challenge-invocation.js';
 
-const ALLOWED = new Set(['shell', 'mcp', 'user_input', 'comment']);
+const ALLOWED = new Set(['shell', 'mcp', 'user_input', 'comment', 'tensor', 'subagent']);
+const ALLOWED_INTERPRETERS = new Set<string>(SHELL_INTERPRETERS);
 
 describe('adapter-contract-blocks', () => {
   describe('findAllLayerContractBlocks', () => {
@@ -27,13 +29,14 @@ More text`;
 
     test('finds contract block at content start', () => {
       const content = `\`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo test"},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo test","interpreter":"bash"},"required":true}}
 \`\`\`
 More text`;
 
       const results = findAllLayerContractBlocks(content);
       expect(results).toHaveLength(1);
       expect(results[0]!.contract.type).toBe('shell');
+      expect(results[0]!.contract.shell?.interpreter).toBe('bash');
       expect(results[0]!.start).toBe(0);
     });
 
@@ -55,7 +58,7 @@ More text`;
 \`\`\`
 Step 2 content
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"npm test"},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"npm test","interpreter":"bash"},"required":true}}
 \`\`\`
 Step 3 content`;
 
@@ -63,6 +66,7 @@ Step 3 content`;
       expect(results).toHaveLength(2);
       expect(results[0]!.contract.type).toBe('comment');
       expect(results[1]!.contract.type).toBe('shell');
+      expect(results[1]!.contract.shell?.interpreter).toBe('bash');
       expect(results[1]!.start).toBeGreaterThan(results[0]!.end);
     });
 
@@ -75,12 +79,13 @@ Example: \`\`\`json
 ## Step 1
 Do something
 \`\`\`json
-{"contract":{"type":"shell","shell":{"cmd":"echo done"},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"echo done","interpreter":"bash"},"required":true}}
 \`\`\``;
 
       const results = findAllLayerContractBlocks(content);
       expect(results).toHaveLength(1);
       expect(results[0]!.contract.type).toBe('shell');
+      expect(results[0]!.contract.shell?.interpreter).toBe('bash');
     });
 
     test('ignores blocks with ``` (no json): only ```json counts as contract block', () => {
@@ -139,10 +144,27 @@ Suffix text`;
         'utf8'
       );
       const results = findAllLayerContractBlocks(md);
-      expect(results).toHaveLength(8);
+      expect(results).toHaveLength(6);
       for (const result of results) {
         expect(ALLOWED.has(String(result.contract.type))).toBe(true);
       }
+    });
+
+    test('every shell contract parsed from bundled adapters carries a valid interpreter (ADR 0026)', () => {
+      const memDir = join(process.cwd(), 'src/embed-docs/mem');
+      const files = readdirSync(memDir).filter(f => f.endsWith('.md'));
+      let shellContracts = 0;
+      for (const file of files) {
+        const md = readFileSync(join(memDir, file), 'utf8');
+        for (const result of findAllLayerContractBlocks(md)) {
+          if (result.contract.type !== 'shell') continue;
+          shellContracts += 1;
+          const interpreter = result.contract.shell?.interpreter;
+          expect({ file, interpreter }).toEqual({ file, interpreter: expect.any(String) });
+          expect(ALLOWED_INTERPRETERS.has(String(interpreter))).toBe(true);
+        }
+      }
+      expect(shellContracts).toBeGreaterThan(0);
     });
   });
 });

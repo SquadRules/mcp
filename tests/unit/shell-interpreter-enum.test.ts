@@ -6,7 +6,8 @@
  */
 import {
   SHELL_INTERPRETERS,
-  buildShellChallengeArgv
+  buildShellChallengeArgv,
+  type ShellChallengeFields
 } from '../../src/tools/shell-challenge-invocation.js';
 import { challengeSchema } from '../../src/tools/next_schema.js';
 
@@ -17,9 +18,10 @@ describe('SHELL_INTERPRETERS', () => {
 });
 
 describe('buildShellChallengeArgv with allowed interpreters', () => {
-  it('defaults to bash -c when no interpreter given', () => {
-    const argv = buildShellChallengeArgv({ cmd: 'echo hello' });
-    expect(argv).toEqual(['bash', '-c', 'echo hello']);
+  it('throws when no interpreter given (no bash default)', () => {
+    expect(() =>
+      buildShellChallengeArgv({ cmd: 'echo hello' } as unknown as ShellChallengeFields)
+    ).toThrow(/missing its required interpreter/);
   });
 
   it('python3 gets -c injection', () => {
@@ -58,9 +60,9 @@ describe('challengeSchema interpreter validation', () => {
     }
   });
 
-  it('accepts undefined interpreter', () => {
-    const result = challengeSchema.parse(baseChallenge);
-    expect(result.shell?.interpreter).toBeUndefined();
+  it('rejects undefined interpreter (interpreter is required)', () => {
+    const result = challengeSchema.safeParse(baseChallenge);
+    expect(result.success).toBe(false);
   });
 
   it('rejects removed interpreters', () => {
