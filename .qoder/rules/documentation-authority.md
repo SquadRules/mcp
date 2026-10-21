@@ -44,6 +44,8 @@ home; they never restate it ("rule of one").
 - `docs/security/**` — threat model, incident runbook, code-security setup, audit log
 - `docs/adr/**` — architecture decision records (why a decision was taken and when it
   expires); one decision per file, supersede rather than rewrite
+- `docs/adapter-design-principles.md` — adapter autonomy and verification principles
+- `docs/adapter-authoring-guide.md` — adapter authoring flow and contract selection
 - `docs/known-issues-and-limitations.md`
 - `docs/squadrules-bundles.md`
 - `docs/test-snapshot-*.md`
@@ -53,6 +55,13 @@ home; they never restate it ("rule of one").
 Functional inputs (kept, but not prose docs): `docs/install/**` (npm path
 only), `docs/CLI.md`, `docs/examples/**`. Container-image and Helm deployment
 docs are **not** allowed in this repo — link to the sibling repos instead.
+
+ADR status reconciliation: agents may reconcile a stale "Proposed" status line
+to Accepted, Superseded, or Rejected when codebase evidence confirms the
+decision landed or was abandoned, and may create a superseding ADR that
+explicitly marks the prior record as superseded. Never rewrite an accepted
+ADR's body in place — Status-line edits for reconciliation are the only
+in-place change an accepted record may receive.
 
 ### Colocated README shape contract (AI-first audience)
 

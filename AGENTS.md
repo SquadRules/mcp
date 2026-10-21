@@ -74,7 +74,11 @@ of truth; other contributor documents should link here.
   significant architectural decisions (CI topology, runtime model, embedding
   provider, storage backend, etc.), create or update an ADR. One decision per
   file; state the context, decision, consequences, and evidence. Update the
-  ADR index (`docs/adr/README.md`) when adding new records.
+  ADR index ([`docs/adr/README.md`](docs/adr/README.md)) when adding new
+  records. Status reconciliation is permitted: reconcile a stale "Proposed"
+  status line when codebase evidence confirms the decision landed or was
+  abandoned, and supersede rather than rewrite — never edit an accepted ADR's
+  body in place.
 
 ## Runtime authority split
 
