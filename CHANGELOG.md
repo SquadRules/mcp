@@ -1,5 +1,21 @@
 # Changelog
 
+## [5.12.0](https://github.com/SquadRules/mcp/compare/v5.11.0...v5.12.0) (2026-10-21)
+
+
+### Features
+
+* adapter autonomy and verification overhaul ([027ef6e](https://github.com/SquadRules/mcp/commit/027ef6e49af680d7b669ddfea04349ee33eecfbb))
+* **validation:** enforce interpreter-required, subagent-allowed, mcp-forward-link-only ([169ab9e](https://github.com/SquadRules/mcp/commit/169ab9e9d6e79cdf8dc15f9e9e1d9c5b489e29e0))
+
+
+### Bug Fixes
+
+* **ci:** use --update flag for wiki generation to avoid full regeneration ([#134](https://github.com/SquadRules/mcp/issues/134)) ([a3d2f7f](https://github.com/SquadRules/mcp/commit/a3d2f7fceb3434abfddedd944294b2ebe3b9234b))
+* **ci:** use GET /app for identity verification with installation tokens ([#137](https://github.com/SquadRules/mcp/issues/137)) ([a6d4505](https://github.com/SquadRules/mcp/commit/a6d45052898cea3d367670a7912710fa37dcc829))
+* **integration:** align test fixtures with stricter contract validation ([6f8f56e](https://github.com/SquadRules/mcp/commit/6f8f56ee23765037ab3f78bdc00657b15cfb0488))
+* **tests:** remove tensor reference from train-validation message assertion ([e13488a](https://github.com/SquadRules/mcp/commit/e13488a8137a5a8c7bc0f90bc52d1aa30d0d0e6c))
+
 ## [5.11.0](https://github.com/SquadRules/mcp/compare/v5.10.1...v5.11.0) (2026-10-16)
 
 
