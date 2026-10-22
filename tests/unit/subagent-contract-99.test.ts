@@ -3,6 +3,7 @@
  *
  * Verifies:
  * - forwardContractSchema accepts type:'subagent' with subagent.context
+ * - forwardContractSchema accepts the optional structured subagent.mcp list (ADR 0029)
  * - forwardSolutionSchema accepts type:'subagent' with evidence.report
  * - forwardSolutionSchema rejects type:'subagent' without evidence (anti-cheat)
  * - solutionTemplateSchema (in next_call) requires evidence for subagent
@@ -44,6 +45,74 @@ describe('forwardContractSchema: subagent type (#99)', () => {
     const result = forwardContractSchema.safeParse({
       type: 'unknown_type',
       required: true
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── forwardContractSchema: optional subagent.mcp delegation list (ADR 0029) ──
+describe('forwardContractSchema: optional subagent.mcp list', () => {
+  let forwardContractSchema: typeof import('../../src/tools/forward_schema.js').forwardContractSchema;
+
+  beforeAll(async () => {
+    const mod = await import('../../src/tools/forward_schema.js');
+    forwardContractSchema = mod.forwardContractSchema;
+  });
+
+  it('accepts a well-formed mcp list alongside context', () => {
+    const result = forwardContractSchema.safeParse({
+      type: 'subagent',
+      required: true,
+      description: 'Delegate export sweep to a subagent',
+      subagent: {
+        context: 'Export every adapter and report any over the 350-line ceiling.',
+        mcp: [
+          { tool_name: 'export', arguments: { all_adapters: true } },
+          { tool_name: 'spaces' }
+        ]
+      }
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.subagent?.mcp).toEqual([
+        { tool_name: 'export', arguments: { all_adapters: true } },
+        { tool_name: 'spaces' }
+      ]);
+    }
+  });
+
+  it('accepts an empty mcp list (mcp stays optional)', () => {
+    const result = forwardContractSchema.safeParse({
+      type: 'subagent',
+      required: true,
+      subagent: { context: 'Delegate the sweep.', mcp: [] }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an mcp entry without tool_name', () => {
+    const result = forwardContractSchema.safeParse({
+      type: 'subagent',
+      required: true,
+      subagent: { context: 'Delegate the sweep.', mcp: [{ arguments: { all_adapters: true } }] }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a non-object arguments value', () => {
+    const result = forwardContractSchema.safeParse({
+      type: 'subagent',
+      required: true,
+      subagent: { context: 'Delegate the sweep.', mcp: [{ tool_name: 'export', arguments: 'all' }] }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a non-array mcp value', () => {
+    const result = forwardContractSchema.safeParse({
+      type: 'subagent',
+      required: true,
+      subagent: { context: 'Delegate the sweep.', mcp: { tool_name: 'export' } }
     });
     expect(result.success).toBe(false);
   });
@@ -164,6 +233,18 @@ describe('next_schema: subagent type', () => {
       type: 'subagent',
       description: 'Delegate task to subagent',
       subagent: { context: 'Fix the failing test' }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('challengeSchema accepts subagent with the optional mcp tool list', () => {
+    const result = challengeSchema.safeParse({
+      type: 'subagent',
+      description: 'Delegate export sweep to subagent',
+      subagent: {
+        context: 'Export every adapter.',
+        mcp: [{ tool_name: 'export', arguments: { all_adapters: true } }]
+      }
     });
     expect(result.success).toBe(true);
   });
