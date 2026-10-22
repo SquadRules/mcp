@@ -231,23 +231,6 @@ test('dependabot is correctly configured', () => {
   assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
 });
 
-test('auto-merge-deps workflow is correctly configured', () => {
-  const autoMergeDeps = load(readFileSync('.github/workflows/auto-merge-deps.yml', 'utf8'));
-  assert.ok(autoMergeDeps.on.schedule.some(s => s.cron === '23 */6 * * *'), 'Auto-merge must run every 6 hours');
-  assert.ok(autoMergeDeps.on.workflow_dispatch?.inputs?.['dry-run'], 'Auto-merge must support dry-run dispatch');
-  assert.equal(autoMergeDeps.permissions.contents, 'read');
-  assert.equal(autoMergeDeps.concurrency['cancel-in-progress'], false);
-  const autoMergeJob = autoMergeDeps.jobs.merge;
-  assert.match(autoMergeJob.if, /AUTOMATION_ENABLED/);
-  const autoMergeCheckout = autoMergeJob.steps.find(s => s.uses?.startsWith('actions/checkout@'));
-  assert.equal(autoMergeCheckout.with.ref, 'refs/heads/main');
-  assert.equal(autoMergeCheckout.with['persist-credentials'], false);
-  const autoMergeStep = autoMergeJob.steps.find(s => s.run?.includes('ci-automation.mjs'));
-  assert.ok(autoMergeStep, 'Auto-merge must invoke ci-automation.mjs');
-  assert.equal(autoMergeStep.env.GH_TOKEN, '${{ steps.app-token.outputs.token }}');
-  assert.doesNotMatch(JSON.stringify(autoMergeDeps), /git push|npm audit fix/);
-});
-
 test('docs workflow has correct triggers and structure', () => {
   const docs = workflow('docs');
   assert.equal(docs.name, 'Docs wiki regeneration');
@@ -261,11 +244,14 @@ test('docs workflow has correct triggers and structure', () => {
   assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
 });
 
-test('auto-update workflow delegates sync detection to gh pr update-branch', () => {
+test('auto-update workflow sequentially updates, checks, and merges PRs', () => {
   const autoUpdate = workflow('auto-update-pr-branches');
   assert.ok(Object.hasOwn(autoUpdate.on, 'push'), 'Updates must run as soon as main advances');
   assert.ok(autoUpdate.on.schedule?.some(s => s.cron === '17 * * * *'), 'Hourly backstop must catch PRs a push run missed');
+  assert.equal(autoUpdate.permissions['pull-requests'], 'write', 'Must have pull-requests: write for gh pr merge');
   const updateStep = autoUpdate.jobs['update-prs'].steps.find(s => s.run?.includes('gh pr update-branch'));
-  assert.ok(updateStep, 'update-prs must delegate detection and merge to gh pr update-branch, which no-ops on current branches');
+  assert.ok(updateStep, 'update-prs must delegate branch update to gh pr update-branch');
+  assert.ok(updateStep.run.includes('gh pr checks'), 'Must wait for checks with gh pr checks --watch');
+  assert.ok(updateStep.run.includes('gh pr merge'), 'Must merge with gh pr merge');
   assert.doesNotMatch(updateStep.run, /mergeStateStatus|git merge|git push|gh repo clone/, 'No async-stale status fields and no local merge machinery');
 });

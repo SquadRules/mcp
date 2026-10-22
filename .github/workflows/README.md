@@ -16,7 +16,6 @@ protected `main` directly.
 | [Automation policy](automation-policy.yml) | Conventional PR titles, automation regression tests, and workflow validation |
 | [Release](release.yml) | Release Please Release PRs; protected-main version commits; GitHub Release + npm OIDC/provenance publication |
 | [npm audit fix](npm-audit-fix.yml) | Hourly dependency remediation through a PR, separate from validation |
-| [Auto-merge dependencies](auto-merge-deps.yml) | Every-6-hour reconcile and squash-merge of eligible security and version dependency PRs |
 | [Automation health](automation-health.yml) | Monitor producers and latest main release outcome |
 | [Wiki sync](sync-qoder-repowiki-to-github-wiki.yml) | Sync generated repository wiki |
 | [Verify OpenAI key](verify-openai-key.yml) | Manual test-credential verification |
