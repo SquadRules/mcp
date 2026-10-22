@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded — the `auto-merge-deps.yml` workflow was removed and its function folded into `auto-update-pr-branches.yml` using native `gh pr checks --watch` + `gh pr merge` (sequential update-check-merge per PR).
 
 ## Context
 
