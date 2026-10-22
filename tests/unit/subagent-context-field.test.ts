@@ -100,3 +100,59 @@ describe('the retired subagent.instruction field is ignored', () => {
     expect(String(shape['description'])).not.toContain('twice');
   });
 });
+
+describe('a malformed stored subagent.mcp list degrades gracefully', () => {
+  // tune persists inference_contract data without the train-time validator,
+  // so the renderer must treat the stored list as untrusted (ADR 0029).
+  test('a non-array mcp value renders the plain delegation challenge without throwing', () => {
+    const shape = buildChallengeShapeForDisplay({
+      type: 'subagent',
+      required: true,
+      subagent: { context: CONTEXT, mcp: 'not-an-array' }
+    } as unknown as ProofOfWorkDefinition);
+
+    expect(String(shape['description'])).toBe(`${DELEGATION_LINE} Context: ${CONTEXT}`);
+    expect(shape['subagent']).toEqual({ context: CONTEXT });
+  });
+
+  test('entries without a usable tool_name are skipped, valid ones survive', () => {
+    const shape = buildChallengeShapeForDisplay({
+      type: 'subagent',
+      required: true,
+      subagent: {
+        context: CONTEXT,
+        mcp: ['export', { tool_name: '   ' }, 42, { tool_name: 'spaces' }]
+      }
+    } as unknown as ProofOfWorkDefinition);
+
+    expect(String(shape['description'])).toBe(
+      `${DELEGATION_LINE} Context: ${CONTEXT} The subagent must call these MCP tools: spaces.`
+    );
+    expect((shape['subagent'] as Record<string, unknown>)['mcp']).toEqual([{ tool_name: 'spaces' }]);
+  });
+
+  test('an entry with a non-object arguments value is skipped', () => {
+    const shape = buildChallengeShapeForDisplay({
+      type: 'subagent',
+      required: true,
+      subagent: {
+        context: CONTEXT,
+        mcp: [{ tool_name: 'export', arguments: 'all_adapters' }]
+      }
+    } as unknown as ProofOfWorkDefinition);
+
+    expect(String(shape['description'])).toBe(`${DELEGATION_LINE} Context: ${CONTEXT}`);
+    expect(shape['subagent']).toEqual({ context: CONTEXT });
+  });
+
+  test('an empty mcp list renders no tool hint and no mcp field', () => {
+    const shape = buildChallengeShapeForDisplay({
+      type: 'subagent',
+      required: true,
+      subagent: { context: CONTEXT, mcp: [] }
+    } as ProofOfWorkDefinition);
+
+    expect(String(shape['description'])).toBe(`${DELEGATION_LINE} Context: ${CONTEXT}`);
+    expect(shape['subagent']).toEqual({ context: CONTEXT });
+  });
+});

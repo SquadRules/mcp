@@ -7,6 +7,7 @@
  */
 import { describe, expect, test } from '@jest/globals';
 import { buildChallengeShapeForDisplay } from '../../src/tools/next-pow-challenge-shape.js';
+import { SquadrulesError } from '../../src/types/index.js';
 import type { ProofOfWorkDefinition } from '../../src/types/memory.js';
 
 const TARGET = 'squadrules://adapter/critic-loop';
@@ -50,14 +51,35 @@ describe('next-pow-challenge-shape buildChallengeShapeForDisplay forward', () =>
     expect((shape['forward'] as Record<string, unknown>)['target']).toBe('No target specified');
   });
 
-  test('a stale stored type "mcp" fails closed with a re-train message', () => {
-    const shape = buildChallengeShapeForDisplay({
-      required: true,
-      type: 'mcp',
-      mcp: { tool_name: 'forward', arguments: { uri: TARGET } }
-    } as unknown as ProofOfWorkDefinition);
-    expect(String(shape['description'])).toMatch(/Unsupported contract type "mcp"/);
-    expect(String(shape['description'])).toMatch(/re-trained/);
-    expect(shape['forward']).toBeUndefined();
+  test('a stale stored type "mcp" throws a fail-closed re-train error instead of an invalid shape', () => {
+    let caught: unknown;
+    try {
+      buildChallengeShapeForDisplay({
+        required: true,
+        type: 'mcp',
+        mcp: { tool_name: 'forward', arguments: { uri: TARGET } }
+      } as unknown as ProofOfWorkDefinition);
+    } catch (error) {
+      caught = error;
+    }
+
+    // The SDK output schema rejects any challenge carrying type "mcp", so the
+    // guard must surface an actionable isError payload (the forward tool
+    // registration renders SquadrulesError as isError), never a stale shape.
+    expect(caught).toBeInstanceOf(SquadrulesError);
+    const err = caught as SquadrulesError;
+    expect(err.code).toBe('UNSUPPORTED_CONTRACT_TYPE');
+    expect(err.message).toMatch(/Unsupported contract type "mcp"/);
+    expect(err.message).toMatch(/trained before the mcp→forward rename/);
+    expect(err.message).toMatch(/Re-train this adapter/);
+  });
+
+  test('an unrecognized stored type throws the same fail-closed error', () => {
+    expect(() =>
+      buildChallengeShapeForDisplay({
+        required: true,
+        type: 'tensor'
+      } as unknown as ProofOfWorkDefinition)
+    ).toThrow(/Unsupported contract type "tensor"/);
   });
 });
