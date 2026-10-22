@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.12.1](https://github.com/SquadRules/mcp/compare/v5.12.0...v5.12.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **deps:** bump markdown-it ([0b0ce59](https://github.com/SquadRules/mcp/commit/0b0ce5911501758370df437a34f875aa135ed9ab))
+* **deps:** bump markdown-it from 14.3.2 to 14.3.3 in the npm-security group across 1 directory ([#151](https://github.com/SquadRules/mcp/issues/151)) ([0b0ce59](https://github.com/SquadRules/mcp/commit/0b0ce5911501758370df437a34f875aa135ed9ab))
+
 ## [5.12.0](https://github.com/SquadRules/mcp/compare/v5.11.0...v5.12.0) (2026-10-21)
 
 
