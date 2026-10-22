@@ -78,7 +78,7 @@ Export every adapter from the target space using bulk export:
 If the space has no adapters, report this and stop.
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Export all adapters from the target space using the export tool with all_adapters: true. Record the total count and extract slug, URI, and content for each adapter."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Export all adapters from the target space using the export tool with all_adapters: true. Record the total count and extract slug, URI, and content for each adapter."},"required":true}}
 ```
 
 ## Analyze and Transform
@@ -97,8 +97,8 @@ For each exported adapter, perform structural analysis and apply migrations.
    (do NOT auto-split; report as manual review needed).
 5. **Shell interpreter** — every shell contract must include `"interpreter"`
    field with an allowed value (`bash`, `sh`, `python3`, `python`, `node`).
-6. **MCP forward-link** — every mcp contract must use `tool_name: "forward"`
-   with `arguments.uri` matching `squadrules://adapter/<slug>`.
+6. **Forward link** — every `forward` contract must set `forward.target`
+   matching `squadrules://adapter/<slug>`.
 
 ### Transformation rules
 
@@ -114,7 +114,7 @@ For each adapter, produce:
 - `transformed_content`: the full updated markdown (when `needs_changes`)
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Analyze each exported adapter against structural checks (heading order, contract fences, frontmatter, line count, shell interpreter, mcp forward-link). Apply conservative transformations and produce per-adapter status, changes, warnings, and transformed content."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Analyze each exported adapter against structural checks (heading order, contract fences, frontmatter, line count, shell interpreter, forward link). Apply conservative transformations and produce per-adapter status, changes, warnings, and transformed content."},"required":true}}
 ```
 
 ## Report Changes
@@ -152,7 +152,7 @@ For each `needs_changes` adapter, apply the structural changes:
 Do NOT change the adapter's space assignment during migration.
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Execute the migration: for each needs_changes adapter, call tune (content-level fixes) or train with force_update (structural changes). Record success/failure per adapter."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Execute the migration: for each needs_changes adapter, call tune (content-level fixes) or train with force_update (structural changes). Record success/failure per adapter."},"required":true}}
 ```
 
 ## Verify and Report
@@ -187,7 +187,7 @@ scheme. Every adapter has:
 - Correct heading order (Activation Patterns first, Reward Signal last).
 - Proper ` ```json ` contract fences.
 - Shell contracts with `interpreter` field.
-- MCP contracts as forward-links with `arguments.uri`.
+- Forward contracts with a `forward.target` adapter URI.
 - Valid frontmatter with `slug` and optional `version`.
 - Been verified post-migration for structural compliance.
 

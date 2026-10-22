@@ -87,7 +87,7 @@ inferred operation and target, then continue. Escalate to the user only when
 the request is genuinely ambiguous and no reasonable default exists.
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Resolve the authoring operation (create/review/update) and target adapter from user context. Record the decision."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Resolve the authoring operation (create/review/update) and target adapter from user context. Record the decision."},"required":true}}
 ```
 
 ## Gather Requirements
@@ -121,7 +121,7 @@ Export the target adapter, read the current markdown, identify the exact gap or
 error, and plan the minimal change.
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Gather requirements for the resolved operation: collect pattern/details for create, audit checklist for review, or identify the specific issue for update."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Gather requirements for the resolved operation: collect pattern/details for create, audit checklist for review, or identify the specific issue for update."},"required":true}}
 ```
 
 ## Draft Markdown
@@ -167,7 +167,7 @@ For `review`: write a structured gap report to `$REVIEW_FINDINGS_FILE`.
 For `update`: apply the identified change and show a diff-style summary.
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Draft the adapter markdown (create), findings report (review), or corrected markdown (update) following all shared drafting rules."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Draft the adapter markdown (create), findings report (review), or corrected markdown (update) following all shared drafting rules."},"required":true}}
 ```
 
 ## Critic-Loop Review (create and update only)
