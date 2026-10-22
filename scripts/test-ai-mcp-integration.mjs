@@ -108,14 +108,15 @@ function buildSolution(contract, proofHashFromPrevious) {
         type: 'shell',
         shell: { exit_code: 0, stdout: 'ok' }
       });
-    case 'mcp':
+    case 'forward':
       return withProof({
-        type: 'mcp',
-        mcp: {
-          tool_name: contract?.mcp?.tool_name || 'activate',
-          result: 'ok',
-          success: true
-        }
+        type: 'forward',
+        forward: { target: contract?.forward?.target || 'squadrules://adapter/critic-loop', success: true }
+      });
+    case 'subagent':
+      return withProof({
+        type: 'subagent',
+        evidence: { report: 'Integration subagent report: delegated work completed as contracted.' }
       });
     default:
       return withProof({
@@ -305,8 +306,9 @@ function listAdapterExampleFiles() {
   const names = [
     'adapter-example-user-input.md',
     'adapter-example-comment.md',
-    'adapter-example-mcp.md',
+    'adapter-example-forward.md',
     'adapter-example-shell.md',
+    'adapter-example-subagent.md',
     'adapter-example-all-types.md'
   ];
   return names

@@ -1,8 +1,9 @@
 Return an **adapter** layer's instructions and advance its workflow state.
 
 **Effects of this tool:** starts/updates execution metadata, proof records, traces,
-and quality feedback. It returns shell/MCP contracts for the caller to execute;
-it does **not** execute those shell commands, invoke the described MCP tools,
+and quality feedback. It returns shell, forward, and subagent contracts for the
+caller to execute; it does **not** execute those shell commands, invoke the
+described MCP tools,
 edit repository files, or train/tune adapter content. A user-input contract may
 request host elicitation on continuation.
 This is stateful, not a read-only tool. Later actions remain subject to their own
@@ -99,16 +100,15 @@ Every solution, regardless of type, follows the same envelope:
 }
 ```
 
-#### mcp
+#### forward
 
 ```json
 {
-  "type": "mcp",
+  "type": "forward",
   "outcome": "success",
   "evidence": {
-    "tool_name": "editJiraIssue",
-    "arguments": { "issueIdOrKey": "BIB-1383" },
-    "response": { "key": "BIB-1383", "webUrl": "..." }
+    "target": "squadrules://adapter/critic-loop",
+    "success": true
   }
 }
 ```
@@ -145,8 +145,8 @@ directly under the type key instead of inside an `evidence` envelope:
 
 ```json
 {
-  "type": "mcp",
-  "mcp": { "tool_name": "x", "result": {}, "success": true }
+  "type": "forward",
+  "forward": { "target": "squadrules://adapter/critic-loop", "success": true }
 }
 ```
 

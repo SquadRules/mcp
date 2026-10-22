@@ -143,10 +143,10 @@ export async function ensurePreviousProofCompleted(
       const prompt = prevProof.user_input?.prompt || 'Confirm (see step content).';
       message += ` For user_input you must obtain the user's actual reply — do not infer or invent. Submit that proof by calling forward with ${prevStepUri} and solution.evidence.confirmation.`;
       next_action = `Ask the user: "${prompt}" then call forward with ${prevStepUri} and solution.evidence.confirmation set to their reply.`;
-    } else if (proofType === 'mcp') {
-      const toolName = prevProof.mcp?.tool_name || 'the required tool';
-      message += ` Submit that proof by calling forward with ${prevStepUri} and solution.evidence. Call the MCP tool "${toolName}" and report its real result; do not fabricate.`;
-      next_action = `Call ${toolName}, then call forward with ${prevStepUri} and solution.evidence with the real result.`;
+    } else if (proofType === 'forward') {
+      const target = prevProof.forward?.target || 'the required adapter URI';
+      message += ` Submit that proof by calling forward with ${prevStepUri} and solution.evidence. Forward to "${target}" and report the real result; do not fabricate.`;
+      next_action = `Forward to ${target}, then call forward with ${prevStepUri} and solution.evidence with the real result.`;
     } else if (proofType === 'comment') {
       const minLen = prevProof.comment?.min_length ?? 10;
       message += ` Submit that proof by calling forward with ${prevStepUri} and solution.evidence.text. Write a genuine summary of what was done; do not paste unrelated text.`;

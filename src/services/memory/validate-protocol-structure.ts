@@ -24,15 +24,17 @@ const MIXED_CONTRACT_FENCES = 'mixed_contract_fences';
 const INVALID_CONTRACT_TYPE = 'invalid_contract_type';
 /** A `shell` contract must name an interpreter from the allowed set (ADR 0026). */
 const SHELL_INTERPRETER_REQUIRED = 'shell_interpreter_required';
-/** An `mcp` contract must be a forward link to another adapter (ADR 0025). */
-const MCP_LINK_ONLY = 'mcp_link_only';
+/** An `forward` contract must be a forward link to another adapter (ADR 0025/0028). */
+const FORWARD_LINK_ONLY = 'forward_link_only';
+/** A `subagent.mcp` entry is structurally invalid. */
+const SUBAGENT_MCP_INVALID = 'subagent_mcp_invalid';
 
-const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'mcp', 'user_input', 'comment', 'subagent']);
+const ALLOWED_CONTRACT_TYPES = new Set(['shell', 'forward', 'user_input', 'comment', 'subagent']);
 
 /** Interpreter values a `shell` contract may name (ADR 0026). */
 const ALLOWED_SHELL_INTERPRETERS = new Set<string>(SHELL_INTERPRETERS);
 
-/** Forward-link target an `mcp` contract must name (ADR 0025): squadrules://adapter/<slug>. */
+/** Forward-link target a `forward` contract must name (ADR 0025/0028): squadrules://adapter/<slug>. */
 const ADAPTER_FORWARD_LINK_URI = /^squadrules:\/\/adapter\/[^\s/]+$/;
 
 /**
@@ -60,10 +62,25 @@ const CONTRACT_TYPE_POLICIES: Record<string, ContractTypePolicy> = {
       { path: 'shell.interpreter', code: SHELL_INTERPRETER_REQUIRED, allowedValues: ALLOWED_SHELL_INTERPRETERS },
     ],
   },
-  mcp: {
-    validate: (contract) => (isMcpForwardLink(contract) ? null : MCP_LINK_ONLY),
+  forward: {
+    validate: (contract) => (isForwardLink(contract) ? null : FORWARD_LINK_ONLY),
   },
-  subagent: {},
+  subagent: {
+    validate: (contract) => {
+      const mcpList = contract.subagent?.mcp;
+      if (mcpList === undefined) return null;
+      if (!Array.isArray(mcpList)) return SUBAGENT_MCP_INVALID;
+      for (const entry of mcpList) {
+        if (entry === null || typeof entry !== 'object') return SUBAGENT_MCP_INVALID;
+        const e = entry as Record<string, unknown>;
+        if (typeof e['tool_name'] !== 'string' || (e['tool_name'] as string).trim() === '') return SUBAGENT_MCP_INVALID;
+        if (e['arguments'] !== undefined) {
+          if (e['arguments'] === null || typeof e['arguments'] !== 'object' || Array.isArray(e['arguments'])) return SUBAGENT_MCP_INVALID;
+        }
+      }
+      return null;
+    },
+  },
   user_input: {},
   comment: {},
 };
@@ -78,12 +95,10 @@ function resolveContractPath(contract: InferenceContractDefinition, path: string
   return current;
 }
 
-/** An `mcp` contract is valid only as a forward link to another adapter (ADR 0025). */
-function isMcpForwardLink(contract: InferenceContractDefinition): boolean {
-  const mcp = contract.mcp;
-  if (!mcp || mcp.tool_name !== 'forward') return false;
-  const uri = mcp.arguments?.['uri'];
-  return typeof uri === 'string' && ADAPTER_FORWARD_LINK_URI.test(uri);
+/** A `forward` contract is valid only as a forward link to another adapter (ADR 0025/0028). */
+function isForwardLink(contract: InferenceContractDefinition): boolean {
+  const target = contract.forward?.target;
+  return typeof target === 'string' && ADAPTER_FORWARD_LINK_URI.test(target);
 }
 
 /** Run a type's policy; returns the first violated rule's `missing` code, or null. */
@@ -262,13 +277,16 @@ export function validateProtocolStructure(markdownDoc: string): ValidationResult
         return 'use only ```json for contract blocks (no plain ``` with contract JSON)';
       }
       if (m === INVALID_CONTRACT_TYPE) {
-        return 'each ```json block must set type to exactly shell, mcp, user_input, comment, or subagent (no placeholders or combined values)';
+        return 'each ```json block must set type to exactly shell, forward, user_input, comment, or subagent (no placeholders or combined values)';
       }
       if (m === SHELL_INTERPRETER_REQUIRED) {
         return 'shell contracts must set shell.interpreter to one of bash, sh, python3, python, or node';
       }
-      if (m === MCP_LINK_ONLY) {
-        return 'mcp contracts must be a forward link to another adapter (mcp.tool_name "forward" with mcp.arguments.uri = squadrules://adapter/<slug>)';
+      if (m === FORWARD_LINK_ONLY) {
+        return 'forward contracts must set forward.target to a valid adapter URI (squadrules://adapter/<slug>)';
+      }
+      if (m === SUBAGENT_MCP_INVALID) {
+        return 'subagent.mcp must be an array of objects with a non-empty string tool_name; arguments, if present, must be a plain object';
       }
       return m;
     });

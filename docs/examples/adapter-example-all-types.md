@@ -2,7 +2,7 @@
 
 <!-- S1 exemption: teaching fixture demonstrating every contract type side by side; the ≤1-comment and never-combined rules (ADR 0024 §4) do not apply to a reference document. -->
 
-One adapter with five steps, one per contract type (shell, mcp, subagent, user_input, comment). This file is a **reference demonstration** — it shows each contract shape so authors can copy the correct form. It is not a model of a production adapter: [ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §4 caps `comment` at one per adapter and forbids combining it with other types. Ready to train with `train`.
+One adapter with five steps, one per contract type (shell, forward, subagent, user_input, comment). This file is a **reference demonstration** — it shows each contract shape so authors can copy the correct form. It is not a model of a production adapter: [ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §4 caps `comment` at one per adapter and forbids combining it with other types. Ready to train with `train`.
 
 ## Activation Patterns
 
@@ -26,17 +26,16 @@ Run the given shell command. Exit code 0 means success. The `interpreter` field 
 }
 ```
 
-## Step 2 — MCP: forward link
+## Step 2 — Forward: link to another adapter
 
-An `mcp` contract must be a forward link to another adapter ([ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)): `tool_name` is exactly `"forward"` and `arguments.uri` matches `squadrules://adapter/<slug>`. Bare tool calls (`activate`, `export`, etc.) are **not** valid `mcp` contracts — use `subagent` for delegated tool work.
+A `forward` contract must link to another adapter ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)): `forward.target` matches `squadrules://adapter/<slug>`. Bare tool calls (`activate`, `export`, etc.) are **not** valid `forward` contracts — a `forward` contract names an adapter, never a tool. Use `subagent` for delegated tool work.
 
 ```json
 {
   "contract": {
-    "type": "mcp",
-    "mcp": {
-      "tool_name": "forward",
-      "arguments": { "uri": "squadrules://adapter/critic-loop" }
+    "type": "forward",
+    "forward": {
+      "target": "squadrules://adapter/critic-loop"
     },
     "required": true
   }
@@ -52,12 +51,17 @@ Delegate the task to a subagent and return its actual report. The subagent perfo
   "contract": {
     "type": "subagent",
     "subagent": {
-      "context": "Review the output from Step 1 and confirm correctness. Report your findings."
+      "context": "Export every adapter in the target space and report each slug with its version and line count.",
+      "mcp": [
+        { "tool_name": "export", "arguments": { "all_adapters": true } }
+      ]
     },
     "required": true
   }
 }
 ```
+
+`subagent.mcp` is **optional**. Omit it for rung-2 delegated judgment (free-text `context` only); include it for rung-3 delegated tool work. The listed calls are executed *by the subagent* and their transcript never reaches the caller ([ADR 0029](../adr/0029-subagent-mcp-and-context-authority.md)). See [adapter-example-subagent.md](adapter-example-subagent.md) for both rungs side by side.
 
 ## Step 4 — User input: emergency authority gap
 

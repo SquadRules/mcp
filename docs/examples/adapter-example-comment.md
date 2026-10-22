@@ -6,7 +6,7 @@ The `comment` contract is a **last resort** ([ADR 0024](../adr/0024-adapter-cont
 
 - At most **one** `comment` contract per adapter.
 - **Never combined** with another contract type. An adapter that has any observable step does not also get an acknowledgement layer.
-- Used only where rungs 1–3 of the verification ladder cannot apply: no file to assert (`shell`), no judgment to delegate (`subagent`), no tool transcript to verify (`mcp` forward-link).
+- Used only where rungs 1–3 of the verification ladder cannot apply: no file to assert (`shell`), no judgment to delegate and no tool work to hand off (`subagent`), no adapter to link to (`forward`).
 
 Typical case: a reference adapter that delivers instructions, conventions, or knowledge. The agent reads it, and the acknowledgement proves it was delivered — nothing more.
 

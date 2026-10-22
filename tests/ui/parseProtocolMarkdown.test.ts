@@ -63,24 +63,74 @@ Run the command.
     expect(result.steps[0]!.body).toContain("```json");
   });
 
-  it("parses step with mcp challenge type", () => {
+  it("parses step with forward challenge type", () => {
     const md = `# P
 
 ## Step 2
 
-Call the tool.
+Forward to the review adapter.
 
 \`\`\`json
-{"contract": {"type": "mcp", "mcp": {"tool_name": "activate"}}}
+{"contract": {"type": "forward", "forward": {"target": "squadrules://adapter/critic-loop"}}}
 \`\`\`
 `;
     const result = parseProtocolMarkdown(md);
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0]).toMatchObject({
       label: "Step 2",
-      type: "mcp",
-      summary: "MCP: activate",
+      type: "forward",
+      summary: "Forward: squadrules://adapter/critic-loop",
     });
+  });
+
+  it("falls back to a bare Forward summary when the target is missing", () => {
+    const md = `# P
+
+## Step 2
+
+Forward with no target.
+
+\`\`\`json
+{"contract": {"type": "forward", "forward": {}}}
+\`\`\`
+`;
+    const result = parseProtocolMarkdown(md);
+    expect(result.steps[0]).toMatchObject({ type: "forward", summary: "Forward" });
+  });
+
+  it("gives the retired mcp contract type only the generic fallback summary", () => {
+    const md = `# P
+
+## Step 2
+
+Retired mcp block.
+
+\`\`\`json
+{"contract": {"type": "mcp", "mcp": {"tool_name": "activate"}}}
+\`\`\`
+`;
+    const result = parseProtocolMarkdown(md);
+    // The raw stored type is echoed so the reader sees what the doc really says,
+    // but it no longer gets a first-class summary or challenge payload.
+    expect(result.steps[0]).toMatchObject({ label: "Step 2", type: "mcp", summary: "mcp" });
+    expect(result.steps[0]!.summary).not.toContain("activate");
+    expect(result.steps[0]!.challengePayload).toBeUndefined();
+  });
+
+  it("coerces the retired mcp contract type to comment in editor form state", () => {
+    const md = `# P
+
+## Step 2
+
+Retired mcp block.
+
+\`\`\`json
+{"contract": {"type": "mcp", "mcp": {"tool_name": "activate"}}}
+\`\`\`
+`;
+    // Fail-closed on re-save: the editor never offers "mcp" as an editable type.
+    const form = parseProtocolMarkdownToForm(md);
+    expect(form.steps[0]!.type).toBe("comment");
   });
 
   it("parses step with user_input challenge type", () => {
@@ -232,7 +282,7 @@ When each step is verified and the final reward is recorded.
     expect(reparsed.steps[0]!.type).toBe("shell");
   });
 
-  it("preserves empty challenge fields on round-trip (shell cmd, mcp tool_name, user_input prompt)", () => {
+  it("preserves empty challenge fields on round-trip (shell cmd, forward target, user_input prompt)", () => {
     const form = {
       protocolLabel: "Empty fields",
       triggersMarkdown: "test",
@@ -243,18 +293,18 @@ When each step is verified and the final reward is recorded.
           type: "shell" as const,
           shell: { cmd: "", timeout_seconds: 30, flags: [], args: [] },
         },
-        { label: "Empty mcp", bodyMarkdown: "TBD", type: "mcp" as const, mcp: { tool_name: "" } },
+        { label: "Empty forward", bodyMarkdown: "TBD", type: "forward" as const, forward: { target: "" } },
         { label: "Empty prompt", bodyMarkdown: "TBD", type: "user_input" as const, user_input: { prompt: "" } },
       ],
       completionMarkdown: "Done",
     };
     const rebuilt = buildMarkdownFromForm(form);
     expect(rebuilt).toContain('"cmd": ""');
-    expect(rebuilt).toContain('"tool_name": ""');
+    expect(rebuilt).toContain('"target": ""');
     expect(rebuilt).toContain('"prompt": ""');
     const reparsedForm = parseProtocolMarkdownToForm(rebuilt);
     expect(reparsedForm.steps[0]!.shell?.cmd).toBe("");
-    expect(reparsedForm.steps[1]!.mcp?.tool_name).toBe("");
+    expect(reparsedForm.steps[1]!.forward?.target).toBe("");
     expect(reparsedForm.steps[2]!.user_input?.prompt).toBe("");
   });
 

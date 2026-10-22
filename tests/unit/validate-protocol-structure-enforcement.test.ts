@@ -2,8 +2,9 @@
  * Unit tests for the contract-type enforcement added to
  * `validate-protocol-structure.ts`:
  *   - H1 (ADR 0026): a `shell` contract must name an allowed interpreter.
- *   - H2: `subagent` is an allowed contract type.
- *   - H3 (ADR 0025): an `mcp` contract must be a forward link to another adapter.
+ *   - H2: `subagent` is an allowed contract type, written with `subagent.context`.
+ *   - H3 (ADR 0025, re-expressed by ADR 0028): a `forward` contract must be a
+ *     forward link to another adapter.
  *
  * Also guards that every bundled `src/embed-docs/mem` adapter contract block stays
  * a valid, elite example: boot injection bypasses train-time validation, so the
@@ -72,7 +73,7 @@ describe('validateProtocolStructure contract enforcement', () => {
     test('subagent contract passes validation (was previously rejected)', () => {
       const result = validateProtocolStructure(
         docWithContract(
-          '{"contract":{"type":"subagent","subagent":{"instruction":"Do the reasoning step."},"required":true}}'
+          '{"contract":{"type":"subagent","subagent":{"context":"Do the reasoning step."},"required":true}}'
         )
       );
       expect(result.valid).toBe(true);
@@ -81,46 +82,54 @@ describe('validateProtocolStructure contract enforcement', () => {
     });
   });
 
-  describe('H3: mcp contract must be a forward link (ADR 0025)', () => {
+  describe('H3: forward contract must be a forward link (ADR 0025/0028)', () => {
     test('forward link to another adapter passes', () => {
       const result = validateProtocolStructure(
         docWithContract(
-          '{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/some-slug"}},"required":true}}'
+          '{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/some-slug"},"required":true}}'
         )
       );
       expect(result.valid).toBe(true);
       expect(result.missing).toHaveLength(0);
     });
 
-    test('bare tool call (non-forward) fails with mcp_link_only', () => {
+    test('bare tool call (non-forward) fails with forward_link_only', () => {
       const result = validateProtocolStructure(
         docWithContract(
-          '{"contract":{"type":"mcp","mcp":{"tool_name":"activate","arguments":{"action":"write"}},"required":true}}'
+          '{"contract":{"type":"forward","forward":{"target":"activate"},"required":true}}'
         )
       );
       expect(result.valid).toBe(false);
-      expect(result.missing).toContain('mcp_link_only');
-      expect(result.message).toMatch(/forward link/);
+      expect(result.missing).toContain('forward_link_only');
+      expect(result.message).toMatch(/forward\.target/);
     });
 
-    test('forward without arguments.uri fails with mcp_link_only', () => {
+    test('forward without a target fails with forward_link_only', () => {
       const result = validateProtocolStructure(
-        docWithContract(
-          '{"contract":{"type":"mcp","mcp":{"tool_name":"forward"},"required":true}}'
-        )
+        docWithContract('{"contract":{"type":"forward","forward":{},"required":true}}')
       );
       expect(result.valid).toBe(false);
-      expect(result.missing).toContain('mcp_link_only');
+      expect(result.missing).toContain('forward_link_only');
     });
 
-    test('forward with a non-adapter uri scheme fails with mcp_link_only', () => {
+    test('forward with a non-adapter URI scheme fails with forward_link_only', () => {
       const result = validateProtocolStructure(
         docWithContract(
-          '{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"https://example.com/adapter/some-slug"}},"required":true}}'
+          '{"contract":{"type":"forward","forward":{"target":"https://example.com/adapter/some-slug"},"required":true}}'
         )
       );
       expect(result.valid).toBe(false);
-      expect(result.missing).toContain('mcp_link_only');
+      expect(result.missing).toContain('forward_link_only');
+    });
+
+    test('forward with an empty slug fails with forward_link_only', () => {
+      const result = validateProtocolStructure(
+        docWithContract(
+          '{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/"},"required":true}}'
+        )
+      );
+      expect(result.valid).toBe(false);
+      expect(result.missing).toContain('forward_link_only');
     });
   });
 

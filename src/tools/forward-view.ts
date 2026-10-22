@@ -85,12 +85,10 @@ export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmissi
       ...(typeof e['stderr'] === 'string' ? { stderr: e['stderr'] } : {}),
       ...(typeof e['duration_seconds'] === 'number' ? { duration_seconds: e['duration_seconds'] } : {})
     };
-  } else if (solution.type === 'mcp' && e && typeof e['tool_name'] === 'string') {
+  } else if (solution.type === 'forward' && e && typeof e['target'] === 'string') {
     const outcomeSuccess = solution.outcome === undefined ? true : solution.outcome === 'success';
-    base.mcp = {
-      tool_name: e['tool_name'],
-      ...(e['arguments'] !== undefined ? { arguments: e['arguments'] } : {}),
-      result: e['response'] !== undefined ? e['response'] : (e['result'] ?? null),
+    base.forward = {
+      target: e['target'],
       success: typeof e['success'] === 'boolean' ? e['success'] : outcomeSuccess
     };
   } else if (solution.type === 'user_input' && e && typeof e['confirmation'] === 'string') {
@@ -114,7 +112,7 @@ export function mapProofSolution(solution: ForwardSolution): ProofOfWorkSubmissi
       ...(solution.shell.duration_seconds !== undefined ? { duration_seconds: solution.shell.duration_seconds } : {})
     };
   }
-  if (base.mcp === undefined && solution.mcp) base.mcp = solution.mcp;
+  if (base.forward === undefined && solution.forward) base.forward = solution.forward;
   if (base.user_input === undefined && solution.user_input) {
     base.user_input = {
       confirmation: solution.user_input.confirmation,

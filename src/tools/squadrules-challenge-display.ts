@@ -13,7 +13,7 @@ function shellQuoteForDesc(s: string): string {
 }
 
 function isAllowedStoredChallengeType(t: unknown): t is ProofOfWorkType {
-  return t === 'shell' || t === 'mcp' || t === 'user_input' || t === 'comment';
+  return t === 'shell' || t === 'forward' || t === 'user_input' || t === 'comment';
 }
 
 /** Build challenge shape from proof only (no nonce, no store). For read-only display e.g. export. */
@@ -57,16 +57,12 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
       if (workdir !== undefined && workdir !== '') shellOut['workdir'] = workdir;
       shellOut['invocation_display'] = invocationLine;
       result['shell'] = shellOut;
-    } else if (proofType === 'mcp') {
-      const toolName = proof.mcp?.tool_name || 'No tool specified';
-      const argsHint =
-        proof.mcp?.arguments !== undefined
-          ? ` Include solution.evidence.arguments matching (subset of) ${JSON.stringify(proof.mcp.arguments)}.`
-          : '';
-      result['description'] = `Call MCP tool: ${toolName}.${argsHint} You MUST actually call this tool and report its real result; do not fabricate.`;
-      const mcpOut: Record<string, unknown> = { tool_name: toolName, expected_result: proof.mcp?.expected_result };
-      if (proof.mcp?.arguments !== undefined) mcpOut['arguments'] = proof.mcp.arguments;
-      result['mcp'] = mcpOut;
+    } else if (proofType === 'forward') {
+      const target = proof.forward?.target || 'No target specified';
+      result['description'] = `Forward to adapter ${target}. You MUST actually call the forward tool with this target and report the real result; do not fabricate.`;
+      const fwdOut: Record<string, unknown> = { target };
+      if (proof.forward?.expected_result !== undefined) fwdOut['expected_result'] = proof.forward.expected_result;
+      result['forward'] = fwdOut;
     } else if (proofType === 'user_input') {
       const prompt = proof.user_input?.prompt || 'Confirm completion';
       result['description'] = `User confirmation: ${prompt}. You MUST show this prompt to the user and use only their reply as evidence.confirmation; do not assume or invent it.`;

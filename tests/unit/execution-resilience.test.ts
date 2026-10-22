@@ -92,8 +92,9 @@ describe('Fix 2: Copy-paste-ready next_call objects', () => {
     const evidenceHints: Record<string, unknown> = {
       comment: { text: '' },
       shell: { exit_code: 0 },
-      mcp: { tool_name: '', arguments: {}, response: {} },
-      user_input: { confirmation: '' }
+      forward: { target: '', success: true },
+      user_input: { confirmation: '' },
+      subagent: { report: '' }
     };
     return {
       type: contract.type,

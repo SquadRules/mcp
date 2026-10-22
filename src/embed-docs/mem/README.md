@@ -19,7 +19,7 @@ observable verification over polished but weak wording.
 **Autonomy (AI-ownership).** The bundle is written for autonomous execution:
 adapters resolve intent from context, run critic-loop in a loop until it returns
 `PASS`, and gate irreversible remote mutations with objective pre/post contracts
-(shell/mcp) rather than human confirmation. They do **not** stop to ask a human to
+(shell/forward) rather than human confirmation. They do **not** stop to ask a human to
 approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
 or a hard blocker (a required tool/auth that cannot be established automatically).
 
@@ -28,9 +28,9 @@ observable verification available:
 
 1. `shell` — for file/state/command verification. **`interpreter` is REQUIRED**
    (allowed: `bash`, `sh`, `python3`, `python`, `node`).
-2. `mcp` — **forward-links only**. Must use `tool_name: "forward"` with
-   `arguments.uri` matching `squadrules://adapter/<slug>`. Bare tool-name-only
-   mcp contracts are not valid.
+2. `forward` — **links to another adapter**. Must set `forward.target` matching
+   `squadrules://adapter/<slug>`. Bare MCP tool calls are not valid forward
+   contracts — delegate them inside a `subagent` (rung 3).
 3. `subagent` — for delegated work that requires multi-step reasoning or tool
    orchestration by another agent.
 4. `user_input` — only for genuine human decisions.
@@ -61,7 +61,7 @@ author-adapter (Author) → forward(squadrules://adapter/critic-loop) → critic
 | File | Slug | Purpose |
 |------|------|---------|
 | [challenge-type-guide.md](challenge-type-guide.md) | `challenge-type-guide` | Challenge type selection, interpreter choice, and verification patterns |
-| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chain-root collapsing, MCP forward-link validation |
+| [protocol-linking-guide.md](protocol-linking-guide.md) | `protocol-linking-guide` | Layers vs chains, `activate` vs `forward` + slug, chain-root collapsing, forward-link validation |
 | [critic-loop-guide.md](critic-loop-guide.md) | `critic-loop-guide` | Critic-loop integration rules, mutation gates, solution check vs critic decision table |
 
 ## Cross-Adapter Linking
@@ -94,17 +94,17 @@ call forward with squadrules://adapter/implement-terraform and no solution to st
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
 
-### MCP forward-link contracts
+### Forward-link contracts
 
-All `mcp` contracts must be forward-links with arguments:
+All `forward` contracts must name their target adapter:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
+{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/code-review-policy"},"required":true}}
 ```
 
-The server validates that `solution.mcp.arguments` is a superset of the
-contract's `mcp.arguments` (subset/deep matching). This proves the agent
-called `forward` with the correct slug, not just any `forward` call.
+The server validates that the submitted `evidence.target` equals the contract's
+`forward.target`. This proves the agent called `forward` with the correct slug,
+not just any `forward` call.
 
 ### When to use `activate` vs `forward` + slug
 

@@ -2,8 +2,7 @@
 
 ## Status
 
-Accepted — decision taken 2026-10-21 and implemented by the accompanying change;
-not yet on `main` when this record was written.
+Superseded by [0028](0028-forward-contract-type-rename.md) on 2026-10-22; body preserved.
 
 ## Context
 

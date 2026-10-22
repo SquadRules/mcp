@@ -13,7 +13,7 @@ import type {
   HandleProofResult,
   ProofOfWorkSubmission
 } from './next-proof-types.js';
-import { validateMcpSubmissionAgainstContract } from './mcp-contract-match.js';
+import { validateForwardSubmissionAgainstContract } from './forward-contract-match.js';
 import { buildLayerUri } from './squadrules-uri.js';
 import { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
@@ -249,21 +249,29 @@ export async function handleProofSubmission(
     if (shell.stdout !== undefined) record.stdout = shell.stdout;
     if (shell.stderr !== undefined) record.stderr = shell.stderr;
     if (shell.duration_seconds !== undefined) record.duration_seconds = shell.duration_seconds;
-  } else if (proofType === 'mcp') {
-    const mcp = submission.mcp;
-    if (!mcp) {
-      return blocked('MCP proof requires mcp field', 'MISSING_FIELD');
+  } else if (proofType === 'forward') {
+    const fwd = submission.forward;
+    const expectedForwardTarget = proof.forward?.target;
+    if (!fwd) {
+      // ADR 0028 collapses every way the submitted target fails to be the
+      // contracted one into FORWARD_TARGET_MISMATCH, and a submission with no
+      // target at all is one of those ways.
+      if (expectedForwardTarget) {
+        return blocked(
+          `Forward target must match the contract (expected "${expectedForwardTarget}", got no target). Submit evidence.target with the adapter URI you forwarded to.`,
+          'FORWARD_TARGET_MISMATCH'
+        );
+      }
+      return blocked('Forward proof requires forward field with target', 'MISSING_FIELD');
     }
-    const mcpContractCheck = validateMcpSubmissionAgainstContract(proof, mcp);
-    if (!mcpContractCheck.ok) {
-      return blocked(mcpContractCheck.message, mcpContractCheck.code);
+    const fwdContractCheck = validateForwardSubmissionAgainstContract(proof, fwd);
+    if (!fwdContractCheck.ok) {
+      return blocked(fwdContractCheck.message, fwdContractCheck.code);
     }
-    record.status = mcp.success ? 'success' : 'failed';
-    record.mcp = {
-      tool_name: mcp.tool_name,
-      arguments: mcp.arguments,
-      result: mcp.result,
-      success: mcp.success
+    record.status = fwd.success ? 'success' : 'failed';
+    record.forward = {
+      target: fwd.target,
+      success: fwd.success
     };
   } else if (proofType === 'user_input') {
     const userInput = submission.user_input;

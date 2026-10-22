@@ -1,8 +1,9 @@
 import { keyValueStore } from './key-value-store-factory.js';
 import { logger } from '../utils/structured-logger.js';
+import type { InferenceContractType } from '../types/memory.js';
 
 export type ProofOfWorkStatus = 'success' | 'failed';
-export type ProofOfWorkType = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+export type ProofOfWorkType = InferenceContractType;
 
 export interface ProofOfWorkResultRecord {
   result_id: string;
@@ -21,10 +22,8 @@ export interface ProofOfWorkResultRecord {
     stderr?: string;
     duration_seconds?: number;
   };
-  mcp?: {
-    tool_name: string;
-    arguments?: any;
-    result: any;
+  forward?: {
+    target: string;
     success: boolean;
   };
   user_input?: {

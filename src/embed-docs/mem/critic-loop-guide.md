@@ -121,13 +121,12 @@ it happens — for example, confirm you are on a throwaway worktree and branch (
 ## How to Chain Critic-Loop into an Adapter
 
 Use `forward` + slug to invoke `critic-loop` at phase boundaries. The standard
-pattern is a `mcp` contract that requires calling `forward` with the
-`critic-loop` slug:
+pattern is a `forward` contract naming the `critic-loop` slug:
 
 ### After a planning phase
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"}},"required":true}}
+{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/critic-loop"},"required":true}}
 ```
 
 ### After an implementation phase
@@ -225,7 +224,7 @@ objective, machine-checkable contracts instead:
 
 ### Pre-mutation readiness (objective, no human prompt)
 
-Assert the preconditions with a shell or mcp contract so the action only runs from a
+Assert the preconditions with a shell or forward contract so the action only runs from a
 valid state — never with a `user_input` "are you sure?" prompt:
 
 ```json
@@ -239,7 +238,7 @@ Use a `subagent` contract when the verification requires multi-step reasoning
 or tool orchestration beyond a single shell command:
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Verify the remote mutation took effect: read back the created/updated resource and confirm its state matches the intended outcome."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Verify the remote mutation took effect: read back the created/updated resource and confirm its state matches the intended outcome."},"required":true}}
 ```
 
 The guarantee comes from critic-loop (truth of intent) plus these objective

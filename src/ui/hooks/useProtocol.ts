@@ -64,7 +64,7 @@ import type { ShellInterpreter } from '../../tools/shell-challenge-invocation.js
 export interface StepFormState {
   label: string;
   bodyMarkdown: string;
-  type: "shell" | "mcp" | "user_input" | "comment";
+  type: "shell" | "forward" | "user_input" | "comment";
   shell?: {
     cmd: string;
     timeout_seconds: number;
@@ -78,7 +78,7 @@ export interface StepFormState {
     flags: string[];
     args: string[];
   };
-  mcp?: { tool_name: string };
+  forward?: { target: string };
   user_input?: { prompt: string };
   comment?: { min_length: number };
 }
@@ -136,10 +136,10 @@ export function parseProtocolMarkdown(md: string): {
                 : `Shell: ${String(cmd).slice(0, 80)}${String(cmd).length > 80 ? "…" : ""}`
               : "Shell";
             if (cmd) challengePayload = { cmd: String(cmd) };
-          } else if (type === "mcp") {
-            const tool = challenge?.mcp?.tool_name;
-            summary = tool ? `MCP: ${String(tool)}` : "MCP";
-            if (tool) challengePayload = { tool_name: String(tool) };
+          } else if (type === "forward") {
+            const tool = challenge?.forward?.target;
+            summary = tool ? `Forward: ${String(tool)}` : "Forward";
+            if (tool) challengePayload = { target: String(tool) };
           } else if (type === "user_input") {
             const prompt = challenge?.user_input?.prompt;
             summary = prompt ? `User input: ${String(prompt)}` : "User input";
@@ -174,7 +174,7 @@ export function parseProtocolMarkdownToForm(md: string): ProtocolFormState {
       try {
         const obj = JSON.parse(jsonMatch[1]!.trim());
         const challenge = obj?.contract ?? obj?.challenge ?? obj;
-        if (challenge?.type && ["shell", "mcp", "user_input", "comment"].includes(String(challenge.type))) {
+        if (challenge?.type && ["shell", "forward", "user_input", "comment"].includes(String(challenge.type))) {
           type = challenge.type as StepFormState["type"];
           stepState.type = type;
         }
@@ -189,7 +189,7 @@ export function parseProtocolMarkdownToForm(md: string): ProtocolFormState {
             args: Array.isArray(sh?.args) ? sh.args.map(String) : [],
           };
         }
-        else if (type === "mcp") stepState.mcp = { tool_name: String(challenge?.mcp?.tool_name ?? "").trim() };
+        else if (type === "forward") stepState.forward = { target: String(challenge?.forward?.target ?? "").trim() };
         else if (type === "user_input") stepState.user_input = { prompt: String(challenge?.user_input?.prompt ?? "").trim() };
         else if (type === "comment") stepState.comment = { min_length: Number(challenge?.comment?.min_length ?? 10) };
       } catch {
@@ -236,7 +236,7 @@ export function buildMarkdownFromForm(state: ProtocolFormState): string {
       if (step.shell?.args?.length) shell.args = step.shell.args;
       challenge.shell = shell;
     }
-    else if (step.type === "mcp") challenge.mcp = { tool_name: step.mcp?.tool_name ?? "" };
+    else if (step.type === "forward") challenge.forward = { target: step.forward?.target ?? "" };
     else if (step.type === "user_input") challenge.user_input = { prompt: step.user_input?.prompt ?? "" };
     else if (step.type === "comment") challenge.comment = { min_length: step.comment?.min_length ?? 10 };
     lines.push("");

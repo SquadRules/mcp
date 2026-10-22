@@ -28,26 +28,59 @@ describe("SolutionForm", () => {
     });
   });
 
-  it("renders mcp challenge fields and submits with result", async () => {
+  it("renders forward challenge fields and submits target with success flag", async () => {
     const onSubmit = vi.fn();
     const contract: RunContract = {
-      type: "mcp",
-      mcp: { tool_name: "activate" },
+      type: "forward",
+      forward: { target: "squadrules://adapter/critic-loop" },
     };
     render(<SolutionForm contract={contract} onSubmit={onSubmit} />);
-    expect(screen.getByText("activate")).toBeInTheDocument();
-    const resultArea = screen.getByLabelText("run.mcp.result");
-    fireEvent.change(resultArea, { target: { value: '{"ok": true}' } });
+    expect(screen.getByText("run.forward.target")).toBeInTheDocument();
+    expect(screen.getByText("squadrules://adapter/critic-loop")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "run.forward.success" })).toBeChecked();
     fireEvent.submit(screen.getByRole("form", { name: "run.solutionFormLabel" }));
 
     expect(onSubmit).toHaveBeenCalledWith({
-      type: "mcp",
-      mcp: {
-        tool_name: "activate",
-        result: { ok: true },
+      type: "forward",
+      forward: {
+        target: "squadrules://adapter/critic-loop",
         success: true,
       },
     });
+  });
+
+  it("submits success false when the forward result checkbox is cleared", async () => {
+    const onSubmit = vi.fn();
+    const contract: RunContract = {
+      type: "forward",
+      forward: { target: "squadrules://adapter/critic-loop" },
+    };
+    render(<SolutionForm contract={contract} onSubmit={onSubmit} />);
+    await userEvent.click(screen.getByRole("checkbox", { name: "run.forward.success" }));
+    fireEvent.submit(screen.getByRole("form", { name: "run.solutionFormLabel" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      type: "forward",
+      forward: { target: "squadrules://adapter/critic-loop", success: false },
+    });
+  });
+
+  it("keeps submit disabled and shows the missing-target hint when forward.target is empty", () => {
+    const contract: RunContract = { type: "forward", forward: { target: "" } };
+    render(<SolutionForm contract={contract} onSubmit={vi.fn()} />);
+    expect(screen.getByText("run.forward.targetMissing")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "run.submitStep" })).toBeDisabled();
+  });
+
+  it("no longer renders the retired mcp result/args inputs", () => {
+    const contract: RunContract = {
+      type: "forward",
+      forward: { target: "squadrules://adapter/critic-loop" },
+    };
+    render(<SolutionForm contract={contract} onSubmit={vi.fn()} />);
+    expect(screen.queryByLabelText("run.mcp.result")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("run.mcp.args")).not.toBeInTheDocument();
+    expect(screen.queryByText("activate")).not.toBeInTheDocument();
   });
 
   it("renders user_input challenge fields and submits confirmation", async () => {

@@ -11,16 +11,12 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
       const timeout = proof.shell?.timeout_seconds || proof.timeout_seconds || 30;
       result['description'] = `Execute shell command: ${cmd}. You MUST actually run this command and report the real exit_code/stdout/stderr; do not fabricate.`;
       result['shell'] = { cmd, timeout_seconds: timeout };
-    } else if (proofType === 'mcp') {
-      const toolName = proof.mcp?.tool_name || 'No tool specified';
-      const argsHint =
-        proof.mcp?.arguments !== undefined
-          ? ` Include solution.evidence.arguments matching (subset of) ${JSON.stringify(proof.mcp.arguments)}.`
-          : '';
-      result['description'] = `Call MCP tool: ${toolName}.${argsHint} You MUST actually call this tool and report its real result; do not fabricate.`;
-      const mcpOut: Record<string, unknown> = { tool_name: toolName, expected_result: proof.mcp?.expected_result };
-      if (proof.mcp?.arguments !== undefined) mcpOut['arguments'] = proof.mcp.arguments;
-      result['mcp'] = mcpOut;
+    } else if (proofType === 'forward') {
+      const target = proof.forward?.target || 'No target specified';
+      result['description'] = `Forward to adapter ${target}. You MUST actually call the forward tool with this target and report the real result; do not fabricate.`;
+      const fwdOut: Record<string, unknown> = { target };
+      if (proof.forward?.expected_result !== undefined) fwdOut['expected_result'] = proof.forward.expected_result;
+      result['forward'] = fwdOut;
     } else if (proofType === 'user_input') {
       const prompt = proof.user_input?.prompt || 'Confirm completion';
       result['description'] = `User confirmation: ${prompt}. You MUST show this prompt to the user and use only their reply as evidence.confirmation; do not assume or invent it.`;
@@ -31,8 +27,15 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
       result['comment'] = { min_length: minLength };
     } else if (proofType === 'subagent') {
       const context = proof.subagent?.context ?? '';
-      result['description'] = `Delegate this task to a subagent and return its actual report. Do not perform the task yourself.${context ? ` Context: ${context}` : ''}`;
-      result['subagent'] = { context };
+      const mcpTools = proof.subagent?.mcp;
+      const toolHint = mcpTools && mcpTools.length > 0
+        ? ` The subagent must call these MCP tools: ${mcpTools.map(t => t.tool_name).join(', ')}.`
+        : '';
+      result['description'] = `Delegate this task to a subagent and return its actual report. Do not perform the task yourself.${context ? ` Context: ${context}` : ''}${toolHint}`;
+      result['subagent'] = { context, ...(mcpTools ? { mcp: mcpTools } : {}) };
+    } else {
+      // Unknown-type guard: stale stored type (e.g. "mcp") gets a clear message
+      result['description'] = `Unsupported contract type "${proofType}". This adapter must be re-trained with a current contract type (shell, forward, user_input, comment, or subagent).`;
     }
     return result;
   })() : {
