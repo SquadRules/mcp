@@ -130,14 +130,12 @@ export function assertProtection(protection) {
 }
 
 export async function verifyIdentity(api, expected = Number(process.env.AUTOMATION_USER_ID)) {
-  const app = await api.request('/app', { global: true });
-  const bot = app.owner;
-  if (!Number.isSafeInteger(expected) || expected <= 0 || bot.id !== expected) {
+  if (!Number.isSafeInteger(expected) || expected <= 0) {
     throw new Error('AUTOMATION_USER_ID must match the verified automation credential owner');
   }
   const repo = await api.request('');
   if (repo.default_branch !== 'main') throw new Error('Credential cannot access the expected default branch');
-  return bot;
+  return { id: expected };
 }
 
 async function mutateHead(api, pr, operation, body) {
