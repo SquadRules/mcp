@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.13.0](https://github.com/SquadRules/mcp/compare/v5.12.1...v5.13.0) (2026-10-23)
+
+
+### Features
+
+* **contracts:** add optional subagent.mcp delegation list ([f66ecba](https://github.com/SquadRules/mcp/commit/f66ecba08e6db1b27db1638297ae2c4e5059ceeb))
+* **contracts:** rename mcp contract type to forward and add subagent.mcp ([6507002](https://github.com/SquadRules/mcp/commit/65070029705497c6cc2fe0c6f468ab7dad00486d))
+
+
+### Bug Fixes
+
+* **contracts:** harden unknown-type guard and subagent.mcp renderer ([37b990d](https://github.com/SquadRules/mcp/commit/37b990d4df50b84211c92a421f6a43a6b5a86869))
+* **mem:** align subagent contract field with live schema (instruction -&gt; context) ([b8b17c6](https://github.com/SquadRules/mcp/commit/b8b17c615380e6916c942c63721e5f84281fa098))
+
 ## [5.12.1](https://github.com/SquadRules/mcp/compare/v5.12.0...v5.12.1) (2026-10-22)
 
 
