@@ -1,6 +1,10 @@
 # Sequentially update, check, and merge open PRs.
 # Triggers: push to main (immediate) and workflow_run after the docs wiki
-# regeneration completes (so auto-update never races ahead of a docs PR merge).
+# regeneration or the Release workflow completes. Release is included because
+# its auto-merge-release-pr job merges a release PR into main, changing the
+# base — auto-update must not merge feature PRs before that lands. The
+# conclusion of those workflows is irrelevant; auto-update only needs them
+# to finish.
 # PRs are processed one at a time: update the branch, wait for checks, merge if
 # green, then move to the next. Each successful merge pushes to main, which
 # retriggers this workflow for the remaining PRs. This avoids running
@@ -15,7 +19,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: [Docs wiki regeneration]
+    workflows: [Docs wiki regeneration, Release]
     types: [completed]
   workflow_dispatch:
 

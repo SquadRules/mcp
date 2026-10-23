@@ -248,6 +248,7 @@ test('auto-update workflow sequentially updates, checks, and merges PRs', () => 
   const autoUpdate = workflow('auto-update-pr-branches');
   assert.ok(Object.hasOwn(autoUpdate.on, 'push'), 'Updates must run as soon as main advances');
   assert.ok(autoUpdate.on.workflow_run?.workflows?.includes('Docs wiki regeneration'), 'Auto-update must wait for docs wiki regeneration to avoid race condition');
+  assert.ok(autoUpdate.on.workflow_run?.workflows?.includes('Release'), 'Auto-update must wait for Release (auto-merge-release-pr changes main) to avoid race condition');
   assert.equal(autoUpdate.on.schedule, undefined, 'No schedule trigger — PRs only need updating after a push to main');
   assert.equal(autoUpdate.permissions['pull-requests'], 'write', 'Must have pull-requests: write for gh pr merge');
   const updateStep = autoUpdate.jobs['update-prs'].steps.find(s => s.run?.includes('gh pr update-branch'));
