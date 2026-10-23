@@ -206,7 +206,6 @@ function auditFixture({ existing = false, orphan = false } = {}) {
         if (path.startsWith('/pulls')) return { number: 9, head: { sha: 'new-head' } };
         return { object: { sha: 'new-head' } };
       }
-      if (path === '/app') return { owner };
       if (path === '') return { default_branch: 'main', permissions: { push: true } };
       if (path === '/branches/main') return { commit: { sha: base } };
       if (path.startsWith('/git/ref/')) {
