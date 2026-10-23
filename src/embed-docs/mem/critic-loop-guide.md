@@ -1,5 +1,5 @@
 ---
-version: "5.13.0"
+version: "5.13.2"
 slug: critic-loop-guide
 title: Critic Loop Integration and Mutation Gate Guide
 ---
@@ -83,7 +83,7 @@ review with critic-loop instead of adding a hoop.
 | Read data from API | No | Read-only |
 | Compute / transform data | No | Local operation |
 
-```json
+Example ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```
 
@@ -99,7 +99,7 @@ Split proofs by **reversibility cost**, not by step count:
 - **The aggregate proof must be a strict conjunction** that re-verifies every
   sub-condition (`A && B && C && echo OK`):
 
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"test -f \"$OUT_A\" && test -f \"$OUT_B\" && grep -q \"$EXPECTED\" \"$OUT_A\" && echo OK","interpreter":"bash","timeout_seconds":10},"required":true}}
 ```
 
@@ -114,7 +114,7 @@ The cheapest proof is the precondition that stops an irreversible mistake before
 it happens — for example, confirm you are on a throwaway worktree and branch (not
 `main`, not the human's active checkout) **before** making changes:
 
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"test \"$(git rev-parse --abbrev-ref HEAD)\" != main && git rev-parse --git-common-dir | grep -q worktrees","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
@@ -125,7 +125,7 @@ pattern is a `forward` contract naming the `critic-loop` slug:
 
 ### After a planning phase
 
-```json
+Example ```json
 {"contract":{"type":"forward","forward":{"target":"squadrules://adapter/critic-loop"},"required":true}}
 ```
 
@@ -152,7 +152,7 @@ Record `work` in the handoff file pointed to by `$WORK_MANIFEST`, as flat keys �
 `kind:`, `root:`, then `items:` with one item per line — so the precondition
 stays a machine-checkable file test instead of prose:
 
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","interpreter":"bash","timeout_seconds":3},"required":true}}
 ```
 
@@ -192,7 +192,7 @@ Every adapter that chains critic-loop **must** include a shell contract that
 fails when the verdict is not PASS. This is the mechanical guard that prevents
 weaker agents from proceeding after FAIL:
 
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
@@ -227,7 +227,7 @@ objective, machine-checkable contracts instead:
 Assert the preconditions with a shell or forward contract so the action only runs from a
 valid state — never with a `user_input` "are you sure?" prompt:
 
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"test -n \"$TARGET_REPO\" && test -n \"$TARGET_BRANCH\"","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
@@ -237,7 +237,7 @@ Confirm the mutation actually took effect by reading the remote state back.
 Use a `subagent` contract when the verification requires multi-step reasoning
 or tool orchestration beyond a single shell command:
 
-```json
+Example ```json
 {"contract":{"type":"subagent","subagent":{"context":"Verify the remote mutation took effect: read back the created/updated resource and confirm its state matches the intended outcome."},"required":true}}
 ```
 
@@ -277,7 +277,7 @@ When drafting a new adapter, apply this checklist:
 8. Verify that `train`/`tune` calls include `review_evidence` from the critic.
 9. Ensure the adapter's Reward Signal describes what the critic protects.
 
-```json
+Example ```json
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
 ```
 

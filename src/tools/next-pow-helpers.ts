@@ -17,6 +17,7 @@ import { validateForwardSubmissionAgainstContract } from './forward-contract-mat
 import { buildLayerUri } from './squadrules-uri.js';
 import { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
+import { canonicalStringify } from '../utils/canonical-stringify.js';
 export type {
   BuildChallengeOptions,
   ElicitResult,
@@ -30,8 +31,10 @@ export { GENESIS_HASH } from './squadrules-genesis-proof-hash.js';
 
 const COMMENT_SEMANTIC_THRESHOLD = 0.25;
 
+export { canonicalStringify };
+
 function hashProofRecord(record: ProofOfWorkResultRecord): string {
-  const canonical = JSON.stringify(record, Object.keys(record).sort());
+  const canonical = canonicalStringify(record);
   return crypto.createHash('sha256').update(canonical).digest('hex');
 }
 

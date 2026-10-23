@@ -1,5 +1,5 @@
 ---
-version: "5.13.0"
+version: "5.13.2"
 slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---
@@ -68,7 +68,7 @@ Does the step chain to another adapter via forward?
 ### Challenge JSON Formats
 
 **shell** (interpreter is REQUIRED)
-```json
+Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"<command>","interpreter":"bash","timeout_seconds":30},"required":true}}
 ```
 
@@ -77,7 +77,7 @@ Allowed interpreters: `bash`, `sh`, `python3`, `python`, `node`. Build tools
 `bash` command instead.
 
 **forward** (links to another adapter — bare MCP tool calls are not valid)
-```json
+Example ```json
 {"contract":{"type":"forward","forward":{"target":"squadrules://adapter/<slug>"},"required":true}}
 ```
 
@@ -86,12 +86,12 @@ The server validates that the submitted `evidence.target` equals the contract's
 slug. Bare MCP tool calls belong in a `subagent.mcp` list (rung 3), never here.
 
 **user_input**
-```json
+Example ```json
 {"contract":{"type":"user_input","user_input":{"prompt":"<specific question>"},"required":true}}
 ```
 
 **subagent** (rung 2 — delegated judgment)
-```json
+Example ```json
 {"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
 ```
 
@@ -101,7 +101,7 @@ delegation instruction is appended automatically. Proof is `evidence.report` —
 the subagent's actual report, not your summary of it.
 
 **subagent.mcp** (rung 3 — delegated MCP tool work; optional)
-```json
+Example ```json
 {"contract":{"type":"subagent","subagent":{"context":"Export all adapters and report slugs and versions","mcp":[{"tool_name":"export","arguments":{"all_adapters":true}}]},"required":true}}
 ```
 
@@ -110,7 +110,7 @@ transcript stays in the subagent's context and never reaches yours; proof is
 still `evidence.report`. Omit the field for rung-2 judgment work.
 
 **comment** (last resort — max 1 per adapter, closing ACK only)
-```json
+Example ```json
 {"contract":{"type":"comment","comment":{"min_length":50},"required":true}}
 ```
 
@@ -235,7 +235,7 @@ shell, then call `critic-loop` for adversarial review.
 **Chain-link via forward + slug** — layer N's contract requires `forward` with a
 specific adapter slug. Use when the adapter exceeds 350 lines or needs
 multi-path routing. Example:
-```json
+Example ```json
 {"contract":{"type":"forward","forward":{"target":"squadrules://adapter/implement-plan"},"required":true}}
 ```
 
@@ -252,7 +252,7 @@ rather than inlining it in the contract JSON:
 
 This keeps adapter markdown clean and makes scripts independently versionable.
 
-```json
+Example ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```
 

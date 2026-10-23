@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.13.2](https://github.com/SquadRules/mcp/compare/v5.13.1...v5.13.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **pow:** recursive canonical serializer for proof-of-work evidence hashing ([#163](https://github.com/SquadRules/mcp/issues/163)) ([9af747b](https://github.com/SquadRules/mcp/commit/9af747b98868cc6d42aaa1f39863feea9dfdcb1d))
+
+## [5.13.1](https://github.com/SquadRules/mcp/compare/v5.13.0...v5.13.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **ci:** remove unreachable GET /app identity call from verifyIdentity ([d7d7060](https://github.com/SquadRules/mcp/commit/d7d7060510108aad0ef51c7bf72f1965fca40736))
+* **ci:** remove unreachable GET /app identity call from verifyIdentity ([5fc2e04](https://github.com/SquadRules/mcp/commit/5fc2e04e5fe8489948888a718b2022c8115f03f5)), closes [#154](https://github.com/SquadRules/mcp/issues/154)
+* **embed-docs:** prefix guide example fences to prevent executable parsing ([c3c70ed](https://github.com/SquadRules/mcp/commit/c3c70ed9aa77df748800debbe6e71bbe4333d9eb))
+* **embed-docs:** prefix guide example fences to prevent executable parsing ([c8a3445](https://github.com/SquadRules/mcp/commit/c8a344541370d9cb65e32ea81691c282a72e69e0))
+
 ## [5.13.0](https://github.com/SquadRules/mcp/compare/v5.12.1...v5.13.0) (2026-10-23)
 
 
