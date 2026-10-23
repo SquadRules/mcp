@@ -1,4 +1,4 @@
-const CONTRACT_TYPES = new Set(['tensor', 'shell', 'mcp', 'user_input', 'comment']);
+const CONTRACT_TYPES = new Set(['tensor', 'shell', 'forward', 'user_input', 'comment', 'subagent']);
 const CHOICE_ROLES = new Set(['match', 'refine', 'create']);
 const GRADER_KINDS = new Set(['human', 'model', 'unknown']);
 const EVALUATION_LABELS = new Set(['gold', 'silver', 'bronze', 'rejected']);

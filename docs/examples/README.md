@@ -7,8 +7,8 @@ This folder contains **markdown adapters ready for `train`** and a short referen
 All examples in this folder conform to the structural validation rules:
 
 - **Shell contracts must name an interpreter** — one of `bash`, `sh`, `python3`, `python`, `node`. Absent interpreter is rejected with `shell_interpreter_required` ([ADR 0026](../adr/0026-shell-interpreter-required.md)).
-- **MCP contracts are forward-links only** — `tool_name: "forward"` with `arguments.uri` matching `squadrules://adapter/<slug>`. Bare tool calls are rejected with `mcp_link_only` ([ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)).
-- **`subagent` is a valid contract type** — for delegated judgment or delegated MCP tool work ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §2).
+- **Forward contracts link to another adapter only** — `forward.target` matching `squadrules://adapter/<slug>`. Bare tool calls are rejected with `forward_link_only` ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)).
+- **`subagent` is a valid contract type** — for delegated judgment or delegated MCP tool work ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §2). Its optional `subagent.mcp` list names the real tool calls the subagent must make; a malformed list is rejected with `subagent_mcp_invalid` ([ADR 0029](../adr/0029-subagent-mcp-and-context-authority.md)).
 
 ## Example adapters
 
@@ -17,10 +17,11 @@ Each file below is a complete adapter (H1 title + H2 steps with ````json` contra
 | File | Contract type(s) | MCP-only (no shell) |
 | ---- | ---------------- | ------------------- |
 | [adapter-example-shell.md](adapter-example-shell.md) | shell | No |
-| [adapter-example-mcp.md](adapter-example-mcp.md) | shell, mcp | No |
+| [adapter-example-forward.md](adapter-example-forward.md) | shell, forward | No |
+| [adapter-example-subagent.md](adapter-example-subagent.md) | subagent | Yes |
 | [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Yes |
 | [adapter-example-comment.md](adapter-example-comment.md) | comment | Yes |
-| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, subagent, user_input, comment | No |
+| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, forward, subagent, user_input, comment | No |
 | [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | Yes |
 
 **MCP-only** means the adapter has no `shell` contract; safe for workflow tests that forbid shell and local filesystem (only MCP tools and writing to `reports/`).

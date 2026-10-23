@@ -15,6 +15,6 @@ export const DEFAULT_STEP: StepFormState = {
   comment: { min_length: 10 },
 };
 
-export const CHALLENGE_TYPE_KEYS: StepFormState["type"][] = ["shell", "mcp", "user_input", "comment"];
+export const CHALLENGE_TYPE_KEYS: StepFormState["type"][] = ["shell", "forward", "user_input", "comment"];
 
 export const SOURCE_ADAPTER_URI_RE = /^squadrules:\/\/adapter\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;

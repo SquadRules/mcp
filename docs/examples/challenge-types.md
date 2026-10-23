@@ -7,10 +7,11 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 | File | Contract type(s) | Description |
 |------|-----------------|-------------|
 | [adapter-example-shell.md](adapter-example-shell.md) | shell | Empirical check with required `interpreter` field. |
-| [adapter-example-mcp.md](adapter-example-mcp.md) | shell, mcp | Work step plus tail forward link to another adapter. |
+| [adapter-example-forward.md](adapter-example-forward.md) | shell, forward | Work step plus tail forward link to another adapter. |
+| [adapter-example-subagent.md](adapter-example-subagent.md) | subagent | Rung-2 judgment plus rung-3 delegated MCP tool work. |
 | [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Emergency authority gap — not routine confirmation. |
 | [adapter-example-comment.md](adapter-example-comment.md) | comment | Knowledge adapter closing acknowledgement (last resort). |
-| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, mcp, subagent, user_input, comment | Reference demonstration of every contract shape. |
+| [adapter-example-all-types.md](adapter-example-all-types.md) | shell, forward, subagent, user_input, comment | Reference demonstration of every contract shape. |
 | [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | UI/long-run test fixture (exempt from ≤1 comment rule). |
 
 ## How to train
@@ -33,14 +34,13 @@ Rung 1 of the verification ladder ([ADR 0024](../adr/0024-adapter-contract-verif
 
 Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a `bash -c` invocation or export the script and pick `node` / `python3`.
 
-### mcp
+### forward
 
-**Forward-link only** ([ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)). An `mcp` contract must chain to another adapter:
+**Link to another adapter only** ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)). A `forward` contract chains this adapter's completion to another adapter's activation:
 
-- `mcp.tool_name` — must be exactly `"forward"`.
-- `mcp.arguments.uri` — must match `squadrules://adapter/<slug>`.
+- `forward.target` — must match `squadrules://adapter/<slug>`.
 
-Bare MCP tool calls (`activate`, `export`, `getMergeRequest`, etc.) are **not** valid `mcp` contracts. Validation rejects them with `mcp_link_only`. Use `subagent` for delegated tool work.
+Bare MCP tool calls (`activate`, `export`, `getMergeRequest`, etc.) are **not** valid `forward` contracts — a `forward` contract names an adapter, never a tool. Validation rejects them with `forward_link_only`. Use `subagent` for delegated tool work.
 
 ### subagent
 
@@ -49,6 +49,7 @@ Rung 2 (delegated judgment) or rung 3 (delegated MCP tool work) of the verificat
 **Fields:**
 
 - `subagent.context` — task-specific context for the delegated subagent. The application auto-appends the mandatory delegation instruction.
+- `subagent.mcp` *(optional)* — a list of `{ tool_name, arguments }` naming the real MCP tool calls the **subagent** must make (rung 3). Omit it for rung-2 judgment. See [adapter-example-subagent.md](adapter-example-subagent.md) and [ADR 0029](../adr/0029-subagent-mcp-and-context-authority.md).
 
 Proof requires `evidence.report` containing the subagent's actual report.
 
@@ -78,7 +79,7 @@ When the server returns a challenge, the agent submits a solution in `forward`. 
 | Type | Solution shape | Pass condition |
 |------|----------------|----------------|
 | **shell** | `type: "shell"`, `shell: { exit_code, stdout?, stderr?, duration_seconds? }` | `exit_code === 0` |
-| **mcp** | `type: "mcp"`, `mcp: { tool_name, result, success, arguments }` | `success === true`; `arguments.uri` matches contract |
+| **forward** | `type: "forward"`, `evidence: { target, success }` | `success === true`; `target` matches contract `forward.target` |
 | **subagent** | `type: "subagent"`, `evidence: { report }` | `report` is non-empty |
 | **user_input** | `type: "user_input"`, `user_input: { confirmation, timestamp? }` | Agent supplies confirmation from user |
 | **comment** | `type: "comment"`, `comment: { text }` | `text.length` ≥ contract `min_length` |

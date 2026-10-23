@@ -38,8 +38,11 @@ Once inside a chain (`activate` returned a match), follow these rules:
 - **Do not skip, reorder, or merge layers.** Each layer's contract is a
   distinct checkpoint. Follow `next_action` exactly.
 - **Proof types:** `user_input` → obtain the user's real reply (never invent
-  confirmation); `mcp` → call the named tool and return the real result;
-  `shell` → execute the command and return the real output; `comment` →
+  confirmation); `forward` → call `forward` on the contract's target adapter and
+  return the real result; `shell` → execute the command and return the real
+  output; `subagent` → delegate and return the subagent's real report — any MCP
+  tool calls named in `subagent.mcp` are executed **by the subagent** (ladder
+  rung 3), never on your own thread; `comment` →
   provide a genuine compliant response.
 - **On rejection:** Do not guess, jump ahead, or switch workflows. Read the
   `message`, follow `next_action`, and retry exactly as instructed.

@@ -4,12 +4,6 @@ import type { RunContract, RunContractType, RunSolutionSubmission } from "@/lib/
 
 type DraftSolution = Omit<RunSolutionSubmission, "nonce" | "proof_hash" | "previousProofHash">;
 
-function parseJsonOrThrow(text: string): unknown {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  return JSON.parse(trimmed);
-}
-
 export function SolutionForm({
   contract,
   disabled,
@@ -26,10 +20,8 @@ export function SolutionForm({
   const [stdout, setStdout] = useState("");
   const [stderr, setStderr] = useState("");
 
-  const toolName = contract.mcp?.tool_name ?? "";
-  const [mcpSuccess, setMcpSuccess] = useState(true);
-  const [mcpArgsText, setMcpArgsText] = useState("");
-  const [mcpResultText, setMcpResultText] = useState("");
+  const target = contract.forward?.target ?? "";
+  const [forwardSuccess, setForwardSuccess] = useState(true);
 
   const prompt = contract.user_input?.prompt ?? "";
   const [confirmation, setConfirmation] = useState("");
@@ -44,20 +36,18 @@ export function SolutionForm({
     setExitCode(0);
     setStdout("");
     setStderr("");
-    setMcpSuccess(true);
-    setMcpArgsText("");
-    setMcpResultText("");
+    setForwardSuccess(true);
     setConfirmation("");
     setComment("");
-  }, [type, toolName, prompt, minLen]);
+  }, [type, target, prompt, minLen]);
 
   const isValid = useMemo(() => {
     if (type === "shell") return Number.isFinite(exitCode);
-    if (type === "mcp") return toolName.trim().length > 0;
+    if (type === "forward") return target.trim().length > 0;
     if (type === "user_input") return confirmation.trim().length > 0;
     if (type === "comment") return comment.trim().length >= minLen;
     return false;
-  }, [type, exitCode, toolName, confirmation, comment, minLen]);
+  }, [type, exitCode, target, confirmation, comment, minLen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,16 +67,12 @@ export function SolutionForm({
         return;
       }
 
-      if (type === "mcp") {
-        const args = parseJsonOrThrow(mcpArgsText);
-        const result = parseJsonOrThrow(mcpResultText);
+      if (type === "forward") {
         onSubmit({
           type,
-          mcp: {
-            tool_name: toolName,
-            ...(args !== null ? { arguments: args } : {}),
-            result,
-            success: mcpSuccess,
+          forward: {
+            target,
+            success: forwardSuccess,
           },
         });
         return;
@@ -167,49 +153,22 @@ export function SolutionForm({
         </div>
       )}
 
-      {type === "mcp" && (
+      {type === "forward" && (
         <div className="space-y-4">
           <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <div className="text-sm text-[var(--color-text-muted)]">{t("run.mcp.toolName")}</div>
-            <div className="font-medium text-[var(--color-text-heading)] break-all">{toolName || t("run.mcp.toolMissing")}</div>
+            <div className="text-sm text-[var(--color-text-muted)]">{t("run.forward.target")}</div>
+            <div className="font-medium text-[var(--color-text-heading)] break-all">{target || t("run.forward.targetMissing")}</div>
           </div>
           <label className="inline-flex items-center gap-2 min-h-[44px]">
             <input
               type="checkbox"
-              checked={mcpSuccess}
-              onChange={(e) => setMcpSuccess(e.target.checked)}
+              checked={forwardSuccess}
+              onChange={(e) => setForwardSuccess(e.target.checked)}
               disabled={disabled}
               className="h-4 w-4"
             />
-            <span className="text-sm text-[var(--color-text)]">{t("run.mcp.success")}</span>
+            <span className="text-sm text-[var(--color-text)]">{t("run.forward.success")}</span>
           </label>
-          <div>
-            <label htmlFor="run-mcp-args" className="block font-medium text-[var(--color-text-heading)] mb-2">
-              {t("run.mcp.arguments")}
-            </label>
-            <textarea
-              id="run-mcp-args"
-              value={mcpArgsText}
-              onChange={(e) => setMcpArgsText(e.target.value)}
-              placeholder='{ "example": true }'
-              className="w-full min-h-[6rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
-              disabled={disabled}
-            />
-          </div>
-          <div>
-            <label htmlFor="run-mcp-result" className="block font-medium text-[var(--color-text-heading)] mb-2">
-              {t("run.mcp.result")}
-            </label>
-            <textarea
-              id="run-mcp-result"
-              value={mcpResultText}
-              onChange={(e) => setMcpResultText(e.target.value)}
-              placeholder='{ "ok": true }'
-              className="w-full min-h-[10rem] px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] text-[var(--color-text)] bg-[var(--color-surface)] font-mono text-sm resize-y"
-              disabled={disabled}
-              required
-            />
-          </div>
         </div>
       )}
 

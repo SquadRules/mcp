@@ -80,7 +80,7 @@ export function ProtocolEditStepCard({
                           args: step.shell?.args ?? [],
                         }
                       : undefined,
-                  mcp: type === "mcp" ? { tool_name: step.mcp?.tool_name ?? "" } : undefined,
+                  forward: type === "forward" ? { target: step.forward?.target ?? "" } : undefined,
                   user_input: type === "user_input" ? { prompt: step.user_input?.prompt ?? "" } : undefined,
                   comment: type === "comment" ? { min_length: step.comment?.min_length ?? 10 } : undefined,
                 })
@@ -252,15 +252,15 @@ export function ProtocolEditStepCard({
               </div>
             </>
           )}
-          {step.type === "mcp" && (
+          {step.type === "forward" && (
             <div>
               <label className="mb-2 block text-sm font-medium text-[var(--color-text-heading)]">
-                {t("protocolEdit.mcpToolName")}
+                {t("protocolEdit.forwardTarget")}
               </label>
               <input
                 type="text"
-                value={step.mcp?.tool_name ?? ""}
-                onChange={(e) => setStep(index, { mcp: { tool_name: e.target.value } })}
+                value={step.forward?.target ?? ""}
+                onChange={(e) => setStep(index, { forward: { target: e.target.value } })}
                 className={elevatedInputClass}
               />
             </div>

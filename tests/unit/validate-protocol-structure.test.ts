@@ -286,7 +286,7 @@ Ready.
 Do it.
 
 \`\`\`json
-{"contract":{"type":"comment|user_input|mcp|shell","comment":{"min_length":10},"required":true}}
+{"contract":{"type":"comment|user_input|forward|shell","comment":{"min_length":10},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -295,7 +295,7 @@ Done.`;
     const result = validateProtocolStructure(doc);
     expect(result.valid).toBe(false);
     expect(result.missing).toContain('invalid_contract_type');
-    expect(result.message).toMatch(/shell, mcp, user_input, comment, or subagent/);
+    expect(result.message).toMatch(/shell, forward, user_input, comment, or subagent/);
   });
 
   test('embedded author-adapter markdown passes validation', () => {

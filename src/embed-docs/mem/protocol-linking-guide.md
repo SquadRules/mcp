@@ -125,21 +125,20 @@ call forward with squadrules://adapter/implement-terraform ...
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
 
-## MCP forward-link contracts for chain links
+## Forward-link contracts for chain links
 
-All `mcp` contracts MUST be forward-links with `tool_name: "forward"` and
-`arguments.uri` pointing to the target adapter slug:
+All `forward` contracts MUST set `forward.target` to the target adapter slug:
 
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/code-review-policy"}},"required":true}}
+{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/code-review-policy"},"required":true}}
 ```
 
-The server validates that `solution.mcp.arguments` is a superset of the
-contract's `mcp.arguments` (subset/deep matching). This proves the agent
-called `forward` with the correct slug, not just any `forward` call.
+The server validates that the submitted `evidence.target` equals the contract's
+`forward.target`. This proves the agent called `forward` with the correct slug,
+not just any `forward` call.
 
-Bare `mcp` contracts that check only a tool name (without `arguments.uri`)
-are **not valid** — every mcp contract must specify the forward target.
+A `forward` contract without `forward.target` is **not valid** — every forward
+contract must specify its target adapter.
 
 ## Chain-root collapsing
 
@@ -181,7 +180,7 @@ and directing the agent to start from the chain root if those inputs are missing
 | Personal adapter (MCP database) | **Nothing** — must be self-contained | Only via `activate` (runtime discovery) |
 
 Personal adapters use `subagent` or `comment` contracts to describe what the
-agent should do next, not `mcp forward` contracts to other personal adapters.
+agent should do next, not `forward` contracts to other personal adapters.
 A personal adapter that chains to `squadrules://adapter/some-personal-slug`
 will fail at runtime when that slug does not exist in the caller's MCP database.
 
@@ -197,7 +196,7 @@ The agent can now:
 1. decide when to use layers vs chains
 2. choose `activate` vs `forward` + slug correctly
 3. use slug-based linking for all adapters (system and user)
-4. write valid mcp forward-link contracts with arguments
+4. write valid forward contracts with a target adapter URI
 5. implement `chain_root` collapsing with defense-in-depth safeguards
 6. document chaining back (`chain_root` + prerequisites) and chaining forward
    (`forward` with known slugs) for root + extension families

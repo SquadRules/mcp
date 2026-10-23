@@ -158,7 +158,7 @@ never guessed at.
 **Output:** resolved work inventory for the audit
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Resolve the work submission into reviewable material: read the manifest, resolve each item by kind from work.root, and record the resolved inventory with per-item status."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Resolve the work submission into reviewable material: read the manifest, resolve each item by kind from work.root, and record the resolved inventory with per-item status."},"required":true}}
 ```
 
 ## Audit
@@ -219,7 +219,7 @@ Any `missing` item — or any `partial` high-risk item — forces FAIL with
 **Output:** structured audit findings for the verdict step
 
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"Perform bounded adversarial audit: extract claims, investigate with scope discipline, gather evidence by priority hierarchy, produce claim verdicts, review phase boundary, and check requirement coverage."},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Perform bounded adversarial audit: extract claims, investigate with scope discipline, gather evidence by priority hierarchy, produce claim verdicts, review phase boundary, and check requirement coverage."},"required":true}}
 ```
 
 ## Verdict

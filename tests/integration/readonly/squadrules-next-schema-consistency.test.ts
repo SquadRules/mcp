@@ -60,7 +60,8 @@ describe('tools/list strict schema parity', () => {
       const expectedStrict = zodToInputJsonSchema(forwardInputSchema);
       if (!isMcpListedEmptyObjectParamsSchema(schema) && !isDeepStrictEqual(schema, expectedStrict)) {
         expect(schemaHasObjectBranchWithProps(schema, ['uri', 'solution'])).toBe(true);
-        expect(schemaHasPropertyPath(schema, ['solution', 'mcp', 'success'])).toBe(true);
+        expect(schemaHasPropertyPath(schema, ['solution', 'forward', 'success'])).toBe(true);
+        expect(schemaHasPropertyPath(schema, ['solution', 'forward', 'target'])).toBe(true);
         expect(schemaHasPropertyPath(schema, ['solution', 'comment', 'text'])).toBe(true);
       }
       const desc = String(tool?.description);

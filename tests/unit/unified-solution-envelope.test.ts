@@ -26,30 +26,50 @@ describe('unified-solution-envelope', () => {
     expect(submission.shell?.stdout).toBe('older-format');
   });
 
-  test('v2 mcp evidence maps response -> result and derives success from outcome', () => {
+  test('v2 forward evidence maps target and derives success from outcome', () => {
     const parsed = forwardSolutionSchema.parse({
-      type: 'mcp',
+      type: 'forward',
       outcome: 'failure',
-      evidence: { tool_name: 'search', arguments: { q: 'x' }, response: { results: [] } }
+      evidence: { target: 'squadrules://adapter/critic-loop' }
     });
     const submission = mapProofSolution(parsed);
-    expect(submission.type).toBe('mcp');
-    expect(submission.mcp?.tool_name).toBe('search');
-    expect(submission.mcp?.arguments).toEqual({ q: 'x' });
-    expect(submission.mcp?.result).toEqual({ results: [] });
-    expect(submission.mcp?.success).toBe(false);
+    expect(submission.type).toBe('forward');
+    expect(submission.forward?.target).toBe('squadrules://adapter/critic-loop');
+    expect(submission.forward?.success).toBe(false);
   });
 
-  test('v1 mcp payload is accepted and preserves success while renaming result -> response internally', () => {
+  test('v2 forward evidence keeps an explicit success flag over the outcome', () => {
     const parsed = forwardSolutionSchema.parse({
-      type: 'mcp',
-      mcp: { tool_name: 'search', arguments: { q: 'x' }, result: { results: [] }, success: true }
+      type: 'forward',
+      outcome: 'failure',
+      evidence: { target: 'squadrules://adapter/critic-loop', success: true }
     });
     const submission = mapProofSolution(parsed);
-    expect(submission.type).toBe('mcp');
-    expect(submission.mcp?.tool_name).toBe('search');
-    expect(submission.mcp?.result).toEqual({ results: [] });
-    expect(submission.mcp?.success).toBe(true);
+    expect(submission.type).toBe('forward');
+    expect(submission.forward?.target).toBe('squadrules://adapter/critic-loop');
+    expect(submission.forward?.success).toBe(true);
+  });
+
+  test('v1 forward payload is accepted and maps to proof submission forward', () => {
+    const parsed = forwardSolutionSchema.parse({
+      type: 'forward',
+      forward: { target: 'squadrules://adapter/critic-loop', success: true }
+    });
+    const submission = mapProofSolution(parsed);
+    expect(submission.type).toBe('forward');
+    expect(submission.forward?.target).toBe('squadrules://adapter/critic-loop');
+    expect(submission.forward?.success).toBe(true);
+  });
+
+  test('v2 subagent evidence maps to proof submission subagent report', () => {
+    const parsed = forwardSolutionSchema.parse({
+      type: 'subagent',
+      outcome: 'success',
+      evidence: { report: 'Delegated: exported 12 adapters, none over the ceiling.' }
+    });
+    const submission = mapProofSolution(parsed);
+    expect(submission.type).toBe('subagent');
+    expect(submission.subagent?.report).toContain('exported 12 adapters');
   });
 
   test('v2 comment evidence maps to proof submission comment', () => {

@@ -70,7 +70,7 @@ Run when testing invalid challenge types.
 Bad illustrative type.
 
 \`\`\`json
-{"contract":{"type":"comment|user_input|mcp|shell","comment":{"min_length":10},"required":true}}
+{"contract":{"type":"comment|user_input|forward|shell","comment":{"min_length":10},"required":true}}
 \`\`\`
 
 ## Reward Signal
@@ -90,7 +90,7 @@ Done.`;
     const body = JSON.parse(result.content[0].text);
     expect(body.error).toBe('PROTOCOL_STRUCTURE_INVALID');
     expect(body.missing).toContain('invalid_contract_type');
-    expect(body.message).toMatch(/shell, mcp, user_input, comment, or subagent/i);
+    expect(body.message).toMatch(/shell, forward, user_input, comment, or subagent/i);
   });
 
   test('train stores valid markdown with required sections (no regression)', async () => {

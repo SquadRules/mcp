@@ -12,7 +12,7 @@ export interface AdapterInfo {
   chain_root?: string;
 }
 
-export type InferenceContractType = 'shell' | 'mcp' | 'user_input' | 'comment' | 'subagent';
+export type InferenceContractType = 'shell' | 'forward' | 'user_input' | 'comment' | 'subagent';
 
 export interface InferenceContractDefinition {
   type?: InferenceContractType;
@@ -29,10 +29,8 @@ export interface InferenceContractDefinition {
     args?: string[];
     workdir?: string;
   };
-  mcp?: {
-    tool_name: string;
-    /** When set (including `{}`), submission must supply a plain object `solution.mcp.arguments` matching these keys (subset semantics). */
-    arguments?: Record<string, unknown>;
+  forward?: {
+    target: string;
     expected_result?: unknown;
   };
   user_input?: {
@@ -43,6 +41,7 @@ export interface InferenceContractDefinition {
   };
   subagent?: {
     context?: string;
+    mcp?: Array<{ tool_name: string; arguments?: Record<string, unknown> }>;
   };
 }
 

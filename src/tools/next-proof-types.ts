@@ -12,10 +12,8 @@ export type ProofOfWorkSubmission = {
     stderr?: string;
     duration_seconds?: number;
   };
-  mcp?: {
-    tool_name: string;
-    arguments?: any;
-    result: any;
+  forward?: {
+    target: string;
     success: boolean;
   };
   user_input?: {

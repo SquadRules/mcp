@@ -124,7 +124,12 @@ live in the ADRs; the authoring rules derived from them live in the
   handed: a typed work submission, not an essay.
 - [ADR 0024](adr/0024-adapter-contract-verification-ladder.md) — the verification
   ladder and the quantity policy.
-- [ADR 0025](adr/0025-mcp-contract-forward-link-only.md) — `mcp` contracts are
-  forward links, keeping tool transcripts out of the caller's context.
 - [ADR 0026](adr/0026-shell-interpreter-required.md) — a shell contract fully
   specifies its interpreter.
+- [ADR 0028](adr/0028-forward-contract-type-rename.md) — a `forward` contract names
+  the adapter it links to and nothing else, keeping tool transcripts out of the
+  caller's context. Supersedes
+  [ADR 0025](adr/0025-mcp-contract-forward-link-only.md).
+- [ADR 0029](adr/0029-subagent-mcp-and-context-authority.md) — delegated MCP tool
+  work is named in `subagent.mcp` and executed by the subagent, never on the
+  caller's thread.

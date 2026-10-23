@@ -39,7 +39,7 @@ Descend only when the higher rung genuinely cannot apply, and say why in the
 adapter text. "Was faster to write" is not a reason. Rungs 1–3 and the fallback are
 **soft-enforced** through this guide, the `critic-loop` review checklist, and the
 `author-adapter` authoring checklist; the hard, fail-closed structural rules are
-the two objective ones below (`shell_interpreter_required`, `mcp_link_only`).
+the two objective ones below (`shell_interpreter_required`, `forward_link_only`).
 
 ## How many contracts
 
@@ -79,26 +79,27 @@ test, not a verification strategy.
 
 Example: [adapter-example-shell.md](examples/adapter-example-shell.md).
 
-### `mcp` — forward link only
+### `forward` — link to another adapter
 
-An `mcp` contract **must** be a forward link to another adapter
-([ADR 0025](adr/0025-mcp-contract-forward-link-only.md)):
+A `forward` contract **must** link to another adapter
+([ADR 0028](adr/0028-forward-contract-type-rename.md), which supersedes
+[ADR 0025](adr/0025-mcp-contract-forward-link-only.md)):
 
-- `mcp.tool_name` is exactly `"forward"`.
-- `mcp.arguments.uri` matches `squadrules://adapter/<slug>`.
+- `forward.target` matches `squadrules://adapter/<slug>`.
 
 Use it to **chain to the next adapter** at the tail, or mid-flow to a **reusable
 sub-adapter** driven through its own forward/reward loop — `critic-loop` at a phase
-boundary is the standing case. A forward link without `arguments.uri` is not a
+boundary is the standing case. A forward contract without `forward.target` is not a
 chain link and fails the same rule.
 
-**Bare tool calls are not valid `mcp` contracts.** A contract whose `tool_name` is
-`activate`, `export`, `getMergeRequest`, or similar is rejected (`mcp_link_only`),
-because every such call dumps its full transcript into the executing agent's
-context. Re-express it as a `subagent` contract (rung 3), or as an instruction the
-agent carries out and a `shell` check on the artifact it leaves behind (rung 1).
+**Bare tool calls are not valid `forward` contracts.** A `forward` contract names an
+adapter, never a tool: `activate`, `export`, `getMergeRequest`, and similar are
+rejected (`forward_link_only`), because every such call dumps its full transcript
+into the executing agent's context. Re-express it as a `subagent` contract (rung 3),
+or as an instruction the agent carries out and a `shell` check on the artifact it
+leaves behind (rung 1).
 
-Example: [adapter-example-mcp.md](examples/adapter-example-mcp.md).
+Example: [adapter-example-forward.md](examples/adapter-example-forward.md).
 
 ### `subagent` — rungs 2 and 3
 
@@ -109,6 +110,17 @@ not the caller's summary of it. For rung 2, loop the critic to `PASS`
 ([ADR 0010](adr/0010-critic-loop-and-proof-splitting.md),
 [ADR 0017](adr/0017-critic-loop-work-submission.md)); for rung 3, the subagent
 returns only its report so the tool transcript never reaches the caller.
+
+**When to fill `subagent.mcp`.** Fill it when the step's evidence *is* a specific
+MCP tool result — naming the calls (`tool_name` plus `arguments`) stops the
+subagent from substituting a plausible narrative for the real call. Leave it out
+for rung-2 judgment, where the free text in `subagent.context` is the whole
+instruction and no tool call is required. The field is optional either way; the
+example below shows both rungs side by side, and
+[ADR 0029](adr/0029-subagent-mcp-and-context-authority.md) records why the
+delegation list is structured while the proof stays a flat report.
+
+Example: [adapter-example-subagent.md](examples/adapter-example-subagent.md).
 
 ### `user_input` — emergency only
 

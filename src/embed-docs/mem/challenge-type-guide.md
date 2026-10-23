@@ -46,7 +46,7 @@ code — use `shell` or `subagent` instead.
 
 **Mode before challenge type:**
 - **clarify / approve** → `user_input`
-- **chain to another adapter** → `mcp` (forward-link only)
+- **chain to another adapter** → `forward` (link to another adapter)
 - **execute or verify local state** → `shell`
 - **delegate to another agent** → `subagent`
 - **pure reasoning with no observable artifact** → `comment`
@@ -55,7 +55,7 @@ code — use `shell` or `subagent` instead.
 
 ```
 Does the step chain to another adapter via forward?
- ├─ YES → "mcp" forward-link (tool_name: "forward", arguments.uri: squadrules://adapter/<slug>)
+ ├─ YES → "forward" (target: squadrules://adapter/<slug>)
  └─ NO → Does the step produce or verify a file, command result, or system state?
           ├─ YES → "shell" (with interpreter)
           └─ NO → Does the step require human approval or choice?
@@ -76,28 +76,38 @@ Allowed interpreters: `bash`, `sh`, `python3`, `python`, `node`. Build tools
 (`terraform`, `docker`, `npm`, etc.) are **not** interpreters — wrap them in a
 `bash` command instead.
 
-**mcp** (forward-link only — bare tool_name checks are not valid)
+**forward** (links to another adapter — bare MCP tool calls are not valid)
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/<slug>"}},"required":true}}
+{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/<slug>"},"required":true}}
 ```
 
-The server validates that `solution.mcp.arguments` is a superset of the
-contract's `mcp.arguments` (subset/deep matching), proving the agent called
-`forward` with the correct target slug.
+The server validates that the submitted `evidence.target` equals the contract's
+`forward.target`, proving the agent called `forward` with the correct target
+slug. Bare MCP tool calls belong in a `subagent.mcp` list (rung 3), never here.
 
 **user_input**
 ```json
 {"contract":{"type":"user_input","user_input":{"prompt":"<specific question>"},"required":true}}
 ```
 
-**subagent**
+**subagent** (rung 2 — delegated judgment)
 ```json
-{"contract":{"type":"subagent","subagent":{"instruction":"<task description>"},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"<task description>"},"required":true}}
 ```
 
-Use `subagent` when a step delegates work to another agent (human or AI) rather
-than executing it directly. The `instruction` field provides task-specific
-guidance. Evidence of completion is collected via the anti-cheat evidence gate.
+Use `subagent` when a step delegates work to another agent rather than executing
+it directly. The `context` field provides task-specific guidance; the mandatory
+delegation instruction is appended automatically. Proof is `evidence.report` —
+the subagent's actual report, not your summary of it.
+
+**subagent.mcp** (rung 3 — delegated MCP tool work; optional)
+```json
+{"contract":{"type":"subagent","subagent":{"context":"Export all adapters and report slugs and versions","mcp":[{"tool_name":"export","arguments":{"all_adapters":true}}]},"required":true}}
+```
+
+`subagent.mcp` names the real MCP tool calls the **subagent** must make. The tool
+transcript stays in the subagent's context and never reaches yours; proof is
+still `evidence.report`. Omit the field for rung-2 judgment work.
 
 **comment** (last resort — max 1 per adapter, closing ACK only)
 ```json
@@ -123,14 +133,14 @@ Every solution follows the same envelope:
 {"type":"shell","outcome":"success","evidence":{"exit_code":0,"stdout":"...","stderr":"","duration_seconds":1.2}}
 ```
 
-**mcp solution**
+**forward solution**
 ```json
-{"type":"mcp","outcome":"success","evidence":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"},"response":{}}}
+{"type":"forward","outcome":"success","evidence":{"target":"squadrules://adapter/critic-loop","success":true}}
 ```
 
 **subagent solution**
 ```json
-{"type":"subagent","outcome":"success","evidence":{"agent_id":"agent-uuid","artifacts":["path/to/output"],"summary":"Task completed"}}
+{"type":"subagent","outcome":"success","evidence":{"report":"<the subagent's actual report>"}}
 ```
 
 **comment solution**
@@ -226,7 +236,7 @@ shell, then call `critic-loop` for adversarial review.
 specific adapter slug. Use when the adapter exceeds 350 lines or needs
 multi-path routing. Example:
 ```json
-{"contract":{"type":"mcp","mcp":{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/implement-plan"}},"required":true}}
+{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/implement-plan"},"required":true}}
 ```
 
 ## Artifacts for Shell Contracts
@@ -255,6 +265,6 @@ The agent can now:
 2. match challenge type to the step's mode
 3. choose the right interpreter (bash, python3, node)
 4. apply working-directory and security rules
-5. use forward-link mcp contracts for chain links
+5. use forward contracts for chain links
 6. use subagent contracts for delegated work
 7. apply stronger verification patterns instead of weak comment checks

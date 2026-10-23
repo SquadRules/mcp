@@ -44,7 +44,7 @@ export function schemaHasObjectBranchWithProps(schema: unknown, propNames: strin
 
 /**
  * True when at least one object branch exposes the nested property path.
- * Example: ['solution', 'mcp', 'success'].
+ * Example: ['solution', 'forward', 'success'].
  */
 export function schemaHasPropertyPath(schema: unknown, path: string[]): boolean {
   if (!schema || typeof schema !== 'object' || path.length === 0) return false;

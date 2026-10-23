@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { findAllLayerContractBlocks } from '../../src/services/memory/adapter-contract-blocks.js';
 import { SHELL_INTERPRETERS } from '../../src/tools/shell-challenge-invocation.js';
 
-const ALLOWED = new Set(['shell', 'mcp', 'user_input', 'comment', 'subagent']);
+const ALLOWED = new Set(['shell', 'forward', 'user_input', 'comment', 'subagent']);
 const ALLOWED_INTERPRETERS = new Set<string>(SHELL_INTERPRETERS);
 
 describe('adapter-contract-blocks', () => {

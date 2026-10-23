@@ -35,22 +35,48 @@ describe('buildChallengeShapeForDisplay', () => {
     expect(String(shape.description)).toContain('PATH');
   });
 
-  test('mcp challenge includes arguments in payload and description', () => {
+  test('forward challenge includes target in payload and description', () => {
     const shape = buildChallengeShapeForDisplay({
       required: true,
-      type: 'mcp',
-      mcp: { tool_name: 'activate', arguments: { query: 'x' } }
+      type: 'forward',
+      forward: { target: 'squadrules://adapter/critic-loop' }
     } as any);
-    expect(shape.type).toBe('mcp');
-    expect((shape.mcp as Record<string, unknown>).arguments).toEqual({ query: 'x' });
-    expect(String(shape.description)).toContain('subset');
+    expect(shape.type).toBe('forward');
+    expect((shape.forward as Record<string, unknown>).target).toBe('squadrules://adapter/critic-loop');
+    expect(String(shape.description)).toContain('squadrules://adapter/critic-loop');
+    expect(String(shape.description)).not.toMatch(/Call MCP tool/i);
+  });
+
+  test('forward challenge carries expected_result when the contract sets it', () => {
+    const shape = buildChallengeShapeForDisplay({
+      required: true,
+      type: 'forward',
+      forward: { target: 'squadrules://adapter/critic-loop', expected_result: 'review verdict recorded' }
+    } as any);
+    expect((shape.forward as Record<string, unknown>).expected_result).toBe('review verdict recorded');
+  });
+
+  test('retired mcp type is not an allowed stored challenge type', () => {
+    const warn = jest.spyOn(structuredLogger, 'warn').mockImplementation(() => {});
+
+    const shape = buildChallengeShapeForDisplay({
+      type: 'mcp' as any,
+      required: true,
+      comment: { min_length: 50 }
+    } as any);
+
+    // Read-only display coerces the stale stored type so the output schema stays valid.
+    expect(shape.type).toBe('comment');
+    expect(shape['forward']).toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   test('invalid stored type is coerced to comment with valid schema fields', () => {
     const warn = jest.spyOn(structuredLogger, 'warn').mockImplementation(() => {});
 
     const shape = buildChallengeShapeForDisplay({
-      type: 'comment|user_input|mcp|shell' as any,
+      type: 'comment|user_input|forward|shell' as any,
       required: true,
       comment: { min_length: 50 }
     } as any);
