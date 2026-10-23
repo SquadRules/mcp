@@ -129,7 +129,7 @@ deterministic — no scoring, no ambiguity.
 
 All `forward` contracts MUST set `forward.target` to the target adapter slug:
 
-```json
+Example ```json
 {"contract":{"type":"forward","forward":{"target":"squadrules://adapter/code-review-policy"},"required":true}}
 ```
 
@@ -184,7 +184,7 @@ agent should do next, not `forward` contracts to other personal adapters.
 A personal adapter that chains to `squadrules://adapter/some-personal-slug`
 will fail at runtime when that slug does not exist in the caller's MCP database.
 
-```json
+Example ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
 ```
 
