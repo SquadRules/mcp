@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.13.2](https://github.com/SquadRules/mcp/compare/v5.13.1...v5.13.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **pow:** recursive canonical serializer for proof-of-work evidence hashing ([#163](https://github.com/SquadRules/mcp/issues/163)) ([9af747b](https://github.com/SquadRules/mcp/commit/9af747b98868cc6d42aaa1f39863feea9dfdcb1d))
+
 ## [5.13.1](https://github.com/SquadRules/mcp/compare/v5.13.0...v5.13.1) (2026-10-23)
 
 
