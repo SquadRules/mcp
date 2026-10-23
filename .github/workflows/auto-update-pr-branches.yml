@@ -1,5 +1,10 @@
 # Sequentially update, check, and merge open PRs.
-# Triggers on push to main plus an hourly backstop run.
+# Triggers: push to main (immediate) and workflow_run after the docs wiki
+# regeneration or the Release workflow completes. Release is included because
+# its auto-merge-release-pr job merges a release PR into main, changing the
+# base — auto-update must not merge feature PRs before that lands. The
+# conclusion of those workflows is irrelevant; auto-update only needs them
+# to finish.
 # PRs are processed one at a time: update the branch, wait for checks, merge if
 # green, then move to the next. Each successful merge pushes to main, which
 # retriggers this workflow for the remaining PRs. This avoids running
@@ -13,10 +18,9 @@ name: Auto-update PR branches
 on:
   push:
     branches: [main]
-  schedule:
-    # Backstop: anything a push-triggered run missed (API blip, transient
-    # failure) is retried here instead of waiting for the next push to main.
-    - cron: '17 * * * *'
+  workflow_run:
+    workflows: [Docs wiki regeneration, Release]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
