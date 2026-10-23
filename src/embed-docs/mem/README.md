@@ -98,7 +98,7 @@ deterministic — no scoring, no ambiguity.
 
 All `forward` contracts must name their target adapter:
 
-```json
+Example ```json
 {"contract":{"type":"forward","forward":{"target":"squadrules://adapter/code-review-policy"},"required":true}}
 ```
 
