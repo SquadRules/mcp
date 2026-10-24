@@ -45,6 +45,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
           permission-issues: write
+          permission-actions: read
 
       - name: Sequentially update, check, and merge open PRs
         env:
@@ -131,7 +132,7 @@ jobs:
               continue
             fi
 
-            # Repository rules remain authoritative; never use --admin.
+            # Repository rules remain authoritative; never override their checks.
             # --auto preserves eligibility when a final branch-protection check
             # is still being recalculated, and --match-head-commit rejects races.
             if gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"; then
