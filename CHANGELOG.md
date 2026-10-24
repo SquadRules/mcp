@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.13.4](https://github.com/SquadRules/mcp/compare/v5.13.3...v5.13.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* **ci:** handle redundant dependency PRs and enforce auto-merge gates ([#175](https://github.com/SquadRules/mcp/issues/175)) ([d0f7339](https://github.com/SquadRules/mcp/commit/d0f7339bf41f04cb29458195dd7ddab34ae5b970))
+* **deps:** resolve npm security advisories ([#176](https://github.com/SquadRules/mcp/issues/176)) ([e2c9c91](https://github.com/SquadRules/mcp/commit/e2c9c915a5051c83426c79aee7ca3eab049b4b4e))
+
 ## [5.13.3](https://github.com/SquadRules/mcp/compare/v5.13.2...v5.13.3) (2026-10-24)
 
 
