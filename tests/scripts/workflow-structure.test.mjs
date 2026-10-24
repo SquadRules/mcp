@@ -255,5 +255,14 @@ test('auto-update workflow sequentially updates, checks, and merges PRs', () => 
   assert.ok(updateStep, 'update-prs must delegate branch update to gh pr update-branch');
   assert.ok(updateStep.run.includes('gh pr checks'), 'Must wait for checks with gh pr checks --watch');
   assert.ok(updateStep.run.includes('gh pr merge'), 'Must merge with gh pr merge');
+  for (const validator of ['Integration', 'Security', 'Automation policy']) {
+    assert.ok(autoUpdate.on.workflow_run.workflows.includes(validator), `Must retry after ${validator} finishes`);
+  }
+  assert.match(updateStep.run, /CHANGED_FILES.*= "0"/, 'Must close already-absorbed managed dependency PRs');
+  assert.match(updateStep.run, /dependabot\[bot\].*49699333/, 'Must verify bot identity before closing no-op PR');
+  assert.match(updateStep.run, /\.head_repository\.full_name/, 'Must gate by same-repository run origin');
+  assert.match(updateStep.run, /for WORKFLOW in integration security automation-policy/, 'Must require all three gates');
+  assert.match(updateStep.run, /--auto --squash --match-head-commit/, 'Must use protected expected-head auto-merge');
+  assert.doesNotMatch(updateStep.run, /--admin/, 'Never override required checks');
   assert.doesNotMatch(updateStep.run, /mergeStateStatus|git merge|git push|gh repo clone/, 'No async-stale status fields and no local merge machinery');
 });
