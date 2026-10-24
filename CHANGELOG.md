@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.13.3](https://github.com/SquadRules/mcp/compare/v5.13.2...v5.13.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* **ci:** docs wiki detached HEAD + auto-update race condition ([#160](https://github.com/SquadRules/mcp/issues/160)) ([835252d](https://github.com/SquadRules/mcp/commit/835252d5f0c1994923f0abdd1ac5cb4927c97cf2))
+* **deps:** resolve npm security advisories ([f07eb0b](https://github.com/SquadRules/mcp/commit/f07eb0bd50f2d71957ab82e00cd3dd9c6369f9b0))
+* **deps:** resolve npm security advisories ([0c91b72](https://github.com/SquadRules/mcp/commit/0c91b7222587240d141c70d30bd21b11f60c60d1))
+* **deps:** resolve npm security advisories ([cee3125](https://github.com/SquadRules/mcp/commit/cee3125adec7cd70f5cc254ad71e9cdadf05d5f4))
+* **deps:** upgrade undici to 8.12.3 ([#174](https://github.com/SquadRules/mcp/issues/174)) ([965259a](https://github.com/SquadRules/mcp/commit/965259a95e58adea6968bff3ffbb8766afaa514e))
+
 ## [5.13.2](https://github.com/SquadRules/mcp/compare/v5.13.1...v5.13.2) (2026-10-23)
 
 
