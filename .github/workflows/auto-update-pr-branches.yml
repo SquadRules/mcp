@@ -5,13 +5,11 @@
 # base — auto-update must not merge feature PRs before that lands. The
 # conclusion of those workflows is irrelevant; auto-update only needs them
 # to finish.
-# PRs are processed one at a time: update the branch, wait for checks, merge if
-# green, then move to the next. Each successful merge pushes to main, which
-# retriggers this workflow for the remaining PRs. This avoids running
-# `gh pr update-branch` on all open branches on every run, which hits branches
-# with redundant updates. No local clone/merge/push, and no mergeStateStatus
-# polling — that field is recomputed asynchronously and is stale right after
-# the push that triggers this run, so filtering on it silently finds nothing.
+# PRs are processed sequentially; successful validation workflow completion
+# also wakes the updater even when main has not advanced. Mandatory Integration,
+# Security and Automation policy gates must all pass for the current head.
+# Redundant managed dependency PRs are closed, not merged as empty commits.
+# No local clone/merge/push or mergeStateStatus polling.
 # Uses the SquadRules auto GitHub App for write access to PR branches.
 name: Auto-update PR branches
 
@@ -19,7 +17,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: [Docs wiki regeneration, Release]
+    workflows: [Docs wiki regeneration, Release, Integration, Security, Automation policy]
     types: [completed]
   workflow_dispatch:
 
@@ -46,6 +44,7 @@ jobs:
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
           permission-pull-requests: write
+          permission-issues: write
 
       - name: Sequentially update, check, and merge open PRs
         env:
@@ -65,42 +64,79 @@ jobs:
             exit 0
           fi
 
-          # Process PRs sequentially: update branch, wait for checks, merge if green.
-          # Each merge pushes to main, which retriggers this workflow for the
-          # remaining PRs. This avoids running update-branch on all open branches
-          # on every run, which hits branches with redundant updates.
+          # Process PRs sequentially, never inferring that visible checks are all
+          # the required checks. A workflow_run completion will retry deferred PRs.
           while IFS= read -r PR; do
-            # PR identifiers come from gh pr list; accept digits only so no
-            # event-derived value can reach the shell unvalidated.
             if ! [[ "$PR" =~ ^[0-9]+$ ]]; then
               echo "::warning::Unexpected PR identifier from list: '$PR'"
               continue
             fi
 
-            # gh pr update-branch exits 0 both when it merges and when the branch
-            # is already current. Capture output to distinguish the two cases.
             UPDATE_OUT=$(gh pr update-branch "$PR" --repo "$REPO" 2>&1) || {
               echo "::warning::gh pr update-branch failed for PR #$PR: $UPDATE_OUT"
               continue
             }
+            echo "$UPDATE_OUT"
 
-            if echo "$UPDATE_OUT" | grep -qi "already up to date"; then
-              echo "PR #$PR already up to date, skipping"
+            # Refresh after update-branch; an update may have absorbed all changes
+            # from a Dependabot or Renovate PR. Closing zero-diff bot PRs is safer
+            # than manufacturing a merge just to clear the queue.
+            DETAILS=$(gh api "repos/$REPO/pulls/$PR")
+            if [ "$(jq -r '.state' <<< "$DETAILS")" != "open" ]; then
+              continue
+            fi
+            HEAD_SHA=$(jq -r '.head.sha' <<< "$DETAILS")
+            HEAD_BRANCH=$(jq -r '.head.ref' <<< "$DETAILS")
+            HEAD_REPO=$(jq -r '.head.repo.full_name' <<< "$DETAILS")
+            CHANGED_FILES=$(jq -r '.changed_files' <<< "$DETAILS")
+            AUTHOR=$(jq -r '.user.login' <<< "$DETAILS")
+            AUTHOR_ID=$(jq -r '.user.id' <<< "$DETAILS")
+
+            if [ "$CHANGED_FILES" = "0" ]; then
+              if [ "$HEAD_REPO" = "$REPO" ] &&
+                { { [ "$AUTHOR" = 'dependabot[bot]' ] && [ "$AUTHOR_ID" = '49699333' ] && [[ "$HEAD_BRANCH" == dependabot/* ]]; } ||
+                  { [ "$AUTHOR" = 'renovate[bot]' ] && [ "$AUTHOR_ID" = '29139614' ] && [[ "$HEAD_BRANCH" == renovate/* ]]; }; }; then
+                gh pr comment "$PR" --repo "$REPO" --body "Closing as superseded: this managed dependency update now has zero changed files against main. The requested changes are already incorporated upstream."
+                gh pr close "$PR" --repo "$REPO"
+                echo "PR #$PR: closed redundant managed dependency update"
+              else
+                echo "::notice::PR #$PR has no diff; leaving non-managed PR open for review"
+              fi
               continue
             fi
 
-            echo "PR #$PR branch updated, waiting for checks..."
-
-            # --watch blocks until all checks complete; --fail-fast aborts on first
-            # failing check and exits non-zero.
+            # A change to the PR head may queue new CI, and gh pr checks only
+            # watches checks which actually exist. It does not prove that all
+            # mandatory workflow gates were scheduled.
             if ! gh pr checks "$PR" --repo "$REPO" --watch --fail-fast; then
-              echo "::warning::Checks failed for PR #$PR, skipping merge"
+              echo "::warning::PR #$PR failed an available check; no merge"
+              continue
+            fi
+            RUNS=$(gh api "repos/$REPO/actions/runs?head_sha=$HEAD_SHA&event=pull_request&per_page=100")
+            GATES_READY=true
+            for WORKFLOW in integration security automation-policy; do
+              if ! jq -e \
+                --arg file ".github/workflows/$WORKFLOW.yml" \
+                --arg sha "$HEAD_SHA" \
+                --arg branch "$HEAD_BRANCH" \
+                --arg repo "$REPO" \
+                '([.workflow_runs[] | select(.path == $file and .head_sha == $sha and .head_branch == $branch and .head_repository.full_name == $repo and .event == "pull_request")] | sort_by(.run_number, .run_attempt, .id) | last) as $latest | ($latest != null and $latest.status == "completed" and $latest.conclusion == "success")' \
+                <<< "$RUNS" >/dev/null; then
+                echo "::notice::PR #$PR missing a successful current-head $WORKFLOW gate; merge deferred"
+                GATES_READY=false
+                break
+              fi
+            done
+            if [ "$GATES_READY" != "true" ]; then
               continue
             fi
 
-            if gh pr merge "$PR" --repo "$REPO" --squash; then
-              echo "PR #$PR merged"
+            # Repository rules remain authoritative; never use --admin.
+            # --auto preserves eligibility when a final branch-protection check
+            # is still being recalculated, and --match-head-commit rejects races.
+            if gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"; then
+              echo "PR #$PR: auto-merge accepted for head $HEAD_SHA"
             else
-              echo "::warning::Merge failed for PR #$PR"
+              echo "::warning::PR #$PR: GitHub rejected auto-merge"
             fi
           done <<< "$PRS"
