@@ -7,8 +7,11 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
   "initializeCommand": "docker compose -p squadrules-mcp -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack up -d",
   "postCreateCommand": "npm ci",
-  "postStartCommand": "npm run dev_simple:deploy",
-  "forwardPorts": [3300, 4300, 6333, 6344, 8080, 9090, 9490],
+  // Build on start so `npm start` (node dist/cli/index.js, auto-loads .env) is ready.
+  // The retired dev_simple profile no longer exists; wiring in-container CLUSTER auto-start
+  // (qdrant/valkey/keycloak by service name + secrets) is a separate, docker-verifiable step.
+  "postStartCommand": "npm run build",
+  "forwardPorts": [3300, 6333, 6344, 8080, 9090],
   "remoteUser": "root",
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "26" },

@@ -7,7 +7,7 @@
  * - Write one report per example under reports/<run-id>/<protocol-folder>/report.md
  *
  * Usage: node scripts/test-ai-mcp-integration.mjs
- * Env:   SQUADRULES_BASE_URL (else SQUADRULES_API_URL / .env SERVER_PORT; default port 3300 matches deploy-run-env.sh dev), RUN_ID (default workflow-YYYY-MM-DD-HHmmss)
+ * Env:   SQUADRULES_BASE_URL (else SQUADRULES_API_URL / .env SERVER_PORT; default port 3300), RUN_ID (default workflow-YYYY-MM-DD-HHmmss)
  *
  * Auth (when the dev server has Keycloak / AUTH_ENABLED): same bearer as Jest integration tests —
  * either `.test-auth-env.dev.json` in the repo root (written by globalSetup when you run

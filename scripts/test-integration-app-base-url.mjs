@@ -17,7 +17,7 @@ export function loadRepoEnv() {
 }
 
 /**
- * Precedence: SQUADRULES_BASE_URL, SQUADRULES_API_URL, else http://localhost:$SERVER_PORT (default 3300, same as deploy-run-env.sh dev).
+ * Precedence: SQUADRULES_BASE_URL, SQUADRULES_API_URL, else http://localhost:$SERVER_PORT (default 3300).
  */
 export function resolveSquadrulesAppBaseUrl() {
   loadRepoEnv();

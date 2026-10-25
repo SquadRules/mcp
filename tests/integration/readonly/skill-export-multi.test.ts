@@ -4,15 +4,15 @@
  *  - skill_zip with a stored artifact: artifacts/<name> populated and SHA256SUMS
  *    lists the artifact's true content hash
  *  - skill_zip multi-adapter via adapters[]: each adapter is its own top-level folder
- *  - all_adapters + space_name on a **group** space (full dev: `/shared/ci-test`; skipped in
- *    `ENV=dev_simple` because simple/single mode has no shared `/shared/...` spaces)
+ *  - all_adapters + space_name on a **group** space (full dev: `/shared/ci-test`; skipped
+ *    without auth because the no-auth single/simple stack has no shared `/shared/...` spaces)
  *
  * Single-adapter shape and layout-independence cases live in skill-export-coverage.test.ts.
  */
 
 import { createHash } from 'node:crypto';
 import { indexZipEntriesByPath } from '../../utils/zip-parser.js';
-import { isHttpTransport } from '../../utils/auth-headers.js';
+import { isHttpTransport, serverRequiresAuth } from '../../utils/auth-headers.js';
 import {
   buildAdapterMarkdown,
   downloadSkillZip,
@@ -24,8 +24,8 @@ import {
   type SkillBundleManifest
 } from '../skill-export-shared.js';
 
-/** Integration Simple (`ENV=dev_simple`) exposes only personal/app surfaces, not group spaces. */
-const allAdaptersSpaceExportSupported = process.env.ENV !== 'dev_simple';
+/** Group `/shared/...` spaces exist only when auth is enabled; the no-auth single/simple stack exposes personal + app surfaces only. */
+const allAdaptersSpaceExportSupported = serverRequiresAuth();
 const _d = isHttpTransport() ? describe : describe.skip;
 
 _d('skill-export multi-adapter coverage', () => {
@@ -125,7 +125,7 @@ _d('skill-export multi-adapter coverage', () => {
     // contract we test as a unit rejection elsewhere. The ci-test group is purpose-built for
     // integration runs and stays well under cap. The handler still rejects an over-cap space
     // with a 4xx, which we surface as an actionable failure if it ever happens here too.
-    // Not run under dev_simple: that profile has no `/shared/...` group spaces (Personal + app only).
+    // Not run without auth: the no-auth single/simple stack has no `/shared/...` group spaces (Personal + app only).
     const SPACE_NAME = '/shared/ci-test';
     const ts = Date.now().toString();
     const slugA = `all-a-${ts}`;

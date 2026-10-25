@@ -1,5 +1,5 @@
 /**
- * HTTP + no-auth harness for integration tests against the simple dev profile.
+ * HTTP + no-auth harness for integration tests against an HTTP server with auth disabled.
  */
 
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
@@ -11,7 +11,7 @@ import { callToolJson } from './helpers/mcp-call-normalize.js';
 export async function createHttpSimpleHarness(): Promise<TestHarness> {
   if (serverRequiresAuth()) {
     throw new Error(
-      'createHttpSimpleHarness requires AUTH_ENABLED!=true (e.g. npm run test:integration:contracts:http-simple with the dev_simple stack).'
+      'createHttpSimpleHarness requires AUTH_ENABLED!=true (HTTP transport with auth disabled).'
     );
   }
   const conn = await createMcpConnection();

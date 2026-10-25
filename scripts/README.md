@@ -13,7 +13,7 @@ File names use a **prefix** so you can see which pipeline stage they belong to:
 | **`test-`** | Test drivers, fixtures, and integration helpers (including Playwright captures) |
 | **`ci-`** | **GitHub Actions workflow glue** — step wrappers, `$GITHUB_STEP_SUMMARY`, infra polling, etc. |
 | **`ci-test-`** | CI-oriented **test verification** (e.g. install smoke checks for release tarballs); still run locally via `npm run` when needed |
-| **`deploy-`** | Local/prod **environment** lifecycle: `.env`, Compose/Keycloak, run server/tests via one script, raw Qdrant probes |
+| **`deploy-`** | Local/prod **environment** lifecycle: `.env`, Compose/Keycloak, CLI readiness, raw Qdrant probes |
 
 **Rule:** Workflow orchestration in `scripts/` **must** start with **`ci-`** (e.g. `ci-github-step-summary.mjs`, `ci-wait-for-infra.sh`). Scripts whose main job is **test-style checks for CI / release** may use **`ci-test-`** (e.g. `ci-test-tgz-install.mjs`) instead of plain `test-`. (Jest’s job-summary reporter stays under `tests/reporters/` because Jest loads it by path.)
 
@@ -21,19 +21,17 @@ File names use a **prefix** so you can see which pipeline stage they belong to:
 
 ## Overview
 
-Most work flows through **npm scripts**, which call **`deploy-run-env.sh`** for dev/prod actions or **Node/Python** utilities for lint/build/test. **CI** uses **`ci-*`** helpers for `$GITHUB_STEP_SUMMARY`. Keycloak JSON under `keycloak/import/` is applied by **`deploy-configure-keycloak-realms.py`**.
+Most work flows through **npm scripts**, which call **Node/Python** utilities for lint/build/test. **CI** uses **`ci-*`** helpers for `$GITHUB_STEP_SUMMARY`. Keycloak JSON under `keycloak/import/` is applied by **`deploy-configure-keycloak-realms.py`**.
 
 ```mermaid
 flowchart TB
   pkg["package.json npm scripts"]
-  runenv["deploy-run-env.sh"]
   pre["prebuild"]
   embed["build-embed-docs.ts"]
   ci["GitHub Actions integration.yml"]
   kc["deploy-*.py Keycloak"]
   data["keycloak/import JSON"]
   manual["direct node / python3 …"]
-  pkg --> runenv
   pkg --> pre
   pre --> embed
   ci --> pkg
@@ -48,14 +46,13 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 
 | Script | What it does | Used from |
 |--------|----------------|-----------|
-| `scripts/deploy-run-env.sh` | Dev/prod helper: start/stop app, tests, logs, health, Redis/Qdrant shells, coding-rules check; loads `.env`, optional Keycloak realm sync | `npm run dev:*`, `npm run prod:*`, `npm run ensure-coding-rules`, `npm run test:load`; invokes `deploy-copy-env-from-main.sh`, `deploy-configure-keycloak-realms.py` where applicable |
-| `scripts/deploy-dev-cli-ready.sh` | Waits for local MCP readiness; may run Keycloak realm configure when admin password is set | `npm run dev:cli-ready` |
-| `scripts/deploy-copy-env-from-main.sh` | In a git worktree, copies `.env` from the main worktree when missing | `deploy-run-env.sh` |
+| `scripts/deploy-dev-cli-ready.sh` | Waits for local MCP readiness; may run Keycloak realm configure when admin password is set | *manual* (its former `npm run dev:cli-ready` target was retired) |
+| `scripts/deploy-copy-env-from-main.sh` | In a git worktree, copies `.env` from the main worktree when missing | *manual* standalone helper (formerly invoked by the retired `deploy-run-env.sh`) |
 | `scripts/env/create-env.sh` | Thin wrapper: creates `.env` via secrets generator when you use this entrypoint | Invokes `deploy-generate-dev-secrets.py` |
 | `scripts/ci-wait-for-infra.sh` | Polls Redis, Qdrant, Postgres, and Keycloak in Docker Compose (CI) | `.github/workflows/integration.yml` |
 | `scripts/deploy-add-keycloak-demo-user.sh` | Adds `demo` user to `squadrules-dev` via `kcadm` inside the Keycloak container | Documented in `scripts/keycloak/import/README.md` |
 | `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/keycloak/README.md` and `compose/infra.yaml` comments |
-| `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `npm run infra:up`, `deploy-run-env.sh`, `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts` |
+| `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `npm run infra:up`, `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts` |
 | `scripts/deploy-add-keycloak-user` | Adds a realm user with auto-generated password via Admin REST API | `scripts/keycloak/import/README.md` (examples) |
 | `scripts/lint-agent-skills.py` | Validates agent skills layout against repo rules | `npm run lint:skills` |
 | `scripts/lint-verify-clean-source.mjs` | Prebuild gate: forbids `console.*` and test mocks under `src/` (AST-based) | `npm run verify:clean` (`prebuild`) |
@@ -84,11 +81,11 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 
 ## Troubleshooting
 
-1. **`deploy-run-env.sh` exits and tells you not to run it directly**  
-   Export `ENV=dev` or `ENV=prod` is required for most subcommands. From the repo root, use `npm run dev:start`, `npm run dev:test`, etc., so `ENV` and `.env` loading stay consistent.
+1. **Looking for the old `dev`/`prod` profile runner?**  
+   It is retired. `npm start` runs the env-less **SINGLE** mode (stdio + embedded LanceDB, no auth, zero config). Override any component with shell/CI env (e.g. `TRANSPORT_TYPE=http`, `QDRANT_URL=…`, `AUTH_ENABLED=true`) or by editing `.env`. There is no `deploy-run-env.sh` and no `.env.dev_*` profile to source.
 
 2. **Shell scripts fail with “Permission denied”**  
-   Ensure execute bits are set (e.g. `chmod +x scripts/deploy-run-env.sh scripts/deploy-dev-cli-ready.sh`). Clone and umask differences sometimes drop `+x`.
+   Ensure execute bits are set (e.g. `chmod +x scripts/deploy-dev-cli-ready.sh scripts/ci-wait-for-infra.sh`). Clone and umask differences sometimes drop `+x`.
 
 3. **Python Keycloak scripts fail with 401 or connection errors**  
    Confirm Keycloak is up (`npm run infra:up` or your stack), `KEYCLOAK_URL` matches, and `KEYCLOAK_ADMIN_PASSWORD` is set in `.env`. For realm JSON changes, re-run `python3 scripts/deploy-configure-keycloak-realms.py`.
