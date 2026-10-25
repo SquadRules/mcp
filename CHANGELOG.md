@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.13.5](https://github.com/SquadRules/mcp/compare/v5.13.4...v5.13.5) (2026-10-25)
+
+
+### Bug Fixes
+
+* **deps:** pin @anush008/tokenizers to ^0.6.0 for linux/arm64 native bindings ([#178](https://github.com/SquadRules/mcp/issues/178)) ([6e047cf](https://github.com/SquadRules/mcp/commit/6e047cf8836bbfd565226e941c3a6ec1c2316498)), closes [#173](https://github.com/SquadRules/mcp/issues/173)
+
 ## [5.13.4](https://github.com/SquadRules/mcp/compare/v5.13.3...v5.13.4) (2026-10-24)
 
 
