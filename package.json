@@ -75,6 +75,7 @@
     "test:package-local": "npm run build:tgz && npm run test:tgz",
     "prepack": "npm run build",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.ui.json",
+    "typecheck:tests": "node scripts/ci-typecheck-tests-report.mjs",
     "release:verify-version": "node scripts/ci-verify-release-version.mjs"
   },
   "dependencies": {

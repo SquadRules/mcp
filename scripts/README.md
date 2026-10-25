@@ -62,6 +62,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/build-sync-skill-versions.mjs` | Propagates `package.json` version into versioned agent skills and every shipped built-in adapter under `src/embed-docs/mem/`; check mode rejects missing/stale built-in versions | `npm run prebuild`, `npm run version:sync-skills`, `npm run version:check-skills`, Release Please PR synchronization |
 | `scripts/ci-test-tgz-install.mjs` | Installs the built tarball into a temp dir to verify packaging | `npm run test:tgz` |
 | `scripts/ci-github-step-summary.mjs` | Runs a subprocess and appends a Vitest-style block to `$GITHUB_STEP_SUMMARY` | `.github/workflows/integration.yml` (many steps) |
+| `scripts/ci-typecheck-tests-report.mjs` | Report-only type-check of `tests/` (`tsconfig.tests.json` — the Jest suite plus the `tests/ui` Vitest suite): prints an error-code histogram + appends a `$GITHUB_STEP_SUMMARY` block, always exits 0 (gate landed in #180; backlog burn-down tracked in #184) | `npm run typecheck:tests`, `.github/workflows/integration.yml` (report-only step) |
 | `scripts/test-embedding-key.mjs` | Quick check that `OPENAI_API_KEY` can call the configured embedding model | `npm run dev:test-embedding-key` |
 | `scripts/test-capture-viewports.mjs` | Playwright capture of UI viewports for design review | `npm run design:viewports` |
 | `scripts/test-integration-app-base-url.mjs` | Resolves local SQUADRULES base URL from env (shared helper) | `test-ai-mcp-integration.mjs`, `test-capture-viewports.mjs` |

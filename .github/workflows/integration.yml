@@ -52,6 +52,12 @@ jobs:
       - run: npm run version:check-skills
       - run: npm run lint
       - run: npm run typecheck
+      # Report-only: the wrapper always exits 0 (prints a summary + $GITHUB_STEP_SUMMARY block).
+      # The required build lane forbids continue-on-error steps, so the advisory behaviour lives in
+      # scripts/ci-typecheck-tests-report.mjs. Scoped to Node 24 to limit duplicate log noise. See #180.
+      - name: Type-check tests (report-only; see issue #180)
+        if: matrix.node == '24'
+        run: npm run typecheck:tests
       - run: npm run knip
       - run: npm run test:spec-parity
       - run: npm run test:ui
