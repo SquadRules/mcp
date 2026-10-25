@@ -223,8 +223,6 @@ reports/
 !reports/.gitkeep
 journeys/
 .env.*
-!.env.dev_simple
-!.env.dev_stdio
 !scripts/env/.env.template
 .kilocodeignore
 docs/.obsidian
