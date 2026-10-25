@@ -1,6 +1,6 @@
 {
   "name": "@squadrules/mcp",
-  "version": "5.13.2",
+  "version": "5.13.4",
   "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
@@ -151,7 +151,7 @@
     "ts-jest": "29.4.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "undici": "8.11.2",
+    "undici": "8.12.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
   },
@@ -171,7 +171,7 @@
     "react-router": "^8.4.0",
     "typescript": "^5.9.3",
     "brace-expansion": "^5.0.12",
-    "undici": "8.11.2",
+    "undici": "8.12.3",
     "katex": "^0.18.2",
     "source-map-js": "^1.2.2",
     "fast-copy": "^4.1.2",
