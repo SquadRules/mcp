@@ -24,8 +24,9 @@ These files define the realm baselines that the Admin API merge step applies.
 Run when Keycloak is up (safe to re-run; merge/update, no duplicate realms):
 
 ```bash
-npm run infra:up
-# Or: python3 scripts/deploy-configure-keycloak-realms.py
+# Bring Keycloak (and the rest of the fullstack infra) up, then configure realms:
+docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d
+python3 scripts/deploy-configure-keycloak-realms.py
 # Optional: KEYCLOAK_URL=http://keycloak:8080
 ```
 

@@ -52,7 +52,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/ci-wait-for-infra.sh` | Polls Redis, Qdrant, Postgres, and Keycloak in Docker Compose (CI) | `.github/workflows/integration.yml` |
 | `scripts/deploy-add-keycloak-demo-user.sh` | Adds `demo` user to `squadrules-dev` via `kcadm` inside the Keycloak container | Documented in `scripts/keycloak/import/README.md` |
 | `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/keycloak/README.md` and `compose/infra.yaml` comments |
-| `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `npm run infra:up`, `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts` |
+| `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts`, `tests/utils/keycloak-container.ts` (run after `docker compose … --profile fullstack up -d`) |
 | `scripts/deploy-add-keycloak-user` | Adds a realm user with auto-generated password via Admin REST API | `scripts/keycloak/import/README.md` (examples) |
 | `scripts/lint-agent-skills.py` | Validates agent skills layout against repo rules | `npm run lint:skills` |
 | `scripts/lint-verify-clean-source.mjs` | Prebuild gate: forbids `console.*` and test mocks under `src/` (AST-based) | `npm run verify:clean` (`prebuild`) |
@@ -66,8 +66,8 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/test-embedding-key.mjs` | Quick check that `OPENAI_API_KEY` can call the configured embedding model | `npm run dev:test-embedding-key` |
 | `scripts/test-capture-viewports.mjs` | Playwright capture of UI viewports for design review | `npm run design:viewports` |
 | `scripts/test-integration-app-base-url.mjs` | Resolves local SQUADRULES base URL from env (shared helper) | `test-ai-mcp-integration.mjs`, `test-capture-viewports.mjs` |
-| `scripts/deploy-raw-qdrant-search.mjs` | Runs a raw scroll/search against Qdrant using env config | `npm run prod:raw-qdrant-search` |
-| `scripts/test-ai-mcp-integration.mjs` | End-to-end AI MCP integration driver (reports, proof flow) | `npm run dev:ai-mcp-integration`; listed in `.github/codeql/codeql-config.yml` |
+| `scripts/deploy-raw-qdrant-search.mjs` | Runs a raw scroll/search against Qdrant using env config | *manual* — `node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs "query"` (its former `npm run prod:raw-qdrant-search` target was retired) |
+| `scripts/test-ai-mcp-integration.mjs` | End-to-end AI MCP integration driver (reports, proof flow) | *manual* — `node scripts/test-ai-mcp-integration.mjs` (its former `npm run dev:ai-mcp-integration` target was retired); listed in `.github/codeql/codeql-config.yml` |
 | `scripts/test-ai-mcp-integration-auth-utils.mjs` | Bearer/auth header helpers for integration scripts | `test-ai-mcp-integration.mjs` |
 | `scripts/test-ai-mcp-integration-proof-utils.mjs` | Proof/challenge helpers for integration scripts | `test-ai-mcp-integration.mjs` |
 | `scripts/test-ai-mcp-integration-report-utils.mjs` | Report formatting for integration output | `test-ai-mcp-integration.mjs`, `tests/unit/ai-mcp-integration-report-utils.test.ts` |
@@ -89,7 +89,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
    Ensure execute bits are set (e.g. `chmod +x scripts/deploy-dev-cli-ready.sh scripts/ci-wait-for-infra.sh`). Clone and umask differences sometimes drop `+x`.
 
 3. **Python Keycloak scripts fail with 401 or connection errors**  
-   Confirm Keycloak is up (`npm run infra:up` or your stack), `KEYCLOAK_URL` matches, and `KEYCLOAK_ADMIN_PASSWORD` is set in `.env`. For realm JSON changes, re-run `python3 scripts/deploy-configure-keycloak-realms.py`.
+   Confirm Keycloak is up (`docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d` or your stack), `KEYCLOAK_URL` matches, and `KEYCLOAK_ADMIN_PASSWORD` is set in `.env`. For realm JSON changes, re-run `python3 scripts/deploy-configure-keycloak-realms.py`.
 
 4. **Node reports wrong version or missing modules**  
    This repo expects **Node 24 LTS or newer** (`package.json` `engines`). Run `npm ci` at the repo root after pulling; scripts assume dependencies are installed.
