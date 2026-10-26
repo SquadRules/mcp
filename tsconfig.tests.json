@@ -1,12 +1,23 @@
 {
+  // Type-check gate for the test suite. rootDir is overridden to "." because the inherited "./src"
+  // made every test file emit TS6059, and the stray "vitest" global type was dropped (it never
+  // resolved; tests/ globals come from @types/jest). Currently REPORT-ONLY via
+  // `npm run typecheck:tests`: a backlog of pre-existing type errors must be burned down before
+  // this can block CI (see issue #180).
+  //
+  // tests/ui (a Vitest + jsdom + JSX suite) is intentionally kept in this project because eslint's
+  // type-aware linting references tsconfig.tests.json for all of tests/**; excluding it makes those
+  // .tsx files "not found in any project". Giving tests/ui its own vitest-aware tsconfig (and adding
+  // it to eslint parserOptions.project) is tracked as issue #184.
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "rootDir": ".",
     "noEmit": true,
     "allowJs": true,
     "checkJs": false,
+    "incremental": false,
     "types": [
       "node",
-      "vitest",
       "jest"
     ]
   },
