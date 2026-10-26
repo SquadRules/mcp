@@ -12,6 +12,11 @@
  * The test asserts BOTH the declared override in package.json AND the resolved
  * outcome in package-lock.json, so a stale lockfile (override present but not
  * regenerated) fails the gate instead of silently shipping 0.0.0.
+ *
+ * Installing therefore prints npm's deprecation notice for
+ * `@anush008/tokenizers`. That notice is expected and is NOT cleared by
+ * bumping, widening, or removing this override — see
+ * docs/known-issues-and-limitations.md before touching it.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

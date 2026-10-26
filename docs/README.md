@@ -13,6 +13,8 @@ irreducible, non-code-derivable records enumerated by the
   and when it expires; one decision per file.
 - [CLI reference](CLI.md) — invocation, global options, the command surface, and
   output formats for the `squadrules` tool.
+- [Known issues and limitations](known-issues-and-limitations.md) — expected
+  behaviour that looks like a defect, why it happens, and what would change it.
 
 ## Elsewhere
 
