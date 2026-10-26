@@ -91,6 +91,15 @@ writes files and prints a manifest. The command failed for every agent.
    (no HTTP listener) uses `squadrules export --as source --to <path>`; HTTP uses
    `curl`. The stdio branch is fixed by this change and covered by unit and
    integration tests; the builder lives in `src/tools/artifact-materialize-command.ts`.
+7. **Two `relative_path` layouts coexist and are not normalized.** A single-file
+   artifact train lays the file out at `artifacts/<sanitized name>`; a directory
+   `train` batch lays it out at its path relative to the batch root
+   (`src/cli/train-batch.ts`, `listSkillFiles`). Collapsing the batch onto
+   `artifacts/<name>` was considered and rejected: it would fold same-named files
+   from different subdirectories onto one path and change paths already stored for
+   shipped adapters, for a cosmetic gain — both layouts are readable from
+   `activate`. The author rule is therefore the same for all train paths: read
+   `relative_path` from `activate`, never re-derive it.
 
 ## Consequences
 
@@ -113,6 +122,9 @@ writes files and prints a manifest. The command failed for every agent.
   contract. A run that skips materialize fails at the shell step, not at activate.
 - `forward` does not carry `linked_artifacts`, so a chained adapter cannot assume a
   sibling's script is present; it attaches the script itself.
+- The two `relative_path` layouts are a documented quirk, not a uniform rule; the
+  cost is paid on every authoring run that derives a path by hand instead of reading
+  `activate`.
 
 ## Evidence
 
