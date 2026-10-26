@@ -72,12 +72,22 @@ test, not a verification strategy.
   script.
 - Prefer **empirical checks** that assert on content or resulting state, not merely
   that a file exists.
-- For complex or JSON-shaped work use the **script-export pattern**: attach the
-  script as an artifact, export it into the workdir at execution time, and pick
-  `node` or `python3` to match the project. Use `bash` only where data manipulation
-  is minimal, and never once JSON is involved.
+- For complex or JSON-shaped work use the **script-export pattern**: ship the gate
+  as a script **artifact** attached to the adapter, materialize it into
+  `$SQUADRULES_LOCAL_ARTIFACT_DIR` at run time, and keep the contract a one-line
+  invocation of that script — `interpreter: "bash"`, `cmd: python3
+  "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`. `cmd` is
+  program text for every interpreter (`python3` and `node` run it as `-c` / `-e`
+  source, never as a file path), so a script file is invoked through a shell
+  wrapper; pick `bash` for that wrapper. One dispatcher script serves many gates;
+  never inline a multi-step program into `cmd`. Field names:
+  [contract types](examples/challenge-types.md); artifact input contract: the
+  `train` tool description; interpreter rule:
+  [ADR 0026](adr/0026-shell-interpreter-required.md).
 
-Example: [adapter-example-shell.md](examples/adapter-example-shell.md).
+Examples: [adapter-example-shell.md](examples/adapter-example-shell.md) for a one-line check, and
+[artifact-gate/adapter-example-artifact-gate.md](examples/artifact-gate/adapter-example-artifact-gate.md)
+for a gate script artifact with its contract.
 
 ### `forward` — link to another adapter
 
@@ -164,9 +174,12 @@ needs. All four operations are autonomous: no human approval gate, and the
 - **Create** — resolve intent and gather requirements without a confirmation
   prompt; draft the markdown. Verify readiness with one combined `shell` check on
   the draft's mechanical structure, and use a `subagent` critic (rung 2) for
-  intent, authorization, and clarity. Publish with `train`, then verify the stored
-  result against the intended adapter. Do not add separate contracts for
-  "requirements written", "draft exists", or "I understood the review".
+  intent, authorization, and clarity. Publish with `train`, attach any gate
+  script with a second `train` (`mime`, `artifact_name`, `adapter_uri`), then
+  verify the stored result against the intended adapter — `activate` it and
+  confirm every `linked_artifacts[].relative_path` matches the path its contract
+  invokes. Do not add separate contracts for "requirements written", "draft
+  exists", or "I understood the review".
 - **Update** — export the target, identify the exact gap, plan the minimal change.
   Re-run the critic on the changed parts (a changed draft invalidates review
   evidence about those parts), then save with `tune` and read back to verify. Keep

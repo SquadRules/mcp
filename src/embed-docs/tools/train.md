@@ -9,9 +9,9 @@ Register a new **adapter** from markdown (one H1 = one adapter; each verifiable 
 - `space` (optional) — `"personal"` or a full group path such as `"{{SQUADRULES_GROUP_SPACE_PATH_EXAMPLE}}"` (target space for the new adapter).
 - `source_adapter_uri` (optional) — `squadrules://adapter/{uuid}` to **fork**: export that adapter’s markdown and **train** a **new** adapter (new ids). If you also pass `content`, that text is used instead of the export (customize before calling **`train`**).
 - `mime` (optional) — content MIME type. Defaults to `text/markdown`.
-- `artifact_name` (required when `mime` is not `text/markdown`) — file name shown when listing adapter artifacts.
-- `adapter_uri` (required when `mime` is not `text/markdown`) — `squadrules://adapter/{uuid}` or `squadrules://adapter/{slug}` target adapter for the artifact attachment.
-- `relative_path` (optional, non-markdown artifacts only) — path relative to the skill bundle root (forward slashes; no `..` segments). When set, **`export`** **`skill_zip`** and **`skill_tree`** place the file at this path instead of the default **`artifacts/<sanitized artifact name>`** layout.
+- `artifact_name` (required when `mime` is not `text/markdown`) — file name shown when listing adapter artifacts. The artifact **slug** is derived from it: lowercase, runs of non-alphanumeric characters collapse to one `-`, leading and trailing hyphens trimmed (`Isolation Guard.py` → `isolation-guard`).
+- `adapter_uri` (required when `mime` is not `text/markdown`) — `squadrules://adapter/{uuid}` or `squadrules://adapter/{slug}` target adapter for the artifact attachment. The adapter must already exist, so create it first and attach scripts in a second call.
+- `relative_path` (optional, non-markdown artifacts only) — path relative to the skill bundle root (forward slashes; no `..` segments). When set, **`export`** **`skill_zip`** and **`skill_tree`** place the file at this path instead of the default **`artifacts/<sanitized artifact name>`** layout; `activate` materializes it at the same relative path. Contracts reference that path, not the artifact URI.
 - `review_evidence` (required for adapter/markdown trains) — critic-loop verdict proof. Run critic-loop before **`train`**; provide the verdict file as proof. Object with `verdict_file` (absolute path), `exit_code` (must be 0), and `stdout` (line 1 must be PASS). Not required for artifact trains (non-markdown mime).
 
 **Required structure (validated before store)**
@@ -23,6 +23,28 @@ Register a new **adapter** from markdown (one H1 = one adapter; each verifiable 
   **`contract`** object.
 - Contract fences must use the `json` language tag only (no plain ``` blocks holding contract JSON).
 - Non-markdown artifacts (`mime` not `text/markdown`) are stored as adapter-linked artifacts instead of stored Markdown layers.
+
+**Artifact identity header (artifact bodies only).** Start the file with a
+`squadrules-artifact` comment block to pin the artifact's identity instead of
+deriving it from `artifact_name`. A leading `#!` shebang and blank lines before
+the block are allowed; the block is consecutive `#`-comment lines of
+`key: value`. Keys: `slug` (must match `^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`) and
+`version` (defaults to `1` when absent or blank).
+
+  ```python
+  #!/usr/bin/env python3
+  # squadrules-artifact:
+  # slug: isolation-guard
+  # version: 3
+  ```
+
+A header slug changes **deduplication** on re-train: a header-pinned artifact
+matches an existing one by `slug` only, while a name-derived slug matches either
+`artifact_name` or `slug`. Pin the slug when a shell contract references the
+artifact, so a renamed file updates that artifact instead of adding a second one.
+
+The response lists `squadrules://artifact/{uuid}` items; the stable **slug**
+appears in **`activate`**'s `linked_artifacts[]`.
 
 **Size limits (safety):** Before structure checks, the server rejects oversized Markdown and artifact bodies (max logical lines, max UTF-8 bytes per line, and a total-byte ceiling from env — default line cap **350**, default per-line bytes **8192**, safety factor **1.15**). See the Train workflow in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki).
 

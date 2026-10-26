@@ -82,4 +82,34 @@ describe('cli buildExportInput selection union', () => {
     const input = buildExportInput(ADAPTER_URI, {});
     expect(input.format).toBe('skill_zip');
   });
+
+  it('accepts --to with a single uri and a content format', () => {
+    const input = buildExportInput(ADAPTER_URI, { as: 'source', to: '/tmp/artifacts/gates.py' });
+    expect(input.uri).toBe(ADAPTER_URI);
+    expect(input.format).toBe('source');
+  });
+
+  it('rejects --to without a positional uri', () => {
+    expect(() =>
+      buildExportInput(undefined, { adapters: [ADAPTER_URI], as: 'source', to: '/tmp/x.py' })
+    ).toThrow(/--to <file> requires a single <uri> selection/);
+  });
+
+  it('rejects --to combined with skill_zip', () => {
+    expect(() =>
+      buildExportInput(ADAPTER_URI, { to: '/tmp/x.zip' })
+    ).toThrow(/cannot be combined with skill_zip/);
+  });
+
+  it('rejects --to combined with --zip-out', () => {
+    expect(() =>
+      buildExportInput(ADAPTER_URI, { as: 'markdown', to: '/tmp/x.md', zipOut: '/tmp/x.zip' })
+    ).toThrow(/cannot be combined with --zip-out/);
+  });
+
+  it('rejects --to combined with --out', () => {
+    expect(() =>
+      buildExportInput(ADAPTER_URI, { as: 'markdown', to: '/tmp/x.md', out: '/tmp' })
+    ).toThrow(/cannot be combined with --out/);
+  });
 });

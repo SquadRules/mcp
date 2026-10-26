@@ -132,8 +132,20 @@ error, and plan the minimal change.
 - Only **system adapters** (bundled in the server) can chain to other system
   adapters via `forward`.
 - Personal adapters must be **self-contained**.
-- When a shell contract needs a reusable script, attach it as an **artifact**
-  via `train` (with `mime`, `artifact_name`, `adapter_uri`).
+- When a `shell` check has more than one condition, parses JSON, or does not fit
+  one readable line, put it in a **gate script artifact**; never escape a program
+  inline into `cmd`. `cmd` is program text for every interpreter (`bash`/`sh` and
+  `python3`/`python` via `-c`, `node` via `-e`), so a script file needs a wrapper
+  line.
+- Order: `train` the adapter markdown first, then `train` the script with
+  `mime`, `artifact_name`, and `adapter_uri` — artifacts attach to an adapter that
+  already exists. Save the script with a `# squadrules-artifact:` header so a
+  re-train updates that artifact instead of adding a second one.
+- Keep the contract one line: `interpreter: "bash"`, `cmd: python3
+  "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`.
+- Verify before shipping: `activate` the adapter and confirm
+  `linked_artifacts[].relative_path` is exactly the path `cmd` invokes. Run each
+  row's `materialize` command before the contract that needs it.
 
 ### Drafting rules (all operations)
 

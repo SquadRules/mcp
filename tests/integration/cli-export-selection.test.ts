@@ -222,4 +222,30 @@ _d('CLI export selection union (--adapters / --all-adapters)', () => {
     expect(buf.length).toBeGreaterThan(64);
     expect(buf.subarray(0, 2).toString('binary')).toBe('PK');
   }, 30000);
+
+  // Regression for the artifact materialize command (ADR 0026, linked_artifacts[].materialize):
+  // stdio transport has no HTTP listener, so it calls `export --as source --to <file>`. The
+  // payload must be the artifact bytes at the exact path — never the printed summary path that a
+  // stdout redirect would capture.
+  test('--to writes the payload to the exact path (artifact materialize regression)', async () => {
+    requireMcpServerAndCliLogin(serverAvailable, cliLoggedIn);
+    const ts = Date.now().toString();
+    const slug = `cli-to-${ts}`;
+    const a = await trainAdapterMarkdown(buildAdapterMarkdown(slug, `CLI To ${ts}`));
+
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cli-export-to-'));
+    const target = join(tmpDir, 'nested', 'adapter.md');
+
+    const { stdout, stderr } = await execAsync(
+      `node ${CLI_PATH} export --url ${BASE_URL} --as markdown --format json --to ${target} ${a.adapterUri}`
+    );
+    expect(stderr).toBe('');
+    const manifest = JSON.parse(stdout);
+    expect(manifest.written).toEqual([
+      expect.objectContaining({ path: target, format: 'markdown' })
+    ]);
+    const written = readFileSync(target, 'utf8');
+    expect(written).toContain(`# CLI To ${ts}`);
+    expect(written).toContain('```json');
+  }, 30000);
 });

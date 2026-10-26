@@ -148,6 +148,18 @@ squadrules train --source-adapter-uri squadrules://adapter/my-adapter --model gp
 squadrules train ./notes.txt --adapter squadrules://adapter/my-adapter [--mime text/plain]
 ```
 
+Artifact trains attach to an adapter that already exists, so a script ships in a
+second call after its adapter markdown. An artifact body may pin its identity with
+a `# squadrules-artifact:` header (`slug`, `version`) so a re-train replaces that
+artifact instead of adding another; see the `train` tool description.
+
+- Directory batch: each `.md` becomes an adapter and every **sibling** file with a
+  recognizable extension is attached to **every** `.md` in that directory, with
+  `relative_path` taken from the batch root (and only when `--model` is set).
+- `--adapter`, `--artifact-name`, `--mime`, and `--relative-path` are single-file
+  only — a directory batch rejects them. A gate script that belongs to one adapter
+  needs its own directory or a single-file `--adapter` train.
+
 ### export
 
 Export adapters to disk. This is a machine-facing bulk command: it writes files
@@ -156,13 +168,18 @@ never dumps adapter or content bytes to stdout.
 
 ```bash
 squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <name>] \
-  [--as <format>] [--out <dir>] [--zip-out <file>]
+  [--as <format>] [--out <dir>] [--to <file>] [--zip-out <file>]
 ```
 
 - `--as <format>` — content format: `skill_zip` (default), `markdown`,
   `skill_tree`, `source`, `trace_jsonl`, `reward_jsonl`, `sft_jsonl`,
   `preference_jsonl`.
 - `--out <dir>` — write artifacts into this directory (default: current directory).
+- `--to <file>` — write the payload of a single `<uri>` selection to this exact
+  file path, creating parent directories. Requires a non-`skill_zip` `--as`
+  format and cannot be combined with `--out` or `--zip-out`. Use it to place an
+  artifact at the path a shell contract expects (the `materialize` command in an
+  `activate` response uses it on stdio transport).
 - `--zip-out <file>` — write `skill_zip` bytes to this explicit file path.
 
 ```bash
@@ -171,6 +188,10 @@ squadrules export --all-adapters --space personal --out ./out
 
 # one adapter as flat markdown
 squadrules export squadrules://adapter/my-adapter --as markdown --out ./out
+
+# one artifact's source at an exact path (stdio materialize)
+squadrules export squadrules://artifact/my-gate --as source \
+  --to "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/my-gate.py"
 ```
 
 ### serve
