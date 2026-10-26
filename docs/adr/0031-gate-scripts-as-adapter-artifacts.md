@@ -80,9 +80,13 @@ writes files and prints a manifest. The command failed for every agent.
    ([ADR 0024](0024-adapter-contract-verification-ladder.md)); the pass condition is
    still the script's exit code. It is not an alternative to an observable check.
 4. **Artifacts attach to an existing adapter**, so authoring is two `train` calls in
-   a fixed order: markdown first, artifact second. The script carries a
-   `# squadrules-artifact:` header (`slug`, `version`) so a re-train updates the same
-   artifact instead of adding a second one.
+   a fixed order: markdown first, artifact second. The adapter's slug must be
+   known before the artifact train, so pin it with frontmatter `slug:` rather than
+   guessing what `train` derived from the title. The script carries a
+   `# squadrules-artifact:` header (`slug`, `version`) so a re-train matches the
+   same artifact, and the re-train also needs `force_update: true` (`--force`): the
+   header alone only controls *which* artifact a train matches, and an unflagged
+   match is rejected with `Artifact "…" already exists on this adapter`.
 5. **`activate`'s `linked_artifacts[]` is the discovery surface.** Authoring is not
    complete until `activate` shows a `relative_path` equal to the path the contract
    invokes. Agents run that row's `materialize` command before the first contract
@@ -142,9 +146,18 @@ writes files and prints a manifest. The command failed for every agent.
   directory `train` batch attaches every sibling artifact to every `.md` in that
   directory (`src/cli/train-batch.ts`, `listSkillFiles`), so a shared parent would
   put the gate script on seven unrelated examples.
-- `tests/unit/artifact-materialize-command.test.ts`,
-  `tests/integration/cli-export-selection.test.ts` — the stdio materialize command
-  produces the file at the exact expected path.
+- `tests/unit/artifact-materialize-command.test.ts` — the stdio branch emits the
+  `export --as source --to <path>` command and the HTTP branch the `curl` one, for
+  the exact `relative_path`.
+- `tests/unit/cli-export-build-input.test.ts`,
+  `tests/integration/cli-export-selection.test.ts` — `export --to` validation and a
+  single-`uri` write. The integration case exercises `--as markdown` on an
+  **adapter** URI; the `artifact` URI + `--as source` + `--to` combination that the
+  materialize command actually emits has source-level coverage only, so an
+  end-to-end materialize is not yet proven by a test.
+- `tests/integration/write/squadrules-train-docs-examples.test.ts` — trains every
+  `docs/examples/**/adapter-example-*.md`, including this change's example, which is
+  what keeps a sub-directory example from shipping untrainable.
 
 ## Revisit condition
 

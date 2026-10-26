@@ -76,13 +76,11 @@ test, not a verification strategy.
   as a script **artifact** attached to the adapter, materialize it into
   `$SQUADRULES_LOCAL_ARTIFACT_DIR` at run time, and keep the contract a one-line
   invocation of that script — `interpreter: "bash"`, `cmd: python3
-  "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`. `cmd` is
-  program text for every interpreter (`python3` and `node` run it as `-c` / `-e`
-  source, never as a file path), so a script file is invoked through a shell
-  wrapper; pick `bash` for that wrapper. One dispatcher script serves many gates;
-  never inline a multi-step program into `cmd`. Field names:
-  [contract types](examples/challenge-types.md); artifact input contract: the
-  `train` tool description; interpreter rule:
+  "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`. One
+  dispatcher script serves many gates; never inline a multi-step program into
+  `cmd`. A script *file* therefore needs that wrapper line — why: [contract
+  types](examples/challenge-types.md). Artifact input contract: the `train` tool
+  description; interpreter rule:
   [ADR 0026](adr/0026-shell-interpreter-required.md).
 
 Examples: [adapter-example-shell.md](examples/adapter-example-shell.md) for a one-line check, and

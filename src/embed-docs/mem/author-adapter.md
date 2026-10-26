@@ -134,13 +134,15 @@ error, and plan the minimal change.
 - Personal adapters must be **self-contained**.
 - When a `shell` check has more than one condition, parses JSON, or does not fit
   one readable line, put it in a **gate script artifact**; never escape a program
-  inline into `cmd`. `cmd` is program text for every interpreter (`bash`/`sh` and
-  `python3`/`python` via `-c`, `node` via `-e`), so a script file needs a wrapper
-  line.
+  inline into `cmd`.
 - Order: `train` the adapter markdown first, then `train` the script with
   `mime`, `artifact_name`, and `adapter_uri` — artifacts attach to an adapter that
   already exists. Save the script with a `# squadrules-artifact:` header so a
-  re-train updates that artifact instead of adding a second one.
+  re-train matches that same artifact, and pass `force_update: true` (`--force`) on
+  the re-train; without it `train` refuses with `already exists on this adapter`.
+- The artifact train targets `squadrules://adapter/<slug>`, so pin the adapter's
+  slug with frontmatter `slug:` instead of guessing the slug `train` derived from
+  the title.
 - Keep the contract one line: `interpreter: "bash"`, `cmd: python3
   "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`.
 - Verify before shipping: `activate` the adapter and confirm
