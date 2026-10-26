@@ -149,12 +149,11 @@ squadrules train ./notes.txt --adapter squadrules://adapter/my-adapter [--mime t
 ```
 
 Artifact trains attach to an adapter that already exists, so a script ships in a
-second call after its adapter markdown — and `--adapter` needs the adapter's real
-slug, so pin it with frontmatter `slug:` rather than guessing the slug `train`
-derived from the title. An artifact body may pin its identity with a
-`# squadrules-artifact:` header (`slug`, `version`); a re-train that matches an
-existing artifact also needs `--force`, otherwise `train` stops with
-`Artifact "…" already exists on this adapter`. See the `train` tool description.
+second call after its adapter markdown. `--adapter` takes the adapter's slug or
+URI, so pin the slug in the adapter's frontmatter rather than inferring the one
+`train` derived from the title, and pass `--force` when the target artifact
+already exists. Artifact identity, the `# squadrules-artifact:` header, and the
+rest of the artifact input contract: see the `train` tool description.
 
 - Directory batch: each `.md` becomes an adapter and every **sibling** file with a
   recognizable extension is attached to **every** `.md` in that directory, with

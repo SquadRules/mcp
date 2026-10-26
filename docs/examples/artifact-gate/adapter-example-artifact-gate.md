@@ -53,7 +53,7 @@ Only reachable after Step 1 is solved. Show the output from Step 1 to the user (
 
 ## Why this shape
 
-- **One artifact, many gates.** The same script serves every gate of this adapter and every other adapter that attaches it: `--gate preflight`, `--gate commit`, `--gate pr`. Ambiguous multistep logic does not get re-typed inline per contract, and a fix to the gate fixes every caller.
+- **One artifact, many gates.** The script dispatches on `--gate`, so adding a second gate is one entry in its `GATES` map instead of another inline program in the markdown, and every adapter that attaches the artifact gets that gate. This example ships `preflight`; a `commit` or `pr` gate would be added the same way. Ambiguous multistep logic does not get re-typed inline per contract, and a fix to the gate fixes every caller.
 - **The contract stays auditable.** A reviewer reads one line and knows which script runs and which gate.
 - **The check is testable on its own.** Run `python3 artifact-gate-check.py --gate preflight` without SquadRules to reproduce a failure.
 - **Re-train, do not re-inline.** When the checks change, `train` the script again with the same `slug` header **and** `--force` (`force_update: true` on the MCP tool). The header slug makes the re-train match the existing artifact, and the force flag replaces it in place; without the flag `train` refuses with `Artifact "…" already exists on this adapter`, and existing contracts keep working either way.

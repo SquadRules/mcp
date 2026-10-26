@@ -93,8 +93,13 @@ writes files and prints a manifest. The command failed for every agent.
    that needs the file. `forward` does not repeat the list.
 6. **The `materialize` command must run on the transport it is emitted for.** stdio
    (no HTTP listener) uses `squadrules export --as source --to <path>`; HTTP uses
-   `curl`. The stdio branch is fixed by this change and covered by unit and
-   integration tests; the builder lives in `src/tools/artifact-materialize-command.ts`.
+   `curl` with a `sha256sum` verification step. The stdio branch is fixed by this
+   change and unit-tested for the exact command it emits; the `export --to` write
+   that command produces is integration-tested for a markdown payload, while an
+   end-to-end artifact materialize is not yet covered (see Evidence). The builder
+   lives in `src/tools/artifact-materialize-command.ts`. `sha256sum` is GNU
+   coreutils, so the HTTP branch's verification step assumes GNU userland; this
+   record logs that limit rather than changing the command.
 7. **Two `relative_path` layouts coexist and are not normalized.** A single-file
    artifact train lays the file out at `artifacts/<sanitized name>`; a directory
    `train` batch lays it out at its path relative to the batch root
