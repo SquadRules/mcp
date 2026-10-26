@@ -135,11 +135,12 @@ error, and plan the minimal change.
 - When a `shell` check has more than one condition, parses JSON, or does not fit
   one readable line, put it in a **gate script artifact**; never escape a program
   inline into `cmd`.
-- Order: `train` the adapter markdown first, then `train` the script with
-  `mime`, `artifact_name`, and `adapter_uri` — artifacts attach to an adapter that
-  already exists. Save the script with a `# squadrules-artifact:` header so a
-  re-train matches that same artifact, and pass `force_update: true` (`--force`) on
-  the re-train; without it `train` refuses with `already exists on this adapter`.
+- Order: `train` the adapter markdown first, then `train` the script as an
+  artifact — an artifact attaches only to an adapter that already exists. Pin the
+  script's identity with a `# squadrules-artifact:` header, and pass
+  `force_update: true` (`--force`) on a re-train that matches it, so a fix updates
+  that artifact instead of adding a second one. Input fields and the refusal
+  message: the `train` tool description.
 - The artifact train targets `squadrules://adapter/<slug>`, so pin the adapter's
   slug with frontmatter `slug:` instead of guessing the slug `train` derived from
   the title.
