@@ -1,6 +1,6 @@
 ---
 slug: bulk-insert-adapters-via-cli
-version: "5.13.6"
+version: "5.13.7"
 title: Bulk Insert Adapters via SQUADRULES CLI
 ---
 
