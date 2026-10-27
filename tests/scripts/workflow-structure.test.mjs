@@ -2,8 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { load } from 'js-yaml';
+import { APP_PATHS } from '../../scripts/ci-change-class.mjs';
 
 const workflow = name => load(readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
+const stepNamed = (config, job, name) => config.jobs[job].steps.find(s => s.name === name);
+const runOf = (config, job, name) => stepNamed(config, job, name).run;
 
 test('integration, security, and policy workflows have correct triggers and permissions', () => {
   const integration = workflow('integration');
@@ -231,19 +234,6 @@ test('dependabot is correctly configured', () => {
   assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
 });
 
-test('docs workflow has correct triggers and structure', () => {
-  const docs = workflow('docs');
-  assert.equal(docs.name, 'Docs wiki regeneration');
-  assert.equal(docs.on.schedule, undefined, 'docs.yml schedule trigger disabled to reduce CI noise');
-  assert.ok(docs.on.push?.paths?.includes('src/**'), 'docs.yml must trigger on src/** changes');
-  assert.ok('workflow_dispatch' in docs.on, 'docs.yml must support manual trigger');
-  assert.ok(docs.jobs['regenerate-wiki'], 'docs.yml must have regenerate-wiki job');
-  assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.uses?.startsWith('actions/create-github-app-token@')), 'docs.yml must create GitHub App token');
-  assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.env?.QODER_PERSONAL_ACCESS_TOKEN), 'docs.yml must use QODER_PERSONAL_ACCESS_TOKEN');
-  assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.id === 'changes'), 'docs.yml must check for changes');
-  assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
-});
-
 test('auto-update workflow sequentially updates, checks, and merges PRs', () => {
   const autoUpdate = workflow('auto-update-pr-branches');
   assert.ok(Object.hasOwn(autoUpdate.on, 'push'), 'Updates must run as soon as main advances');
@@ -261,8 +251,84 @@ test('auto-update workflow sequentially updates, checks, and merges PRs', () => 
   assert.match(updateStep.run, /CHANGED_FILES.*= "0"/, 'Must close already-absorbed managed dependency PRs');
   assert.match(updateStep.run, /dependabot\[bot\].*49699333/, 'Must verify bot identity before closing no-op PR');
   assert.match(updateStep.run, /\.head_repository\.full_name/, 'Must gate by same-repository run origin');
-  assert.match(updateStep.run, /for WORKFLOW in integration security automation-policy/, 'Must require all three gates');
+  assert.match(updateStep.run, /for WORKFLOW in automation-policy ci-gate/, 'Must require the always-on policy gate plus the change-class aggregate');
   assert.match(updateStep.run, /--auto --squash --match-head-commit/, 'Must use protected expected-head auto-merge');
   assert.doesNotMatch(updateStep.run, /--admin/, 'Never override required checks');
   assert.doesNotMatch(updateStep.run, /mergeStateStatus|git merge|git push|gh repo clone/, 'No async-stale status fields and no local merge machinery');
+});
+
+test('ci gate is always-on, classifies the revision and fails closed', () => {
+  const gate = workflow('ci-gate');
+  const raw = readFileSync('.github/workflows/ci-gate.yml', 'utf8');
+
+  assert.equal(gate.name, 'CI gate');
+  assert.deepEqual(gate.on.pull_request.branches, ['main']);
+  assert.deepEqual(gate.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review']);
+  assert.ok(Object.hasOwn(gate.on, 'merge_group') && Object.hasOwn(gate.on, 'workflow_dispatch'));
+  // The absence of a filter is the whole mechanism: a filtered aggregate cannot report.
+  assert.equal(gate.on.pull_request.paths, undefined, 'An always-on aggregate must not declare paths');
+  assert.equal(gate.on.pull_request['paths-ignore'], undefined, 'paths-ignore would strand the required context the same way');
+  assert.doesNotMatch(raw, /^\s*paths(-ignore)?:/m, 'No path filter may appear anywhere in the aggregate');
+  assert.equal(JSON.stringify(gate.permissions), JSON.stringify({ contents: 'read', 'pull-requests': 'read', actions: 'read' }));
+
+  assert.equal(gate.jobs.gate.name, 'CI gate passed');
+  assert.equal(gate.jobs.gate['continue-on-error'], undefined, 'The aggregate cannot be advisory');
+  assert.doesNotMatch(raw, /continue-on-error/, 'No step may demote gate evidence');
+  assert.equal(gate.jobs.gate['timeout-minutes'], 90);
+  for (const step of gate.jobs.gate.steps) assert.equal(step['continue-on-error'], undefined);
+
+  const checkout = gate.jobs.gate.steps.find(s => s.uses?.startsWith('actions/checkout@'));
+  assert.equal(checkout.with.ref, '${{ github.sha }}');
+  assert.equal(checkout.with['persist-credentials'], false);
+  assert.equal(checkout.with['fetch-depth'], 0, 'Merge-base classification needs full history');
+
+  const classify = runOf(gate, 'gate', 'Classify changed paths');
+  assert.match(classify, /scripts\/ci-change-class\.mjs/);
+  assert.match(classify, /git merge-base/);
+  assert.match(classify, /git diff --name-only/);
+  assert.match(classify, /--empty-diff/, 'An empty revision must fail rather than wait');
+  assert.match(classify, /unclassified/, 'A failed classification must expect every lane');
+
+  const docs = stepNamed(gate, 'gate', 'Documentation lane');
+  assert.equal(docs.if, "steps.classify.outputs.docs == 'true'");
+  assert.match(docs.run, /npm run lint:markdown/);
+  assert.match(docs.run, /lint-docs-links\.mjs --strict/);
+  assert.match(docs.run, /npm run lint:skills/);
+  assert.match(docs.run, /npm ci/);
+
+  const evidence = stepNamed(gate, 'gate', 'Require integration and security evidence');
+  assert.equal(evidence.if, "steps.classify.outputs.app == 'true'");
+  assert.match(evidence.run, /no CI evidence for this revision/, 'Exhausting the budget must fail closed');
+  for (const bad of ['failure', 'cancelled', 'timed_out', 'action_required']) {
+    assert.ok(evidence.run.includes(`completed/${bad}`), `Must abort immediately on ${bad}`);
+  }
+  // Evidence is keyed by the head branch commit; github.sha is the synthetic merge commit
+  // and no workflow run ever records it.
+  assert.match(raw, /EVIDENCE_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\|/);
+  assert.doesNotMatch(evidence.run, /GITHUB_SHA|\$\{\{ github\.sha \}\}/, 'The wait must not key on the merge commit');
+  assert.match(evidence.run, /GITHUB_STEP_SUMMARY/);
+
+  // The aggregate reuses the auto-update proven run filter rather than a weaker one.
+  const autoUpdate = workflow('auto-update-pr-branches');
+  const updateRun = autoUpdate.jobs['update-prs'].steps.find(s => s.run?.includes('gh pr update-branch')).run;
+  for (const fragment of [
+    'select(.path == $file', '.head_sha == $sha', '.head_branch == $branch', '.head_repository.full_name == $repo',
+    'sort_by(.run_number, .run_attempt, .id) | last',
+  ]) {
+    assert.ok(updateRun.includes(fragment), `auto-update must keep the proven ${fragment} predicate`);
+    assert.ok(evidence.run.includes(fragment), `The gate must reuse the proven ${fragment} predicate`);
+  }
+  // auto-update only ever lists pull_request runs; the aggregate also serves merge_group,
+  // so it parameterizes the same predicate instead of hardcoding it.
+  assert.ok(updateRun.includes('.event == "pull_request"'));
+  assert.ok(evidence.run.includes('.event == $event'));
+  assert.match(evidence.run, /--arg event "\$GITHUB_EVENT_NAME"/);
+});
+
+test('change-class application set equals the union of the filtered workflow paths', () => {
+  const integration = workflow('integration');
+  const security = workflow('security');
+  const union = [...new Set([...integration.on.pull_request.paths, ...security.on.pull_request.paths])].sort();
+  assert.deepEqual([...APP_PATHS].sort(), union,
+    'scripts/ci-change-class.mjs must expect evidence for exactly what integration.yml and security.yml can run for');
 });

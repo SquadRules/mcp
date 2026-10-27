@@ -1,0 +1,203 @@
+# Aggregate required-check gate (issue #196, ADR 0032).
+#
+# A required status check provided by a path-filtered workflow never reports for a
+# revision outside that filter, so enforcement cannot live on integration.yml or
+# security.yml themselves: the context just sits at "Expected" and the PR is stranded
+# (the exact failure mode that blocked docs-only PRs). This workflow therefore declares
+# no `paths:` filter at all, always queues, and decides from the revision's changed
+# files which evidence it owes:
+#   - documentation-class revision -> the documentation lane runs here, producing
+#     positive evidence in this check run instead of a skipped job;
+#   - application-class revision   -> integration and security runs for the same head
+#     commit must be completed and successful before this check reports Success.
+# Everything else fails closed: unattributable paths, a failed git classification and
+# an empty diff all demand evidence rather than grant a pass.
+#
+# `if: always()` on integration-pass and security-pass stays byte-identical and is not
+# restructured here; this aggregate only decides whether to expect their results.
+name: CI gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: ci-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: CI gate passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      # The gate itself runs on the synthetic merge commit for pull_request events, but
+      # integration and security runs are keyed by the head branch commit: no workflow run
+      # ever records the merge sha (verified on PR #200 - run head_sha 74edaae7 is the PR
+      # head, while its merge commit a1449c48 is what github.sha carries). Waiting on the
+      # wrong key would burn the whole poll budget looking for runs that never exist.
+      EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+      EVIDENCE_BRANCH: ${{ github.event.pull_request.head.ref || github.event.merge_group.head_ref || github.ref_name }}
+      EVIDENCE_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Classify changed paths
+        id: classify
+        run: |
+          set -uo pipefail
+          summary() {
+            {
+              echo '## CI gate'
+              echo ''
+              echo "- change class: \`$1\` ($2)"
+              echo '- documentation lane: '"$3"
+              echo '- application lanes: '"$4"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ]; then
+            # No pull request context exists, so there is no revision to attribute and no
+            # integration or security run to wait for.
+            printf 'docs=true\napp=false\nreason=dispatch-no-pull-request-context\n' >> "$GITHUB_OUTPUT"
+            echo 'Dispatch runs execute the documentation lane only and cannot satisfy a required status check.'
+            summary 'dispatch-no-pull-request-context' 'no pull request context' \
+              'ran in this gate' \
+              'not evaluated - a dispatch revision can never satisfy a required check'
+            exit 0
+          fi
+
+          DIFF_LIST="$RUNNER_TEMP/ci-gate-changed-files.txt"
+          # Commit identifiers come from the event payload, so they are validated before
+          # reaching git: anything unexpected is treated as unattributable, not as a pass.
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::warning::unexpected base/head revision identifiers; expecting every lane"
+            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            summary 'unclassified' 'revision identifiers rejected' 'expected' 'expected'
+            exit 0
+          fi
+          if ! merge_base=$(git merge-base "$BASE_SHA" "$GITHUB_SHA" 2>/dev/null) || [ -z "$merge_base" ]; then
+            echo "::warning::git merge-base failed for base $BASE_SHA head $GITHUB_SHA; expecting every lane"
+            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            summary 'unclassified' 'git classification unavailable' \
+              'expected' 'expected'
+            exit 0
+          fi
+          if ! git diff --name-only "$merge_base" "$GITHUB_SHA" > "$DIFF_LIST"; then
+            echo "::warning::git diff failed; expecting every lane"
+            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            summary 'unclassified' 'git diff unavailable' 'expected' 'expected'
+            exit 0
+          fi
+
+          if [ ! -s "$DIFF_LIST" ]; then
+            # A revision contributing no files must not be accepted as validated: fail now
+            # instead of holding the gate open until the deadline.
+            node scripts/ci-change-class.mjs --empty-diff < /dev/null
+            exit 1
+          fi
+
+          classification=$(node scripts/ci-change-class.mjs < "$DIFF_LIST")
+          docs=$(printf '%s' "$classification" | jq -r .docs)
+          app=$(printf '%s' "$classification" | jq -r .app)
+          reason=$(printf '%s' "$classification" | jq -r .reason)
+          files=$(printf '%s' "$classification" | jq -r .files)
+          if [ "$docs" = 'true' ]; then documentation='ran in this gate'; else documentation='not owed (no documentation path changed)'; fi
+          if [ "$app" = 'true' ]; then application='integration and security evidence required below'; else application='not owed (documentation-only revision)'; fi
+          summary "$reason" "$files file(s) attributed" "$documentation" "$application"
+
+      - name: Documentation lane
+        if: steps.classify.outputs.docs == 'true'
+        run: |
+          set -euo pipefail
+          # Own 20-minute wall-clock budget so a stalled install cannot consume the
+          # gate job's 90-minute timeout. Strict link checking is safe here: frontmatter
+          # is stripped before link extraction (scripts/lint-docs-links.mjs).
+          timeout --kill-after=60 1200 bash -c '
+            set -euo pipefail
+            npm ci
+            npm run lint:markdown
+            node scripts/lint-docs-links.mjs --strict
+            npm run lint:skills
+          '
+
+      - name: Require integration and security evidence
+        if: steps.classify.outputs.app == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          set +e
+          # Poll budget (80 min) inside the job timeout (90 min): the deadline is ours, so
+          # the gate reports a verdict instead of being cancelled by Actions. Both knobs are
+          # overridable so tests can drive this same shell quickly; CI uses the defaults.
+          poll_interval=${CI_GATE_POLL_INTERVAL_SECONDS:-30}
+          poll_budget=${CI_GATE_POLL_SECONDS:-4800}
+          deadline=$(( $(date +%s) + poll_budget ))
+          pending='integration security'
+          verdict=''
+          while :; do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EVIDENCE_SHA&event=$GITHUB_EVENT_NAME&per_page=100")
+            if [ -z "$runs" ]; then
+              echo '::warning::run listing failed this poll; retrying'
+              runs='{"workflow_runs":[]}'
+            fi
+            still=''
+            for workflow in $pending; do
+              state=$(jq -r \
+                --arg file ".github/workflows/$workflow.yml" \
+                --arg sha "$EVIDENCE_SHA" \
+                --arg branch "$EVIDENCE_BRANCH" \
+                --arg repo "$EVIDENCE_REPO" \
+                --arg event "$GITHUB_EVENT_NAME" \
+                '([.workflow_runs[] | select(.path == $file and .head_sha == $sha and .head_branch == $branch and .head_repository.full_name == $repo and .event == $event)] | sort_by(.run_number, .run_attempt, .id) | last) as $latest | if $latest == null then "missing" else ($latest.status + "/" + ($latest.conclusion // "none")) end' \
+                <<< "$runs")
+              case "$state" in
+                completed/success) ;;
+                completed/failure|completed/cancelled|completed/timed_out|completed/action_required|completed/startup_failure|completed/stale)
+                  verdict="$workflow.yml reported $state for $EVIDENCE_SHA"
+                  break
+                  ;;
+                *) still="$still $workflow" ;;
+              esac
+            done
+            if [ -n "$verdict" ]; then
+              break
+            fi
+            pending="$still"
+            if [ -z "$pending" ]; then
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              verdict="no CI evidence for this revision within the ${poll_budget}s poll budget (still waiting on:$pending)"
+              break
+            fi
+            echo "Waiting for:$pending (latest reported state per workflow); sleeping ${poll_interval}s"
+            sleep "$poll_interval"
+          done
+
+          if [ -n "$verdict" ]; then
+            echo "- application evidence: $verdict" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::CI gate: $verdict"
+            exit 1
+          fi
+          echo "- application evidence: integration.yml and security.yml both completed successfully for $EVIDENCE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "CI gate: integration and security evidence confirmed for $EVIDENCE_SHA"

@@ -47,6 +47,22 @@ function trackedMarkdown() {
     .filter((p) => existsSync(join(ROOT, p)));
 }
 
+/**
+ * Blank a leading YAML frontmatter block so its values are not scanned as prose.
+ * Frontmatter metadata legitimately looks like markdown: an agent definition may carry
+ * `model: "[DeepSeek-Flash](dfmodel)"`, which the link extractor would otherwise report
+ * as a dangling relative link. Lines are blanked rather than dropped so later findings
+ * keep reporting the true file line number.
+ */
+function stripFrontmatter(md) {
+  const lines = md.split('\n');
+  if ((lines[0] ?? '').trim() !== '---') return md;
+  const end = lines.findIndex((line, i) => i > 0 && line.trim() === '---');
+  if (end === -1) return md; // unterminated block: leave the content to the link scan
+  for (let i = 0; i <= end; i++) lines[i] = '';
+  return lines.join('\n');
+}
+
 /** Strip fenced code blocks and inline code so link regex ignores examples. */
 function stripCode(md) {
   const lines = md.split('\n');
@@ -134,7 +150,7 @@ const wikiNames = loadWikiCatalogNames();
 for (const file of files) {
   const abs = join(ROOT, file);
   const md = readFileSync(abs, 'utf8');
-  const scan = stripCode(md);
+  const scan = stripCode(stripFrontmatter(md));
 
   // (a) + (b): link checks
   let m;
