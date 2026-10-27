@@ -1,5 +1,29 @@
 # Changelog
 
+## [5.13.6](https://github.com/SquadRules/mcp/compare/v5.13.5...v5.13.6) (2026-10-27)
+
+
+### Bug Fixes
+
+* **ci:** route required merge evidence by change class ([#203](https://github.com/SquadRules/mcp/issues/203)) ([7b16309](https://github.com/SquadRules/mcp/commit/7b16309fa2d812191e0caab3abc4018d5686bc32))
+* harden embedding dimension resolution and document migration ([#202](https://github.com/SquadRules/mcp/issues/202)) ([c12943a](https://github.com/SquadRules/mcp/commit/c12943a2f62a096d0e4b6408c3ff991e2352b25a))
+* **scripts:** correct stale npm-target references and repair deploy-dev-cli-ready.sh ([#189](https://github.com/SquadRules/mcp/issues/189)) ([c1f341f](https://github.com/SquadRules/mcp/commit/c1f341fefbfadb475eeb6f807d0139fcbbcc41c7))
+
+## [5.13.5](https://github.com/SquadRules/mcp/compare/v5.13.4...v5.13.5) (2026-10-25)
+
+
+### Bug Fixes
+
+* **deps:** pin @anush008/tokenizers to ^0.6.0 for linux/arm64 native bindings ([#178](https://github.com/SquadRules/mcp/issues/178)) ([6e047cf](https://github.com/SquadRules/mcp/commit/6e047cf8836bbfd565226e941c3a6ec1c2316498)), closes [#173](https://github.com/SquadRules/mcp/issues/173)
+
+## [5.13.4](https://github.com/SquadRules/mcp/compare/v5.13.3...v5.13.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* **ci:** handle redundant dependency PRs and enforce auto-merge gates ([#175](https://github.com/SquadRules/mcp/issues/175)) ([d0f7339](https://github.com/SquadRules/mcp/commit/d0f7339bf41f04cb29458195dd7ddab34ae5b970))
+* **deps:** resolve npm security advisories ([#176](https://github.com/SquadRules/mcp/issues/176)) ([e2c9c91](https://github.com/SquadRules/mcp/commit/e2c9c915a5051c83426c79aee7ca3eab049b4b4e))
+
 ## [5.13.3](https://github.com/SquadRules/mcp/compare/v5.13.2...v5.13.3) (2026-10-24)
 
 

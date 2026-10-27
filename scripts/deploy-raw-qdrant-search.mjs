@@ -5,7 +5,7 @@
  *
  * Usage (from repo root, .env with QDRANT_* and OPENAI_*):
  *   node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs "get help refining your search"
- *   npm run prod:raw-qdrant-search -- "create new SQUADRULES adapter"
+ *   node -r dotenv/config scripts/deploy-raw-qdrant-search.mjs "create new SQUADRULES adapter"
  */
 import 'dotenv/config';
 

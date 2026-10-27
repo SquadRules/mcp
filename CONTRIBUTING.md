@@ -97,9 +97,13 @@ in the PR description. Use Conventional Commit titles such as `fix:`, `feat:`,
 or `docs:`; mark breaking changes explicitly.
 
 Push the branch and verify checks for the PR's latest commit. Resolve relevant
-failures before reporting delivery complete. The workflow gates are
-`Integration workflow passed`, `Security workflow passed`, and
-`Automation policy passed`.
+failures before reporting delivery complete. The `main merge gate` ruleset makes
+`Automation policy passed` and `CI gate passed` required on every PR. `CI gate
+passed` routes validation by what the PR changes: documentation-only PRs get the
+documentation checks run inside the gate itself, and PRs touching application
+paths pass only once `Integration workflow passed` and `Security workflow passed`
+have completed successfully for the PR head commit — those two contexts report on
+PRs whose changed paths match their filters but are enforced through the gate.
 
 The [Release workflow](.github/workflows/release.yml) uses Release Please to
 prepare a version PR. After that PR merges, the workflow publishes the tagged

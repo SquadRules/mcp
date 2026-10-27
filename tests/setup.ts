@@ -13,7 +13,7 @@ import { join } from 'node:path';
 if (process.env.QDRANT_URL === undefined) process.env.QDRANT_URL = '';
 if (process.env.TRANSPORT_TYPE === undefined) process.env.TRANSPORT_TYPE = 'stdio';
 
-// Restore the per-run config isolation that scripts/deploy-run-env.sh used to provide
+// Restore the per-run config isolation that the retired profile runner used to provide
 // (`export XDG_CONFIG_HOME=$CLI_CONFIG_DIR`; "CLI uses XDG_CONFIG_HOME, tests must not set it").
 // With the ENV-less `npm test` there is no external runner, so the harness self-isolates: point
 // XDG_CONFIG_HOME at ONE temp dir for the whole run. This keeps the embedded LanceDB store and CLI

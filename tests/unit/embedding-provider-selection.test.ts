@@ -10,6 +10,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { getTestEmbeddingDimension } from '../utils/embedding-test-utils.js';
 
 const EMBEDDING_ENV_KEYS = [
   'EMBEDDING_PROVIDER',
@@ -44,7 +45,7 @@ async function freshService() {
  * Fresh service with the embedding dimension primed (getConfig() reads it via the
  * `embeddingDimension` getter, which throws until a probe resolves it).
  */
-async function freshServiceWithDimension(dim = 384) {
+async function freshServiceWithDimension(dim = getTestEmbeddingDimension()) {
   const svc = await freshService();
   const cfgMod = await import('../../src/services/embedding/config.js');
   cfgMod.setResolvedEmbeddingDimension(dim);
@@ -133,7 +134,7 @@ describe('embedding provider selection (issue #11)', () => {
         FlagEmbedding: {
           init: jest.fn(async () => ({
             embed: async function* (texts: string[]) {
-              yield texts.map(() => Array.from({ length: 384 }, (_, i) => 0.001 * i));
+              yield texts.map(() => Array.from({ length: getTestEmbeddingDimension() }, (_, i) => 0.001 * i));
             },
           })),
         },

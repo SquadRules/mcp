@@ -3,7 +3,7 @@
  *
  * Ordering intent after the tests/integration read-only vs write reorg:
  * the read-only (tests/integration/readonly/**) and write (tests/integration/write/**)
- * buckets run in separate Jest invocations (see scripts/deploy-run-env.sh, read-only-first
+ * buckets run in separate Jest invocations (read-only-first
  * fail-fast), so the historical "run train/update before the activate suite" cross-file
  * ordering is no longer required — each read-only file provisions its own fixtures.
  *

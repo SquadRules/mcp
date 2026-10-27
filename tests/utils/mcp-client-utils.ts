@@ -19,7 +19,7 @@ import {
 } from './auth-headers.js';
 import { applyLocalStdioEnv } from './stdio-simple-env.js';
 
-/** True when the test runner should use stdio transport (dev_stdio profile). */
+/** True when the test runner should use stdio transport (TRANSPORT_TYPE=stdio). */
 function isStdioTransport(): boolean {
   return process.env.TRANSPORT_TYPE === 'stdio';
 }
