@@ -1,37 +1,4 @@
-/**
- * Qdrant store initialization and migration logic.
- *
- * This module handles the boot-time initialization of the Qdrant memory store, including:
- * - Detecting existing collection layouts (single vector vs named vectors)
- * - Migrating between embedding dimensions when the provider/model changes
- * - Adding missing named vectors (adapter_title_vs{dim}, activation_pattern_vs{dim})
- * - Ensuring BM25 sparse vector config for hybrid search
- * - Creating full-text indexes on searchable payload fields
- * - Backfilling activation search vectors
- *
- * ## Vector Dimension Migration
- *
- * SquadRules stores embeddings in dimension-keyed named vectors: `vs{dim}`, `adapter_title_vs{dim}`,
- * `activation_pattern_vs{dim}`. When the embedding provider or model changes, the dimension changes
- * (e.g., 384 for fast-bge-small-en-v1.5, 1536 for text-embedding-3-small), requiring migration.
- *
- * Migration strategy:
- * 1. Detect existing layout (single vector `vs{oldDim}` vs named vectors)
- * 2. Add the new named vector `vs{newDim}` to the collection
- * 3. Re-embed all points from old vector to new vector using `migrateVectorSpace`
- * 4. Remove the old vector (if not required by the new schema)
- * 5. Add any missing companion vectors (adapter_title, activation_pattern)
- *
- * ## BM25 Sparse Vector Migration
- *
- * Older collections may lack BM25 sparse vector config. The `ensureBm25SparseConfig` function
- * attempts to add it via `updateCollection`. If the Qdrant server doesn't support this operation,
- * it falls back to a recreation-based migration: copy all data to a temp collection with the new
- * schema, delete the original, recreate with the new schema, and restore data.
- *
- * Rollback: if migration aborts before deleting source, no change. If it aborts after delete,
- * the temp collection holds data (use as QDRANT_COLLECTION for recovery).
- */
+/** Qdrant store init: detect layout, migrate dimension, ensure BM25 (recreate via temp if needed), full-text indexes, activation backfill. */
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { logger } from '../../utils/structured-logger.js';
@@ -203,37 +170,7 @@ async function ensureFullTextIndexes(client: QdrantClient, collection: string): 
   }
 }
 
-/**
- * Initialize the Qdrant memory store with the correct vector schema.
- *
- * This function is called at boot time to ensure the Qdrant collection exists and has the
- * correct vector configuration for the current embedding provider/model.
- *
- * ## Migration Scenarios
- *
- * 1. **New collection**: Create with current vector descriptors (vs{dim}, adapter_title_vs{dim}, etc.)
- * 2. **Existing single-vector layout** (pre-named-vectors): Migrate to named vector layout
- * 3. **Existing named vectors with wrong dimension**: Re-embed all points to new dimension
- * 4. **Existing named vectors with correct dimension but missing companions**: Add missing vectors
- * 5. **Existing collection without BM25**: Add BM25 sparse vector config (may require recreation)
- *
- * ## Steps
- *
- * 1. Check if collection exists
- * 2. If not, create with current vector descriptors
- * 3. If yes, detect existing layout and migrate if needed:
- *    - Add named vector for existing single-vector layout
- *    - Add new vector space for current dimension
- *    - Re-embed data from old to new vector
- *    - Remove old vector (if not required)
- * 4. Ensure BM25 sparse vector config
- * 5. Ensure full-text indexes on searchable fields
- * 6. Backfill activation search vectors
- *
- * @param client - Qdrant client instance
- * @param collection - Collection name
- * @param url - Qdrant server URL (for logging)
- */
+/** Initialize Qdrant store: detect layout, migrate dimension if needed, ensure BM25 + full-text indexes. */
 export async function initializeQdrantStore(client: QdrantClient, collection: string, url: string): Promise<void> {
   try {
     logger.info(
