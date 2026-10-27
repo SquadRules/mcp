@@ -1,5 +1,4 @@
 /** Qdrant store init: detect layout, migrate dimension, ensure BM25 (recreate via temp if needed), full-text indexes, activation backfill. */
-
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { logger } from '../../utils/structured-logger.js';
 import type { VectorDescriptorMap } from '../../utils/qdrant-vector-types.js';
