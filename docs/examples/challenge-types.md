@@ -20,7 +20,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 1. Copy the full content of one of the adapter markdown files above (or combine steps into your own document).
 2. Ensure each step ends with a single ` ```json ` block containing an object with a `contract` key (see the examples).
 3. Call `train` with `content`, `llm_model_id`, and optionally `force_update: true`.
-4. [adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md) needs a second `train` for its gate script: artifact trains take `adapter_uri`, `mime`, `artifact_name`, and `llm_model_id`, and run only after the adapter exists.
+4. [adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md) needs a second `train` for its gate script: an artifact train attaches to the adapter created in step 3, so it runs only after that adapter exists. Its input fields are in the `train` tool description.
 
 ## Contract types and structural rules
 
