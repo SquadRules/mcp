@@ -118,7 +118,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Idempotent realm setup via scripts/deploy-configure-keycloak-realms.py only (npm run infra:up). Do not add --import-realm.
+    # Idempotent realm setup via scripts/deploy-configure-keycloak-realms.py only (run it after `docker compose ... --profile fullstack up -d`). Do not add --import-realm.
     # Group mapper `full.path` is always applied by deploy-configure-keycloak-realms.py (not a Keycloak KC_* env var).
     command:
       - start-dev
