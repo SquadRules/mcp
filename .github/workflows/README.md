@@ -2,7 +2,8 @@
 
 ## Validation and release
 
-Pull requests and merge groups run Integration, Security and Automation policy.
+Every pull request and merge group runs Automation policy. Integration and Security run on the
+pull requests whose changed paths match their filters.
 Every push to `main` runs Release Please. Normal changes accumulate in a bot-managed
 Release PR; that PR is gated by the same protected-branch checks as every other PR.
 Only after the Release PR is merged does Release Please create the tag/GitHub Release
@@ -22,13 +23,17 @@ protected `main` directly.
 
 ## Required checks and runtime support
 
-Protect main with `Integration workflow passed`, `Security workflow passed`, and
-`Automation policy passed`. Both Node 24 and Node 26 build/static/package lanes
-are blocking. The publisher runs Node 26. The package retains Node `>=24.0.0`; Node 22 and older are
+`main` is protected by the `main merge gate` ruleset. It requires `Automation policy passed` from
+GitHub Actions, requires pull requests to be tested against the latest `main`, and defines no
+bypass actors. `Integration workflow passed` and `Security workflow passed` report on pull requests
+that match their path filters but are not required to merge. Both Node 24 and Node 26
+build/static/package lanes are blocking. The publisher runs Node 26. The package retains Node `>=24.0.0`; Node 22 and older are
 not supported. Review the matrix as Node releases
 move through support; new majors are not implicitly a tested compatibility claim.
 
-All PRs run validation, including documentation changes. Checkout uses the exact
+All pull requests run the Automation policy checks. Integration and Security run only when
+the pull request's changed paths match their filters, so documentation outside those
+lists (for example `docs/**`) runs neither lane. Checkout uses the exact
 event revision and does not persist Git credentials. PR checks never push fixes.
 Publishing permissions exist only in the guarded Release job; CodeQL has its own
 security-events permission for uploading analysis.
