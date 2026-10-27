@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.13.7](https://github.com/SquadRules/mcp/compare/v5.13.6...v5.13.7) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm security advisories ([#208](https://github.com/SquadRules/mcp/issues/208)) ([aa27277](https://github.com/SquadRules/mcp/commit/aa27277a1b601ad77e3ac28e2ff7152fd7edaa9b))
+
 ## [5.13.6](https://github.com/SquadRules/mcp/compare/v5.13.5...v5.13.6) (2026-10-27)
 
 
