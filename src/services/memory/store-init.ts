@@ -1,3 +1,4 @@
+/** Qdrant store init: detect layout, migrate dimension, ensure BM25 (recreate via temp if needed), full-text indexes, activation backfill. */
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { logger } from '../../utils/structured-logger.js';
 import type { VectorDescriptorMap } from '../../utils/qdrant-vector-types.js';
@@ -168,6 +169,7 @@ async function ensureFullTextIndexes(client: QdrantClient, collection: string): 
   }
 }
 
+/** Initialize Qdrant store: detect layout, migrate dimension if needed, ensure BM25 + full-text indexes. */
 export async function initializeQdrantStore(client: QdrantClient, collection: string, url: string): Promise<void> {
   try {
     logger.info(
