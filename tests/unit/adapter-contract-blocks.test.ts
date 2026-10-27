@@ -138,15 +138,66 @@ Suffix text`;
       expect(afterBlock.trim()).toBe('Suffix text');
     });
 
-    test('embedded create-new-adapter flow has only valid contract types and expected step count', () => {
+    test('embedded author-adapter flow carries the critic hop and the verdict gate only (ADR 0034)', () => {
       const md = readFileSync(
         join(process.cwd(), 'src/embed-docs/mem/author-adapter.md'),
         'utf8'
       );
       const results = findAllLayerContractBlocks(md);
-      expect(results).toHaveLength(6);
+      expect(results).toHaveLength(2);
+      expect(results.map((r) => r.contract.type)).toEqual(['subagent', 'shell']);
       for (const result of results) {
         expect(ALLOWED.has(String(result.contract.type))).toBe(true);
+      }
+    });
+
+    test('bundled adapters keep the ADR 0034 contract budget and shapes', () => {
+      const memDir = join(process.cwd(), 'src/embed-docs/mem');
+      const files = readdirSync(memDir).filter(f => f.endsWith('.md'));
+      // ADR 0034 Decision 4: isolation plus ADR 0024 section 3 collapse the ceremony.
+      const expectedCounts: Record<string, string[]> = {
+        'author-adapter.md': ['subagent', 'shell'],
+        'adapter-migration.md': ['subagent', 'shell'],
+        'bulk-insert-adapters-via-cli.md': ['subagent', 'shell', 'shell'],
+        'critic-loop.md': ['shell'],
+        'refine-search.md': ['comment']
+      };
+
+      for (const [file, expectedTypes] of Object.entries(expectedCounts)) {
+        const md = readFileSync(join(memDir, file), 'utf8');
+        const types = findAllLayerContractBlocks(md).map(r => String(r.contract.type));
+        expect({ file, types }).toEqual({ file, types: expectedTypes });
+      }
+
+      for (const file of files) {
+        const md = readFileSync(join(memDir, file), 'utf8');
+        const contracts = findAllLayerContractBlocks(md).map(r => r.contract);
+        const types = contracts.map(c => String(c.type));
+
+        // ADR 0024 section 4: at most one comment, never combined with another type.
+        if (types.includes('comment')) {
+          expect({ file, types }).toEqual({ file, types: ['comment'] });
+        }
+
+        for (const contract of contracts) {
+          if (contract.type === 'shell') {
+            // ADR 0034: a gate must observe something; an echo-only cmd asserts a claim.
+            const cmd = String(contract.shell?.cmd ?? '');
+            expect(cmd.trim().startsWith('echo')).toBe(false);
+          }
+
+          if (contract.type === 'forward') {
+            // ADR 0034 Decision 1: a critic hop is never a forward link on the caller's thread.
+            expect(String(contract.forward?.target)).not.toBe('squadrules://adapter/critic-loop');
+          }
+
+          if (String(contract.type) === 'subagent' && String(contract.subagent?.context ?? '').includes('critic')) {
+            // ADR 0034 Decision 2: the critic hop pins the call the subagent must make.
+            const mcp = contract.subagent?.mcp ?? [];
+            expect(mcp.some(call => call.tool_name === 'forward'
+              && (call.arguments as { uri?: string }).uri === 'squadrules://adapter/critic-loop')).toBe(true);
+          }
+        }
       }
     });
 

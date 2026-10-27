@@ -4,7 +4,7 @@ slug: example-artifact-gate
 
 # Example: Multi-step gate shipped as an artifact
 
-Short adapter example: one `shell` contract whose check has several conditions, kept out of the markdown as a **gate script artifact**. `cmd` is program text rather than a file path for every interpreter — the full rule and field names are in [contract types](../challenge-types.md), the decision in [ADR 0031](../../adr/0031-gate-scripts-as-adapter-artifacts.md).
+Short adapter example: one `shell` contract whose check has several conditions, kept out of the markdown as a **gate script artifact**. `cmd` is program text rather than a file path for every interpreter — the full rule and field names are in [contract types](../challenge-types.md), the decision in [ADR 0033](../../adr/0033-gate-scripts-as-adapter-artifacts.md).
 
 The frontmatter `slug` pins the adapter URI to `squadrules://adapter/example-artifact-gate`, which is what the artifact `train` below targets.
 
@@ -31,7 +31,7 @@ If `activate` already shows `artifacts/artifact-gate-check.py` in `linked_artifa
 
 Then `activate` the adapter and confirm `linked_artifacts[].relative_path` equals `artifacts/artifact-gate-check.py` — that is the path the contract below invokes. Before running the contract, run the row's `materialize` command; it writes the script into `$SQUADRULES_LOCAL_ARTIFACT_DIR` and verifies its `sha256`.
 
-Read the path from `activate`, never assume it — the two train layouts differ ([ADR 0031 §7](../../adr/0031-gate-scripts-as-adapter-artifacts.md)).
+Read the path from `activate`, never assume it — the two train layouts differ ([ADR 0033 §7](../../adr/0033-gate-scripts-as-adapter-artifacts.md)).
 
 The contract itself stays one line. `interpreter` names the wrapper that runs that line, not the language of the script:
 

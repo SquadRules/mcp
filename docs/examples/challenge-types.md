@@ -37,7 +37,7 @@ Rung 1 of the verification ladder ([ADR 0024](../adr/0024-adapter-contract-verif
   (`interpreter: "bash"`, `cmd: python3 "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`).
 - `shell.timeout_seconds` — execution timeout.
 
-Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a shell line. When a check needs several conditions or parses JSON, ship it as an adapter **artifact** and keep the contract a one-line invocation of that script: [artifact-gate/adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md), [ADR 0031](../adr/0031-gate-scripts-as-adapter-artifacts.md).
+Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a shell line. When a check needs several conditions or parses JSON, ship it as an adapter **artifact** and keep the contract a one-line invocation of that script: [artifact-gate/adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md), [ADR 0033](../adr/0033-gate-scripts-as-adapter-artifacts.md).
 
 ### forward
 

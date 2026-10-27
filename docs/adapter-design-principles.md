@@ -133,6 +133,6 @@ live in the ADRs; the authoring rules derived from them live in the
 - [ADR 0029](adr/0029-subagent-mcp-and-context-authority.md) — delegated MCP tool
   work is named in `subagent.mcp` and executed by the subagent, never on the
   caller's thread.
-- [ADR 0031](adr/0031-gate-scripts-as-adapter-artifacts.md) — a multi-step check
+- [ADR 0033](adr/0033-gate-scripts-as-adapter-artifacts.md) — a multi-step check
   ships as a gate script artifact the adapter materializes, not as an escaped
   one-liner in `cmd`; help over puzzles applies to the author, too.

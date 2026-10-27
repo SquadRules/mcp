@@ -17,25 +17,40 @@ review, and handoff. The bundle prefers truth, explicit sequencing, and
 observable verification over polished but weak wording.
 
 **Autonomy (AI-ownership).** The bundle is written for autonomous execution:
-adapters resolve intent from context, run critic-loop in a loop until it returns
-`PASS`, and gate irreversible remote mutations with objective pre/post contracts
-(shell/forward) rather than human confirmation. They do **not** stop to ask a human to
+adapters resolve intent from context, delegate `critic-loop` to a subagent and
+loop until it returns `PASS`, and gate irreversible remote mutations with
+objective pre/post `shell` contracts rather than human confirmation. They do
+**not** stop to ask a human to
 approve or acknowledge. Human escalation is reserved for genuinely ambiguous intent
 or a hard blocker (a required tool/auth that cannot be established automatically).
 
-**Verification ladder (hard enforcement).** Every contract must use the strongest
-observable verification available:
+**Verification ladder.** Every contract must use the strongest observable
+verification available:
 
 1. `shell` — for file/state/command verification. **`interpreter` is REQUIRED**
    (allowed: `bash`, `sh`, `python3`, `python`, `node`).
-2. `forward` — **links to another adapter**. Must set `forward.target` matching
-   `squadrules://adapter/<slug>`. Bare MCP tool calls are not valid forward
-   contracts — delegate them inside a `subagent` (rung 3).
-3. `subagent` — for delegated work that requires multi-step reasoning or tool
-   orchestration by another agent.
-4. `user_input` — only for genuine human decisions.
-5. `comment` — last resort. Max 1 per adapter, only as closing ACK for
+2. `subagent` — delegated judgment (a critic), and delegated MCP tool work whose
+   transcript must stay out of the caller's context.
+3. `comment` — last resort. Max 1 per adapter, only as closing ACK for
    knowledge/reference adapters.
+
+`forward` is not a ladder rung: it is a **link** to another adapter, and it must
+set `forward.target` matching `squadrules://adapter/<slug>`. Bare MCP tool calls
+are not valid `forward` contracts — delegate them inside a `subagent`.
+`user_input` is not a rung either: it is an emergency type for a genuine human
+decision, never a verification (see *`user_input` — emergency only* in
+`docs/adapter-authoring-guide.md`).
+
+**The critic never runs on the executor's thread.** A contract that reviews the
+work of the current run is a `subagent` contract whose `subagent.mcp` names
+`forward` → `squadrules://adapter/critic-loop`; it is never a `forward` contract,
+which would have the audited agent perform its own review. A separate
+server-owned review (different model, session, and content-bound receipt) is the
+end state; the subagent hop is the best available form today.
+
+Rungs and counts are **soft-enforced** by these docs and the review checklists.
+The fail-closed structural rules are the three objective ones:
+`shell_interpreter_required`, `forward_link_only`, `subagent_mcp_invalid`.
 
 Bundled mem resources intentionally use **adapter** and **workflow** as preferred
 terms. Avoid bare "protocol" in new copy.
@@ -53,7 +68,7 @@ terms. Avoid bare "protocol" in new copy.
 ### Linked authoring flow
 
 ```text
-author-adapter (Author) → forward(squadrules://adapter/critic-loop) → critic-loop (Critic-Loop Review) → train (with review_evidence)
+author-adapter (Author) → subagent hop (forward → critic-loop) → verdict file → gate PASS → train (with review_evidence)
 ```
 
 ## Reference Documents
@@ -87,9 +102,11 @@ lines should stay as one adapter with 6 H2 layers.
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with squadrules://adapter/critic-loop and no solution to start the critic loop
 call forward with squadrules://adapter/implement-terraform and no solution to start this adapter
 ```
+
+A review hop is not a chain link: reach `critic-loop` from a `subagent` contract
+so the review runs apart from the agent that produced the work.
 
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.
@@ -115,6 +132,7 @@ not just any `forward` call.
 | Target depends on runtime classification the current adapter cannot resolve | `activate` |
 | Linking to the next adapter in a chain | `forward` + slug |
 | Reusable sub-adapter invoked by multiple parents | `forward` + slug |
+| Inviting `critic-loop` to review this run's work | `subagent` hop naming `forward` |
 
 Never call `activate` just to get a slug you already know — it wastes a
 round-trip and introduces non-determinism.

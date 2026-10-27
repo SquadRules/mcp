@@ -50,7 +50,12 @@ cohesive concern.
 - the adapter exceeds 350 lines
 - weaker models cannot follow the full adapter in one pass
 - runtime routing to different adapters is needed (Router pattern)
-- a step is reusable across multiple parent adapters (e.g. `critic-loop`)
+- a step is reusable across multiple parent adapters (e.g. a shared
+  deployment-check adapter)
+
+A review is **not** a chain link: reaching `critic-loop` to audit the current
+run's work is a `subagent` hop, because a `forward` hop leaves the critic on the
+thread that made the mistakes.
 
 Chaining is NOT a replacement for layers. A 6-step adapter that fits in 350
 lines should stay as one adapter with 6 H2 layers.
@@ -118,9 +123,11 @@ To run an extension adapter, call **`forward`** with
 Both system and user-authored adapters chain using slugs in `next_action`:
 
 ```text
-call forward with squadrules://adapter/critic-loop ...
 call forward with squadrules://adapter/implement-terraform ...
 ```
+
+A review hop is not a chain link — reach `critic-loop` from a `subagent` contract
+whose `subagent.mcp` names `forward`.
 
 Slugs are globally unique (enforced by `train`), so resolution is
 deterministic — no scoring, no ambiguity.

@@ -6,7 +6,7 @@ This folder contains **markdown adapters ready for `train`** and a short referen
 
 All examples in this folder conform to the structural validation rules:
 
-- **Shell contracts must name an interpreter** — one of `bash`, `sh`, `python3`, `python`, `node`. Absent interpreter is rejected with `shell_interpreter_required` ([ADR 0026](../adr/0026-shell-interpreter-required.md)). A multi-step check ships as an artifact gate script rather than an inline one-liner ([ADR 0031](../adr/0031-gate-scripts-as-adapter-artifacts.md), [example](artifact-gate/adapter-example-artifact-gate.md)).
+- **Shell contracts must name an interpreter** — one of `bash`, `sh`, `python3`, `python`, `node`. Absent interpreter is rejected with `shell_interpreter_required` ([ADR 0026](../adr/0026-shell-interpreter-required.md)). A multi-step check ships as an artifact gate script rather than an inline one-liner ([ADR 0033](../adr/0033-gate-scripts-as-adapter-artifacts.md), [example](artifact-gate/adapter-example-artifact-gate.md)).
 - **Forward contracts link to another adapter only** — `forward.target` matching `squadrules://adapter/<slug>`. Bare tool calls are rejected with `forward_link_only` ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)).
 - **`subagent` is a valid contract type** — for delegated judgment or delegated MCP tool work ([ADR 0024](../adr/0024-adapter-contract-verification-ladder.md) §2). Its optional `subagent.mcp` list names the real tool calls the subagent must make; a malformed list is rejected with `subagent_mcp_invalid` ([ADR 0029](../adr/0029-subagent-mcp-and-context-authority.md)).
 

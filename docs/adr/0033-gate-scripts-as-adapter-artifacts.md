@@ -1,4 +1,4 @@
-# ADR 0031: Multi-step shell checks ship as adapter artifacts; `shell.cmd` is program text
+# ADR 0033: Multi-step shell checks ship as adapter artifacts; `shell.cmd` is program text
 
 ## Status
 

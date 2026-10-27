@@ -135,7 +135,7 @@ Every solution follows the same envelope:
 
 **forward solution**
 ```json
-{"type":"forward","outcome":"success","evidence":{"target":"squadrules://adapter/critic-loop","success":true}}
+{"type":"forward","outcome":"success","evidence":{"target":"squadrules://adapter/implement-terraform","success":true}}
 ```
 
 **subagent solution**
@@ -236,7 +236,8 @@ external worktrees, or open the worktree as a separate project window.
 **Write-then-grep** — subagent writes a verdict file, main agent checks line 1.
 
 **Phase-batch with critic** — batch related items, verify hard artifacts with
-shell, then call `critic-loop` for adversarial review.
+shell, then delegate `critic-loop` for adversarial review from a `subagent`
+contract. The review must not run on the thread that produced the work.
 
 **Chain-link via forward + slug** — layer N's contract requires `forward` with a
 specific adapter slug. Use when the adapter exceeds 350 lines or needs
