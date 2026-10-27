@@ -16,21 +16,22 @@ Run when user says "example artifact gate" or "run the preflight gate".
 
 ## Step 1 — Run the preflight gate
 
-First attach the script to this adapter via the MCP `train` tool (artifacts attach to an **existing** adapter, so the adapter markdown must be trained first):
+If `activate` already shows `artifacts/artifact-gate-check.py` in `linked_artifacts[]`, skip this train — the artifact is attached. Otherwise attach the script via the MCP `train` tool (artifacts attach to an **existing** adapter, so the adapter markdown must be trained first). `force_update: true` makes the call safe on re-runs:
 
 ```json
 {
-  "content": "<script body — read the file>",
+  "content": "<contents of artifact-gate-check.py>",
   "llm_model_id": "<model-id>",
   "adapter_uri": "squadrules://adapter/example-artifact-gate",
   "artifact_name": "artifact-gate-check.py",
-  "mime": "text/x-python"
+  "mime": "text/x-python",
+  "force_update": true
 }
 ```
 
 Then `activate` the adapter and confirm `linked_artifacts[].relative_path` equals `artifacts/artifact-gate-check.py` — that is the path the contract below invokes. Before running the contract, run the row's `materialize` command; it writes the script into `$SQUADRULES_LOCAL_ARTIFACT_DIR` and verifies its `sha256`.
 
-Read the path from `activate`, never assume it: a directory batch train derives `relative_path` from the batch root instead, so the same script lands at a different path. The default `artifacts/<name>` layout applies to single-file artifact trains like the one above.
+Read the path from `activate`, never assume it — the two train layouts differ ([ADR 0031 §7](../../adr/0031-gate-scripts-as-adapter-artifacts.md)).
 
 The contract itself stays one line. `interpreter` names the wrapper that runs that line, not the language of the script:
 

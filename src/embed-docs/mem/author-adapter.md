@@ -133,7 +133,8 @@ error, and plan the minimal change.
   adapters via `forward`.
 - Personal adapters must be **self-contained**.
 - When a `shell` check has more than one condition, parses JSON, or does not fit
-  one readable line, put it in a **gate script artifact**; never escape a program
+  one readable line, put it in a **gate script artifact** — it is stored with the
+  adapter and materialized at run time, not read from your local files; never escape a program
   inline into `cmd`.
 - Order: `train` the adapter markdown first, then `train` the script as an
   artifact — an artifact attaches only to an adapter that already exists. Pin the

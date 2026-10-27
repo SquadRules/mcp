@@ -173,7 +173,7 @@ needs. All four operations are autonomous: no human approval gate, and the
   prompt; draft the markdown. Verify readiness with one combined `shell` check on
   the draft's mechanical structure, and use a `subagent` critic (rung 2) for
   intent, authorization, and clarity. Publish with `train`, attach any gate
-  script with a second `train` (`mime`, `artifact_name`, `adapter_uri`), then
+  script with a second `train` (input fields: the `train` tool description), then
   verify the stored result against the intended adapter — `activate` it and
   confirm every `linked_artifacts[].relative_path` matches the path its contract
   invokes. Do not add separate contracts for "requirements written", "draft
