@@ -9,6 +9,7 @@ Retires the enforcement-gap consequence of
 [0023](0023-mandatory-ci-and-fail-closed-gates.md), whose fail-closed aggregate mechanism
 this record extends. Neither earlier body is edited.
 Date: 2026-10-27
+Enforcement applied: 2026-10-27 (ruleset `25951418` now requires `Automation policy passed` and `CI gate passed`)
 
 ## Context
 
