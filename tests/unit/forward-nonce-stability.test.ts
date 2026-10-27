@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import type { Memory } from '../../src/types/memory.js';
+import { getTestEmbeddingDimension } from '../utils/embedding-test-utils.js';
 
 const nonceByUuid = new Map<string, string>();
 
@@ -30,7 +31,7 @@ jest.unstable_mockModule('../../src/services/forward-runtime-store.js', () => ({
 
 jest.unstable_mockModule('../../src/services/embedding/service.js', () => ({
   embeddingService: {
-    generateEmbedding: async () => ({ embedding: new Array(384).fill(0) }),
+    generateEmbedding: async () => ({ embedding: new Array(getTestEmbeddingDimension()).fill(0) }),
     calculateCosineSimilarity: () => 0.5
   }
 }));
