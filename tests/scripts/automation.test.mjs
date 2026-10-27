@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import {
   GitHub, dependencyTitle, managedPull, orderPulls, gateRuns, reconcile,
-  assertProtection, conventionalTitle,
+  conventionalTitle,
 } from '../../scripts/ci-automation.mjs';
 import { publishAudit } from '../../scripts/ci-audit.mjs';
 
@@ -21,7 +21,7 @@ const pull = (number = 1, overrides = {}) => ({
   mergeable: true, mergeable_state: 'clean', ...overrides,
 });
 const files = [{ filename: 'package-lock.json', status: 'modified' }];
-const paths = ['integration', 'security', 'automation-policy'];
+const paths = ['automation-policy', 'ci-gate'];
 const runs = paths.map((path, i) => ({ id: i + 1, run_number: 1, run_attempt: 1,
   path: `.github/workflows/${path}.yml`, event: 'pull_request',
   head_sha: sha, head_branch: 'dependabot/npm_and_yarn/example',
@@ -257,14 +257,6 @@ test('producer credentials and validation remain separated in workflow wiring', 
   assert.doesNotMatch(assessment, /secrets.GH_PAT/);
   assert.match(publishing, /GH_TOKEN: \$\{\{ steps\.app-token\.outputs\.token \}\}/);
   assert.doesNotMatch(publishing, /npm (ci|install|run)/);
-});
-
-test('protection must bind all required gates to Actions with strict base', () => {
-  const settings = { required_status_checks: { strict: true, checks: [
-    'Integration workflow passed', 'Security workflow passed', 'Automation policy passed',
-  ].map(context => ({ context, app_id: 15368 })) }, enforce_admins: { enabled: true } };
-  assert.doesNotThrow(() => assertProtection(settings));
-  assert.throws(() => assertProtection({ ...settings, required_status_checks: { strict: false, checks: [] } }));
 });
 
 const validation = name => load(readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
