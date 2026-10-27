@@ -138,7 +138,7 @@ error, and plan the minimal change.
 - Order: `train` the adapter markdown first, then `train` the script as an
   artifact — an artifact attaches only to an adapter that already exists. Pin the
   script's identity with a `# squadrules-artifact:` header, and pass
-  `force_update: true` (`--force`) on a re-train that matches it, so a fix updates
+  `force_update: true` on a re-train that matches it, so a fix updates
   that artifact instead of adding a second one. Input fields and the refusal
   message: the `train` tool description.
 - The artifact train targets `squadrules://adapter/<slug>`, so pin the adapter's

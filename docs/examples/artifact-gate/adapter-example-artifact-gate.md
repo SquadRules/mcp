@@ -16,18 +16,21 @@ Run when user says "example artifact gate" or "run the preflight gate".
 
 ## Step 1 — Run the preflight gate
 
-First attach the script to this adapter (one extra `train` call — artifacts are attached to an **existing** adapter, so the adapter markdown must be trained first):
+First attach the script to this adapter via the MCP `train` tool (artifacts attach to an **existing** adapter, so the adapter markdown must be trained first):
 
-```bash
-squadrules train ./artifact-gate-check.py \
-  --adapter squadrules://adapter/example-artifact-gate \
-  --artifact-name artifact-gate-check.py \
-  --mime text/x-python --model <model-id>
+```json
+{
+  "content": "<script body — read the file>",
+  "llm_model_id": "<model-id>",
+  "adapter_uri": "squadrules://adapter/example-artifact-gate",
+  "artifact_name": "artifact-gate-check.py",
+  "mime": "text/x-python"
+}
 ```
 
 Then `activate` the adapter and confirm `linked_artifacts[].relative_path` equals `artifacts/artifact-gate-check.py` — that is the path the contract below invokes. Before running the contract, run the row's `materialize` command; it writes the script into `$SQUADRULES_LOCAL_ARTIFACT_DIR` and verifies its `sha256`.
 
-Read the path from `activate`, never assume it: a directory `train` batch derives `relative_path` from the batch root instead, so the same script lands at a different path. The default `artifacts/<name>` layout applies to single-file `--adapter` trains like the one above.
+Read the path from `activate`, never assume it: a directory batch train derives `relative_path` from the batch root instead, so the same script lands at a different path. The default `artifacts/<name>` layout applies to single-file artifact trains like the one above.
 
 The contract itself stays one line. `interpreter` names the wrapper that runs that line, not the language of the script:
 
@@ -56,7 +59,7 @@ Only reachable after Step 1 is solved. Show the output from Step 1 to the user (
 - **One artifact, many gates.** The script dispatches on `--gate`, so adding a second gate is one entry in its `GATES` map instead of another inline program in the markdown, and every adapter that attaches the artifact gets that gate. This example ships `preflight`; a `commit` or `pr` gate would be added the same way. Ambiguous multistep logic does not get re-typed inline per contract, and a fix to the gate fixes every caller.
 - **The contract stays auditable.** A reviewer reads one line and knows which script runs and which gate.
 - **The check is testable on its own.** Run `python3 artifact-gate-check.py --gate preflight` without SquadRules to reproduce a failure.
-- **Re-train, do not re-inline.** When the checks change, `train` the script again with the same `slug` header **and** `--force` (`force_update: true` on the MCP tool). The header slug makes the re-train match the existing artifact, and the force flag replaces it in place; without the flag `train` refuses with `Artifact "…" already exists on this adapter`, and existing contracts keep working either way.
+- **Re-train, do not re-inline.** When the checks change, call `train` again with the same `slug` header **and** `force_update: true`. The header slug makes the re-train match the existing artifact, and the force flag replaces it in place; without it `train` refuses with `Artifact "…" already exists on this adapter`, and existing contracts keep working either way.
 
 ## Reward Signal
 

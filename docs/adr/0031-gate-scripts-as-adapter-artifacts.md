@@ -84,7 +84,7 @@ writes files and prints a manifest. The command failed for every agent.
    known before the artifact train, so pin it with frontmatter `slug:` rather than
    guessing what `train` derived from the title. The script carries a
    `# squadrules-artifact:` header (`slug`, `version`) so a re-train matches the
-   same artifact, and the re-train also needs `force_update: true` (`--force`): the
+   same artifact, and the re-train also needs `force_update: true`: the
    header alone only controls *which* artifact a train matches, and an unflagged
    match is rejected with `Artifact "…" already exists on this adapter`.
 5. **`activate`'s `linked_artifacts[]` is the discovery surface.** Authoring is not
