@@ -181,7 +181,7 @@ transport there.
   gates here are inline conjunctions and cannot be anything else: a bundled
   system adapter has no artifact-attachment path in this repository —
   `src/embed-docs/` ships markdown only, and `artifact_name` reaches the store
-  through `train`, not through boot injection. The gap is recorded, not closed.
+  through `train`, not through boot injection. **Closed by [ADR 0035](0035-bundled-adapter-artifact-exemption.md)**: bundled system adapters are exempt from ADR 0033 §2 because they're versioned with the repo, reviewable in place, and tested by the unit suite.
 
 ## Alternatives Considered
 
@@ -280,5 +280,4 @@ Track in a new issue; do not rewrite this record.
   "never a forward link" clause against the critic hop.
 - [ADR 0033](0033-gate-scripts-as-adapter-artifacts.md) — how a `shell` check is
   expressed (one readable line vs a gate script artifact). Orthogonal to this
-  record, which decides *whose thread* runs the check; see Consequences →
-  Negative for the one place the two rules cannot both be satisfied today.
+  record, which decides *whose thread* runs the check. [ADR 0035](0035-bundled-adapter-artifact-exemption.md) exempts bundled adapters from ADR 0033 §2, closing the gap.
