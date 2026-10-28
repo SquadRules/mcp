@@ -22,6 +22,7 @@ import { listAdapterArtifacts } from './artifact-catalog.js';
 import { mintExportArtifactDownloadCapability } from '../services/export-artifact-download-capability.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
 import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
+import { buildArtifactMaterializeCommand } from './artifact-materialize-command.js';
 import { activateRefinementStore } from '../services/activate-refinement-store.js';
 
 interface RegisterActivateOptions {
@@ -50,28 +51,9 @@ async function mapSearchToActivate(
   query: string,
   options: { executionId: string; includeRefineFooter: boolean }
 ): Promise<ActivateOutput> {
-  const escapeShellSingleQuoted = (value: string): string => value.replace(/'/g, `'\\''`);
-  const escapeShellDoubleQuoted = (value: string): string => value.replace(/["\\$`]/g, '\\$&');
   const safeArtifactFileName = (value: string): string => value.replace(/[/\\]/g, '_');
   const defaultArtifactRelativePath = (fileName: string): string => `artifacts/${safeArtifactFileName(fileName)}`;
   const isStdio = TRANSPORT_TYPE === 'stdio';
-  const materializeCommand = (url: string, relativePath: string, sha256: string): string => {
-    const relForPath = escapeShellDoubleQuoted(relativePath);
-    const relEscaped = escapeShellSingleQuoted(relativePath);
-    const shaEscaped = escapeShellSingleQuoted(sha256);
-    const urlEscaped = escapeShellSingleQuoted(url);
-    const parentDir = relativePath.includes('/') ? relativePath.slice(0, relativePath.lastIndexOf('/')) : '';
-    const parentDirForPath = escapeShellDoubleQuoted(parentDir);
-    const mkdirPart =
-      parentDir.length > 0
-        ? `mkdir -p "$SQUADRULES_LOCAL_ARTIFACT_DIR/${parentDirForPath}" && `
-        : '';
-    if (isStdio) {
-      // stdio transport has no HTTP listener; use `squadrules export` instead of curl.
-      return `${mkdirPart}squadrules export --uri '${urlEscaped}' --format source > "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
-    }
-    return `${mkdirPart}curl -fsSL '${urlEscaped}' -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
-  };
 
   const visibleChoices = options.includeRefineFooter
     ? searchOutput.choices
@@ -158,7 +140,12 @@ async function mapSearchToActivate(
               download_url: downloadUrl,
               sha256: artifact.sha256,
               content_type: artifact.content_type,
-              materialize: materializeCommand(downloadUrl, relativePath, artifact.sha256)
+              materialize: buildArtifactMaterializeCommand({
+                transport: isStdio ? 'stdio' : 'http',
+                downloadUrl,
+                relativePath,
+                sha256: artifact.sha256
+              })
             };
           })
         );

@@ -12,6 +12,8 @@ export interface ReviewEvidence {
 
 /**
  * Assert that review_evidence proves a PASS verdict from critic-loop.
+ * The critic must run apart from the agent that produced the work (ADR 0034),
+ * so every remediation here instructs a delegation, never a self-review.
  * Throws TrainError on any failure so that the train error pipeline
  * formats the response correctly.
  */
@@ -19,15 +21,15 @@ export function assertReviewEvidencePassed(evidence: ReviewEvidence | undefined)
   if (!evidence) {
     throw new TrainError(
       'REVIEW_EVIDENCE_REQUIRED',
-      'Adapter train requires review_evidence: run critic-loop first and provide the verdict file as proof.',
-      { must_obey: true, next_action: 'call forward with squadrules://adapter/critic-loop to run the critic-loop review' }
+      'Adapter train requires review_evidence: delegate critic-loop to a subagent and provide its verdict file as proof.',
+      { must_obey: true, next_action: 'delegate a subagent to forward squadrules://adapter/critic-loop and run the review there, then supply the verdict file as review_evidence' }
     );
   }
   if (evidence.exit_code !== 0) {
     throw new TrainError(
       'REVIEW_GATE_FAILED',
       `Critic-loop review gate failed: exit_code ${evidence.exit_code} (expected 0). The adapter did not pass review.`,
-      { must_obey: true, next_action: 'address critic-loop findings and re-invoke the review' }
+      { must_obey: true, next_action: 'address the critic-loop findings, then re-delegate the review to a subagent' }
     );
   }
   const firstLine = evidence.stdout.split(/\r?\n/)[0]?.trim() ?? '';
@@ -35,7 +37,7 @@ export function assertReviewEvidencePassed(evidence: ReviewEvidence | undefined)
     throw new TrainError(
       'REVIEW_GATE_FAILED',
       `Critic-loop review gate failed: verdict is "${firstLine}" (expected PASS). The adapter did not pass review.`,
-      { must_obey: true, next_action: 'address critic-loop findings and re-invoke the review' }
+      { must_obey: true, next_action: 'address the critic-loop findings, then re-delegate the review to a subagent' }
     );
   }
 }

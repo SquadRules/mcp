@@ -102,12 +102,15 @@ Every solution, regardless of type, follows the same envelope:
 
 #### forward
 
+A `forward` contract continues the chain on the caller's own thread. Never use it
+to reach the critic — a review of the caller's own work is a `subagent` contract.
+
 ```json
 {
   "type": "forward",
   "outcome": "success",
   "evidence": {
-    "target": "squadrules://adapter/critic-loop",
+    "target": "squadrules://adapter/implement-terraform",
     "success": true
   }
 }
@@ -146,7 +149,7 @@ directly under the type key instead of inside an `evidence` envelope:
 ```json
 {
   "type": "forward",
-  "forward": { "target": "squadrules://adapter/critic-loop", "success": true }
+  "forward": { "target": "squadrules://adapter/implement-terraform", "success": true }
 }
 ```
 

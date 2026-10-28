@@ -8,7 +8,7 @@
 
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { parseMcpJson } from '../../utils/expect-with-raw.js';
 import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
@@ -30,10 +30,18 @@ describe('Squadrules Train Docs Examples (docs/examples)', () => {
   }
 
   // Canonical, reviewed example adapters (see docs/examples/README.md).
+  // Recursive: examples may sit in a sub-directory (e.g. `artifact-gate/`) when
+  // their companion artifacts would otherwise be attached to unrelated examples.
   const examplesDir = join(process.cwd(), 'docs', 'examples');
-  const testFiles = readdirSync(examplesDir)
-    .filter((name) => name.startsWith('adapter-example-') && name.toLowerCase().endsWith('.md'))
-    .map((name) => join(examplesDir, name));
+  function collectExamples(dir: string): string[] {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) return collectExamples(fullPath);
+      const isExample = entry.name.startsWith('adapter-example-') && entry.name.toLowerCase().endsWith('.md');
+      return isExample ? [fullPath] : [];
+    });
+  }
+  const testFiles = collectExamples(examplesDir);
 
   beforeAll(() => {
     if (testFiles.length === 0) {
@@ -42,7 +50,7 @@ describe('Squadrules Train Docs Examples (docs/examples)', () => {
   });
 
   for (const filePath of testFiles) {
-    const fileName = filePath.split('/').pop() ?? filePath;
+    const fileName = relative(examplesDir, filePath);
     test(`import: ${fileName}`, async () => {
       expect.hasAssertions();
       const content = readFileSync(filePath, 'utf-8');

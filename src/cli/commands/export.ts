@@ -22,6 +22,7 @@ interface ExportCliOptions {
     as?: string;
     out?: string;
     zipOut?: string;
+    to?: string;
     adapters?: string[];
     allAdapters?: boolean;
     space?: string;
@@ -71,6 +72,22 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
     }
 
     const baseFormat = format as ExportInput['format'];
+
+    const toFile = (options.to ?? '').trim();
+    if (toFile.length > 0) {
+        if (!hasUri) {
+            throw new Error('--to <file> requires a single <uri> selection.');
+        }
+        if (baseFormat === 'skill_zip') {
+            throw new Error('--to <file> cannot be combined with skill_zip; use --zip-out <file>.');
+        }
+        if ((options.zipOut ?? '').trim().length > 0) {
+            throw new Error('--to <file> cannot be combined with --zip-out.');
+        }
+        if ((options.out ?? '').trim().length > 0) {
+            throw new Error('--to <file> cannot be combined with --out <dir>.');
+        }
+    }
 
     if (hasUri) {
         return { uri: trimmedUri, format: baseFormat, include_reward: true };
@@ -148,6 +165,15 @@ async function writeExport(
     const buf = response.content_encoding === 'base64'
         ? Buffer.from(response.content ?? '', 'base64')
         : Buffer.from(response.content ?? '', 'utf8');
+
+    const toFile = (options.to ?? '').trim();
+    if (toFile.length > 0) {
+        const targetPath = path.resolve(process.cwd(), toFile);
+        mkdirSync(path.dirname(targetPath), { recursive: true });
+        writeFileSync(targetPath, buf);
+        return [{ path: targetPath, bytes: buf.length, format: response.format }];
+    }
+
     const filePath = path.join(outDir, `${baseNameFor(response)}.${extensionForFormat(response.format)}`);
     mkdirSync(outDir, { recursive: true });
     writeFileSync(filePath, buf);
@@ -200,6 +226,7 @@ export function exportCommand(program: Command): void {
             'skill_zip'
         )
         .option('--out <dir>', 'write exported artifact(s) into this directory (default: current directory)')
+        .option('--to <file>', 'write the single <uri> payload to this exact file path (any non-skill_zip --as format)')
         .option('--zip-out <file>', 'write skill_zip bytes to this explicit file path')
         .action(
             async (

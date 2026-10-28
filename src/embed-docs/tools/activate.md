@@ -48,10 +48,19 @@ Next call:
 **Output:** Always `must_obey: true`. Includes `choices` (each with slug-form
 `uri`, `label`, `adapter_name`, `activation_score`, `role`, `tags`,
 `next_action`, optional `adapter_version`, optional `activation_patterns`,
-`space_name`, `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
+optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
 
 `forward_first_call` is required on `match` and `refine`, and `null` on
 `create`.
+
+**`linked_artifacts[]`** — a `match` choice whose adapter ships scripts carries one
+row per artifact: `slug`, `filename`, `relative_path`, `content_type`, `sha256`,
+`download_url`, and `materialize`. Run that row's `materialize` command in your
+shell **before** the first `shell` contract that invokes an artifact path: it
+writes the file to `$SQUADRULES_LOCAL_ARTIFACT_DIR/<relative_path>` and checks the
+`sha256`. `relative_path` is exactly the path the adapter's contract expects, so
+materialize from the `activate` choice you picked — `forward` does not repeat this
+list.
 
 **`squadrules_local_artifact_dir`** — ordered URI hints (preferred first) for the run's local handoff dir (drafts, review outputs, generated files, checksums shared between layers and subagents). Two schemes, both resolved **on your machine**: `project://<rel>` → `<your project root>/<rel>`; `user://<rel>` → `<your home or $XDG_CONFIG_HOME>/<rel>`. Pick `project://` when you have exactly one project context; fall through to `user://` when your session spans multiple projects so artifacts from different projects don't collide. After resolving, `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` for shell challenges (skip if your shell already defines it). The server never resolves these to a path on its own filesystem; the value carries no server paths and is identical for stdio and HTTP transports. Not a shell cwd, not a Docker `WORKDIR`.
 

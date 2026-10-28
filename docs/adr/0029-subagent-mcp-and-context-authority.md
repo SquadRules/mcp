@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted — decision taken 2026-10-22 and implemented by the accompanying change;
-not yet on `main` when this record was written. Lands together with
+Accepted — decision taken 2026-10-22; implemented and present on `main`, where
+`subagent_mcp_invalid` is enforced. Lands together with
 [ADR 0028](0028-forward-contract-type-rename.md), which frees the word `mcp` at
 the top level and so makes `subagent.mcp` unambiguous.
 

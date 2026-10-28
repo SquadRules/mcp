@@ -3,7 +3,10 @@
 ## Status
 
 Accepted — decision taken 2026-10-21 and implemented by the accompanying change;
-not yet on `main` when this record was written.
+`shell_interpreter_required` is on `main` (`validate-protocol-structure.ts`). Its
+second revisit condition — requiring the field pushes authors towards `bash`
+reflexively instead of the script-export pattern — **fired** and is resolved by
+[ADR 0033](0033-gate-scripts-as-adapter-artifacts.md); the requirement itself stands.
 
 ## Context
 

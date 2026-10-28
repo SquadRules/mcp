@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted — decision taken 2026-10-21 and implemented by the accompanying change;
-not yet on `main` when this record was written. Supersedes
+Accepted — decision taken 2026-10-21; implemented and present on `main`, where no
+tombstone adapter remains under `src/embed-docs/mem/`. Supersedes
 [ADR 0012](0012-redirect-tombstones-for-renamed-slugs.md).
 
 ## Context

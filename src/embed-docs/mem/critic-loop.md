@@ -20,8 +20,11 @@ by an explicit iteration ceiling (see Verdict).
 ## Activation Patterns
 
 **Typically invoked by:** another protocol at the end of a plan, implement,
-validation, or review phase via `forward` with the stored adapter URI
-`squadrules://adapter/critic-loop`.
+validation, or review phase, reached from a `subagent` contract whose
+`subagent.mcp` names `forward` with the stored adapter URI
+`squadrules://adapter/critic-loop`. The critic runs in the delegated context, not
+on the audited agent's thread — that separation is why the type is `subagent` and
+not `forward`.
 
 **Can be invoked directly when agent needs:**
 - "review phase output" / "verify plan" / "audit implementation"
@@ -35,6 +38,8 @@ validation, or review phase via `forward` with the stored adapter URI
 - Trust the executor's assertions without independent evidence.
 - Classify a claim as `verified` based only on absence of contradiction.
 - Keep investigating after a precondition failure that blocks verification.
+- Re-delegate this review to another subagent: you are the separation the caller
+  asked for, and nesting a second layer of delegation hides the verdict's author.
 
 **Must Always:**
 - Extract claims before investigating.
@@ -43,6 +48,8 @@ validation, or review phase via `forward` with the stored adapter URI
 - Check every item in the supplied requirement list for coverage; a missing
   requirement is a FAIL even when the output is internally consistent.
 - Include confidence in every verdict and failure class in every FAIL verdict.
+- Write `$VERDICT_FILE` on **every** path, including an early-abort, so the
+  caller's gate always reads a real verdict instead of failing on a missing file.
 - Preserve the boundary between execution and review.
 
 **Good trigger examples:**
@@ -117,13 +124,9 @@ are broken.
 - failure class = `verification_blocked`
 - confidence = `Low`
 - write focused diagnostics
-- skip all later steps
+- write `$VERDICT_FILE` with those diagnostics, then skip all later steps
 
 **Output:** verified preconditions or early-abort diagnostics
-
-```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"${WORK_MANIFEST:-}\" || test -f \"${INPUT_FILE:-}\"","interpreter":"bash","timeout_seconds":3},"required":true}}
-```
 
 ## Resolve Submission
 
@@ -156,10 +159,6 @@ never guessed at.
    description written alongside them.
 
 **Output:** resolved work inventory for the audit
-
-```json
-{"contract":{"type":"subagent","subagent":{"context":"Resolve the work submission into reviewable material: read the manifest, resolve each item by kind from work.root, and record the resolved inventory with per-item status."},"required":true}}
-```
 
 ## Audit
 
@@ -218,10 +217,6 @@ Any `missing` item — or any `partial` high-risk item — forces FAIL with
 
 **Output:** structured audit findings for the verdict step
 
-```json
-{"contract":{"type":"subagent","subagent":{"context":"Perform bounded adversarial audit: extract claims, investigate with scope discipline, gather evidence by priority hierarchy, produce claim verdicts, review phase boundary, and check requirement coverage."},"required":true}}
-```
-
 ## Verdict
 
 Turn the audit into a final PASS / FAIL result.
@@ -246,7 +241,8 @@ Turn the audit into a final PASS / FAIL result.
 - Line 1 is `PASS` → the loop is satisfied; the calling adapter may continue.
 - Line 1 is `FAIL` → the calling adapter **MUST NOT** proceed to reward, **MUST
   NOT** ask the user for approval, and **MUST NOT** continue. It must address the
-  findings, increment `context.iteration`, and re-invoke critic-loop.
+  findings, increment `context.iteration`, and re-invoke critic-loop from a fresh
+  delegated subagent — never on the thread that produced the work under review.
 - `failure_class: iteration_ceiling` → stop looping and surface the unresolved
   findings; never silently pass. The ceiling bounds the loop so a weak agent
   cannot thrash forever.
@@ -265,3 +261,14 @@ The phase output has been independently challenged and looped until satisfied. T
 resulting verdict is more truthful because it is based on extracted claims,
 explicit evidence, contradiction search, requirement-by-requirement coverage, and
 a clean boundary between execution and review.
+
+The single contract on this adapter is the verdict-file syntax gate: it is the
+one artifact the critic produces, and everything before it is the critic's own
+reasoning. The precondition, submission-resolution, and audit steps carry no
+contracts because a contract gates an outcome, not a step, and a critic that
+gates itself inward re-delegates work it was delegated to perform.
+
+That gate asserts the verdict file's **shape**, not the review's soundness: a
+`PASS` is this critic's judgment, and the separation that makes it worth
+something is that a critic was run apart from the executor. The caller's own
+`PASS` gate proves only that a file was written saying `PASS`.

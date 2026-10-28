@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted — decision taken 2026-10-22 and implemented by the accompanying change;
-not yet on `main` when this record was written. **Supersedes
+Accepted — decision taken 2026-10-22; implemented and present on `main`, where
+`validate-protocol-structure.ts` reports `forward_link_only` and the retired code
+name survives only in ADR prose. **Supersedes
 [ADR 0025](0025-mcp-contract-forward-link-only.md)**: 0025's forward-link-only
 rule is carried forward unchanged, its body is preserved, and only its Status
 line is reconciled.
