@@ -11,6 +11,7 @@ Accepted — decision taken 2026-10-28, clarifies [ADR 0033](0033-gate-scripts-a
 The bundled system adapters under `src/embed-docs/mem/` have multi-condition inline gates (e.g., `bulk-insert-adapters-via-cli.md` chains 5 conditions with `&&`, `critic-loop.md` chains 3 conditions). Per ADR 0033 §2, these should be gate script artifacts.
 
 However, bundled system adapters have no artifact-attachment path in this repository:
+
 - `src/embed-docs/` ships markdown only (no artifact files).
 - `artifact_name` reaches the store through the `train` tool, not through boot injection (`src/resources/mem-resources-boot.ts` only trains markdown content).
 - Adding artifact support for bundled adapters would require significant new infrastructure (artifact file shipping, boot-time artifact training, adapter references to artifacts).
