@@ -3,10 +3,15 @@ import { pathToFileURL } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 export const REQUIRED = {
-  'integration.yml': 'Integration workflow passed',
-  'security.yml': 'Security workflow passed',
+  // Required contexts live on the repository ruleset for main (ADR 0031). Integration and
+  // security are path-filtered, so their contexts can legitimately be absent for a
+  // documentation-only revision; the always-on CI gate adjudicates their evidence instead
+  // (ADR 0032), which is why it — not they — belongs in this map.
   'automation-policy.yml': 'Automation policy passed',
+  'ci-gate.yml': 'CI gate passed',
 };
+
+export const ACTIONS_APP_ID = 15368;
 
 export class GitHub {
   constructor({ repo = process.env.GITHUB_REPOSITORY, token = process.env.GH_TOKEN, fetch = globalThis.fetch } = {}) {
@@ -121,11 +126,36 @@ export function gateRuns(runs, { sha, branch, repo, event }) {
   return { ready: gates.every(g => g.status === 'completed' && g.conclusion === 'success'), gates };
 }
 
-export function assertProtection(protection) {
-  const checks = protection.required_status_checks;
-  if (!checks?.strict || !protection.enforce_admins?.enabled ||
-      !Object.values(REQUIRED).every(name => checks.checks?.some(c => c.context === name && c.app_id === 15368))) {
-    throw new Error('Mandatory Actions gates, strict current-base protection, and admin enforcement are required');
+/**
+ * Assert the ruleset that protects `main` requires exactly the mandated Actions contexts.
+ * Classic branch protection was deleted when the ruleset took over (ADR 0031), so
+ * `GET /branches/main/protection` 404s and no protection document exists to read.
+ * @param {object} ruleset response of `GET /repos/{repo}/rulesets/{id}`
+ */
+export function assertRuleset(ruleset) {
+  if (ruleset?.enforcement !== 'active' || ruleset?.target !== 'branch') {
+    throw new Error('The main ruleset must be active and target branches');
+  }
+  const included = ruleset?.conditions?.ref_name?.include ?? [];
+  if (included.length !== 1 || included[0] !== 'refs/heads/main') {
+    throw new Error('The main ruleset must apply to refs/heads/main only');
+  }
+  // An empty bypass list is what preserves the retired `enforce_admins: true` semantics.
+  if (!Array.isArray(ruleset?.bypass_actors) || ruleset.bypass_actors.length > 0) {
+    throw new Error('The main ruleset must not grant bypass actors');
+  }
+  const statusRule = (ruleset.rules ?? []).find(r => r.type === 'required_status_checks')?.parameters;
+  const checks = statusRule?.required_status_checks;
+  const contexts = Object.values(REQUIRED);
+  if (!statusRule?.strict_required_status_checks_policy || !Array.isArray(checks) ||
+      checks.length !== contexts.length ||
+      !contexts.every(name => checks.some(c => c.context === name && c.integration_id === ACTIONS_APP_ID))) {
+    throw new Error(`The main ruleset must require exactly ${contexts.join(', ')} from GitHub Actions with a strict current-base policy`);
+  }
+  // The POST/PUT APIs default this to true, which would strand bot-authored PRs.
+  const review = (ruleset.rules ?? []).find(r => r.type === 'pull_request')?.parameters;
+  if (review?.require_extra_approval_for_unattributed_changes !== false) {
+    throw new Error('The main ruleset must not require extra approval for unattributed changes');
   }
 }
 
@@ -136,6 +166,14 @@ export async function verifyIdentity(api, expected = Number(process.env.AUTOMATI
   const repo = await api.request('');
   if (repo.default_branch !== 'main') throw new Error('Credential cannot access the expected default branch');
   return { id: expected };
+}
+
+export function rulesetId(value = process.env.AUTOMATION_RULESET_ID) {
+  const id = Number(value);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error('AUTOMATION_RULESET_ID must name the ruleset that protects main');
+  }
+  return id;
 }
 
 async function mutateHead(api, pr, operation, body) {
@@ -219,7 +257,7 @@ async function main() {
   if (!dryRun && process.env.AUTOMATION_ENABLED !== 'true') throw new Error('Automation is disabled');
   const api = new GitHub();
   const user = await verifyIdentity(api);
-  if (!dryRun) assertProtection(await api.request('/branches/main/protection'));
+  if (!dryRun) assertRuleset(await api.request(`/rulesets/${rulesetId()}`));
   report(await reconcile(api, { actorId: user.id, dryRun }));
 }
 

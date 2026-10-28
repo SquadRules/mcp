@@ -6,8 +6,10 @@
 # conclusion of those workflows is irrelevant; auto-update only needs them
 # to finish.
 # PRs are processed sequentially; successful validation workflow completion
-# also wakes the updater even when main has not advanced. Mandatory Integration,
-# Security and Automation policy gates must all pass for the current head.
+# also wakes the updater even when main has not advanced. Mandatory Automation
+# policy and CI gate checks must both pass for the current head; the CI gate is the
+# authority for integration and security evidence, which are path-filtered and
+# therefore absent by design on a documentation-only revision.
 # Redundant managed dependency PRs are closed, not merged as empty commits.
 # No local clone/merge/push or mergeStateStatus polling.
 # Uses the SquadRules auto GitHub App for write access to PR branches.
@@ -17,7 +19,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: [Docs wiki regeneration, Release, Integration, Security, Automation policy]
+    workflows: [Docs wiki regeneration, Release, Integration, Security, Automation policy, CI gate]
     types: [completed]
   workflow_dispatch:
 
@@ -115,7 +117,7 @@ jobs:
             fi
             RUNS=$(gh api "repos/$REPO/actions/runs?head_sha=$HEAD_SHA&event=pull_request&per_page=100")
             GATES_READY=true
-            for WORKFLOW in integration security automation-policy; do
+            for WORKFLOW in automation-policy ci-gate; do
               if ! jq -e \
                 --arg file ".github/workflows/$WORKFLOW.yml" \
                 --arg sha "$HEAD_SHA" \

@@ -1,5 +1,21 @@
 # Changelog
 
+## [5.13.7](https://github.com/SquadRules/mcp/compare/v5.13.6...v5.13.7) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm security advisories ([#208](https://github.com/SquadRules/mcp/issues/208)) ([aa27277](https://github.com/SquadRules/mcp/commit/aa27277a1b601ad77e3ac28e2ff7152fd7edaa9b))
+
+## [5.13.6](https://github.com/SquadRules/mcp/compare/v5.13.5...v5.13.6) (2026-10-27)
+
+
+### Bug Fixes
+
+* **ci:** route required merge evidence by change class ([#203](https://github.com/SquadRules/mcp/issues/203)) ([7b16309](https://github.com/SquadRules/mcp/commit/7b16309fa2d812191e0caab3abc4018d5686bc32))
+* harden embedding dimension resolution and document migration ([#202](https://github.com/SquadRules/mcp/issues/202)) ([c12943a](https://github.com/SquadRules/mcp/commit/c12943a2f62a096d0e4b6408c3ff991e2352b25a))
+* **scripts:** correct stale npm-target references and repair deploy-dev-cli-ready.sh ([#189](https://github.com/SquadRules/mcp/issues/189)) ([c1f341f](https://github.com/SquadRules/mcp/commit/c1f341fefbfadb475eeb6f807d0139fcbbcc41c7))
+
 ## [5.13.5](https://github.com/SquadRules/mcp/compare/v5.13.4...v5.13.5) (2026-10-25)
 
 

@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { getTestEmbeddingDimension } from '../utils/embedding-test-utils.js';
 import {
   readStoreMetadata,
   writeStoreMetadata,
@@ -223,6 +224,6 @@ describe('validateVectorWidths', () => {
   });
 
   test('passes for empty vectors array', () => {
-    expect(() => validateVectorWidths([], 384, 'test')).not.toThrow();
+    expect(() => validateVectorWidths([], getTestEmbeddingDimension(), 'test')).not.toThrow();
   });
 });

@@ -3,8 +3,13 @@
 # without manual intervention. The wiki is code-derivable (never hand-edit
 # .qoder/repowiki/en/content/); this workflow updates it incrementally from source.
 #
-# Triggers: workflow_dispatch (manual) and push to main when src/** changes (the
-# wiki derives from source code). The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
+# Triggers: workflow_dispatch (manual) and push to main for the paths declared as
+# wiki inputs in .qoder/repowiki/wiki_plan.yaml (src/**, docs/**, .agents/**) plus the
+# plan file itself, so the trigger scope and the declared generation scope cannot drift.
+# Generated output lands only under .qoder/repowiki/**, which is deliberately NOT in the
+# filter: a merged wiki-regeneration PR must not retrigger generation. Publishing that
+# output stays in sync-qoder-repowiki-to-github-wiki.yml, which is untouched.
+# The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
 # to run the Qoder CLI wiki generation, and AUTO_APP_ID + AUTO_APP_PRIVATE_KEY
 # to create and auto-merge the PR. Schedule trigger disabled to reduce CI noise.
 
@@ -16,6 +21,8 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'docs/**'
+      - '.agents/**'
       - '.qoder/repowiki/wiki_plan.yaml'
 
 permissions:
@@ -52,6 +59,59 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Capture wiki diagnostics
+        run: |
+          set -uo pipefail
+          # The generation step below fails on every run with "no local wiki found for
+          # branch=main language=en", which is scoped to the branch+language key rather
+          # than to repository state. Capture the inputs the CLI keys on instead of
+          # guessing them: the committed generation stamp, the resolved branch, and the
+          # flags the installed wiki component actually supports.
+          LOG=wiki-diagnostics.log
+          : > "$LOG"
+          {
+            echo '== workspace =='
+            pwd
+            ls -la || true
+            echo '== .qoder layout =='
+            ls -la .qoder .qoder/repowiki .qoder/repowiki/en || true
+            tree -L 3 .qoder || find .qoder -maxdepth 3 | sort || true
+            echo '== plan file discovery =='
+            find . -maxdepth 4 -name wiki_plan.yaml || true
+            cat .qoder/repowiki/wiki_plan.yaml || true
+            echo '== tracked wiki files =='
+            git ls-files .qoder/repowiki | wc -l || true
+            echo '== git state =='
+            git rev-parse --abbrev-ref HEAD || true
+            git log -1 --oneline || true
+            git status --porcelain | head -20 || true
+            echo '== generation stamp in committed metadata =='
+            node -e '
+              const fs = require("node:fs");
+              const p = ".qoder/repowiki/en/meta/repowiki-metadata.json";
+              const meta = JSON.parse(fs.readFileSync(p, "utf8"));
+              const repo = meta.wiki_repo || {};
+              console.log(JSON.stringify({
+                wiki_repo_name: repo.name,
+                progress_status: repo.progress_status,
+                wiki_present_status: repo.wiki_present_status,
+                wiki_items: Array.isArray(meta.wiki_items) ? meta.wiki_items.length : 0,
+                bytes: fs.statSync(p).size,
+              }, null, 2));
+            ' || true
+            echo '== qodercli version and wiki flags =='
+            npx -y @qoder-ai/qodercli@latest --version || true
+            npx -y @qoder-ai/qodercli@latest wiki --help || true
+          } 2>&1 | tee "$LOG"
+
+      - name: Upload wiki diagnostics
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: wiki-diagnostics
+          path: wiki-diagnostics.log
+          if-no-files-found: warn
 
       - name: Regenerate Qoder wiki
         env:

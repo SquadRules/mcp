@@ -3,6 +3,7 @@ import { createQdrantCollection, getVectorDescriptors, getCollectionVectorConfig
 import { logger } from '../../utils/structured-logger.js';
 import { parseBooleanEnv } from './utils.js';
 import { SQUADRULES_APP_SPACE_ID } from '../../config.js';
+import { getEmbeddingDimension } from '../embedding/config.js';
 
 /**
  * Initialization related helpers that operate using QdrantConnection.
@@ -21,7 +22,7 @@ export async function initializeCollection(conn: QdrantConnection): Promise<void
     const collectionExists = collections.collections.some((col: any) => col.name === conn.collectionName);
 
     const vectorDescriptors = getVectorDescriptors();
-    const vectorSize = Object.values(vectorDescriptors)[0]?.size ?? ((await getCollectionVectorConfig(conn.client, conn.collectionName) as any) || 1024);
+    const vectorSize = getEmbeddingDimension();
 
     if (!collectionExists) {
       logger.info(`Creating collection ${conn.collectionName} with vector size ${vectorSize}`);
