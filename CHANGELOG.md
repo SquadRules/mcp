@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.13.8](https://github.com/SquadRules/mcp/compare/v5.13.7...v5.13.8) (2026-10-28)
+
+
+### Bug Fixes
+
+* **activate:** make artifact materialize executable and run the critic in a subagent ([#188](https://github.com/SquadRules/mcp/issues/188)) ([7771a4d](https://github.com/SquadRules/mcp/commit/7771a4d06c63c8fcfeacf9ed300b5f760f623795))
+
 ## [5.13.7](https://github.com/SquadRules/mcp/compare/v5.13.6...v5.13.7) (2026-10-27)
 
 
