@@ -36,6 +36,7 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -236,15 +237,15 @@ def cmd_ensure() -> int:
                 raise IsolationError(
                     f"worktree {wt} is owned by task {owner!r}, not {tid!r}"
                 )
-        if remote:
-            run_git(wt, "merge", "--ff-only", f"origin/{branch}")
-        # A continued task keeps the base it was branched from; only a first
-        # sighting of an existing branch derives it from the merge base.
+        # Record ownership before the merge. A diverged branch fails hard, and
+        # the worktree it leaves behind must stay resumable, not unowned.
         resumed_base = receipt_base(wt).get("task_base_sha")
         if not isinstance(resumed_base, str) or not resumed_base:
             merged = git(wt, "merge-base", f"origin/{base}", branch)
             resumed_base = merged.stdout.strip() if merged.returncode == 0 else sha
         write_receipt(wt, tid, branch, resumed_base, main)
+        if remote:
+            run_git(wt, "merge", "--ff-only", f"origin/{branch}")
         reported_base = resumed_base
         state = "RESUMED_WORKTREE_OK"
     else:
@@ -266,6 +267,9 @@ def cmd_ensure() -> int:
 def cmd_verify() -> int:
     root = repo_root()
     tid = task_id()
+    # The expected branch is part of the environment, so an incomplete
+    # environment must fail on that, not on a symptom derived from it.
+    expected = require_env("TASK_BRANCH")
     main = main_worktree(root)
     wt = worktree_path(main, tid)
     if not wt.exists():
@@ -282,8 +286,7 @@ def cmd_verify() -> int:
     if branch in PROTECTED_BRANCHES:
         raise IsolationError(f"the task branch must not be a protected branch: {branch}")
 
-    expected = os.environ.get("TASK_BRANCH", "").strip()
-    if expected and branch != expected:
+    if branch != expected:
         raise IsolationError(f"branch is {branch}, expected {expected}")
 
     receipt = receipt_base(wt)
@@ -318,6 +321,10 @@ def main(argv: list[str]) -> int:
         return COMMANDS[argv[1]]()
     except IsolationError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # the first stderr line is what agents act on
+        print(f"FAIL: {type(exc).__name__}: {exc}", file=sys.stderr)
+        traceback.print_exc()
         return 1
 
 

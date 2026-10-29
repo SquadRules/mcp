@@ -103,6 +103,23 @@ test('verify refuses the main checkout', () => {
   assert.match(result.stderr, /^FAIL: /m);
 });
 
+test('verify requires the task branch so an unrelated branch cannot pass', () => {
+  const result = isolation(['verify'], { TASK_ID: 'task-no-branch', TASK_BRANCH: '' });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /TASK_BRANCH is not set/);
+});
+
+test('an unexpected error still prints a FAIL line and exits non-zero', () => {
+  const result = isolation(['ensure'], {
+    TASK_ID: `task-${'x'.repeat(300)}`,
+    TASK_BRANCH: 'feature/toolong',
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^FAIL: /m);
+});
+
 test('ensure refuses a protected branch', () => {
   const result = isolation(['ensure'], { TASK_ID: 'task-002', TASK_BRANCH: 'main' });
 
@@ -156,6 +173,49 @@ test('ensure refuses to adopt a worktree owned by another task', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /owned by task/);
+});
+
+test('a diverged branch fails hard and leaves a resumable worktree', () => {
+  const wt = worktreePath('task-006');
+  const started = isolation(['ensure'], { TASK_ID: 'task-006', TASK_BRANCH: 'feature/task-006' });
+  assert.equal(started.status, 0, started.stderr);
+
+  writeFileSync(join(wt, 'mine.txt'), 'mine\n');
+  git(['add', 'mine.txt'], wt);
+  git(['commit', '-qm', 'mine'], wt);
+  git(['push', '-q', '-u', 'origin', 'feature/task-006'], wt);
+
+  // Drop the checkout so the next ensure has to create it again: the branch
+  // exists, but neither the worktree nor the receipt does.
+  git(['worktree', 'remove', '--force', wt], repo);
+
+  // The remote branch is rewritten with an unrelated commit, so the local
+  // branch and the remote branch have diverged.
+  const other = join(lab, 'other');
+  execFileSync('git', ['clone', '-q', '-b', 'feature/task-006', join(lab, 'origin.git'), other]);
+  git(['config', 'user.email', 'test@example.com'], other);
+  git(['config', 'user.name', 'Test'], other);
+  git(['reset', '-q', '--hard', 'HEAD~1'], other);
+  writeFileSync(join(other, 'theirs.txt'), 'theirs\n');
+  git(['add', 'theirs.txt'], other);
+  git(['commit', '-qm', 'theirs'], other);
+  git(['push', '-q', '--force', 'origin', 'feature/task-006'], other);
+
+  const result = isolation(['ensure'], { TASK_ID: 'task-006', TASK_BRANCH: 'feature/task-006' });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /fast-forward/i);
+
+  const receipt = join(repo, '.git', 'worktrees', 'task-006', 'squadrules-task.json');
+  assert.ok(existsSync(receipt), 'ownership receipt survives a failed merge');
+
+  // The next run can still reach the task it owns instead of refusing to
+  // adopt a worktree left behind by the failed merge.
+  const resumed = isolation(['ensure'], { TASK_ID: 'task-006', TASK_BRANCH: 'feature/task-006' });
+
+  assert.equal(resumed.status, 1);
+  assert.match(resumed.stderr, /fast-forward/i);
+  assert.doesNotMatch(resumed.stderr, /refusing to adopt/);
 });
 
 test('a continued task keeps the base commit it was branched from', () => {
