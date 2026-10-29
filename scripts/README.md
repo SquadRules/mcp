@@ -14,6 +14,7 @@ File names use a **prefix** so you can see which pipeline stage they belong to:
 | **`ci-`** | **GitHub Actions workflow glue** — step wrappers, `$GITHUB_STEP_SUMMARY`, infra polling, etc. |
 | **`ci-test-`** | CI-oriented **test verification** (e.g. install smoke checks for release tarballs); still run locally via `npm run` when needed |
 | **`deploy-`** | Local/prod **environment** lifecycle: `.env`, Compose/Keycloak, CLI readiness, raw Qdrant probes |
+| **`agent-`** | Agent runtime helpers invoked by always-on agent rules (not part of a CI pipeline stage) |
 
 **Rule:** Workflow orchestration in `scripts/` **must** start with **`ci-`** (e.g. `ci-github-step-summary.mjs`, `ci-wait-for-infra.sh`). Scripts whose main job is **test-style checks for CI / release** may use **`ci-test-`** (e.g. `ci-test-tgz-install.mjs`) instead of plain `test-`. (Jest’s job-summary reporter stays under `tests/reporters/` because Jest loads it by path.)
 
@@ -54,6 +55,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | `scripts/deploy-generate-dev-secrets.py` | Fills repo-root `.env` from `scripts/env/.env.template` (secrets from env or generated) | `.github/workflows/integration.yml`, `scripts/env/create-env.sh`; see `docs/keycloak/README.md` and `compose/infra.yaml` comments |
 | `scripts/deploy-configure-keycloak-realms.py` | Idempotent realm admin: merges `scripts/keycloak/import/*.json`, clients, groups, test users | `deploy-dev-cli-ready.sh`, `.github/workflows/integration.yml`, `tests/global-setup-auth.ts`, `tests/utils/keycloak-container.ts` (run after `docker compose … --profile fullstack up -d`) |
 | `scripts/deploy-add-keycloak-user` | Adds a realm user with auto-generated password via Admin REST API | `scripts/keycloak/import/README.md` (examples) |
+| `scripts/agent-task-isolation.py` | Creates and verifies an isolated linked worktree for an agent task (ownership receipt in the worktree's Git admin dir) | `.qoder/rules/task-isolation.md`, `tests/scripts/agent-task-isolation.test.mjs` |
 | `scripts/lint-agent-skills.py` | Validates agent skills layout against repo rules | `npm run lint:skills` |
 | `scripts/lint-verify-clean-source.mjs` | Prebuild gate: forbids `console.*` and test mocks under `src/` (AST-based) | `npm run verify:clean` (`prebuild`) |
 | `scripts/build-embed-docs.ts` | Bundles `src/embed-docs/**` into generated TS resources for the server | `npm run prebuild` (`npx ts-node scripts/build-embed-docs.ts`) |
