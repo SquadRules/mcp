@@ -184,6 +184,16 @@ function finalContract(): ForwardOutput['contract'] {
   };
 }
 
+/**
+ * The reward outcome the server can justify for a layer. A stored failed proof
+ * is evidence that the step did not pass, so the machine-readable reward call
+ * must not invite success for it (honest verification).
+ */
+async function rewardOutcomeTemplate(memory: Memory): Promise<'success' | 'failure'> {
+  const record = await proofOfWorkStore.getResult(memory.memory_uuid);
+  return record?.status === 'failed' ? 'failure' : 'success';
+}
+
 export type BuildForwardViewOptions = {
   final?: boolean;
   message?: string;
@@ -193,6 +203,8 @@ export type BuildForwardViewOptions = {
   mustObey?: boolean;
   contractOverride?: ForwardOutput['contract'];
   slugDisambiguationNote?: string;
+  /** Recovery guidance from a failed step; kept verbatim so the caller sees the repair options. */
+  nextAction?: string;
 };
 
 export async function buildForwardView(
@@ -215,7 +227,7 @@ export async function buildForwardView(
         args: {
           uri: layer.uri,
           outcome_template: {
-            outcome: 'success' as const
+            outcome: await rewardOutcomeTemplate(memory)
           }
         }
       }
@@ -244,9 +256,9 @@ export async function buildForwardView(
     next_call: nextCall,
     ...buildForwardUiSummary(memory),
     ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
-    next_action: final
+    next_action: options?.nextAction ?? (final
       ? `call reward with ${layer.uri} and outcome (success or failure) and feedback to complete the adapter`
-      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}${chainHint}`,
+      : `call forward with ${layer.uri} and solution.type="${contract.type}", outcome="success", evidence${buildEvidenceHint(contract.type)}${chainHint}`),
     execution_id: executionId,
     ...(options?.proofHash && { proof_hash: options.proofHash }),
     ...(options?.message || contract.type === 'subagent' ? {
@@ -275,6 +287,11 @@ export async function mapLayerPayloadShapeToForwardView(
   const final = nextExecutionResult.next_action.includes('reward');
   const options: BuildForwardViewOptions = {
     final,
+    ...(nextExecutionResult.next_action
+      ? {
+          nextAction: nextExecutionResult.next_action
+        }
+      : {}),
     ...(nextExecutionResult.message
       ? {
           message: nextExecutionResult.message

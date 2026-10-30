@@ -1,5 +1,11 @@
 Export an **adapter**, a single **layer**, an **artifact** (`source`), or a **skill-shaped bundle** for backup, inspection, training pipelines, or portable skill distribution.
 
+**When to call:** Whenever you need an adapter's **own files** rather than its
+instructions — its Markdown document, the `artifacts/` scripts its `shell`
+contracts invoke, or a portable bundle. `activate` and `forward` return *what to
+do*; **`export` returns the files themselves**. Call it before running a contract
+whose command names a script path, and before shipping an adapter that ships one.
+
 **Input**
 
 - **Selection** — exactly one of:
@@ -27,3 +33,12 @@ Export an **adapter**, a single **layer**, an **artifact** (`source`), or a **sk
 **Use with `tune`:** Edit **flat** exported Markdown, then **`tune`** with matching `uris` / `content`. Obtain flat Markdown via **`format: markdown`** (single adapter or layer **`uri`**).
 
 **Local install (agents):** **`export`** is also used to **mirror** stored content for execution (scripts under **`artifacts/`**, **`SHA256SUMS`** checks). For a **full** tree, use **`skill_zip`** and unzip; a **canonical** install root on the same machine as the CLI config is **`$XDG_CONFIG_HOME/squadrules/skills/<slug>/`** (Unix; see `getSquadrulesSkillInstallDirForSlug` in server sources / the Artifact Management topic in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki)). For **only** the adapter document, **`format: markdown`** and write **`content`** to your chosen path under that tree or the workspace.
+
+**Missing script:** If a `shell` contract names a script you cannot find, export
+that adapter and look for it — **`format: skill_tree`** returns a JSON file list
+(**`skills[].files[].path`**), **`format: skill_zip`** returns the bundle. The
+script belongs under **`artifacts/`** at the path the contract invokes.
+**`skill_tree`** also returns **`skills[].diagnostics[]`**: treat
+**`artifact_stored_sha_mismatch`** (the stored digest disagrees with the exported
+bytes) and **`artifact_relative_path_invalid`** (the artifact path was ignored and
+replaced by a default) as a **broken artifact**, not a pass.

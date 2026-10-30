@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import type { Memory, ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
-import { proofOfWorkStore, MAX_RETRIES, type ProofOfWorkResultRecord } from '../services/proof-of-work-store.js';
+import { proofOfWorkStore, type ProofOfWorkResultRecord } from '../services/proof-of-work-store.js';
 import { embeddingService } from '../services/embedding/service.js';
 import { getInferenceContract } from '../services/memory/memory-accessors.js';
-import { COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS, SQUADRULES_LOCAL_ARTIFACT_DIRS } from '../config.js';
+import { COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS } from '../config.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import type {
@@ -16,8 +16,10 @@ import type {
 import { validateForwardSubmissionAgainstContract } from './forward-contract-match.js';
 import { buildLayerUri } from './squadrules-uri.js';
 import { buildChallengeShapeForDisplay } from './next-pow-challenge-shape.js';
-import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { canonicalStringify } from '../utils/canonical-stringify.js';
+import { buildErrorPayload } from './forward-error-payload.js';
+import { diagnoseShellFailure } from './shell-failure-diagnostics.js';
+import { SOLUTION_TEMPLATE_STDOUT_PLACEHOLDER, SOLUTION_TEMPLATE_STDERR_PLACEHOLDER } from './forward-helpers.js';
 export type {
   BuildChallengeOptions,
   ElicitResult,
@@ -122,39 +124,6 @@ export async function tryUserInputElicitation(
   }
 }
 
-function buildErrorPayload(
-  memory: Memory | null,
-  current_step: any,
-  challenge: any,
-  message: string,
-  errorCode: string,
-  retryCount: number
-): any {
-  const uuid = memory?.memory_uuid;
-  const uri = uuid ? buildLayerUri(uuid) : '';
-  const maxExceeded = retryCount >= MAX_RETRIES;
-
-  const payload: any = {
-    must_obey: !maxExceeded,
-    current_step,
-    challenge,
-    ...buildLocalArtifactDirFields(SQUADRULES_LOCAL_ARTIFACT_DIRS),
-    message: maxExceeded
-      ? `Step failed ${retryCount} times. Use your judgment to recover.`
-      : message,
-    error_code: maxExceeded ? 'MAX_RETRIES_EXCEEDED' : errorCode,
-    retry_count: retryCount
-  };
-
-  if (maxExceeded && uri) {
-    payload.next_action = `Options: (1) call tune with uris ["${uri}"] and content or updates to fix the step for future executions (2) call reward with ${uri} and outcome failure and feedback to abort (3) ask the user for help`;
-  } else if (uri) {
-    payload.next_action = `retry forward with ${uri} -- use nonce and proof_hash from THIS response's contract`;
-  }
-
-  return payload;
-}
-
 export async function handleProofSubmission(
   submission: ProofOfWorkSubmission,
   memory: Memory,
@@ -171,7 +140,7 @@ export async function handleProofSubmission(
 
   const submittedProofHash = submission.proof_hash ?? submission.previousProofHash;
 
-  const blocked = async (msg: string, code: string, currentStep?: any, challengeObj?: any) => {
+  const blocked = async (msg: string, code: string, currentStep?: any, challengeObj?: any, recovery?: string) => {
     const storedNonce = await proofOfWorkStore.getNonce(memory.memory_uuid);
     const retryKey = storedNonce ?? uuid;
     const retryCount = await proofOfWorkStore.incrementRetry(retryKey);
@@ -186,7 +155,7 @@ export async function handleProofSubmission(
     }
     return {
       blockedPayload: {
-        ...buildErrorPayload(memory, current, challengePayload, msg, code, retryCount),
+        ...buildErrorPayload(memory, current, challengePayload, msg, code, retryCount, recovery),
         // Top-level convenience field: agents can copy this directly into solution.nonce
         // without digging into the challenge object. Mirrors challenge.nonce.
         retry_nonce: storedNonce ?? undefined
@@ -240,6 +209,13 @@ export async function handleProofSubmission(
     const shell = submission.shell;
     if (!shell) {
       return blocked('Shell proof requires shell field with exit_code', 'MISSING_FIELD');
+    }
+    // Honest verification: a proof echoing the template placeholders is not a run.
+    if (shell.stdout === SOLUTION_TEMPLATE_STDOUT_PLACEHOLDER || shell.stderr === SOLUTION_TEMPLATE_STDERR_PLACEHOLDER) {
+      return blocked(
+        'The submitted stdout/stderr is still the solution_template placeholder. Replace it with the real output of your run.',
+        'PLACEHOLDER_EVIDENCE'
+      );
     }
     record.status = shell.exit_code === 0 ? 'success' : 'failed';
     record.shell = {
@@ -339,7 +315,14 @@ export async function handleProofSubmission(
   await proofOfWorkStore.setProofHash(uuid, proofHash);
 
   if (proof.required && record.status === 'failed') {
-    return blocked('Proof of work failed. Fix and retry.', 'COMMAND_FAILED');
+    const diagnosis = diagnoseShellFailure(record.shell);
+    return blocked(
+      diagnosis ? `Proof of work failed: ${diagnosis.detail}` : 'Proof of work failed. Fix and retry.',
+      'COMMAND_FAILED',
+      undefined,
+      undefined,
+      diagnosis?.recovery
+    );
   }
 
   const storedNonce = await proofOfWorkStore.getNonce(memory.memory_uuid);

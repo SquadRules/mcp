@@ -61,7 +61,8 @@ const activateMatchChoiceSchema = activateChoiceCommonSchema.extend({
 });
 const activateRefineChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('refine'),
-  forward_first_call: forwardFirstCallSchema
+  forward_first_call: forwardFirstCallSchema,
+  linked_artifacts: z.array(linkedArtifactSchema).optional()
 });
 const activateCreateChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('create'),

@@ -268,15 +268,25 @@ exists:
    `adapter_uri`. Add `relative_path` only when the default
    `artifacts/<artifact_name>` is not the path you want; the identity header and
    slug rules are in the `train` description.
-4. Verify before you run it: `activate` the adapter and check that
-   `linked_artifacts[].relative_path` equals the path the contract invokes. A
-   mismatch surfaces only when the gate runs.
+4. Verify before you run it — **two** checks:
+   - `activate` the adapter and check that `linked_artifacts[].relative_path`
+     equals the path the contract invokes.
+   - **Export check:** `export` the adapter (`format: skill_tree`, or
+     `skill_zip` for the bundle) and confirm the script is in the bundle at
+     that path, with no `artifact_stored_sha_mismatch` or
+     `artifact_relative_path_invalid` in `diagnostics[]`.
+
+   A mismatch surfaces only when the gate runs — by then it is the user's
+   failed step, not your typo.
 
 **At execution time:** run the `materialize` command carried by that
 `linked_artifacts[]` row — it writes the payload under
 `$SQUADRULES_LOCAL_ARTIFACT_DIR`, verifies the digest, and marks the file
 executable. `forward` responses do not repeat the list, so materialize during the
-run's first step.
+run's first step. When the choice carries no artifact row, the agent obtains the
+script with **`export`** (`format: skill_tree` or `format: skill_zip`) and takes
+it from `artifacts/`. State which route applies in the adapter text — a step that
+does not say how to get the file leaves the agent guessing.
 
 **One script, many gates:** `--gate <name>` on a single dispatcher replaces one
 inlined program per step. Change the gate once, not seven times.
