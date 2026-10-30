@@ -73,7 +73,17 @@ export function pointToMemory(point: QdrantPointLike): Memory {
       : null;
 
   if (payloadContract) {
-    if (typeof payloadContract.cmd === 'string') {
+    // A payload can carry both the older flat shape (cmd/timeout_seconds at the
+    // top level) and a nested shell block. Prefer the nested block: it is the
+    // fully specified contract (ADR 0026 interpreter) and dropping it would
+    // silently turn a valid contract into an invalid one.
+    const nestedShell =
+      payloadContract.shell &&
+      typeof payloadContract.shell === 'object' &&
+      typeof payloadContract.shell.cmd === 'string'
+        ? payloadContract.shell
+        : null;
+    if (!nestedShell && typeof payloadContract.cmd === 'string') {
       base.inference_contract = {
         cmd: payloadContract.cmd,
         timeout_seconds:

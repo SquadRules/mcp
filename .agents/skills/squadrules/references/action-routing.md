@@ -49,6 +49,24 @@ Once inside a chain (`activate` returned a match), follow these rules:
 - **Do not answer the user** until `reward` succeeds, unless the active layer
   requires `user_input` or the system returns a blocking error.
 
+## Adapter files and scripts
+
+`activate` and `forward` return **instructions**, not files. An adapter that ships
+scripts exposes them as **artifacts**, and **`export` is the tool that returns an
+adapter's own files** — its Markdown document and the `artifacts/` scripts its
+`shell` contracts invoke.
+
+- When a `shell` contract's command names a script path, obtain that file
+  **before** running the command: materialize it from the `activate` choice's
+  `linked_artifacts[]`, or call **`export`** (`format: skill_tree` for the file
+  list, `format: skill_zip` for the bundle) and take it from `artifacts/`.
+- If the script is in neither place, the adapter ships no such file. Do not
+  invent it and do not substitute a different command: report the step as
+  failed with the missing path — the adapter needs repair (`train` for the
+  artifact, `tune` for the contract).
+- `export` reads stored content; it does **not** advance workflow state. Use
+  `forward` for the next layer.
+
 ## Why SquadRules routes trained actions (not just novel ones)
 
 SquadRules is NOT a fallback for tasks you cannot perform. It is a **policy layer**

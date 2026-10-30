@@ -103,6 +103,10 @@ test, not a verification strategy.
   types](examples/challenge-types.md). Artifact input contract: the `train` tool
   description; interpreter rule:
   [ADR 0026](adr/0026-shell-interpreter-required.md).
+- **Before shipping, run the export check** — export the adapter and confirm the
+  script is in the bundle at the path the contract invokes. The executable
+  procedure is in the `author-adapter` workflow
+  (`squadrules://adapter/author-adapter`).
 
 Examples: [adapter-example-shell.md](examples/adapter-example-shell.md) for a one-line check, and
 [artifact-gate/adapter-example-artifact-gate.md](examples/artifact-gate/adapter-example-artifact-gate.md)
@@ -214,7 +218,7 @@ needs. All four operations are autonomous: no human approval gate, and the
   with `train`, attach any gate script with a second `train` (input fields: the
   `train` tool description), then verify the stored result against the intended
   adapter — `activate` it and confirm every `linked_artifacts[].relative_path`
-  matches the path its contract invokes.
+  matches the path its contract invokes, then run the export check above.
 - **Update** — export the target, identify the exact gap, plan the minimal change.
   Re-run the critic on the changed parts (a changed draft invalidates review
   evidence about those parts), prove the verdict before saving with `tune`, then

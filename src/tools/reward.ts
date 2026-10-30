@@ -7,6 +7,7 @@ import { rewardInputSchema, rewardOutputSchema, type RewardInput, type RewardOut
 import { buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { evaluateReward } from '../services/reward-evals.js';
+import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { SquadrulesError } from '../types/index.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
@@ -31,6 +32,25 @@ export async function executeReward(
   const parsed = parseSquadrulesUriOrThrow(input.uri);
   if (parsed.kind !== 'layer') {
     throw new SquadrulesError('reward requires a layer URI', 'INVALID_URI', 400);
+  }
+
+  // Honest verification: a layer whose last stored proof failed cannot be rated
+  // as success. Without this the server accepts a success reward for a step whose
+  // own evidence says it failed (SquadRules/mcp#216). The guard keys on the layer,
+  // not on the execution id, so omitting ?execution_id= cannot bypass it: a later
+  // successful proof for the same layer overwrites the failed record.
+  if (input.outcome === 'success') {
+    const storedProof = await proofOfWorkStore.getResult(parsed.id);
+    if (storedProof?.status === 'failed') {
+      const exitCode = storedProof.shell?.exit_code ?? storedProof.exit_code;
+      throw new SquadrulesError(
+        `Cannot record success for ${input.uri}: this layer's last proof failed` +
+        `${exitCode !== undefined ? ` (exit_code ${exitCode})` : ''}. ` +
+        'Fix the step and run it again, or record outcome failure with the reason.',
+        'REWARD_SUCCESS_CONFLICTS_FAILED_PROOF',
+        409
+      );
+    }
   }
 
   const evaluation = evaluateReward({

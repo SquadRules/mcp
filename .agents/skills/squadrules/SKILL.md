@@ -38,8 +38,10 @@ SquadRules directly.
 2. Call **`activate`** with a short `query` (3-8 words describing the intent).
 3. Follow the returned choice's **`next_action`** field through `forward`
    calls (one per adapter layer) until the chain indicates `reward`.
-4. Call **`reward`** to finalize the run.
-5. Respond to the user or continue with implementation as directed by the
+4. When a contract's command names a script, obtain that file with **`export`**
+   (or the `activate` choice's `materialize` command) **before** running it.
+5. Call **`reward`** to finalize the run.
+6. Respond to the user or continue with implementation as directed by the
    adapter output.
 
 Always complete the full chain before responding to the user or starting

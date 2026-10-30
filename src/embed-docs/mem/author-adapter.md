@@ -167,9 +167,22 @@ The server never names a path on your machine; you do.
   the title.
 - Keep the contract one line: `interpreter: "bash"`, `cmd: python3
   "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`.
-- Verify before shipping: `activate` the adapter and confirm
-  `linked_artifacts[].relative_path` is exactly the path `cmd` invokes. Run each
-  row's `materialize` command before the contract that needs it.
+- Verify before shipping — **two** checks, both required:
+  1. `activate` the adapter and confirm `linked_artifacts[].relative_path` is
+     exactly the path `cmd` invokes. Run each row's `materialize` command before
+     the contract that needs it.
+  2. **Export check:** call MCP **`export`** with
+     `uri: "squadrules://adapter/<slug>"` and `format: skill_tree` (or
+     `skill_zip` for the bundle) and confirm the script is present under
+     `artifacts/` at the path the contract invokes. Read the returned
+     `diagnostics[]`: `artifact_stored_sha_mismatch` or
+     `artifact_relative_path_invalid` means the stored artifact is broken —
+     re-train it instead of shipping it.
+- A `cmd` that names a script the export does not contain is a broken adapter:
+  it fails at run time with a missing-file error and burns the user's step.
+  Fix it before shipping. The only exception is a repository-owned gate that
+  the adapter names explicitly and that lives in the user's repository — say so
+  in the adapter text, and state how the agent finds it.
 
 ### Drafting rules (all operations)
 
@@ -190,6 +203,13 @@ escalation, and observable verification over narrative reassurance.
 Dependencies, middle H2s one per stage with JSON contract block, last H2 Reward
 Signal. Frontmatter: `slug` (required), `version` (optional), `chain_root`
 (required for mid-chain adapters).
+
+**Scripts are obtained, not assumed:** when a step's `cmd` invokes a script, the
+adapter must state in its own text how the agent obtains that file before
+running the command — materialize the `activate` artifact row, or `export` the
+adapter. A step that says only "run `python3 …/artifacts/x.py`" leaves the agent
+guessing where the file is; a missing-file gate failure is the most common
+result of that omission.
 
 **Contracts:** One per adapter is the default; a second is justified only at a
 boundary that is hard to roll back. Load `challenge-type-guide` for decision

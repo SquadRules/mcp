@@ -62,6 +62,13 @@ writes the file to `$SQUADRULES_LOCAL_ARTIFACT_DIR/<relative_path>` and checks t
 materialize from the `activate` choice you picked — `forward` does not repeat this
 list.
 
+When a choice carries no artifact rows but its contract names a script path, the
+artifact is missing or was not loaded: call **`export`** for that adapter
+(`format: skill_tree` for the file list, `format: skill_zip` for the bundle) and
+check `artifacts/` for the path the contract invokes. **`export` is the tool that
+returns adapter files** — `activate` returns artifact rows, `forward` returns
+instructions.
+
 **`squadrules_local_artifact_dir`** — ordered URI hints (preferred first) for the run's local handoff dir (drafts, review outputs, generated files, checksums shared between layers and subagents). Two schemes, both resolved **on your machine**: `project://<rel>` → `<your project root>/<rel>`; `user://<rel>` → `<your home or $XDG_CONFIG_HOME>/<rel>`. Pick `project://` when you have exactly one project context; fall through to `user://` when your session spans multiple projects so artifacts from different projects don't collide. After resolving, `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` for shell challenges (skip if your shell already defines it). The server never resolves these to a path on its own filesystem; the value carries no server paths and is identical for stdio and HTTP transports. Not a shell cwd, not a Docker `WORKDIR`.
 
 When several spaces contain similar adapters, the server prefers your **default write space** (usually **Personal**) on ties so a personal copy can override a group template.
