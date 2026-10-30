@@ -50,12 +50,14 @@ makes "whose work is this?" answerable from evidence rather than from asking.
   that commit as `TASK_BASE_SHA`.
 - Place the worktree outside the human checkout and outside every other existing
   worktree — a sibling `mcp.worktrees/<unique-task-id>` directory.
-- Set absolute `REPO_ROOT` and `WT`, plus unique `TASK_ID` and `TASK_BRANCH`.
+- Set absolute `REPO_ROOT`, plus unique `TASK_ID` and `TASK_BRANCH`. The script
+  derives the worktree path from those and reports it as `WT`; export the value it
+  prints.
 - Write a task ownership receipt (`squadrules-task.json`) into that worktree's
   own Git administration directory:
   `$(cd "$WT" && git rev-parse --path-format=absolute --git-common-dir)/worktrees/$(basename "$WT")/`.
-  Export `TASK_BASE_SHA` for every later shell call, and carry all four values
-  through the commit-to-PR handoff.
+  Export `TASK_BASE_SHA` for every later shell call, and carry every value through
+  the commit-to-PR handoff.
 - Run every edit, dependency install, formatter, build, test, commit, and CI
   repair inside `$WT`. Configure non-shell file tools with absolute paths under
   `$WT` too — a relative path silently resolves to the human checkout.
@@ -89,8 +91,7 @@ python3 "$REPO_ROOT/scripts/agent-task-isolation.py" ensure
 `ensure` takes no mode flag: it starts a new task or continues the existing one
 for `TASK_BRANCH`. On success it prints four lines — `TASK_BASE_SHA=`, `WT=`,
 `TASK_BRANCH=`, and either `NEW_WORKTREE_FROM_FETCHED_BASE_OK` or
-`RESUMED_WORKTREE_OK`. Export `TASK_BASE_SHA` from the printed `TASK_BASE_SHA=`
-line.
+`RESUMED_WORKTREE_OK`. Export `TASK_BASE_SHA` and `WT` from the printed lines.
 
 Before every later mutating call, re-check:
 
