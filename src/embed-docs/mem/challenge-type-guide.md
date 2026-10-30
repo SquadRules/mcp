@@ -279,10 +279,11 @@ exists:
    A mismatch surfaces only when the gate runs — by then it is the user's
    failed step, not your typo.
 
-**At execution time:** run the `materialize` command carried by that
-`linked_artifacts[]` row — it writes the payload under
-`$SQUADRULES_LOCAL_ARTIFACT_DIR`, verifies the digest, and marks the file
-executable. `forward` responses do not repeat the list, so materialize during the
+**At execution time:** follow the `materialize` instruction carried by that
+`linked_artifacts[]` row — call the MCP `export` tool with the specified
+arguments, write the returned content to the `out` path under
+`$SQUADRULES_LOCAL_ARTIFACT_DIR`, verify the digest, and set permissions.
+`forward` responses do not repeat the list, so materialize during the
 run's first step. When the choice carries no artifact row, the agent obtains the
 script with **`export`** (`format: skill_tree` or `format: skill_zip`) and takes
 it from `artifacts/`. State which route applies in the adapter text — a step that

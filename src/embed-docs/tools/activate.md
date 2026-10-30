@@ -55,12 +55,17 @@ optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plu
 
 **`linked_artifacts[]`** — a `match` choice whose adapter ships scripts carries one
 row per artifact: `slug`, `filename`, `relative_path`, `content_type`, `sha256`,
-`download_url`, and `materialize`. Run that row's `materialize` command in your
-shell **before** the first `shell` contract that invokes an artifact path: it
-writes the file to `$SQUADRULES_LOCAL_ARTIFACT_DIR/<relative_path>` and checks the
-`sha256`. `relative_path` is exactly the path the adapter's contract expects, so
-materialize from the `activate` choice you picked — `forward` does not repeat this
-list.
+`download_url`, and `materialize`. The `materialize` field is a structured
+instruction object (not a shell command) that tells you how to obtain the
+artifact: it specifies the MCP `export` tool to call, the arguments (`uri` and
+`format: "source"`), the output path (`out`, which uses
+`$SQUADRULES_LOCAL_ARTIFACT_DIR`), the expected `sha256` digest, and the `chmod`
+permissions. Follow this instruction **before** the first `shell` contract that
+invokes an artifact path: call the MCP `export` tool with the specified
+arguments, write the returned content to the `out` path, verify the `sha256`,
+and set the permissions. `relative_path` is exactly the path the adapter's
+contract expects, so materialize from the `activate` choice you picked —
+`forward` does not repeat this list.
 
 When a choice carries no artifact rows but its contract names a script path, the
 artifact is missing or was not loaded: call **`export`** for that adapter

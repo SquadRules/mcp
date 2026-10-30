@@ -171,8 +171,16 @@ describe('activateOutputSchema slug field', () => {
               download_url: 'https://example.test/export/artifact/token',
               sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               content_type: 'text/x-python',
-              materialize:
-                'curl -fsSL https://example.test/export/artifact/token -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/helper.py"'
+              materialize: {
+                tool: 'export',
+                arguments: {
+                  uri: 'https://example.test/export/artifact/token',
+                  format: 'source'
+                },
+                out: '$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/helper.py',
+                sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                chmod: '700'
+              }
             }
           ]
         },

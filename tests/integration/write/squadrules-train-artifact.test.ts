@@ -159,7 +159,12 @@ Done.`;
     const linked = parentMatch?.linked_artifacts?.[0];
     expect(linked?.filename).toBe(artifactName);
     expect(String(linked?.download_url ?? '')).toContain('/export/artifact/');
-    expect(String(linked?.materialize ?? '')).toContain('sha256sum -c');
+    expect(linked?.materialize).toMatchObject({
+      tool: 'export',
+      arguments: { format: 'source' },
+      sha256: expect.any(String),
+      chmod: '700'
+    });
 
     const exportMarkdown = await mcpConnection.client.callTool({
       name: 'export',
