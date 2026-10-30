@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.14.1](https://github.com/SquadRules/mcp/compare/v5.14.0...v5.14.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **activate:** replace shell materialize command with MCP export tool instruction ([#223](https://github.com/SquadRules/mcp/issues/223)) ([7d66228](https://github.com/SquadRules/mcp/commit/7d66228e6d635b8dff23eacb9dce0053350c6241))
+
 ## [5.14.0](https://github.com/SquadRules/mcp/compare/v5.13.8...v5.14.0) (2026-10-30)
 
 
