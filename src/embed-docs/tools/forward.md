@@ -86,7 +86,7 @@ A contract with no `interpreter` is invalid: the adapter was stored without one.
 
 A `cmd` that names a script file only works when that file exists. The file ships with the adapter as an **artifact**: obtain it **before** the first `shell` contract that invokes it. `forward` does not repeat the artifact list, and a choice can carry no artifact rows at all.
 
-1. If the `activate` choice you started from lists the artifact, run that row's `materialize` command — it writes the file into `$SQUADRULES_LOCAL_ARTIFACT_DIR` and checks the digest.
+1. If the `activate` choice you started from lists the artifact, follow that row's `materialize` instruction — call the MCP `export` tool with the specified arguments, write the content to the `out` path, verify the digest, and set permissions.
 2. If it is not listed, call **`export`** for that adapter (`uri: "squadrules://adapter/<slug>"`, `format: skill_tree` for the file list, `format: skill_zip` for the bundle) and take the script from **`artifacts/`**. **`export` is the tool that returns adapter files** — `activate` returns artifact rows, `forward` returns instructions.
 3. If the script is in neither place, it does not exist. Check whether the contract names a path that exists in the current repository — a repo-owned gate — and use it only if it is the same script the contract intends, reporting the path you used.
 

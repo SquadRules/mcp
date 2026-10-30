@@ -12,7 +12,7 @@ import { listAdapterArtifacts } from './artifact-catalog.js';
 import { mintExportArtifactDownloadCapability } from '../services/export-artifact-download-capability.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
 import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
-import { buildArtifactMaterializeCommand } from './artifact-materialize-command.js';
+import { buildArtifactMaterializeInstruction } from './artifact-materialize-command.js';
 
 export interface LinkedArtifactRow {
   slug: string;
@@ -21,7 +21,7 @@ export interface LinkedArtifactRow {
   download_url: string;
   sha256: string;
   content_type: string;
-  materialize: string;
+  materialize: import('./artifact-materialize-command.js').MaterializeInstruction;
 }
 
 export interface LinkedArtifactsResult {
@@ -73,7 +73,7 @@ export async function loadLinkedArtifacts(
           download_url: downloadUrl,
           sha256: artifact.sha256,
           content_type: artifact.content_type,
-          materialize: buildArtifactMaterializeCommand({
+          materialize: buildArtifactMaterializeInstruction({
             transport: isStdio ? 'stdio' : 'http',
             downloadUrl,
             relativePath,
