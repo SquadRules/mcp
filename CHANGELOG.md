@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.14.0](https://github.com/SquadRules/mcp/compare/v5.13.8...v5.14.0) (2026-10-30)
+
+
+### Features
+
+* **agent:** give the task-isolation rule its own verified mechanism ([#217](https://github.com/SquadRules/mcp/issues/217)) ([afeac1f](https://github.com/SquadRules/mcp/commit/afeac1fb6c1514de4d6007bb1c8f67da9a5a7874))
+
+
+### Bug Fixes
+
+* **agent:** keep the isolation worktree owned when the fast-forward fails ([#218](https://github.com/SquadRules/mcp/issues/218)) ([58eb8c5](https://github.com/SquadRules/mcp/commit/58eb8c50c5be82d8f12070d91ceeac696edca4cd))
+* **tools:** clarify contract rendering and honest verification ([#216](https://github.com/SquadRules/mcp/issues/216)) ([#220](https://github.com/SquadRules/mcp/issues/220)) ([1b74840](https://github.com/SquadRules/mcp/commit/1b7484046250161ec29b9460ee16159199411633))
+
 ## [5.13.8](https://github.com/SquadRules/mcp/compare/v5.13.7...v5.13.8) (2026-10-28)
 
 
