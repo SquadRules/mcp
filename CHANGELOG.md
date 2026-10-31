@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.14.2](https://github.com/SquadRules/mcp/compare/v5.14.1...v5.14.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **ci:** recover audited glob and minimatch overrides ([#226](https://github.com/SquadRules/mcp/issues/226)) ([930a213](https://github.com/SquadRules/mcp/commit/930a21326be81c947bda212eccdce79a2ddc96b8))
+* **deps:** resolve npm security advisories ([#227](https://github.com/SquadRules/mcp/issues/227)) ([197e320](https://github.com/SquadRules/mcp/commit/197e3208f8b1a163829d6ddf7301e3f7b5b04307))
+
 ## [5.14.1](https://github.com/SquadRules/mcp/compare/v5.14.0...v5.14.1) (2026-10-30)
 
 
