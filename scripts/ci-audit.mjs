@@ -15,6 +15,20 @@ export function auditResult(raw, status) {
   return { count: counts.moderate + counts.high + counts.critical, vulnerabilities: data.vulnerabilities, counts };
 }
 
+// Known security patches that require replacing stale top-level npm overrides.
+// Only update an override when the production audit reports that package and
+// the exact vulnerable override is still in place. Unknown major upgrades stay
+// fail-closed for manual review.
+export function auditedOverrideUpdates(vulnerabilities, overrides = {}) {
+  const patches = {
+    glob: { from: '^13.0.0', to: '^14.0.2' }, // GHSA-3g3m-2fjr-6pw4
+    minimatch: { from: '^10.2.3', to: '^11.0.1' }, // GHSA-g3hv-75wg-m249
+  };
+  return Object.entries(patches)
+    .filter(([name, patch]) => vulnerabilities[name] && overrides[name] === patch.from)
+    .map(([name, patch]) => [name, patch.to]);
+}
+
 function assess(name) {
   // Production scope: the remediation gate (and publishAudit's before/after count
   // check) covers shipped dependencies only. `npm audit fix --force` "resolves"
@@ -94,6 +108,17 @@ async function main() {
   mkdirSync(directory, { recursive: true });
   const before = assess('before');
   if (!before.count) { output({ changed: false }); return report({ state: 'clean', ...before.counts }); }
+  const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
+  const overrides = auditedOverrideUpdates(before.vulnerabilities, manifest.overrides);
+  if (overrides.length) {
+    for (const [name, version] of overrides) manifest.overrides[name] = version;
+    writeFileSync('package.json', `${JSON.stringify(manifest, null, 2)}\\n`);
+    console.log(`Applying audited security overrides: ${overrides.map(([name, version]) => `${name}@${version}`).join(', ')}`);
+    const lock = spawnSync('npm', ['install', '--package-lock-only', '--ignore-scripts', '--no-audit'], {
+      stdio: 'inherit', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' },
+    });
+    if (lock.status !== 0) throw new Error('Could not regenerate lockfile for audited security overrides');
+  }
   const fix = spawnSync('bash', ['scripts/npm-audit-fix.sh'], { stdio: 'inherit', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' } });
   const after = assess('after');
   if (fix.status !== 0 || after.count !== 0) throw new Error('Unresolved production moderate-or-higher advisories; no false success');
