@@ -39,7 +39,23 @@ Descend only when the higher rung genuinely cannot apply, and say why in the
 adapter text. "Was faster to write" is not a reason. Rungs 1–3 and the fallback are
 **soft-enforced** through this guide, the `critic-loop` review checklist, and the
 `author-adapter` authoring checklist; the hard, fail-closed structural rules are
-the two objective ones below (`shell_interpreter_required`, `forward_link_only`).
+the three objective ones (`shell_interpreter_required`, `forward_link_only`,
+`subagent_mcp_invalid`).
+
+### The critic never runs on the executor's thread
+
+Rung 2 is not only *delegated*, it is **separated**: the agent that produced the
+work does not judge it. A contract that criticises this run's own work must
+therefore be a `subagent` contract, never a `forward` contract — under
+`forward`, the same thread receives the critic's instructions, performs them, and
+writes the verdict it is then gated on, which restates a claim instead of
+observing one. The hop names its mechanism so the subagent cannot narrate it:
+`subagent.mcp: [{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"}}]`,
+with the work submission, requirement list, and iteration bounds in
+`subagent.context`. The caller's `shell` verdict gate stays required after the
+hop. The full decision, and what isolation does *not* prove until server-issued
+receipts exist, is in
+[ADR 0034](adr/0034-verification-isolation-critic-hop.md).
 
 ## How many contracts
 
@@ -52,6 +68,11 @@ the two objective ones below (`shell_interpreter_required`, `forward_link_only`)
   genuine irreversible boundary is proof splitting
   ([ADR 0010](adr/0010-critic-loop-and-proof-splitting.md)), not a quantity
   exemption.
+- **No gate on a result the executor cannot observe.** If no shell command can
+  see the outcome — a write to a remote store, a tool call whose transcript the
+  caller must not hold — do not invent a command that prints `ok`. Express it as
+  a `subagent` hop (rungs 2–3) or as an instruction with a stated completion
+  criterion; a fake proof looks like a gate and is worse than none.
 - **`comment`: at most one per adapter, never combined** with another type. An
   adapter with any observable step does not also get an acknowledgment layer.
 
@@ -72,12 +93,24 @@ test, not a verification strategy.
   script.
 - Prefer **empirical checks** that assert on content or resulting state, not merely
   that a file exists.
-- For complex or JSON-shaped work use the **script-export pattern**: attach the
-  script as an artifact, export it into the workdir at execution time, and pick
-  `node` or `python3` to match the project. Use `bash` only where data manipulation
-  is minimal, and never once JSON is involved.
+- For complex or JSON-shaped work use the **script-export pattern**: ship the gate
+  as a script **artifact** attached to the adapter, materialize it into
+  `$SQUADRULES_LOCAL_ARTIFACT_DIR` at run time, and keep the contract a one-line
+  invocation of that script — `interpreter: "bash"`, `cmd: python3
+  "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`. One
+  dispatcher script serves many gates; never inline a multi-step program into
+  `cmd`. A script *file* therefore needs that wrapper line — why: [contract
+  types](examples/challenge-types.md). Artifact input contract: the `train` tool
+  description; interpreter rule:
+  [ADR 0026](adr/0026-shell-interpreter-required.md).
+- **Before shipping, run the export check** — export the adapter and confirm the
+  script is in the bundle at the path the contract invokes. The executable
+  procedure is in the `author-adapter` workflow
+  (`squadrules://adapter/author-adapter`).
 
-Example: [adapter-example-shell.md](examples/adapter-example-shell.md).
+Examples: [adapter-example-shell.md](examples/adapter-example-shell.md) for a one-line check, and
+[artifact-gate/adapter-example-artifact-gate.md](examples/artifact-gate/adapter-example-artifact-gate.md)
+for a gate script artifact with its contract.
 
 ### `forward` — link to another adapter
 
@@ -87,10 +120,15 @@ A `forward` contract **must** link to another adapter
 
 - `forward.target` matches `squadrules://adapter/<slug>`.
 
-Use it to **chain to the next adapter** at the tail, or mid-flow to a **reusable
-sub-adapter** driven through its own forward/reward loop — `critic-loop` at a phase
-boundary is the standing case. A forward contract without `forward.target` is not a
-chain link and fails the same rule.
+Use `forward` to **chain to the next adapter** at the tail, or mid-flow to a
+**reusable sub-adapter** driven through its own forward/reward loop. A forward
+contract without `forward.target` is not a chain link and fails the same rule.
+
+A critic hop is **not** a chain link: `forward` to `critic-loop` puts the review
+on the audited agent's thread. Reach the critic through a `subagent` contract
+instead (see
+[the isolation rule](#the-critic-never-runs-on-the-executors-thread) above and
+[ADR 0034](adr/0034-verification-isolation-critic-hop.md)).
 
 **Bare tool calls are not valid `forward` contracts.** A `forward` contract names an
 adapter, never a tool: `activate`, `export`, `getMergeRequest`, and similar are
@@ -111,14 +149,22 @@ not the caller's summary of it. For rung 2, loop the critic to `PASS`
 [ADR 0017](adr/0017-critic-loop-work-submission.md)); for rung 3, the subagent
 returns only its report so the tool transcript never reaches the caller.
 
-**When to fill `subagent.mcp`.** Fill it when the step's evidence *is* a specific
-MCP tool result — naming the calls (`tool_name` plus `arguments`) stops the
-subagent from substituting a plausible narrative for the real call. Leave it out
-for rung-2 judgment, where the free text in `subagent.context` is the whole
-instruction and no tool call is required. The field is optional either way; the
-example below shows both rungs side by side, and
+**When to fill `subagent.mcp`.** Fill it when the step needs a specific MCP tool
+call to have really happened — either because the evidence *is* that tool's result
+(rung 3), or because the delegation must reach a named adapter rather than an
+improvised review (the `critic-loop` hop, whose required call is
+`forward` → `squadrules://adapter/critic-loop`). Naming the calls (`tool_name`
+plus `arguments`) stops the subagent from substituting a plausible narrative for
+the real call. Leave it out for pure rung-2 judgment on material the subagent
+already has, where the free text in `subagent.context` is the whole instruction
+and no tool call is required. The field is optional either way; the example below
+shows both rungs side by side, and
 [ADR 0029](adr/0029-subagent-mcp-and-context-authority.md) records why the
-delegation list is structured while the proof stays a flat report.
+delegation list is structured while the proof stays a flat report. Its "never a
+forward link" clause forbids using `subagent.mcp` *instead of* a `forward`
+contract; it does not forbid the subagent calling the `forward` tool on its own
+thread, which is what [ADR 0034](adr/0034-verification-isolation-critic-hop.md)
+requires of a critic hop.
 
 Example: [adapter-example-subagent.md](examples/adapter-example-subagent.md).
 
@@ -162,16 +208,23 @@ needs. All four operations are autonomous: no human approval gate, and the
 `critic-loop` `PASS` verdict is the sole quality gate for a mutation.
 
 - **Create** — resolve intent and gather requirements without a confirmation
-  prompt; draft the markdown. Verify readiness with one combined `shell` check on
-  the draft's mechanical structure, and use a `subagent` critic (rung 2) for
-  intent, authorization, and clarity. Publish with `train`, then verify the stored
-  result against the intended adapter. Do not add separate contracts for
-  "requirements written", "draft exists", or "I understood the review".
+  prompt; draft the markdown. Review it with a `subagent` critic hop (rung 2,
+  reaching `critic-loop` through `subagent.mcp`) for intent, authorization, and
+  clarity, and gate the store write with one `shell` check that the verdict is
+  `PASS`. Those two contracts are the whole verification budget: the draft's
+  mechanical structure is already enforced fail-closed by `train`'s structural
+  validator, so do not re-check it, and do not add separate contracts for
+  "requirements written", "draft exists", or "I understood the review". Publish
+  with `train`, attach any gate script with a second `train` (input fields: the
+  `train` tool description), then verify the stored result against the intended
+  adapter — `activate` it and confirm every `linked_artifacts[].relative_path`
+  matches the path its contract invokes, then run the export check above.
 - **Update** — export the target, identify the exact gap, plan the minimal change.
   Re-run the critic on the changed parts (a changed draft invalidates review
-  evidence about those parts), then save with `tune` and read back to verify. Keep
-  readiness before the save and outcome verification after it: they answer
-  different questions.
+  evidence about those parts), prove the verdict before saving with `tune`, then
+  read the stored adapter back as the completion criterion. Readiness before the
+  save is a gate; the read-back after it is not observable from a shell on a
+  remote store, so it stays an instruction rather than a fake proof.
 - **Review** — read-only. Export the target(s) and audit against the checklist
   (structural compliance, contract coverage, ladder placement, DRY, activation
   accuracy). Produce a findings report; do not mutate and do not `train`.

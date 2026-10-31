@@ -33,7 +33,7 @@ After the work is complete, hand off to the next adapter in the chain. The forwa
   "contract": {
     "type": "forward",
     "forward": {
-      "target": "squadrules://adapter/critic-loop"
+      "target": "squadrules://adapter/implement-terraform"
     },
     "required": true
   }
@@ -42,7 +42,7 @@ After the work is complete, hand off to the next adapter in the chain. The forwa
 
 The server verifies the submitted `evidence.target` equals the contract's `forward.target`, so the link's destination is checked — not merely that some handoff happened. A forward contract without `forward.target` is not a chain link and fails validation with `forward_link_only`.
 
-**Mid-adapter placement** is permitted only to a reusable sub-adapter driven through its own forward/reward loop (the standing case is `critic-loop`). All other mid-adapter tool work belongs in a `subagent` contract.
+**Mid-adapter placement** is permitted only to a reusable sub-adapter driven through its own forward/reward loop, and only when that sub-adapter is **not** auditing the caller. A `critic-loop` review is never reached this way: a `forward` hop runs the critic on the thread that produced the work, so the reviewer is the reviewed. Reach the critic with a `subagent` contract whose `subagent.mcp` names `forward` → `squadrules://adapter/critic-loop` ([ADR 0034](../adr/0034-verification-isolation-critic-hop.md)). All other mid-adapter tool work belongs in a `subagent` contract.
 
 ## What is NOT a valid `forward` contract
 

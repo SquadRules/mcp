@@ -23,6 +23,20 @@ const forwardFirstCallSchema = z
 const executionIdSchema = z
   .string()
   .regex(/^[0-9a-f-]{36}$/i, 'must be a UUID');
+const materializeInstructionSchema = z
+  .object({
+    tool: z.literal('export').describe('MCP tool to call for artifact materialization'),
+    arguments: z
+      .object({
+        uri: z.string().describe('Artifact URI to export'),
+        format: z.literal('source').describe('Export format for artifact content')
+      })
+      .strict(),
+    out: z.string().describe('Absolute path where the agent must write the content (uses $SQUADRULES_LOCAL_ARTIFACT_DIR)'),
+    sha256: z.string().describe('SHA-256 digest the agent must verify after writing'),
+    chmod: z.literal('700').describe('File permissions the agent must set after verification')
+  })
+  .strict();
 const linkedArtifactSchema = z
   .object({
     slug: z.string(),
@@ -31,7 +45,7 @@ const linkedArtifactSchema = z
     download_url: z.string(),
     sha256: z.string(),
     content_type: z.string(),
-    materialize: z.string().describe('Shell command to download + verify this artifact into $SQUADRULES_LOCAL_ARTIFACT_DIR')
+    materialize: materializeInstructionSchema.describe('Instruction to call the MCP export tool, write the artifact to disk, verify the digest, and make it executable')
   })
   .strict();
 const activateChoiceCommonSchema = z.object({
@@ -61,7 +75,8 @@ const activateMatchChoiceSchema = activateChoiceCommonSchema.extend({
 });
 const activateRefineChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('refine'),
-  forward_first_call: forwardFirstCallSchema
+  forward_first_call: forwardFirstCallSchema,
+  linked_artifacts: z.array(linkedArtifactSchema).optional()
 });
 const activateCreateChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('create'),

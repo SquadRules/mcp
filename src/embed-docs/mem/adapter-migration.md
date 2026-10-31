@@ -1,5 +1,5 @@
 ---
-version: "5.13.6"
+version: "5.14.1"
 slug: adapter-migration
 title: Adapter Migration Workflow
 ---
@@ -33,12 +33,15 @@ to match the latest SQUADRULES requirements.
 - Guess transformations when the adapter structure is ambiguous.
 - Delete adapters or layers during migration.
 - Migrate adapters that already conform (report them as "no changes needed").
+- Review the transformed set yourself: a batch overwrite written by your own hand
+  is not checked by re-reading your own hand.
 
 **Must Always:**
 - Export every adapter before making any changes.
 - Apply only conservative, reversible structural transformations.
 - Flag ambiguous cases for manual review instead of guessing.
 - Produce a per-adapter change report before executing any writes.
+- Have the transformed set reviewed by a delegated critic before the batch write.
 - Preserve the adapter's slug, version, and chain_root fields.
 
 **Good trigger examples:**
@@ -56,15 +59,14 @@ Before running migration, verify readiness:
 
 1. `export` tool is available and callable.
 2. `tune` and `train` tools are available for writes.
-3. Target space is identified (personal or a named group space).
-4. The migration is structural-only (no semantic changes).
+3. A subagent facility is available in this host for the review hop. Without it,
+   stop and report the blocker rather than approving your own batch.
+4. Target space is identified (personal or a named group space).
+5. The migration is structural-only (no semantic changes).
 
 If any tool is unavailable, stop and report the connection blocker with
-remediation guidance.
-
-```json
-{"contract":{"type":"shell","shell":{"cmd":"echo 'preflight: migration tools verified'","interpreter":"bash","timeout_seconds":10},"required":true}}
-```
+remediation guidance. These are checks you perform, not gates: a failure produces
+a repair action, so no contract is spent on them.
 
 ## Export All Adapters
 
@@ -76,10 +78,6 @@ Export every adapter from the target space using bulk export:
 3. For each adapter in the response, extract its slug, URI, and content.
 
 If the space has no adapters, report this and stop.
-
-```json
-{"contract":{"type":"subagent","subagent":{"context":"Export all adapters from the target space using the export tool with all_adapters: true. Record the total count and extract slug, URI, and content for each adapter."},"required":true}}
-```
 
 ## Analyze and Transform
 
@@ -99,6 +97,11 @@ For each exported adapter, perform structural analysis and apply migrations.
    field with an allowed value (`bash`, `sh`, `python3`, `python`, `node`).
 6. **Forward link** — every `forward` contract must set `forward.target`
    matching `squadrules://adapter/<slug>`.
+7. **Critic hop** — a `forward` contract whose target is
+   `squadrules://adapter/critic-loop` is the deprecated self-review shape: it
+   runs the critic on the thread that produced the work. Flag it for manual
+   review; converting a review hop into a delegated one changes verification
+   semantics and is not a conservative transformation.
 
 ### Transformation rules
 
@@ -113,14 +116,18 @@ For each adapter, produce:
 - `warnings`: list of items flagged for manual review
 - `transformed_content`: the full updated markdown (when `needs_changes`)
 
-```json
-{"contract":{"type":"subagent","subagent":{"context":"Analyze each exported adapter against structural checks (heading order, contract fences, frontmatter, line count, shell interpreter, forward link). Apply conservative transformations and produce per-adapter status, changes, warnings, and transformed content."},"required":true}}
-```
-
 ## Report Changes
 
-Write the migration report to `$MIGRATION_REPORT_FILE` (absolute path under
-`$SQUADRULES_LOCAL_ARTIFACT_DIR`). Record a summary table:
+Write the migration report to `$MIGRATION_REPORT_FILE` — an absolute path you
+allocate under `$SQUADRULES_LOCAL_ARTIFACT_DIR` (resolve a hint from the
+`squadrules_local_artifact_dir` field of the latest `activate`/`forward` response
+and export it; the server never names a path on your machine). Also allocate
+`$WORK_MANIFEST` and `$VERDICT_FILE` in the same directory. Record the
+transformed drafts as files under one root and write the handoff to
+`$WORK_MANIFEST` as flat keys: `kind: file_set`, `root: <that directory>`, then
+`items:` with one draft path per line.
+
+Record a summary table in the report:
 
 | Adapter slug | Status | Changes | Warnings |
 |-------------|--------|---------|----------|
@@ -130,37 +137,36 @@ Write the migration report to `$MIGRATION_REPORT_FILE` (absolute path under
 For each adapter with `needs_changes`, show the specific transformations.
 For each `needs_manual_review`, explain what needs human attention.
 
-Apply the migration autonomously:
-- **Apply all** `needs_changes` adapters.
-- **Leave untouched** every `needs_manual_review` adapter.
+A report on your own scratch is a local, reversible artifact, so it carries no
+gate. What is gated is the batch write it precedes.
+
+## Review the Transformed Set
+
+Delegate the review of every transformed draft before anything is written:
 
 ```json
-{"contract":{"type":"shell","shell":{"cmd":"test -f \"$MIGRATION_REPORT_FILE\" && grep -c '|' \"$MIGRATION_REPORT_FILE\" | test $(cat) -gt 1","interpreter":"bash","timeout_seconds":10},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Run the critic over the transformed adapter drafts and return its actual report. Call the forward tool with uri squadrules://adapter/critic-loop, submit work from $WORK_MANIFEST (kind file_set, the transformed drafts), calling_protocol_slug adapter-migration, verification_target 'structural migration preserved semantics and did not over-reach', the requirement list of structural checks, and context.verdict_file $VERDICT_FILE with context.iteration and context.max_iterations (8). Do not review the drafts yourself and do not re-delegate the review.","mcp":[{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"}}]},"required":true}}
 ```
 
-## Execute Migration
+## Apply, Verify, and Report
 
-For each `needs_changes` adapter, apply the structural changes:
-
-1. For adapters needing only content-level fixes (heading reorder, fence
-   conversion, interpreter addition): use `tune` with the transformed content
-   and the adapter's URI.
-2. For adapters needing structural changes that alter layer count or identity:
-   use `train` with `force_update: true` and the transformed content.
-3. Record the outcome (success or failure) for each adapter.
-
-Do NOT change the adapter's space assignment during migration.
-
-```json
-{"contract":{"type":"subagent","subagent":{"context":"Execute the migration: for each needs_changes adapter, call tune (content-level fixes) or train with force_update (structural changes). Record success/failure per adapter."},"required":true}}
-```
-
-## Verify and Report
-
-After executing all migrations:
-
-1. Re-export each migrated adapter to verify structural compliance.
-2. Report final status:
+1. Run the gate at the end of this section against `$VERDICT_FILE` **before** any
+   write. `FAIL` → fix the drafts the critic named, run a fresh critic pass the
+   same way (a subagent delegating `squadrules://adapter/critic-loop`,
+   `iteration` incremented) and run the gate again. Loop automatically; do not ask
+   the user whether to continue. At `failure_class: iteration_ceiling`, stop,
+   report the unresolved findings, and write nothing.
+2. Apply the migration only on a `PASS` verdict:
+   - **Apply all** `needs_changes` adapters.
+   - **Leave untouched** every `needs_manual_review` adapter.
+   - For content-level fixes (heading order, fence conversion, interpreter
+     addition): use `tune` with the transformed content, its URI, and
+     `review_evidence` from the verdict file.
+   - For changes that alter layer count or identity: use `train` with
+     `force_update: true` and the same `review_evidence`.
+   - Do NOT change an adapter's space assignment during migration.
+3. After all writes, re-export each migrated adapter to verify structural
+   compliance, then report final status:
 
 | Metric | Count |
 |--------|-------|
@@ -170,12 +176,12 @@ After executing all migrations:
 | Migration failed | N |
 | Flagged for manual review | N |
 
-3. For each failure, report the error message and suggested fix.
-4. Recommend running `critic-loop` on migrated adapters to verify semantic
-   integrity after structural changes.
+For each failure, report the error message and suggested fix. Semantic integrity
+was reviewed before the write; do not present a post-write structural re-export
+as if it re-checked meaning.
 
 ```json
-{"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
+{"contract":{"type":"shell","shell":{"cmd":"head -1 \"$VERDICT_FILE\" | grep -qi '^PASS$'","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
 ## Reward Signal
@@ -192,3 +198,9 @@ scheme. Every adapter has:
 - Been verified post-migration for structural compliance.
 
 Semantic content (steps, intent, examples, triggers) is preserved unchanged.
+
+What the verdict gate proves: a delegated critic pass over the transformed drafts
+left a verdict file reading `PASS`, and the store accepted the writes carrying
+that evidence. What it does not prove: that the report came from the delegated
+context rather than this one, or that the verdict is bound to the drafts it
+reviewed — a content-bound review receipt would be needed for that.

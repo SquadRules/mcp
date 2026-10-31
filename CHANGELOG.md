@@ -1,5 +1,39 @@
 # Changelog
 
+## [5.14.1](https://github.com/SquadRules/mcp/compare/v5.14.0...v5.14.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **activate:** replace shell materialize command with MCP export tool instruction ([#223](https://github.com/SquadRules/mcp/issues/223)) ([7d66228](https://github.com/SquadRules/mcp/commit/7d66228e6d635b8dff23eacb9dce0053350c6241))
+
+## [5.14.0](https://github.com/SquadRules/mcp/compare/v5.13.8...v5.14.0) (2026-10-30)
+
+
+### Features
+
+* **agent:** give the task-isolation rule its own verified mechanism ([#217](https://github.com/SquadRules/mcp/issues/217)) ([afeac1f](https://github.com/SquadRules/mcp/commit/afeac1fb6c1514de4d6007bb1c8f67da9a5a7874))
+
+
+### Bug Fixes
+
+* **agent:** keep the isolation worktree owned when the fast-forward fails ([#218](https://github.com/SquadRules/mcp/issues/218)) ([58eb8c5](https://github.com/SquadRules/mcp/commit/58eb8c50c5be82d8f12070d91ceeac696edca4cd))
+* **tools:** clarify contract rendering and honest verification ([#216](https://github.com/SquadRules/mcp/issues/216)) ([#220](https://github.com/SquadRules/mcp/issues/220)) ([1b74840](https://github.com/SquadRules/mcp/commit/1b7484046250161ec29b9460ee16159199411633))
+
+## [5.13.8](https://github.com/SquadRules/mcp/compare/v5.13.7...v5.13.8) (2026-10-28)
+
+
+### Bug Fixes
+
+* **activate:** make artifact materialize executable and run the critic in a subagent ([#188](https://github.com/SquadRules/mcp/issues/188)) ([7771a4d](https://github.com/SquadRules/mcp/commit/7771a4d06c63c8fcfeacf9ed300b5f760f623795))
+
+## [5.13.7](https://github.com/SquadRules/mcp/compare/v5.13.6...v5.13.7) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm security advisories ([#208](https://github.com/SquadRules/mcp/issues/208)) ([aa27277](https://github.com/SquadRules/mcp/commit/aa27277a1b601ad77e3ac28e2ff7152fd7edaa9b))
+
 ## [5.13.6](https://github.com/SquadRules/mcp/compare/v5.13.5...v5.13.6) (2026-10-27)
 
 

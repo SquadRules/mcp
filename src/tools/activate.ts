@@ -18,10 +18,8 @@ import { SQUADRULES_CREATION_FOOTER_NEXT_ACTION } from '../constants/builtin-sea
 import { SQUADRULES_LOCAL_ARTIFACT_DIRS, TRANSPORT_TYPE } from '../config.js';
 import { buildLocalArtifactDirFields } from './local-artifact-dir-contract.js';
 import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
-import { listAdapterArtifacts } from './artifact-catalog.js';
-import { mintExportArtifactDownloadCapability } from '../services/export-artifact-download-capability.js';
+import { loadLinkedArtifacts } from './activate-artifacts.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
-import { normalizeArtifactRelativePath } from './artifact-relative-path.js';
 import { activateRefinementStore } from '../services/activate-refinement-store.js';
 
 interface RegisterActivateOptions {
@@ -50,28 +48,7 @@ async function mapSearchToActivate(
   query: string,
   options: { executionId: string; includeRefineFooter: boolean }
 ): Promise<ActivateOutput> {
-  const escapeShellSingleQuoted = (value: string): string => value.replace(/'/g, `'\\''`);
-  const escapeShellDoubleQuoted = (value: string): string => value.replace(/["\\$`]/g, '\\$&');
-  const safeArtifactFileName = (value: string): string => value.replace(/[/\\]/g, '_');
-  const defaultArtifactRelativePath = (fileName: string): string => `artifacts/${safeArtifactFileName(fileName)}`;
   const isStdio = TRANSPORT_TYPE === 'stdio';
-  const materializeCommand = (url: string, relativePath: string, sha256: string): string => {
-    const relForPath = escapeShellDoubleQuoted(relativePath);
-    const relEscaped = escapeShellSingleQuoted(relativePath);
-    const shaEscaped = escapeShellSingleQuoted(sha256);
-    const urlEscaped = escapeShellSingleQuoted(url);
-    const parentDir = relativePath.includes('/') ? relativePath.slice(0, relativePath.lastIndexOf('/')) : '';
-    const parentDirForPath = escapeShellDoubleQuoted(parentDir);
-    const mkdirPart =
-      parentDir.length > 0
-        ? `mkdir -p "$SQUADRULES_LOCAL_ARTIFACT_DIR/${parentDirForPath}" && `
-        : '';
-    if (isStdio) {
-      // stdio transport has no HTTP listener; use `squadrules export` instead of curl.
-      return `${mkdirPart}squadrules export --uri '${urlEscaped}' --format source > "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
-    }
-    return `${mkdirPart}curl -fsSL '${urlEscaped}' -o "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}" && (cd "$SQUADRULES_LOCAL_ARTIFACT_DIR" && echo '${shaEscaped}  ${relEscaped}' | sha256sum -c) && chmod 700 "$SQUADRULES_LOCAL_ARTIFACT_DIR/${relForPath}"`;
-  };
 
   const visibleChoices = options.includeRefineFooter
     ? searchOutput.choices
@@ -100,6 +77,24 @@ async function mapSearchToActivate(
           forward_first_call: null
         };
       }
+      const adapterLabel = choice.adapter_name ?? choice.label;
+      // Every role that maps to a stored adapter (match and refine) must carry the
+      // artifact list: a refine choice is still a stored adapter whose scripts the
+      // agent has to obtain before running a contract (SquadRules/mcp#216).
+      const { linkedArtifacts, artifactLoadError } = await loadLinkedArtifacts(
+        memoryStore,
+        qdrantService,
+        adapterUri,
+        isStdio
+      );
+      const artifactInstruction = linkedArtifacts.length > 0
+        ? `Materialize this choice's linked_artifacts to $SQUADRULES_LOCAL_ARTIFACT_DIR, verify sha256, then `
+        : artifactLoadError
+          // A failed artifact lookup must not look like "this adapter has no artifacts":
+          // the caller would run a script path it can never obtain (SquadRules/mcp#216).
+          ? `linked_artifacts could not be loaded (${artifactLoadError}), so this adapter's artifact files are unknown: if a shell contract invokes a script path, materialize it first (re-run activate, or export the adapter) instead of running the command blind. `
+          : '';
+
       if (choice.role === 'refine') {
         return {
           uri: adapterUri,
@@ -108,68 +103,19 @@ async function mapSearchToActivate(
           activation_score: choice.score,
           role: choice.role,
           tags: choice.tags,
-          next_action: `call forward with ${adapterUri} and no solution to start the refine adapter`,
+          next_action: `${artifactInstruction}call forward with ${adapterUri} and no solution to start the refine adapter`,
           adapter_version: choice.adapter_version,
           activation_patterns: [],
           space_name: choice.space_name ?? null,
           slug: choice.slug ?? null,
           forward_first_call: {
             uri: adapterUri
-          }
+          },
+          ...(linkedArtifacts.length > 0 ? { linked_artifacts: linkedArtifacts } : {})
         };
       }
 
-      const adapterLabel = choice.adapter_name ?? choice.label;
-      let linkedArtifacts: Array<{
-        slug: string;
-        filename: string;
-        relative_path: string;
-        download_url: string;
-        sha256: string;
-        content_type: string;
-        materialize: string;
-      }> = [];
-      try {
-        const { adapterId } = await resolveExportAdapter(memoryStore, qdrantService, adapterUri);
-        const linkedArtifactsRaw = await listAdapterArtifacts(memoryStore, adapterId);
-        linkedArtifacts = await Promise.all(
-          linkedArtifactsRaw.map(async (artifact) => {
-            const normalizedRelativePath =
-              artifact.relative_path && artifact.relative_path.trim().length > 0
-                ? normalizeArtifactRelativePath(artifact.relative_path.trim())
-                : null;
-            const relativePath = normalizedRelativePath ?? defaultArtifactRelativePath(artifact.name);
-            const capability = await mintExportArtifactDownloadCapability({
-              artifactUuid: artifact.artifact_uuid,
-              filename: artifact.name,
-              contentType: artifact.content_type,
-              sha256: artifact.sha256,
-              relativePath
-            });
-            // stdio transport: no HTTP listener available; use squadrules:// artifact URI
-            // so the agent calls `squadrules export` instead of curl.
-            const downloadUrl = isStdio
-              ? `squadrules://artifact/${artifact.slug}`
-              : capability.url;
-            return {
-              slug: artifact.slug,
-              filename: artifact.name,
-              relative_path: relativePath,
-              download_url: downloadUrl,
-              sha256: artifact.sha256,
-              content_type: artifact.content_type,
-              materialize: materializeCommand(downloadUrl, relativePath, artifact.sha256)
-            };
-          })
-        );
-      } catch (error) {
-        structuredLogger.warn(
-          `[activate] failed to load linked artifacts for ${adapterUri}: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
-      const nextAction = linkedArtifacts.length > 0
-        ? `Materialize this choice's linked_artifacts to $SQUADRULES_LOCAL_ARTIFACT_DIR, verify sha256, then call forward with ${adapterUri} and no solution to start this adapter`
-        : `call forward with ${adapterUri} and no solution to start this adapter`;
+      const nextAction = `${artifactInstruction}call forward with ${adapterUri} and no solution to start this adapter`;
       return {
         uri: adapterUri,
         label: adapterLabel,

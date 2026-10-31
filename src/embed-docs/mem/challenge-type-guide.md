@@ -1,5 +1,5 @@
 ---
-version: "5.13.6"
+version: "5.14.1"
 slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---
@@ -135,7 +135,7 @@ Every solution follows the same envelope:
 
 **forward solution**
 ```json
-{"type":"forward","outcome":"success","evidence":{"target":"squadrules://adapter/critic-loop","success":true}}
+{"type":"forward","outcome":"success","evidence":{"target":"squadrules://adapter/implement-terraform","success":true}}
 ```
 
 **subagent solution**
@@ -167,6 +167,12 @@ Every solution follows the same envelope:
 **Rule of thumb:** default to `bash`. If you need multi-line regex, imports for
 data formats, or complex string processing, use `python3`. Use `node` only when
 the check requires the Node.js runtime.
+
+`cmd` is always program text: `python3` / `node` receive it as `-c` / `-e` source,
+so these rows describe short inline programs. Once a check needs more than one
+readable line, stop choosing an interpreter and ship the script as an artifact,
+invoked through a `bash` wrapper — see
+[Artifacts for Shell Contracts](#artifacts-for-shell-contracts).
 
 ## Security and Working Directory Rules
 
@@ -230,7 +236,8 @@ external worktrees, or open the worktree as a separate project window.
 **Write-then-grep** — subagent writes a verdict file, main agent checks line 1.
 
 **Phase-batch with critic** — batch related items, verify hard artifacts with
-shell, then call `critic-loop` for adversarial review.
+shell, then delegate `critic-loop` for adversarial review from a `subagent`
+contract. The review must not run on the thread that produced the work.
 
 **Chain-link via forward + slug** — layer N's contract requires `forward` with a
 specific adapter slug. Use when the adapter exceeds 350 lines or needs
@@ -241,16 +248,49 @@ Example ```json
 
 ## Artifacts for Shell Contracts
 
-When a shell contract needs a reusable script, **attach it as an artifact**
-rather than inlining it in the contract JSON:
+A gate that needs more than one short command belongs in a **script shipped with
+the adapter**, not in the contract's `cmd`. An artifact keeps the contract
+readable, makes the script independently versionable, and lets one dispatcher
+serve many gates.
 
-1. Write the script file.
-2. `train` with `mime: "text/x-python"`, `artifact_name: "isolation-guard.py"`,
-   `adapter_uri: "squadrules://adapter/my-adapter"`, and the script content.
-3. In the shell contract, reference it via `export` with
-   `squadrules://artifact/{uuid}` at execution time.
+**Author it in this order** — an artifact attaches to an adapter that already
+exists:
 
-This keeps adapter markdown clean and makes scripts independently versionable.
+1. Draft the markdown. The contract stays one line and invokes the script by its
+   artifact path. `interpreter` names the wrapper that runs that line, because
+   `cmd` is program text for every interpreter:
+   Example ```json
+   {"contract":{"type":"shell","shell":{"cmd":"python3 \"$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/my-gates.py\" --gate preflight","interpreter":"bash","timeout_seconds":60},"required":true}}
+   ```
+2. `train` the markdown.
+3. `train` the script with the `mime` matching its extension (`text/x-python`,
+   `text/x-shellscript`, `text/javascript`), `artifact_name`, and that adapter's
+   `adapter_uri`. Add `relative_path` only when the default
+   `artifacts/<artifact_name>` is not the path you want; the identity header and
+   slug rules are in the `train` description.
+4. Verify before you run it — **two** checks:
+   - `activate` the adapter and check that `linked_artifacts[].relative_path`
+     equals the path the contract invokes.
+   - **Export check:** `export` the adapter (`format: skill_tree`, or
+     `skill_zip` for the bundle) and confirm the script is in the bundle at
+     that path, with no `artifact_stored_sha_mismatch` or
+     `artifact_relative_path_invalid` in `diagnostics[]`.
+
+   A mismatch surfaces only when the gate runs — by then it is the user's
+   failed step, not your typo.
+
+**At execution time:** follow the `materialize` instruction carried by that
+`linked_artifacts[]` row — call the MCP `export` tool with the specified
+arguments, write the returned content to the `out` path under
+`$SQUADRULES_LOCAL_ARTIFACT_DIR`, verify the digest, and set permissions.
+`forward` responses do not repeat the list, so materialize during the
+run's first step. When the choice carries no artifact row, the agent obtains the
+script with **`export`** (`format: skill_tree` or `format: skill_zip`) and takes
+it from `artifacts/`. State which route applies in the adapter text — a step that
+does not say how to get the file leaves the agent guessing.
+
+**One script, many gates:** `--gate <name>` on a single dispatcher replaces one
+inlined program per step. Change the gate once, not seven times.
 
 Example ```json
 {"contract":{"type":"comment","comment":{"min_length":30},"required":true}}
@@ -268,3 +308,4 @@ The agent can now:
 5. use forward contracts for chain links
 6. use subagent contracts for delegated work
 7. apply stronger verification patterns instead of weak comment checks
+8. ship a multi-step gate as an adapter artifact and keep its contract one line

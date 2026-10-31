@@ -1,6 +1,7 @@
 import { authoringContextSchema } from './authoring-context.js';
 import { z } from 'zod';
 import { ADAPTER_SLUG_URI_INPUT_REGEX, LAYER_URI_INPUT_REGEX } from './squadrules-uri.js';
+import { SHELL_INTERPRETERS } from './shell-challenge-invocation.js';
 
 const adapterUriSchema = z
   .string()
@@ -20,7 +21,12 @@ export const forwardContractSchema = z.object({
   proof_hash: z.string().optional(),
   shell: z.object({
     cmd: z.string(),
-    timeout_seconds: z.number()
+    timeout_seconds: z.number(),
+    interpreter: z.enum(SHELL_INTERPRETERS).optional().describe('Required by ADR 0026. The argv wrapper for cmd; absent means the stored contract is invalid and must be repaired.'),
+    flags: z.array(z.string()).optional(),
+    args: z.array(z.string()).optional(),
+    workdir: z.string().optional(),
+    invocation_display: z.string().optional().describe('Server-computed invocation line. Run exactly this.')
   }).optional(),
   forward: z.object({
     target: z.string(),
@@ -108,7 +114,7 @@ const forwardNextCallSchema = z.discriminatedUnion('kind', [
         uri: layerUriSchema,
         outcome_template: z
           .object({
-            outcome: z.literal('success')
+            outcome: z.enum(['success', 'failure'])
           })
           .strict()
       })

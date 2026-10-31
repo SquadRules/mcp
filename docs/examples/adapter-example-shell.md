@@ -24,7 +24,7 @@ Execute the project test suite. Success means the command exits with code 0.
 }
 ```
 
-The `interpreter` field is required. Absent interpreter is not a request for `bash`; it is an invalid contract and `train` rejects it with `shell_interpreter_required`. Build tools such as `docker` or `npm` are not interpreters — wrap them in `bash -c` (as above) or export the script and pick `node` / `python3` matching the project type.
+The `interpreter` field is required. Absent interpreter is not a request for `bash`; it is an invalid contract and `train` rejects it with `shell_interpreter_required`. Build tools such as `docker` or `npm` are not interpreters — wrap them in a shell line (as above). A check with several conditions or JSON output belongs in a gate script shipped as an adapter artifact, not in an escaped one-liner: [artifact-gate/adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md).
 
 ## Step 2 — Run complete
 

@@ -48,10 +48,31 @@ Next call:
 **Output:** Always `must_obey: true`. Includes `choices` (each with slug-form
 `uri`, `label`, `adapter_name`, `activation_score`, `role`, `tags`,
 `next_action`, optional `adapter_version`, optional `activation_patterns`,
-`space_name`, `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
+optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
 
 `forward_first_call` is required on `match` and `refine`, and `null` on
 `create`.
+
+**`linked_artifacts[]`** — a `match` choice whose adapter ships scripts carries one
+row per artifact: `slug`, `filename`, `relative_path`, `content_type`, `sha256`,
+`download_url`, and `materialize`. The `materialize` field is a structured
+instruction object (not a shell command) that tells you how to obtain the
+artifact: it specifies the MCP `export` tool to call, the arguments (`uri` and
+`format: "source"`), the output path (`out`, which uses
+`$SQUADRULES_LOCAL_ARTIFACT_DIR`), the expected `sha256` digest, and the `chmod`
+permissions. Follow this instruction **before** the first `shell` contract that
+invokes an artifact path: call the MCP `export` tool with the specified
+arguments, write the returned content to the `out` path, verify the `sha256`,
+and set the permissions. `relative_path` is exactly the path the adapter's
+contract expects, so materialize from the `activate` choice you picked —
+`forward` does not repeat this list.
+
+When a choice carries no artifact rows but its contract names a script path, the
+artifact is missing or was not loaded: call **`export`** for that adapter
+(`format: skill_tree` for the file list, `format: skill_zip` for the bundle) and
+check `artifacts/` for the path the contract invokes. **`export` is the tool that
+returns adapter files** — `activate` returns artifact rows, `forward` returns
+instructions.
 
 **`squadrules_local_artifact_dir`** — ordered URI hints (preferred first) for the run's local handoff dir (drafts, review outputs, generated files, checksums shared between layers and subagents). Two schemes, both resolved **on your machine**: `project://<rel>` → `<your project root>/<rel>`; `user://<rel>` → `<your home or $XDG_CONFIG_HOME>/<rel>`. Pick `project://` when you have exactly one project context; fall through to `user://` when your session spans multiple projects so artifacts from different projects don't collide. After resolving, `export SQUADRULES_LOCAL_ARTIFACT_DIR="<absolute>"` for shell challenges (skip if your shell already defines it). The server never resolves these to a path on its own filesystem; the value carries no server paths and is identical for stdio and HTTP transports. Not a shell cwd, not a Docker `WORKDIR`.
 

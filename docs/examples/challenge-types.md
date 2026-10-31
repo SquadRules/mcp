@@ -7,6 +7,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 | File | Contract type(s) | Description |
 |------|-----------------|-------------|
 | [adapter-example-shell.md](adapter-example-shell.md) | shell | Empirical check with required `interpreter` field. |
+| [adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md) | shell | Multi-step gate shipped as an adapter artifact; one-line contract invocation. |
 | [adapter-example-forward.md](adapter-example-forward.md) | shell, forward | Work step plus tail forward link to another adapter. |
 | [adapter-example-subagent.md](adapter-example-subagent.md) | subagent | Rung-2 judgment plus rung-3 delegated MCP tool work. |
 | [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Emergency authority gap — not routine confirmation. |
@@ -19,6 +20,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 1. Copy the full content of one of the adapter markdown files above (or combine steps into your own document).
 2. Ensure each step ends with a single ` ```json ` block containing an object with a `contract` key (see the examples).
 3. Call `train` with `content`, `llm_model_id`, and optionally `force_update: true`.
+4. [adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md) needs a second `train` for its gate script: an artifact train attaches to the adapter created in step 3, so it runs only after that adapter exists. Its input fields are in the `train` tool description.
 
 ## Contract types and structural rules
 
@@ -29,10 +31,13 @@ Rung 1 of the verification ladder ([ADR 0024](../adr/0024-adapter-contract-verif
 **Required fields:**
 
 - `shell.interpreter` — must be one of: `bash`, `sh`, `python3`, `python`, `node` ([ADR 0026](../adr/0026-shell-interpreter-required.md)). Absent interpreter is an invalid contract, not a request for `bash`.
-- `shell.cmd` — the command to execute.
+- `shell.cmd` — the command text. It is executed as **program text**, never as a
+  file path: `bash`/`sh` and `python3`/`python` receive it via `-c`, `node` via
+  `-e`. To run a script file, name the wrapper that runs it
+  (`interpreter: "bash"`, `cmd: python3 "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`).
 - `shell.timeout_seconds` — execution timeout.
 
-Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a `bash -c` invocation or export the script and pick `node` / `python3`.
+Build tools (`docker`, `npm`, `terraform`) are not interpreters — wrap them in a shell line. When a check needs several conditions or parses JSON, ship it as an adapter **artifact** and keep the contract a one-line invocation of that script: [artifact-gate/adapter-example-artifact-gate.md](artifact-gate/adapter-example-artifact-gate.md), [ADR 0033](../adr/0033-gate-scripts-as-adapter-artifacts.md).
 
 ### forward
 

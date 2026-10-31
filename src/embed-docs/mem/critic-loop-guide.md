@@ -1,5 +1,5 @@
 ---
-version: "5.13.6"
+version: "5.14.1"
 slug: critic-loop-guide
 title: Critic Loop Integration and Mutation Gate Guide
 ---
@@ -118,21 +118,34 @@ Example ```json
 {"contract":{"type":"shell","shell":{"cmd":"test \"$(git rev-parse --abbrev-ref HEAD)\" != main && git rev-parse --git-common-dir | grep -q worktrees","interpreter":"bash","timeout_seconds":5},"required":true}}
 ```
 
-## How to Chain Critic-Loop into an Adapter
+## How to Invoke Critic-Loop from an Adapter
 
-Use `forward` + slug to invoke `critic-loop` at phase boundaries. The standard
-pattern is a `forward` contract naming the `critic-loop` slug:
+Reach `critic-loop` at a phase boundary with a **`subagent` contract**, never a
+`forward` contract. A `forward` hop keeps the review on the thread that produced
+the work: the same agent reads the critic's instructions, performs them, and
+writes the verdict it is then gated on. The hop names the call the subagent must
+really make, so it cannot substitute an improvised review:
 
 ### After a planning phase
 
 Example ```json
-{"contract":{"type":"forward","forward":{"target":"squadrules://adapter/critic-loop"},"required":true}}
+{"contract":{"type":"subagent","subagent":{"context":"Run the critic on the plan and return its actual report. Call the forward tool with uri squadrules://adapter/critic-loop, submit the work from $WORK_MANIFEST with the requirement list, and let the critic write $VERDICT_FILE. Do not review it yourself.","mcp":[{"tool_name":"forward","arguments":{"uri":"squadrules://adapter/critic-loop"}}]},"required":true}}
 ```
 
 ### After an implementation phase
 
-Use the same contract. The critic-loop adapter receives the calling protocol's
-context and independently verifies the work.
+Use the same contract shape. The subagent receives the calling protocol's
+context, drives `critic-loop` to its end in its own context, and returns only its
+report — the tool transcript never re-enters the caller's reasoning.
+
+`forward` + slug stays correct for **chain continuation** — handing work to the
+next stage of the same effort, or to a reusable sub-adapter that is not auditing
+the caller. The test is not "does it link to an adapter" but "is the linked
+adapter the caller's auditor". Separation is the point: a review the audited agent
+runs on itself restates its work instead of checking it.
+
+A host with no subagent facility cannot satisfy this hop. Report that as a
+blocker; do not fall back to reviewing your own work.
 
 ### What to submit for review
 
@@ -174,7 +187,8 @@ surfaces the unresolved findings; it prevents a weak agent from thrashing foreve
 
 ### Verdict handoff pattern
 
-Critic-loop writes a verdict file. The calling adapter reads it:
+Critic-loop writes a verdict file in the delegated run. The calling adapter reads
+it:
 
 1. Critic-loop writes `$VERDICT_FILE` with `PASS`/`FAIL` on line 1.
 2. Calling adapter's next layer reads the verdict file.
@@ -188,7 +202,7 @@ review. The correct action is to fix the findings and re-invoke critic-loop.
 
 ### FAIL gate contract (required after every critic-loop invocation)
 
-Every adapter that chains critic-loop **must** include a shell contract that
+Every adapter that invokes critic-loop **must** include a shell contract that
 fails when the verdict is not PASS. This is the mechanical guard that prevents
 weaker agents from proceeding after FAIL:
 
@@ -250,24 +264,30 @@ confirmation gates for remote mutations.
 1. **Loop critic-loop until PASS at every major phase boundary** — after planning,
    after implementation, after validation — feeding it the requirement list and
    bounding it with an iteration ceiling.
-2. **Do NOT add critic-loop between every layer** — it is a phase-level review,
+2. **Invoke the critic from a separate context** — a `subagent` contract, never a
+   `forward` contract on the thread that produced the work.
+3. **Do NOT add critic-loop between every layer** — it is a phase-level review,
    not a step-level check.
-3. **Put one objective proof at each irreversibility boundary** — remote mutation
+4. **Put one objective proof at each irreversibility boundary** — remote mutation
    or the local precondition that guards it: pre-mutation readiness +
    post-mutation verification, never a human confirmation prompt.
-4. **Batch reversible, checkable steps into one aggregate strict-conjunction
+5. **Batch reversible, checkable steps into one aggregate strict-conjunction
    proof** instead of one proof per step; never let it degrade to `echo "done"`.
-5. **Never replace a boundary proof with critic-loop** — critic-loop reviews truth
+6. **Never replace a boundary proof with critic-loop** — critic-loop reviews truth
    after the fact; it does not block an irreversible step.
-6. **Never add a proof for purely local, reversible operations** — critic-loop
+7. **Never add a proof for purely local, reversible operations** — critic-loop
    provides sufficient review.
+8. **Never gate what you cannot observe** — if no shell command can see the
+   outcome, state it as an instruction with a completion criterion instead of
+   inventing a command that prints `ok`.
 
 ## Adapter Authoring Checklist
 
 When drafting a new adapter, apply this checklist:
 
 1. Identify all phase boundaries in the adapter flow.
-2. Add a `critic-loop` chain link at each boundary.
+2. Add a `subagent` critic hop at each boundary — never a `forward` hop to
+   `critic-loop`.
 3. Identify all steps that perform irreversible remote mutations.
 4. Add objective solution checks (pre-mutation readiness + post-action
    verification) for each — no `user_input` human-confirmation gate.
@@ -275,7 +295,8 @@ When drafting a new adapter, apply this checklist:
 6. Verify that the critic-loop verdict handoff pattern is present.
 7. Verify that a FAIL gate shell contract follows every critic-loop invocation.
 8. Verify that `train`/`tune` calls include `review_evidence` from the critic.
-9. Ensure the adapter's Reward Signal describes what the critic protects.
+9. Ensure the adapter's Reward Signal describes what the critic protects, and
+   states what the verdict does **not** prove.
 
 Example ```json
 {"contract":{"type":"comment","comment":{"min_length":80},"required":true}}
@@ -288,6 +309,6 @@ Only reachable after all prior steps are solved.
 The agent can now:
 1. Decide when to use critic-loop versus solution checks
 2. Identify irreversible remote mutations that need hard gates
-3. Chain critic-loop into adapters at the correct phase boundaries
+3. Invoke critic-loop from a delegated subagent at the correct phase boundaries
 4. Apply the mutation gate pattern for remote-system actions
 5. Avoid unnecessary solution checks for local or read-only operations

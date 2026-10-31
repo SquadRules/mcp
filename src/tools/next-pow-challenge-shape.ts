@@ -1,6 +1,12 @@
 import type { ProofOfWorkDefinition, ProofOfWorkType } from '../types/memory.js';
 import { SquadrulesError } from '../types/index.js';
 import { GENESIS_HASH } from './squadrules-genesis-proof-hash.js';
+import {
+  buildShellChallengeArgv,
+  formatShellInvocationForDisplay,
+  pickShellChallengeFields,
+  SHELL_INTERPRETERS
+} from './shell-challenge-invocation.js';
 
 /** A subagent.mcp entry as the challenge output schema accepts it. */
 interface SubagentMcpTool {
@@ -38,8 +44,48 @@ export function buildChallengeShapeForDisplay(proof?: ProofOfWorkDefinition): Re
     if (proofType === 'shell') {
       const cmd = proof.shell?.cmd || proof.cmd || 'No command specified';
       const timeout = proof.shell?.timeout_seconds || proof.timeout_seconds || 30;
-      result['description'] = `Execute shell command: ${cmd}. You MUST actually run this command and report the real exit_code/stdout/stderr; do not fabricate.`;
-      result['shell'] = { cmd, timeout_seconds: timeout };
+      const rawInterpreter = proof.shell?.interpreter?.trim();
+      // Only an interpreter from the allowed set may reach the wire: the output
+      // schema is an enum, so an unknown value would be rejected wholesale and
+      // the caller would lose the whole response (ADR 0026).
+      const interpreterKnown =
+        !!rawInterpreter && (SHELL_INTERPRETERS as readonly string[]).includes(rawInterpreter);
+      const shellOut: Record<string, unknown> = { cmd, timeout_seconds: timeout };
+      if (interpreterKnown && rawInterpreter) {
+        shellOut['interpreter'] = rawInterpreter;
+        // The argv a contract runs is fully specified by the contract (ADR 0026):
+        // render the exact invocation so the caller never guesses a wrapper.
+        const shellFields = pickShellChallengeFields({
+          cmd,
+          interpreter: rawInterpreter,
+          flags: proof.shell?.flags,
+          args: proof.shell?.args,
+          workdir: proof.shell?.workdir
+        });
+        const invocation = formatShellInvocationForDisplay(buildShellChallengeArgv(shellFields));
+        shellOut['invocation_display'] = invocation;
+        result['description'] =
+          `Shell contract (timeout ${timeout}s): run exactly: ${invocation}. ` +
+          `Capture stdout and stderr (do not suppress stderr); exit_code 0 = pass. ` +
+          `Report the real exit_code/stdout/stderr; do not fabricate.` +
+          ` Before running, ensure the interpreter is on PATH (e.g. \`which ${rawInterpreter}\`); if not found, fail with a clear local error.`;
+      } else {
+        // An absent or unknown interpreter is an invalid contract (ADR 0026),
+        // never a request for `bash`. Say so instead of rendering a guessable command.
+        result['description'] =
+          `Shell contract (timeout ${timeout}s): this contract names no usable interpreter, so its argv is unspecified. ` +
+          `It is invalid (ADR 0026) and must not be run by guessing a wrapper: re-train the adapter with ` +
+          `\`train\` (force_update) and a shell.interpreter of bash, sh, python3, python, or node, then retry. ` +
+          `Command text: ${cmd}`;
+      }
+      if (proof.shell?.flags && proof.shell.flags.length > 0) shellOut['flags'] = proof.shell.flags;
+      if (proof.shell?.args && proof.shell.args.length > 0) shellOut['args'] = proof.shell.args;
+      const workdir = proof.shell?.workdir?.trim();
+      if (workdir) {
+        shellOut['workdir'] = workdir;
+        result['description'] += ` Use workdir "${workdir}" as the process working directory after expanding env vars. If the workdir path is not a directory or expansion leaves an empty path, fail with a clear local error.`;
+      }
+      result['shell'] = shellOut;
     } else if (proofType === 'forward') {
       const target = proof.forward?.target || 'No target specified';
       result['description'] = `Forward to adapter ${target}. You MUST actually call the forward tool with this target and report the real result; do not fabricate.`;

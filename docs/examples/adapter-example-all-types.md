@@ -28,14 +28,14 @@ Run the given shell command. Exit code 0 means success. The `interpreter` field 
 
 ## Step 2 — Forward: link to another adapter
 
-A `forward` contract must link to another adapter ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)): `forward.target` matches `squadrules://adapter/<slug>`. Bare tool calls (`activate`, `export`, etc.) are **not** valid `forward` contracts — a `forward` contract names an adapter, never a tool. Use `subagent` for delegated tool work.
+A `forward` contract must link to another adapter ([ADR 0028](../adr/0028-forward-contract-type-rename.md), superseding [ADR 0025](../adr/0025-mcp-contract-forward-link-only.md)): `forward.target` matches `squadrules://adapter/<slug>`. Bare tool calls (`activate`, `export`, etc.) are **not** valid `forward` contracts — a `forward` contract names an adapter, never a tool. Use `subagent` for delegated tool work, and use `subagent` — never `forward` — to reach `critic-loop`, so the review runs apart from the work it reviews ([ADR 0034](../adr/0034-verification-isolation-critic-hop.md)).
 
 ```json
 {
   "contract": {
     "type": "forward",
     "forward": {
-      "target": "squadrules://adapter/critic-loop"
+      "target": "squadrules://adapter/implement-terraform"
     },
     "required": true
   }
