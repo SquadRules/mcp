@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.14.6](https://github.com/SquadRules/mcp/compare/v5.14.5...v5.14.6) (2026-10-31)
+
+
+### Bug Fixes
+
+* **dependencies:** pin undici 8.12.3 in production dependencies ([#238](https://github.com/SquadRules/mcp/issues/238)) ([ef4adec](https://github.com/SquadRules/mcp/commit/ef4adec5210da58e964158c95bdafdddb4d73290)), closes [#234](https://github.com/SquadRules/mcp/issues/234)
+
 ## [5.14.5](https://github.com/SquadRules/mcp/compare/v5.14.4...v5.14.5) (2026-10-31)
 
 
