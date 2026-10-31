@@ -14,6 +14,9 @@ test('docs workflow triggers cover exactly the declared wiki scope', () => {
   assert.equal(docs.name, 'Docs wiki regeneration');
   assert.equal(docs.on.schedule, undefined, 'docs.yml schedule trigger disabled to reduce CI noise');
   assert.ok('workflow_dispatch' in docs.on, 'docs.yml must support manual trigger');
+  assert.deepEqual(docs.on.workflow_dispatch.inputs.mode.options, ['auto', 'regenerate']);
+  assert.equal(docs.on.workflow_dispatch.inputs.mode.default, 'auto');
+  assert.equal(docs.concurrency['cancel-in-progress'], false);
   assert.deepEqual(docs.on.push.branches, ['main']);
   // The trigger set and the generation input set are the same contract; drift means
   // either an ungenerated change or a wasted run.
@@ -32,7 +35,7 @@ test('docs workflow triggers cover exactly the declared wiki scope', () => {
   assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.id === 'changes'), 'docs.yml must check for changes');
   assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
 
-  // The generation step fails on every run, so the run must also capture why.
+  // Keep diagnostics for any future Qoder authentication or generator failures.
   const diagnostics = stepNamed(docs, 'regenerate-wiki', 'Capture wiki diagnostics');
   assert.ok(diagnostics, 'docs.yml must capture wiki diagnostics before generating');
   const regenerate = stepNamed(docs, 'regenerate-wiki', 'Regenerate Qoder wiki');
@@ -44,7 +47,30 @@ test('docs workflow triggers cover exactly the declared wiki scope', () => {
   assert.match(diagnostics.run, /wiki-diagnostics\.log/);
   assert.match(diagnostics.run, /qodercli@latest wiki --help/, 'Flag semantics must be captured, not assumed');
   assert.match(diagnostics.run, /repowiki-metadata\.json/, 'The committed generation stamp must be read');
-  // Incremental update only: the full-generation path deletes the completed wiki.
-  assert.match(regenerate.run, /wiki --update/, 'Regeneration must stay incremental (--update)');
-  assert.doesNotMatch(regenerate.run, /--regenerate/, 'A forced full regeneration would delete committed wiki data');
+  // Auto selects incremental update for a valid main wiki and bootstrap for a
+  // missing/foreign-branch wiki. Full regeneration requires explicit dispatch.
+  assert.match(regenerate.run, /wiki-generation-state\.mjs mode/);
+  assert.match(regenerate.run, /git clone --local --no-hardlinks/);
+  assert.match(regenerate.run, /\$TEMP_ROOT\/mcp/);
+  assert.match(regenerate.run, /wiki --update/);
+  assert.match(regenerate.run, /wiki --regenerate/);
+  assert.match(regenerate.run, /\[ "\$MODE" = bootstrap \]/);
+  assert.match(regenerate.run, /wiki-generation-state\.mjs validate/);
+  assert.match(regenerate.run, /rsync -a --delete/);
+
+  const changes = stepNamed(docs, 'regenerate-wiki', 'Check for changes');
+  assert.match(changes.run, /git add -A \.qoder\/repowiki\//, 'New and deleted wiki files must be staged');
+  assert.match(changes.run, /git diff --cached --quiet/);
+
+  const create = stepNamed(docs, 'regenerate-wiki', 'Create docs PR');
+  assert.equal(create.id, 'create-pr');
+  assert.match(create.run, /gh auth setup-git/, 'The App token must authenticate git push');
+  assert.match(create.run, /pr_number=\$PR_NUMBER/);
+  assert.match(create.run, /pr_sha=\$PR_SHA/);
+
+  const merge = stepNamed(docs, 'auto-merge', 'Auto-merge the docs PR');
+  assert.equal(merge.env.PR_NUMBER, '${{ needs.regenerate-wiki.outputs.pr_number }}');
+  assert.equal(merge.env.PR_SHA, '${{ needs.regenerate-wiki.outputs.pr_sha }}');
+  assert.match(merge.run, /--match-head-commit/);
+  assert.doesNotMatch(merge.run, /gh pr list/, 'Never merge a guessed PR');
 });
