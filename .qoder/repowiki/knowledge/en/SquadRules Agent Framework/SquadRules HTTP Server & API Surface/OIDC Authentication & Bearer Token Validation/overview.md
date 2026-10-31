@@ -1,0 +1,1 @@
+Express middleware and callback handlers that authenticate browser sessions via Keycloak OIDC and validate server-side Bearer JWTs for /api, /mcp, and /ui routes.

@@ -1,0 +1,1 @@
+The `mem/` directory is not merely documentation — it is deployed as part of the application bundle. Its version number in `mem/README.md` must be bumped when meta-adapter content changes, since it is the source of truth for shipped adapters.

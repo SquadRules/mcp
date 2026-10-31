@@ -1,0 +1,1 @@
+React 19 + TypeScript, Vite as bundler, react-router-dom for client-side routing, @tanstack/react-query for data fetching, Tailwind CSS v4 (`@import "tailwindcss"`), and a custom `useThemePreference` hook for persisted light/dark/system theme switching.

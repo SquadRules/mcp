@@ -1,0 +1,3 @@
+- Backend selection is done via a factory or conditional singleton that checks `isRedisConfigured` / `isQdrantConfigured` from `../config.js`, returning either a networked implementation or an embedded/in-memory fallback.
+- Cross-cutting concerns (caching, tracing, metrics, stats) depend on abstract interfaces (`IKeyValueStore`, `IExecutionTraceStore`, `IVectorRecordStore`) rather than concrete backends.
+- Every observable subsystem registers its own Prometheus metrics against the central `metrics/registry.ts` instead of emitting logs for observability.

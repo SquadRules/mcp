@@ -1,4 +1,0 @@
-- MCP tool handlers validate inputs with Zod `.safeParse` and return structured validation errors via `mcpToolInputValidationErrorResult` rather than throwing directly.
-- Tool-level telemetry is recorded uniformly through `mcpToolCalls.inc`, `mcpToolErrors.inc`, `mcpToolDuration.startTimer`, `mcpToolInputSize.observe`, and `mcpToolOutputSize.observe`, tagged with `tool` and `tenant_id`.
-- External service failures are wrapped into domain-specific typed errors (`SquadrulesError` with codes like `REWARD_FAILED`, `INVALID_URI`; `TrainError` with codes like `REVIEW_EVIDENCE_REQUIRED`, `REVIEW_GATE_FAILED`) carrying actionable metadata such as `next_action`.
-- Optional fields are forwarded conditionally using spread-of-undefined pattern (`...(input.x !== undefined && { x })`) so omitted values do not pollute persisted payloads.

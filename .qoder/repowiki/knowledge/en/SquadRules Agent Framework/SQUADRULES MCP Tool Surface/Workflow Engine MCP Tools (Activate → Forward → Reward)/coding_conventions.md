@@ -1,0 +1,5 @@
+- Each tool exports a pure `executeX(input)` function for business logic and a `registerXTool(server, ...)` helper that wires MCP registration, schema validation, tenant-scoped metrics, and error handling.
+- Input payloads are validated with `zod.safeParse` inside the MCP handler; failures return `mcpToolInputValidationErrorResult` rather than throwing, while domain errors use `SquadrulesError` with typed codes and HTTP status.
+- All tool handlers instrument calls with `mcpToolCalls`, `mcpToolDuration`, `mcpToolErrors`, `mcpToolInputSize`, and `mcpToolOutputSize` from `services/metrics/mcp-metrics.js`, tagged with the current `tenantId`.
+- Adapter and layer identity flows through `buildAdapterUri` / `buildLayerUri` / `parseSquadrulesUriOrThrow` from `squadrules-uri.js` instead of raw string concatenation.
+- Authoring workflows are gated by checking `isAuthoringAdapterSlug` and validating `authoringContextSchema`, with mismatches raising `AUTHORING_CONTEXT_MISMATCH` or `INVALID_AUTHORING_WORKFLOW` errors.

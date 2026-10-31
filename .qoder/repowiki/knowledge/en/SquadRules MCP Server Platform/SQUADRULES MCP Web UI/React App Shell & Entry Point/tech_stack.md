@@ -1,1 +1,0 @@
-React 18+ with `react-dom/client` `createRoot`, `react-router-dom` `BrowserRouter`/`Routes`/`Route` for SPA navigation, `@tanstack/react-query` `QueryClient` for server state, and Vite-style ES-module loading from `index.html`.

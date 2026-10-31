@@ -1,0 +1,6 @@
+- User-facing strings are routed through `useTranslation()` with namespaced keys under `runs.*` or `run.*` rather than inline literals.
+- All interactive elements use Tailwind utility classes with `min-h-[44px] min-w-[44px]` touch targets and focus-visible outlines using `--color-focus-ring`.
+- Container/presentational split: stateful mutation orchestration lives in the page component, while `RunGuidedContent` receives data and callbacks as props and stays free of side effects.
+- Contract-shaped polymorphism is handled by branching on `contract.type` (`shell` | `forward` | `user_input` | `comment`) in both `SolutionForm` and `runContractToChallengeCard`.
+- Errors are surfaced through the shared `ErrorAlert` component with `showGoBack={true}` and an `onRetry` handler instead of ad-hoc error banners.
+- Session persistence goes through `useRunSessions().upsert(session)` after every successful mutation, keeping the local store in sync with server responses.

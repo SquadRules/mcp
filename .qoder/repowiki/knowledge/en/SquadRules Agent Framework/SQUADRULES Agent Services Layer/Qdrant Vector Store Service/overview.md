@@ -1,0 +1,1 @@
+Service layer wrapping Qdrant vector database for storing, searching, and managing AI memory points, protocol steps, resources, quality metrics, snapshots, and reward propagation.

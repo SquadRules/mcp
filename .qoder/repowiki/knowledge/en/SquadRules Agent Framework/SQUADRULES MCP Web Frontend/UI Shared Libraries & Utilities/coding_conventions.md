@@ -1,0 +1,3 @@
+- HTTP requests go through the centralized `apiFetch` helper rather than calling `fetch` directly, ensuring uniform JSON headers and same-origin credentials.
+- Server response bodies are typed via imported schema types from `../../tools/*_schema.js` (e.g. `ExportOutput`, `ForwardOutput`) instead of ad-hoc local interfaces.
+- Pure utility modules export named functions only (no classes, no side effects at module load), making them easy to unit-test in isolation.

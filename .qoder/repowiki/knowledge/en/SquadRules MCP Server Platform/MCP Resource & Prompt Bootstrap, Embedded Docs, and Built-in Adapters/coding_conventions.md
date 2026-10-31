@@ -1,5 +1,0 @@
-- Bootstrap functions register a temporary placeholder resource/prompt and immediately call `.remove()` on it so the MCP SDK's lazy handler installation runs without exposing a real endpoint.
-- Embedded content is accessed through getters in `embedded-mcp-resources.ts` (`getResource`, `getPrompts`, `getMetaDoc`) rather than direct property access, keeping the generated bundle as the single source of truth.
-- Shipped adapter files use slug-based filenames validated by `MEM_FILE_SLUG_KEY` and frontmatter `slug`/`version` fields; filename slug takes precedence over frontmatter slug during boot injection.
-- Boot-time mutations go through a delete-then-retrain pattern: existing app-space entries are removed first (by slug and/or H1-derived adapter UUID), then `storeAdapter` is called with `forceUpdate: true` and the content SHA256 is persisted on layers for future change detection.
-- Display labels for built-in footer protocols are derived from the embedded meta document's frontmatter title (falling back to H1, then a hardcoded default) instead of being hard-coded literals.

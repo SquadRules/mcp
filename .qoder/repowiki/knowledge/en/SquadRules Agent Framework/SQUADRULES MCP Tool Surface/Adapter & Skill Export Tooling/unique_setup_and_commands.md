@@ -1,0 +1,1 @@
+The `registerExportTool` function wires the tool into an MCP server instance; the `ExecuteExportOptions.simpleModeDirectoryAccess` flag is set exclusively by the CLI LocalBackend to lift the directory transport gate while still enforcing path validation.

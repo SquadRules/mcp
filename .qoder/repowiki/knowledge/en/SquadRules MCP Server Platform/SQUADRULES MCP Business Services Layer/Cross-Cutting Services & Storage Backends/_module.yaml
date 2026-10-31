@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: services/cross_cutting_stores
-title: Cross-Cutting Services & Storage Backends
-scope:
-    - src/services/
-source_files: []
-depends_on: []
-related_to: []

@@ -1,0 +1,1 @@
+Express route setup for /health and /api introspection, OAuth 2.0 /.well-known metadata (RFC 9728/8414) proxying Keycloak, and serving the built Vite SPA under /ui.

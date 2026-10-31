@@ -1,1 +1,0 @@
-Shared business-logic services (memory, embeddings, execution traces, rewards, stats) backed by pluggable storage engines (Qdrant/LanceDB) and caches (Redis/in-memory).

@@ -1,0 +1,3 @@
+- Each tool pairs its handler with sibling `*_schema.ts` files exporting Zod input/output schemas imported by the registry.
+- Tool descriptions are resolved at runtime via `resolveToolDoc(toolName)` falling back to an inline string, keeping docs in sync with `embed-docs/`.
+- Cross-cutting concerns (MCP↔HTTP forwarding, proof-of-work, URI handling, artifact contracts) live in shared top-level files rather than inside individual tool handlers.

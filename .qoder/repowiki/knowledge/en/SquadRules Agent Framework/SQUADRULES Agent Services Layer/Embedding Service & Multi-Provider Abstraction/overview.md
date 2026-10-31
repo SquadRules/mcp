@@ -1,0 +1,1 @@
+Generates vector embeddings for text and memory objects, routing requests through OpenAI, TEI, or local fastembed providers with retry, audit, health checks, and dimension probing.

@@ -1,0 +1,1 @@
+Registers the Express REST endpoints for the MCP agent workflow (activate, forward, reward, tune, delete, dump, snapshot, train, spaces, me) and wires them to service-layer tools.

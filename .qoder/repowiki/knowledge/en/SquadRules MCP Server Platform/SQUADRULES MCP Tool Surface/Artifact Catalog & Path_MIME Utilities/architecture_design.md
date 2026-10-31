@@ -1,7 +1,0 @@
-Four small, dependency-light modules under src/tools/ that are consumed by MCP tool handlers rather than being tools themselves:
-- `artifact-catalog.ts` defines the `AdapterArtifactMetadata` shape and exposes `listAdapterArtifacts`, which reads raw points from `MemoryQdrantStore.listAdapterArtifacts` and normalizes the nested `payload['artifact']` / `payload['adapter']` / `payload['label']` fields into a flat record; results are sorted by name then uuid.
-- `artifact-mime.ts` builds a frozen `ALLOWED_ARTIFACT_MIMES` array plus lookup structures (`EXTENSION_TO_PRIMARY_MIME`) from `./skill-export/artifact-sanitization/extension-mime-map.js`, providing `normalizeArtifactMime`, `isAllowedArtifactMime`, and `inferArtifactMimeFromName`.
-- `artifact-relative-path.ts` provides `normalizeArtifactRelativePath`, which rejects absolute paths, `..` segments, empty segments, trailing slashes, and lengths > 2048 — used to keep artifact references inside the skill root.
-- `local-artifact-dir-contract.ts` exports the JSON field name `squadrules_local_artifact_dir` and a builder that turns URI hints (`project://…`, `user://…`) into the typed response shape for handoff directories.
-
-Dependency direction is one-way: this module depends on `services/memory/store.js` (catalog) and `skill-export/artifact-sanitization/extension-mime-map.js` (mime), but nothing here imports higher-level HTTP/CLI layers. The files are intentionally thin adapters between storage/vector payloads and the tool layer.

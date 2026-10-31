@@ -1,0 +1,1 @@
+Express route handlers that serve signed, capability-verified export downloads — a streamed skill zip bundle and individual artifact files — to clients via opaque tokens.

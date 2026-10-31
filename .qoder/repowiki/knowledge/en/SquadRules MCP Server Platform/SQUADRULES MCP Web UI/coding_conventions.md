@@ -1,4 +1,0 @@
-- Every route handler is a named export from its own file under `pages/` and is loaded lazily via `lazy(() => import(...))` wrapped in `<Suspense>` with a shared `RouteFallback`.
-- Cross-page data fetching goes through the centralized `lib/api.ts` wrapper rather than raw `fetch` calls.
-- UI state tied to the agent workflow (activate/forward/reward) is exposed as React hooks in `hooks/` and consumed by pages instead of being held locally.
-- Visual styling uses CSS custom properties defined in `theme/tokens-*.css` (light/dark/shared) so pages and components never hard-code colors or spacing.

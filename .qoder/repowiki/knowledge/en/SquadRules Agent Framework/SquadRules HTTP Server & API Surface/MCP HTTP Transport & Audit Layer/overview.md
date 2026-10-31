@@ -1,0 +1,1 @@
+Express route that hosts the Model Context Protocol over HTTP, authenticates bearer tokens, enforces concurrency limits, and emits structured audit events for MCP requests.

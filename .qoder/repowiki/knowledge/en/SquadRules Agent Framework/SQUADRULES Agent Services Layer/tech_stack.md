@@ -1,0 +1,1 @@
+TypeScript services built on Qdrant (vector DB), LanceDB (embedded vector records), Redis (distributed cache/pub-sub), and Prometheus (metrics); provider selection is driven by runtime config flags (`isRedisConfigured`, `isQdrantConfigured`).

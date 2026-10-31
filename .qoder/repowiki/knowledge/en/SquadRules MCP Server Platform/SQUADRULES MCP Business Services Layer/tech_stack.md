@@ -1,1 +1,0 @@
-TypeScript service layer on top of Qdrant (vector DB), Redis (cache/pub-sub), OpenAI/TEI/fastembed (embedding providers), LanceDB (embedded fallback), Prometheus (metrics via prom-client).

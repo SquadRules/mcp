@@ -1,0 +1,1 @@
+Top-level orchestrator that wires the MCP tool surface, agent services, HTTP server, CLI, web UI, embedded docs, and stdio runtime into a single SquadRules application.

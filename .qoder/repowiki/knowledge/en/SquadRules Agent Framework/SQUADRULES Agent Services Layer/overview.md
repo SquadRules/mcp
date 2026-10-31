@@ -1,0 +1,1 @@
+Orchestrates the agent workflow's business logic by wiring embedding providers, vector/memory stores, Redis caching, metrics, and stats behind backend-agnostic store abstractions.

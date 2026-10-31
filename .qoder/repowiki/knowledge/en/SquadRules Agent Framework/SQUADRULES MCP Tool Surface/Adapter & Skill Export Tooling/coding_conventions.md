@@ -1,0 +1,4 @@
+- Markdown content is normalized before use by passing it through a local `toCurrentMarkdown` helper that replaces `"challenge":` with `"contract":` to keep legacy dumps compatible.
+- Each exported format branch returns a uniform `ExportOutput` object carrying `uri`, `format`, `content_type`, `item_count`, plus optional `adapter_name`/`adapter_version` fields derived from the first adapter when the selection is singular.
+- Skill bundle files are represented as `SkillExportFile` records with `path`, `content`, `contentType`, and a precomputed `sha256` digest, and are flattened into `<slug>/<file>` zip paths via `flattenSkillItemsToZipPaths`.
+- Diagnostic emission uses a typed `SkillExportDiagnostic { severity, code, message }` shape produced by dedicated scanners rather than ad-hoc error strings.

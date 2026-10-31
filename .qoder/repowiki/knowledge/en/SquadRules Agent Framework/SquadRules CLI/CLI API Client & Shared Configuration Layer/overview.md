@@ -1,0 +1,1 @@
+Shared CLI layer that resolves the SQUADRULES API base URL, persists and reads bearer/refresh tokens (OS keyring with file fallback), and exposes an authenticated ApiClient for all command modules.

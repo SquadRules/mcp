@@ -1,0 +1,1 @@
+Command-line interface for the SquadRules agent framework, wiring Commander subcommands to a shared authenticated API client and transport-agnostic action backends.

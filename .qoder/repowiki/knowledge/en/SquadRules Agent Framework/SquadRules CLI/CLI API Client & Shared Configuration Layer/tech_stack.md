@@ -1,0 +1,1 @@
+Native OS credential storage via `@napi-rs/keyring` (keytar-compatible API) with graceful degradation to XDG `~/.config/squadrules` JSON when unavailable; OAuth 2.0 refresh_token grant against OpenID Connect servers discovered through RFC 9746 `/.well-known/oauth-protected-resource`.

@@ -1,5 +1,0 @@
-- Each MCP tool exports a `registerXxxTool(server, ...)` registration function plus a pure `executeXxx(...)` business function, separating MCP wiring from domain logic.
-- Tool handlers validate inputs via `.safeParse()` on a dedicated Zod schema, then emit standardized error responses through `mcpToolInputValidationErrorResult` and rate-limit wrappers.
-- Metrics are recorded uniformly around handler bodies: increment `mcpToolCalls`/`mcpToolErrors` on failure, observe `mcpToolDuration` via a timer callback, and observe `mcpToolInputSize`/`mcpToolOutputSize` with tenant-scoped labels.
-- Adapter URIs are normalized through `buildAdapterUri` / `parseSquadrulesUriOrThrow` / `assertWireAdapterUri` before being passed to downstream services, ensuring slug-form identifiers at boundaries.
-- Execution state across multiple forward calls is keyed by a UUID `execution_id` persisted in `forwardRuntimeStore` and `executionTraceStore`, with trace writes fire-and-forget via `traceFireAndForget`.

@@ -1,0 +1,1 @@
+Bootstraps the Express HTTP server, wires shared middleware (helmet, rate limiting, logging, metrics), and starts listening with port-error handling.

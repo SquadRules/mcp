@@ -1,0 +1,3 @@
+- Commands import the shared ApiClient from `api-client.ts` instead of constructing fetch calls directly.
+- Authentication failures are surfaced through the shared `auth-error.ts` / `fetch-error.ts` types so commands can render consistent error messages.
+- Output is produced via the central `render.ts` formatter (human or JSON) rather than direct console writes.

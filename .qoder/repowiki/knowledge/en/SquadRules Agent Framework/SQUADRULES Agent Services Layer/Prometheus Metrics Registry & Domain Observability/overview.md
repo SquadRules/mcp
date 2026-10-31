@@ -1,0 +1,1 @@
+Central Prometheus metrics registry and domain-scoped metric definitions (HTTP, agent, embedding, export, anomaly, MCP, memory, Qdrant, system) for SQUADRULES observability.

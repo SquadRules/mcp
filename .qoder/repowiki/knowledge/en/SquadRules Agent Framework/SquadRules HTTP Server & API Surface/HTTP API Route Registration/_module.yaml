@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: http_api/api_routes
+title: HTTP API Route Registration
+scope:
+    - src/http/http-api-routes.ts
+    - src/http/http-api-begin.ts
+    - src/http/http-api-me.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: cli/workflow_commands
+    - path: http_api/auth_oidc
+    - path: tools/workflow_engine
+    - path: ui/protocol_edit_area
+    - path: ui/runs_area

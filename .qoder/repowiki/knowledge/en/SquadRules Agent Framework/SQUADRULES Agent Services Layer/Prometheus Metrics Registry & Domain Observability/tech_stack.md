@@ -1,0 +1,1 @@
+Prometheus client library `@prometheus-io/client` for Counter/Histogram/Gauge types and a single global `Registry`; Node.js `os` and `process` APIs for instance identity and runtime stats.

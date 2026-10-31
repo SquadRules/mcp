@@ -1,1 +1,0 @@
-Persistent memory layer backed by Qdrant that ingests Markdown adapters, builds vector + BM25 indices, and serves hybrid search with Redis caching.

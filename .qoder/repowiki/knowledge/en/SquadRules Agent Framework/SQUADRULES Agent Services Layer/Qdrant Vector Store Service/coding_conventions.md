@@ -1,0 +1,5 @@
+- Every Qdrant operation is wrapped in `conn.executeWithReconnect(async () => ...)` so failures trigger health checks, exponential-backoff reconnection, and are surfaced as `SquadrulesError` codes like `QDRANT_UNAVAILABLE` or `QDRANT_OPERATION_ERROR`.
+- Feature modules are organized one-per-concern (store, retrieval, updates, search, protocol, quality, etc.) and receive a `QdrantConnection` instance rather than importing it directly, keeping the facade as the sole composition root.
+- Point payloads are built with a fixed shape including `space_id`, `label`, `text`, `domain`, `task`, `type`, `tags`, `ai`, `protocol`, `quality_metrics`, and `created_at`, then passed through `sanitizeAndUpsert` which strips empty vectors and converts raw arrays to named vectors keyed by dimension length.
+- Tenant and space scoping is applied uniformly via `getSpaceContext().allowedSpaceIds` combined with `buildSpaceFilter` on every read/query, and `getSpaceContext().defaultWriteSpaceId` on writes.
+- Errors thrown inside the service bubble up as `SquadrulesError` instances carrying a machine-readable code string and HTTP status, rather than plain `Error`s.

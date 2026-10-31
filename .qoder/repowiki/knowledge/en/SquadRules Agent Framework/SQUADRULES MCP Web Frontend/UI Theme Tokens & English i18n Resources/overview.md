@@ -1,0 +1,1 @@
+Provides the SQUADRULES UI design token stylesheet (shared + light/dark themes) and the default English translation bundle for the React frontend.

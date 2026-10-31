@@ -1,1 +1,0 @@
-Pino for structured JSON logging; Node `async_hooks.AsyncLocalStorage` for per-request tenant context; UUID v5 (`uuid` package) for deterministic space IDs keyed off Keycloak issuer/realm/sub; Qdrant client types for vector operations.

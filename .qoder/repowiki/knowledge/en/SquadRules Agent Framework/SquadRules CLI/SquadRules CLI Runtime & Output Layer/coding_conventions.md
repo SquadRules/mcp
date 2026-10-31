@@ -1,0 +1,6 @@
+- Human-readable output goes to stdout while hints, errors, and diagnostics go to stderr, keeping stdout machine-parseable when redirected.
+- Output format is resolved centrally via `resolveOutputFormat(program)` from `format.ts` and dispatched through `emitResult` with a `ResultView<T>` providing `pretty`/`text`/optional `nextCall` implementations.
+- Per-domain renderers expose paired `renderXxxPretty` and `renderXxxText` functions typed against the corresponding tool schema (`ActivateOutput`, `ForwardOutput`, etc.), with `nextCallHint` extracting actionable follow-up commands from response shapes.
+- Colorized terminal output uses a per-call chalk instance from `render-helpers.ts` so ANSI codes are automatically stripped when stdout is not a TTY.
+- User-supplied paths/names are sanitized through dedicated validators (`safeZipBasenameFromRemoteHint`, `normalizeAndValidateApiBaseUrl`, `prepareMarkdownUpload`) rather than ad-hoc checks at call sites.
+- CLI configuration flows through environment variables (`SQUADRULES_API_URL`, `SQUADRULES_FORMAT`, `SQUADRULES_TIMEOUT_MS`, `SQUADRULES_RETRIES`, `SQUADRULES_NO_BROWSER`, `SQUADRULES_ALLOW_SENSITIVE_UPLOADS`, `SQUADRULES_TRUSTED_API_HOSTS`, `SQUADRULES_EXPORT_ZIP_MAX_DOWNLOAD_BYTES`) with explicit defaults.

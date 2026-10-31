@@ -1,0 +1,1 @@
+CLI subcommands implementing the SQUADRULES workflow: intent activation, adapter forwarding, and outcome-based reward recording.

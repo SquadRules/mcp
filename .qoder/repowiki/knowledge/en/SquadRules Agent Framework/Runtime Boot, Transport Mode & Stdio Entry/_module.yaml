@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: infra_runtime
+title: Runtime Boot, Transport Mode & Stdio Entry
+scope:
+    - src/config/
+    - src/constants/
+    - src/runtime/
+    - src/stdio/
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/mcp_handler

@@ -1,0 +1,3 @@
+- Cross-cutting configuration flows through environment variables resolved at boot rather than per-module config files.
+- MCP tool inputs are validated with Zod schemas defined alongside the tool registration in src/tools/.
+- Backend dependencies (vector store, memory store, embedding provider) are injected via constructor parameters or service factories instead of global singletons.

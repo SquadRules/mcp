@@ -1,0 +1,1 @@
+TypeScript service layer backed by Qdrant (`@qdrant/js-client-rest`) for production vector storage and LanceDB (Arrow-based) for embedded mode; Redis (via ioredis-compatible interface) for distributed caching/pubsub; OpenAI Embeddings API and optional TEI/fastembed providers; Prometheus metrics via `@prometheus-io/client`.

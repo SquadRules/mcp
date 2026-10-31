@@ -1,1 +1,0 @@
-Embedding dimension is resolved at startup via `probeEmbeddingDimension()` before `memoryStore.init()` so that downstream stores know the expected vector size.

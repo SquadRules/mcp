@@ -1,0 +1,4 @@
+- Pure scoring/bonus algorithms are exported as standalone functions in dedicated files and invoked only from the orchestrator, which owns all side effects (persistence, metrics, logging).
+- External subsystems (Qdrant, key-value store) are accessed through shared factories/singletons (`keyValueStore`, `qdrantService`) rather than direct imports, with lazy `import()` used to break cycles.
+- All persistent mutations go through helper functions (`updateImplementationBonusHelper`, `updateHealerBonusHelper`, `saveStatsState`) that both mutate in-memory state and write to the key-value store.
+- Quality labels flow as string enums (`excellent` | `high` | `standard` | `basic` | `below_threshold`) computed by threshold-based `determineQuality` / tier checks rather than numeric ranges at call sites.

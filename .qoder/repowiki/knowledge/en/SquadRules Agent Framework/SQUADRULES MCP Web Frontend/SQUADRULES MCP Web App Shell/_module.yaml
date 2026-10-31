@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: ui/app_shell
+title: SQUADRULES MCP Web App Shell
+scope:
+    - src/ui/App.tsx
+    - src/ui/main.tsx
+    - src/ui/index.css
+    - src/ui/index.html
+    - src/ui/vite-env.d.ts
+source_files: []
+depends_on: []
+related_to: []
