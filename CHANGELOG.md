@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.14.5](https://github.com/SquadRules/mcp/compare/v5.14.4...v5.14.5) (2026-10-31)
+
+
+### Bug Fixes
+
+* **packaging:** publish tested runtime lock for application-root consumers ([#237](https://github.com/SquadRules/mcp/issues/237)) ([27e115b](https://github.com/SquadRules/mcp/commit/27e115be7d80a073d6bb571e3ea190da0b622527))
+
 ## [5.14.4](https://github.com/SquadRules/mcp/compare/v5.14.3...v5.14.4) (2026-10-31)
 
 
