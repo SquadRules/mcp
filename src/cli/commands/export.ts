@@ -27,6 +27,7 @@ export interface ExportCliOptions {
     allAdapters?: boolean;
     space?: string;
     delivery?: string;
+    directory?: string;
 }
 
 export interface WrittenArtifact {
@@ -87,6 +88,25 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
     }
     const deliveryField = deliveryMode ? { delivery: deliveryMode } : {};
 
+    // `--directory` hands the destination to the backend (local mode only): it writes
+    // <directory>/<slug>.md per adapter instead of returning content. Relative paths
+    // resolve against the current directory, mirroring --out.
+    const directoryRaw = (options.directory ?? '').trim();
+    const directoryField = directoryRaw.length > 0
+        ? { directory: path.resolve(process.cwd(), directoryRaw) }
+        : {};
+    if (directoryRaw.length > 0) {
+        if (baseFormat !== 'markdown') {
+            throw new Error('--directory is only valid with --as markdown (it writes <directory>/<slug>.md per adapter).');
+        }
+        if ((options.out ?? '').trim().length > 0) {
+            throw new Error('--directory cannot be combined with --out <dir>; the export writes into --directory.');
+        }
+        if ((options.zipOut ?? '').trim().length > 0) {
+            throw new Error('--directory cannot be combined with --zip-out; --directory is markdown-only.');
+        }
+    }
+
     const toFile = (options.to ?? '').trim();
     if (toFile.length > 0) {
         if (!hasUri) {
@@ -101,20 +121,24 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
         if ((options.out ?? '').trim().length > 0) {
             throw new Error('--to <file> cannot be combined with --out <dir>.');
         }
+        if (directoryRaw.length > 0) {
+            throw new Error('--to <file> cannot be combined with --directory; the export writes into --directory.');
+        }
     }
 
     if (hasUri) {
-        return { uri: trimmedUri, format: baseFormat, include_reward: true, ...deliveryField };
+        return { uri: trimmedUri, format: baseFormat, include_reward: true, ...deliveryField, ...directoryField };
     }
     if (hasAdapters) {
-        return { adapters: options.adapters!, format: baseFormat, include_reward: true, ...deliveryField };
+        return { adapters: options.adapters!, format: baseFormat, include_reward: true, ...deliveryField, ...directoryField };
     }
     return {
         all_adapters: true,
         space_name: options.space!.trim(),
         format: baseFormat,
         include_reward: true,
-        ...deliveryField
+        ...deliveryField,
+        ...directoryField
     };
 }
 
@@ -138,6 +162,13 @@ function sanitizeFileBase(raw: string): string {
 }
 
 function baseNameFor(response: ExportOutput): string {
+    // Markdown artifacts are named by adapter slug — stable and scriptable, matching the
+    // `slug:` frontmatter — falling back to the title when the URI carries no slug
+    // (layer/artifact URIs). Other formats keep the historical title-first naming.
+    if (response.format === 'markdown') {
+        const slug = (response.uri || '').match(/squadrules:\/\/adapter\/([^/?]+)/)?.[1];
+        if (slug) return sanitizeFileBase(slug);
+    }
     const name = response.adapter_name?.trim();
     if (name) return sanitizeFileBase(name);
     const match = (response.uri || '').match(/squadrules:\/\/(?:adapter|layer|artifact)\/([^/?]+)/);
@@ -150,6 +181,23 @@ function resolveOutDir(out?: string): string {
     return path.resolve(process.cwd(), trimmed.length > 0 ? trimmed : '.');
 }
 
+/**
+ * `--directory` writes happen inside the backend's own process; only the local backend
+ * shares this CLI's filesystem. A remote server refuses `directory` (its gate is
+ * SIMPLE/stdio-only), so fail before the round-trip with an actionable alternative.
+ */
+export function assertDirectorySupportedByBackend(
+    backend: Pick<ActionBackend, 'kind'>,
+    input: ExportInput
+): void {
+    if (!input.directory) return;
+    if (backend.kind !== 'local') {
+        throw new Error(
+            '--directory writes <directory>/<slug>.md files on the machine running the export and is only supported in local mode. For an http target, export with --as skill_zip or --as skill_tree plus --out <dir>, or drop --url to run against the local store.'
+        );
+    }
+}
+
 /** Write the export payload to disk and return what was written. Never prints content bytes. */
 export async function writeExport(
     backend: ActionBackend,
@@ -157,6 +205,22 @@ export async function writeExport(
     options: ExportCliOptions
 ): Promise<WrittenArtifact[]> {
     const outDir = resolveOutDir(options.out);
+
+    // Directory exports: the backend already wrote <directory>/<slug>.md per adapter and
+    // returned a manifest instead of content — report it, never write an empty artifact.
+    if (response.directory_manifest) {
+        const entries = response.directory_manifest;
+        const failed = entries.filter((entry) => entry.status === 'error');
+        const artifacts: WrittenArtifact[] = entries
+            .filter((entry) => entry.status === 'written')
+            .map((entry) => ({ path: entry.path, bytes: entry.bytes, format: 'markdown' }));
+        if (failed.length > 0) {
+            throw new Error(
+                `export --directory: ${failed.length} of ${entries.length} adapter exports failed (first: ${failed[0]!.slug}: ${failed[0]!.error ?? 'unknown error'}). The ${artifacts.length} file(s) already written remain on disk.`
+            );
+        }
+        return artifacts;
+    }
 
     if (response.format === 'skill_zip') {
         let data: Buffer;
@@ -250,6 +314,10 @@ export function exportCommand(program: Command): void {
             '--delivery <mode>',
             'skill_zip delivery: download_ref (capability URL the backend downloads) or inline_base64 (zip bytes in the response); local mode defaults to inline_base64'
         )
+        .option(
+            '--directory <dir>',
+            'local mode only, with --as markdown: the backend writes each selected adapter as <dir>/<slug>.md (relative paths resolve against the current directory)'
+        )
         .option('--out <dir>', 'write exported artifact(s) into this directory (default: current directory)')
         .option('--to <file>', 'write the single <uri> payload to this exact file path (any non-skill_zip --as format)')
         .option('--zip-out <file>', 'write skill_zip bytes to this explicit file path')
@@ -261,6 +329,7 @@ export function exportCommand(program: Command): void {
                 try {
                     const input = buildExportInput(uri, options);
                     const backend = await createBackendFromProgram(program);
+                    assertDirectorySupportedByBackend(backend, input);
                     const response = await backend.export(input);
                     const written = await writeExport(backend, response, options);
                     const manifest = buildManifest(response, written);

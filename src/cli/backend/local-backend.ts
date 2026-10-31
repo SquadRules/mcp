@@ -205,6 +205,11 @@ export class LocalBackend implements ActionBackend {
       parsed.format === 'skill_zip' && parsed.delivery === undefined
         ? { ...parsed, delivery: 'inline_base64' }
         : parsed;
-    return this.run(() => executeExport(memoryStore, qdrantService, withDelivery, {}));
+    // This backend runs in-process on the user's machine (single-user, no HTTP
+    // surface), so `directory` writes are SIMPLE-mode equivalent; the directory
+    // path checks (absolute, allowlist, symlink, depth) still apply.
+    return this.run(() =>
+      executeExport(memoryStore, qdrantService, withDelivery, { simpleModeDirectoryAccess: true })
+    );
   }
 }

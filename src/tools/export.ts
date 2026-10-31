@@ -34,10 +34,34 @@ interface RegisterExportOptions {
 
 export interface ExecuteExportOptions {
   downloadBaseUrl?: string;
+  /**
+   * Set only by the CLI LocalBackend: the export runs in-process on the user's own
+   * machine (single-user, no HTTP surface), which is SIMPLE-mode equivalent, so the
+   * `directory` transport gate lifts. Every directory path check (absolute, no `..`,
+   * symlink resolution, allowlist, depth) still applies.
+   */
+  simpleModeDirectoryAccess?: boolean;
 }
 
 function toCurrentMarkdown(markdownDoc: string): string {
   return markdownDoc.replaceAll('"challenge":', '"contract":');
+}
+
+/**
+ * Human-facing slug from the adapter document's YAML frontmatter. `all_adapters`
+ * selections enumerate canonical `squadrules://adapter/{uuid}` URIs, so the URI id
+ * alone would name directory exports by UUID; the frontmatter slug is the stable,
+ * scriptable id (`tune squadrules://adapter/<slug>`). Empty when absent.
+ */
+export function markdownFrontmatterSlug(markdown: string): string {
+  const block = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!block) return '';
+  const line = block[1]!.split(/\r?\n/).find((l) => l.startsWith('slug:'));
+  return line ? line.slice('slug:'.length).trim() : '';
+}
+
+function safeDirectorySlug(raw: string): string {
+  return raw.replace(/[^a-z0-9-_]/gi, '_');
 }
 
 export async function executeExport(
@@ -86,14 +110,18 @@ async function executeExportImpl(
 
   // Directory-based bulk export: write each adapter to <directory>/<slug>.md
   if (typeof input.directory === 'string' && input.directory.trim()) {
-    const resolvedDir = resolveAndValidateDirectory(input.directory, 'export');
+    const resolvedDir = resolveAndValidateDirectory(
+      input.directory,
+      'export',
+      options.simpleModeDirectoryAccess ? { simpleModeEquivalent: true } : {}
+    );
     const manifest: Array<{ slug: string; path: string; bytes: number; status: 'written' | 'skipped' | 'error'; error?: string }> = [];
 
     for (const uri of adapterUris) {
       const parsed = parseSquadrulesUri(uri);
-      const slug = parsed.kind === 'adapter' ? parsed.id : uri;
-      const safeSlug = slug.replace(/[^a-z0-9-_]/gi, '_');
-      const filePath = path.join(resolvedDir, `${safeSlug}.md`);
+      const uriSlug = parsed.kind === 'adapter' ? parsed.id : uri;
+      const fallbackSlug = safeDirectorySlug(uriSlug);
+      const fallbackPath = path.join(resolvedDir, `${fallbackSlug}.md`);
       try {
         const { layerId } = await resolveExportAdapter(memoryStore, qdrantService, uri);
         const dump = await executeDump(memoryStore, qdrantService, {
@@ -101,10 +129,15 @@ async function executeExportImpl(
           protocol: true
         });
         const content = toCurrentMarkdown(String(dump['content'] ?? ''));
+        // Prefer the frontmatter slug (stable, scriptable) over the URI id, which is a
+        // UUID for space-enumerated selections.
+        const frontmatterSlug = markdownFrontmatterSlug(content);
+        const safeSlug = frontmatterSlug ? safeDirectorySlug(frontmatterSlug) : fallbackSlug;
+        const filePath = path.join(resolvedDir, `${safeSlug}.md`);
         fs.writeFileSync(filePath, content, 'utf8');
         manifest.push({ slug: safeSlug, path: filePath, bytes: Buffer.byteLength(content, 'utf8'), status: 'written' });
       } catch (error) {
-        manifest.push({ slug: safeSlug, path: filePath, bytes: 0, status: 'error', error: error instanceof Error ? error.message : String(error) });
+        manifest.push({ slug: fallbackSlug, path: fallbackPath, bytes: 0, status: 'error', error: error instanceof Error ? error.message : String(error) });
       }
     }
 
