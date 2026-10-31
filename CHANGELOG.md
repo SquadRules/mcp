@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.14.3](https://github.com/SquadRules/mcp/compare/v5.14.2...v5.14.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **dependencies:** pin typescript to ^5.9.3 to avoid vulnerable Go binary ([#229](https://github.com/SquadRules/mcp/issues/229)) ([89e40b1](https://github.com/SquadRules/mcp/commit/89e40b1f2c13c4d02942b72b79cbbcc454249a17))
+
 ## [5.14.2](https://github.com/SquadRules/mcp/compare/v5.14.1...v5.14.2) (2026-10-31)
 
 
