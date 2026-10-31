@@ -1,5 +1,7 @@
 import express from 'express';
-import helmet from 'helmet';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import helmetDefault from 'helmet';
+import type { HelmetOptions } from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import {
     AUTH_RATE_LIMIT_MAX,
@@ -12,6 +14,21 @@ import {
 } from '../config.js';
 import { httpLogger } from '../utils/structured-logger.js';
 import { httpMetricsMiddleware } from '../http/http-metrics-middleware.js';
+
+/**
+ * helmet ships dual ESM/CJS declarations with no "types" condition in its
+ * exports map. `tsc` (NodeNext) resolves the callable ESM default export, but
+ * the ts-node ESM source lane — used by test harnesses on a fresh checkout
+ * where dist/ does not exist — resolves the CJS declarations, where the
+ * default import is the module namespace whose callable middleware lives on
+ * `.default` (TS2349 otherwise). Normalize both shapes so this module
+ * type-checks and runs under either resolver.
+ */
+type HelmetMiddleware = (options?: Readonly<HelmetOptions>) =>
+    (req: IncomingMessage, res: ServerResponse, next: (err?: unknown) => void) => void;
+const helmetInterop = helmetDefault as unknown as { default?: HelmetMiddleware };
+const helmet: HelmetMiddleware =
+    helmetInterop.default ?? (helmetDefault as unknown as HelmetMiddleware);
 
 /** Minimal CSP for API server (no HTML UI); satisfies security scanners while avoiding breakage. */
 const HELMET_CSP = {
