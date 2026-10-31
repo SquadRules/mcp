@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.14.5](https://github.com/SquadRules/mcp/compare/v5.14.4...v5.14.5) (2026-10-31)
+
+
+### Bug Fixes
+
+* **packaging:** publish tested runtime lock for application-root consumers ([#237](https://github.com/SquadRules/mcp/issues/237)) ([27e115b](https://github.com/SquadRules/mcp/commit/27e115be7d80a073d6bb571e3ea190da0b622527))
+
+## [5.14.4](https://github.com/SquadRules/mcp/compare/v5.14.3...v5.14.4) (2026-10-31)
+
+
+### Bug Fixes
+
+* **cli:** local-mode skill_zip export delivers inline base64 ([#233](https://github.com/SquadRules/mcp/issues/233)) ([84a429f](https://github.com/SquadRules/mcp/commit/84a429f17c60522399e0c834bebae1832544c5ba))
+* **cli:** make local-mode skill_zip export deliver inline base64 bytes ([84a429f](https://github.com/SquadRules/mcp/commit/84a429f17c60522399e0c834bebae1832544c5ba))
+* **test:** fresh-checkout source lane compiles, boot errors unmasked ([#235](https://github.com/SquadRules/mcp/issues/235)) ([15f851e](https://github.com/SquadRules/mcp/commit/15f851ecb8083a24d2a5b129b4f2c092efe2b93e))
+* **test:** make fresh-checkout source-mode lane compile and unmask boot errors ([15f851e](https://github.com/SquadRules/mcp/commit/15f851ecb8083a24d2a5b129b4f2c092efe2b93e)), closes [#204](https://github.com/SquadRules/mcp/issues/204)
+
 ## [5.14.3](https://github.com/SquadRules/mcp/compare/v5.14.2...v5.14.3) (2026-10-31)
 
 

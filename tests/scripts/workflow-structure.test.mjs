@@ -224,7 +224,7 @@ test('release configuration matches package metadata', () => {
 test('package.json has correct publish configuration', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   assert.equal(pkg.scripts.publish, undefined, 'Avoid npm publish lifecycle recursion');
-  assert.equal(pkg.scripts.prepack, 'npm run build');
+  assert.equal(pkg.scripts.prepack, 'npm run build && node scripts/stage-runtime-lock.mjs');
   assert.equal(pkg.publishConfig.provenance, true);
 });
 

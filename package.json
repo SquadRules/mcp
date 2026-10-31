@@ -1,6 +1,6 @@
 {
   "name": "@squadrules/mcp",
-  "version": "5.14.3",
+  "version": "5.14.5",
   "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
@@ -73,7 +73,7 @@
     "build:tgz": "mkdir -p artifacts && npm pack --pack-destination artifacts",
     "test:tgz": "node scripts/ci-test-tgz-install.mjs",
     "test:package-local": "npm run build:tgz && npm run test:tgz",
-    "prepack": "npm run build",
+    "prepack": "npm run build && node scripts/stage-runtime-lock.mjs",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.ui.json",
     "typecheck:tests": "node scripts/ci-typecheck-tests-report.mjs",
     "release:verify-version": "node scripts/ci-verify-release-version.mjs"
