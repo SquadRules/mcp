@@ -50,7 +50,7 @@ export const exportInputSchema = z
     format: exportFormatSchema.optional().default('skill_zip'),
     delivery: exportDeliverySchema.optional(),
     include_reward: z.boolean().optional().default(true),
-    directory: z.string().optional().describe('Absolute directory path to write per-adapter files. SIMPLE/stdio mode only. Each adapter is written as <directory>/<slug>.md (markdown) or <directory>/<slug>/ (skill_tree).')
+    directory: z.string().optional().describe('Absolute directory path to write per-adapter files. SIMPLE/stdio mode only (CLI: local mode). Each selected adapter is written as <directory>/<slug>.md and the response carries directory_manifest instead of inline content. Required for `format: markdown` with an `adapters` or `all_adapters` selection.')
   })
   .superRefine((data, ctx) => {
     const uriTrim = typeof data.uri === 'string' ? data.uri.trim() : '';
@@ -79,11 +79,14 @@ export const exportInputSchema = z
     }
 
     if (data.format === 'markdown' && (hasList || hasAll)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          '`format: markdown` (flat adapter Markdown, single file) requires a single `uri` selection. Use `skill_tree` or `skill_zip` for multi-adapter bundles.'
-      });
+      const dir = typeof data.directory === 'string' ? data.directory.trim() : '';
+      if (!dir) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            '`format: markdown` with an `adapters`/`all_adapters` selection requires `directory` (writes `<directory>/<slug>.md` per adapter). Without `directory`, markdown requires a single `uri` selection — or use `skill_tree`/`skill_zip` for multi-adapter bundles.'
+        });
+      }
     }
 
     const singleUriFormats = TRAINING_FORMATS.has(data.format) || data.format === 'source';
