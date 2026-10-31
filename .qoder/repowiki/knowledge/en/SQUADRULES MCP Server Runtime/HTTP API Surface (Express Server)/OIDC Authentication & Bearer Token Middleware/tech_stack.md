@@ -1,0 +1,1 @@
+Keycloak OIDC (Authorization Code Flow with PKCE S256); JWT verification via `jose` (`jwtVerify`, `createRemoteJWKSet`); HMAC-SHA256 signed session cookies built with `@exodus/bytes/base64` and `@exodus/bytes/utf8`; Redis-backed `oidcStateStore` for PKCE state (in-memory fallback).

@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: services/export_capability
+title: Export Download Capability Tokens
+scope:
+    - src/services/export-artifact-download-capability-store.ts
+    - src/services/export-artifact-download-capability.ts
+    - src/services/export-download-capability-store.ts
+    - src/services/export-download-capability.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/export_download
+    - path: tools/export

@@ -1,0 +1,1 @@
+Backend selection is driven by environment variables `REDIS_URL` and `QDRANT_URL` (plus `SQUADRULES_REDIS_PREFIX`); when `REDIS_URL` is unset the module falls back to `MemoryStore`, and when `QDRANT_URL` is unset it falls back to the embedded LanceDB trace store — no build flags required.

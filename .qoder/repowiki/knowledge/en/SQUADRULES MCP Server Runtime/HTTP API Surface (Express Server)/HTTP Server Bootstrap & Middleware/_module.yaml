@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: http_api/server_infrastructure
+title: HTTP Server Bootstrap & Middleware
+scope:
+    - src/http/http-server.ts
+    - src/http/http-server-startup.ts
+    - src/http/http-server-config.ts
+    - src/http/http-mcp-cors.ts
+    - src/http/http-metrics-middleware.ts
+    - src/http/http-error-handlers.ts
+    - src/http/http-route-errors.ts
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,1 @@
+MCP tool implementations for deleting adapter/layer resources, dumping memory content as Markdown (single or protocol), and updating layer bodies via the Qdrant-backed memory store.

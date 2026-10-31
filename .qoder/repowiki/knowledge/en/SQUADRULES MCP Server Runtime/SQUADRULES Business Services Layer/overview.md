@@ -1,0 +1,1 @@
+Orchestrates SQUADRULES business logic by wiring embedding, memory, Qdrant, vector-store, metrics, stats, persistence, export capability, and shared infra into a cohesive agent-first service layer.

@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: http_api/auth_oidc
+title: OIDC Authentication & Bearer Token Middleware
+scope:
+    - src/http/http-auth-callback.ts
+    - src/http/http-auth-middleware.ts
+    - src/http/http-auth-oidc-redirect.ts
+    - src/http/bearer-validate.ts
+    - src/http/http-www-authenticate.ts
+    - src/http/oidc-profile-claims.ts
+    - src/http/oidc-scopes.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/mcp_server_client

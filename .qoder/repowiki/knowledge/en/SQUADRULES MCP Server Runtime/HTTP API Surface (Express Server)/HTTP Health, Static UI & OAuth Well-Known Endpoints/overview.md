@@ -1,0 +1,1 @@
+Express route modules exposing the /health probe, the built SPA at /ui, and RFC 9728/8414 .well-known OAuth discovery endpoints for MCP authorization.

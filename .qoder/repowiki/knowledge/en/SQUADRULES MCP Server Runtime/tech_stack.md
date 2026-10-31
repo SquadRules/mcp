@@ -1,0 +1,1 @@
+Node.js ESM entrypoints with dynamic `import()` for bootstrap isolation; environment-driven configuration via `process.env` parsed centrally in `config.ts`; Keycloak OIDC for auth when `AUTH_ENABLED=true`; Qdrant or embedded LanceDB as vector store selected at boot.

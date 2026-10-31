@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: cli/auth_oauth
+title: CLI OAuth Authentication & Credential Storage
+scope:
+    - src/cli/auth-error.ts
+    - src/cli/oauth-refresh.ts
+    - src/cli/rewrite-login-url.ts
+    - src/cli/keyring.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: cli/config

@@ -2,23 +2,20 @@
 
 <cite>
 **Referenced Files in This Document**
-- [index.ts](file://src/index.ts)
-- [server.ts](file://src/server.ts)
-- [config.ts](file://src/config.ts)
+- [http-mcp-handler.ts](file://src/http/http-mcp-handler.ts)
 - [activate.ts](file://src/tools/activate.ts)
-- [forward-register.ts](file://src/tools/forward-register.ts)
 - [forward.ts](file://src/tools/forward.ts)
 - [reward.ts](file://src/tools/reward.ts)
-- [spaces.ts](file://src/tools/spaces.ts)
-- [store.ts](file://src/services/memory/store.ts)
-- [store-adapter.ts](file://src/services/memory/store-adapter.ts)
-- [service.ts](file://src/services/qdrant/service.ts)
+- [search.ts](file://src/tools/search.ts)
+- [store-methods.ts](file://src/services/memory/store-methods.ts)
+- [store-title-similarity-search.ts](file://src/services/memory/store-title-similarity-search.ts)
 - [service.ts](file://src/services/embedding/service.ts)
-- [embedded-store-singleton.ts](file://src/services/vector-store/embedded-store-singleton.ts)
-- [LanceExecutionTraceStore.ts](file://src/services/vector-store/lancedb/LanceExecutionTraceStore.ts)
-- [execution-trace-store.ts](file://src/services/execution-trace-store.ts)
-- [boot-local-runtime.ts](file://src/runtime/boot-local-runtime.ts)
-- [AGENTS.md](file://AGENTS.md)
+- [tenant-context.ts](file://src/utils/tenant-context.ts)
+- [space-filter.ts](file://src/utils/space-filter.ts)
+- [adapter-example-all-types.md](file://docs/examples/adapter-example-all-types.md)
+- [adapter-example-forward.md](file://docs/examples/adapter-example-forward.md)
+- [adapter-example-subagent.md](file://docs/examples/adapter-example-subagent.md)
+- [README.md](file://docs/README.md)
 </cite>
 
 ## Table of Contents
@@ -33,147 +30,439 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-SquadRules is an agent-first Model Context Protocol (MCP) framework. The primary users are AI agents; humans configure preferences, spaces, and workflows through the same MCP surface. A team is modeled as one AI plus one human. Agents own their knowledge: they discover existing adapters or protocols, execute them deterministically, and create or repair adapters when execution reveals missing or outdated instructions.
+SquadRules is an agent-first Model Context Protocol (MCP) framework. AI agents are the primary users, while humans configure preferences through adapters and rewards. The system exposes MCP tools such as `activate`, `forward`, `train`, `reward`, `tune`, `delete`, and `export`. Adapters define deterministic, auditable workflows with typed contracts. The core execution chain is:
 
-The core operational chain is:
-- **Activate**: find the best adapter or protocol for a query.
-- **Forward**: run the first or next layer of an adapter or protocol.
-- **Reward**: record outcome-based feedback that improves future activation and quality scoring.
+- **Activate**: discover or create the best adapter for a query.
+- **Forward**: execute adapter layers step-by-step, validating proofs and chaining to other adapters.
+- **Reward**: record outcome signals that improve future activation and training.
 
-Adapters are deterministic, auditable task specifications. Protocols are multi-step workflow specifications composed from adapters. Spaces are logical groupings of adapters and artifacts. Memory is vector-backed semantic search over adapters, layers, artifacts, and execution traces.
+Vector search over Qdrant and LanceDB indexes rules and workflow metadata. Storage uses Redis for sessions and caching, Qdrant/LanceDB for embeddings, and the filesystem for configuration and artifacts. Authentication integrates Keycloak and Google IdP via OAuth2/JWT, and tenant context flows through async storage so every downstream service can enforce space isolation.
+
+The documentation split is intentional: code-derivable content lives in the generated Wiki, while this repository’s `docs/` directory contains curated, non-code-derivable records such as architecture decision records, CLI reference, and known limitations.
+
+**Section sources**
+- [README.md:1-33](file://docs/README.md#L1-L33)
 
 ## Project Structure
-At runtime, the process entrypoint initializes global error handling, signal handling, optional metrics, local artifact directory hints, embedding dimension probing, and then boots the shared memory store before starting either HTTP or stdio transport.
-
-```mermaid
-flowchart TD
-Entry["Process entrypoint<br/>src/index.ts"] --> Boot["Boot local runtime<br/>src/runtime/boot-local-runtime.ts"]
-Boot --> Store["Memory store initialization<br/>src/services/memory/store.ts"]
-Boot --> QService["Qdrant service selection<br/>src/services/qdrant/service.ts"]
-Boot --> Embedding["Embedding provider probe<br/>src/services/embedding/service.ts"]
-Boot --> Transport{"Transport type?"}
-Transport --> |HTTP| Http["Start HTTP + MCP server<br/>src/server.ts"]
-Transport --> |stdio| Stdio["Start stdio transport"]
-Http --> Tools["Register MCP tools<br/>activate, forward, reward, spaces, train, tune, export, delete"]
-```
-
-**Diagram sources**
-- [index.ts:60-107](file://src/index.ts#L60-L107)
-- [boot-local-runtime.ts:51-84](file://src/runtime/boot-local-runtime.ts#L51-L84)
-- [server.ts:44-69](file://src/server.ts#L44-L69)
-
-**Section sources**
-- [index.ts:1-130](file://src/index.ts#L1-L130)
-- [boot-local-runtime.ts:51-84](file://src/runtime/boot-local-runtime.ts#L51-L84)
-
-## Core Components
-SquadRules exposes MCP tools that implement the activate → forward → reward chain. The MCP server registers these tools with strict JSON schemas, structured content, UI metadata, and metrics instrumentation.
-
-| Component | Responsibility | Key implementation |
-|---|---|---|
-| MCP Server | Creates capabilities, registers tools, resources, prompts, and UI offerings | `createServer` |
-| Activate Tool | Semantic search over adapters and protocols; returns ranked choices with next actions | `registerActivateTool`, `executeActivate` |
-| Forward Tool | Runs the first or next layer; handles contracts, proof-of-work, previous-step application, tensor steps, and execution tracing | `registerForwardTool`, `executeForward` |
-| Reward Tool | Evaluates outcomes, propagates reward metrics, and persists per-execution rewards | `registerRewardTool`, `executeReward` |
-| Spaces Tool | Lists spaces, adapter counts, titles, layer counts, and artifacts | `registerSpacesTool`, `executeSpaces` |
-| Memory Store | Stores adapters, artifacts, and layers; supports space-scoped queries and scroll operations | `MemoryQdrantStore` |
-| Qdrant Service | Backend abstraction for retrieval, search, protocol lookup, quality updates, and reward propagation | `QdrantService` |
-| Embedding Service | Generates embeddings via OpenAI, TEI, or fastembed; validates dimensions and emits audit/metrics | `EmbeddingService` |
-| Execution Trace Store | Records adapter runs, solutions, activation queries, and rewards for observability | `executionTraceStore` |
-
-**Section sources**
-- [server.ts:44-80](file://src/server.ts#L44-L80)
-- [activate.ts:237-287](file://src/tools/activate.ts#L237-L287)
-- [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
-- [reward.ts:112-155](file://src/tools/reward.ts#L112-L155)
-- [spaces.ts:195-254](file://src/tools/spaces.ts#L195-L254)
-
-## Architecture Overview
-SquadRules implements MCP by exposing typed tools to AI agents. Each tool parses input, performs domain logic against memory and vector backends, records metrics, and returns structured content suitable for both machine consumption and UI rendering.
+At a high level, the repository separates HTTP/MCP transport, tool implementations, memory/vector services, embedding providers, tenant context utilities, example adapters, and UI resources.
 
 ```mermaid
 graph TB
-Agent["AI Agent"] --> MCP["MCP Server<br/>src/server.ts"]
-MCP --> Activate["activate tool<br/>src/tools/activate.ts"]
-MCP --> Forward["forward tool<br/>src/tools/forward.ts"]
-MCP --> Reward["reward tool<br/>src/tools/reward.ts"]
-MCP --> Spaces["spaces tool<br/>src/tools/spaces.ts"]
-Activate --> Search["Semantic search over adapters<br/>src/services/qdrant/service.ts"]
-Forward --> Memory["Adapter / layer storage<br/>src/services/memory/store.ts"]
-Forward --> Trace["Execution trace store<br/>src/services/execution-trace-store.ts"]
-Reward --> Metrics["Reward evaluation and propagation<br/>src/services/qdrant/service.ts"]
-Memory --> VectorDB["Vector DB backend<br/>Qdrant or LanceDB"]
-Search --> VectorDB
-Metrics --> VectorDB
-Embedding["Embedding service<br/>src/services/embedding/service.ts"] --> VectorDB
+Client["AI Agent or Human Operator"]
+HTTP["HTTP MCP Endpoint<br/>/mcp"]
+Server["MCP Server"]
+Tools["MCP Tools<br/>activate / forward / reward"]
+Memory["Memory Store<br/>Qdrant + Redis Cache"]
+Embedding["Embedding Service<br/>OpenAI / TEI / Fastembed"]
+VectorDB["Vector DB<br/>Qdrant / LanceDB"]
+Auth["Auth Middleware<br/>Keycloak / Google IdP"]
+Tenant["Tenant Context<br/>Spaces + Tenants"]
+Client --> HTTP
+HTTP --> Server
+Server --> Tools
+Tools --> Memory
+Memory --> VectorDB
+Memory --> Embedding
+HTTP --> Auth
+HTTP --> Tenant
+Tools --> Tenant
 ```
 
 **Diagram sources**
-- [server.ts:44-80](file://src/server.ts#L44-L80)
-- [activate.ts:209-235](file://src/tools/activate.ts#L209-L235)
-- [forward.ts:93-130](file://src/tools/forward.ts#L93-L130)
-- [reward.ts:27-110](file://src/tools/reward.ts#L27-L110)
-- [service.ts:17-161](file://src/services/qdrant/service.ts#L17-L161)
-- [service.ts:38-284](file://src/services/embedding/service.ts#L38-L284)
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:231-280](file://src/tools/activate.ts#L231-L280)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+- [store-methods.ts:38-104](file://src/services/memory/store-methods.ts#L38-L104)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
 
-## Detailed Component Analysis
+**Section sources**
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:231-280](file://src/tools/activate.ts#L231-L280)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+- [store-methods.ts:38-104](file://src/services/memory/store-methods.ts#L38-L104)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
 
-### Model Context Protocol (MCP) in SquadRules
-SquadRules uses MCP as the communication contract between AI agents and the system. The MCP server declares capabilities for tools, resources, prompts, and custom UI offerings. Tools are registered with:
-- Strict input schemas validated at runtime.
-- Output schemas describing structured results.
-- UI metadata enabling richer client experiences.
-- Metrics around call count, duration, input size, output size, and errors.
+## Core Components
+This section explains the fundamental concepts behind SquadRules MCP.
 
-The server also installs a strict tools list handler so clients receive accurate tool definitions derived from Zod schemas.
+### Model Context Protocol Fundamentals
+MCP enables AI agents to discover and call standardized tools. In SquadRules:
+
+- The HTTP endpoint `/mcp` receives JSON-RPC requests.
+- Each request creates a per-request MCP server instance and transport.
+- Auth middleware validates bearer tokens when authentication is enabled.
+- Space and tenant context are injected into async execution so downstream services see the correct scope.
+- Tools expose input/output schemas, structured content, and audit metrics.
 
 ```mermaid
 sequenceDiagram
 participant Agent as "AI Agent"
-participant MCP as "MCP Server"
-participant Registry as "Tool Registry"
-participant Logic as "Domain Logic"
-participant Store as "Memory / Vector Store"
-Agent->>MCP : "tools/list"
-MCP->>Registry : "Return registered tools"
-Agent->>MCP : "Call activate / forward / reward"
-MCP->>Logic : "Parse input, validate schema"
-Logic->>Store : "Read or write adapters, layers, traces"
-Store-->>Logic : "Structured result"
-Logic-->>MCP : "StructuredContent + text"
-MCP-->>Agent : "MCP response"
+participant HTTP as "/mcp Handler"
+participant Server as "MCP Server"
+participant Tool as "Tool Implementation"
+participant Store as "Memory Store"
+participant DB as "Vector DB"
+Agent->>HTTP : "JSON-RPC tools/call"
+HTTP->>HTTP : "Validate bearer token"
+HTTP->>HTTP : "Build space context"
+HTTP->>Server : "Connect transport"
+Server->>Tool : "Call activate / forward / reward"
+Tool->>Store : "Search or persist memory"
+Store->>DB : "Query vectors"
+DB-->>Store : "Points"
+Store-->>Tool : "Memories"
+Tool-->>Agent : "Structured result"
 ```
 
 **Diagram sources**
-- [server.ts:29-41](file://src/server.ts#L29-L41)
-- [server.ts:60-69](file://src/server.ts#L60-L69)
-- [activate.ts:253-284](file://src/tools/activate.ts#L253-L284)
-- [forward-register.ts:31-63](file://src/tools/forward-register.ts#L31-L63)
-- [reward.ts:122-153](file://src/tools/reward.ts#L122-L153)
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:231-280](file://src/tools/activate.ts#L231-L280)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+
+### Adapter Pattern for Deterministic Workflow Execution
+Adapters are Markdown-based protocols describing steps with typed contracts. The framework supports:
+
+- Shell commands with required interpreter and timeout.
+- Forward links to another adapter by slug URI.
+- Subagent delegation for judgment or MCP tool work.
+- User input for genuine authority gaps.
+- Comments for read-only knowledge adapters.
+
+Examples in the repository demonstrate all contract types side by side, forward-linking between adapters, and subagent rungs for delegated judgment versus delegated MCP tool calls.
+
+```mermaid
+flowchart TD
+Start(["Adapter Entry"]) --> Activate["Activate selects adapter"]
+Activate --> Layer1["Layer 1: shell / subagent / user_input / comment"]
+Layer1 --> Contract{"Contract type?"}
+Contract --> |shell| Shell["Run command and verify exit code"]
+Contract --> |subagent| Subagent["Execute subagent report"]
+Contract --> |user_input| UserInput["Elicit human decision"]
+Contract --> |comment| Comment["Record acknowledgement"]
+Shell --> Next{"More layers?"}
+Subagent --> Next
+UserInput --> Next
+Comment --> Next
+Next --> |Yes| Layer2["Next layer"]
+Next --> |No| Reward["Record reward"]
+Layer2 --> Contract
+Reward --> End(["Workflow complete"])
+```
+
+**Diagram sources**
+- [adapter-example-all-types.md:1-105](file://docs/examples/adapter-example-all-types.md#L1-L105)
+- [adapter-example-forward.md:1-61](file://docs/examples/adapter-example-forward.md#L1-L61)
+- [adapter-example-subagent.md:1-69](file://docs/examples/adapter-example-subagent.md#L1-L69)
 
 **Section sources**
-- [server.ts:1-115](file://src/server.ts#L1-L115)
+- [adapter-example-all-types.md:1-105](file://docs/examples/adapter-example-all-types.md#L1-L105)
+- [adapter-example-forward.md:1-61](file://docs/examples/adapter-example-forward.md#L1-L61)
+- [adapter-example-subagent.md:1-69](file://docs/examples/adapter-example-subagent.md#L1-L69)
 
-### Activate → Forward → Reward Chain Workflow
-The chain models how an agent moves from intent to execution to learning.
+### Protocol Definitions and Contracts
+Protocol definitions live in adapter Markdown documents. The runtime parses frontmatter, builds header-based adapters, falls back to default parsing, checks slug validity, detects similar adapters, and stores memories with vector fields.
 
-1. **Activate**
-   - Accepts a query, optional space context, and execution tracking fields.
-   - Performs semantic search across adapters and protocols.
-   - Returns ranked choices with roles such as match, refine, or create.
-   - Provides explicit next_action guidance, including materialization of linked artifacts when present.
+Key implementation points:
 
-2. **Forward**
-   - Accepts an adapter URI or layer URI and an optional solution.
-   - Starts a new execution if none exists.
-   - Handles tensor-style contracts, user-input elicitation, previous-step application, proof-of-work validation, and step progression.
-   - Emits execution traces and may update step quality based on success or failure.
+- Header-based adapters can set protocol version and chain root.
+- Slug candidates are normalized and validated before storage.
+- Title similarity checks help detect duplicate or overlapping adapters.
+- Artifacts can be stored alongside adapters for scripts and binaries.
 
-3. **Reward**
-   - Requires a layer URI.
-   - Evaluates outcome, score, rater, rubric version, and LLM model ID.
-   - Propagates reward metrics through the vector backend.
-   - Persists per-execution reward data for later analysis and training signals.
+```mermaid
+classDiagram
+class MemoryQdrantStoreAdapter {
++storeAdapter(docs, llmModelId, options) Memory[]
++storeArtifact(content, options) Memory[]
+}
+class MemoryQdrantStoreMethods {
++getMemory(memory_uuid) Memory
++searchMemories(query, limit, collapse) Result
++vectorSearch(query, limit) Result
++buildHeaderMemoryAdapter(doc, model, now) Memory[]
+}
+MemoryQdrantStoreAdapter --> MemoryQdrantStoreMethods : "uses"
+```
+
+**Diagram sources**
+- [store-methods.ts:25-36](file://src/services/memory/store-methods.ts#L25-L36)
+- [store-methods.ts:38-104](file://src/services/memory/store-methods.ts#L38-L104)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [store-methods.ts:266-268](file://src/services/memory/store-methods.ts#L266-L268)
+
+**Section sources**
+- [store-methods.ts:25-36](file://src/services/memory/store-methods.ts#L25-L36)
+- [store-methods.ts:38-104](file://src/services/memory/store-methods.ts#L38-L104)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [store-methods.ts:266-268](file://src/services/memory/store-methods.ts#L266-L268)
+
+### Relationship Between Adapters and Their Contracts
+An adapter is a multi-layer protocol; each layer has a contract shape. The runtime enforces:
+
+- Forward contracts must link to another adapter URI, not bare MCP tools.
+- Subagent contracts may delegate judgment without MCP calls or may constrain MCP tool calls executed by the subagent.
+- Shell contracts require an interpreter and observable results.
+- User input is reserved for authority gaps, not routine confirmation.
+- Comments are last-resort acknowledgements and are constrained by verification policy.
+
+Concrete examples show how forward links connect adapters, how subagent reports become evidence, and how shell commands produce verifiable outcomes.
+
+**Section sources**
+- [adapter-example-forward.md:1-61](file://docs/examples/adapter-example-forward.md#L1-L61)
+- [adapter-example-subagent.md:1-69](file://docs/examples/adapter-example-subagent.md#L1-L69)
+- [adapter-example-all-types.md:1-105](file://docs/examples/adapter-example-all-types.md#L1-L105)
+
+## Architecture Overview
+The end-to-end flow from agent request to auditable task execution follows the activate→forward→reward chain.
+
+```mermaid
+sequenceDiagram
+participant Agent as "AI Agent"
+participant MCP as "MCP Transport"
+participant Activate as "activate"
+participant Search as "executeSearch"
+participant Store as "MemoryQdrantStore"
+participant Embed as "EmbeddingService"
+participant Qdrant as "Qdrant"
+participant Forward as "forward"
+participant Reward as "reward"
+Agent->>MCP : "tools/call activate"
+MCP->>Activate : "parse + validate input"
+Activate->>Search : "search adapters"
+Search->>Embed : "generate query embedding"
+Embed-->>Search : "embedding"
+Search->>Store : "hybrid search"
+Store->>Qdrant : "prefetch + fusion query"
+Qdrant-->>Store : "points"
+Store-->>Search : "memories + scores"
+Search-->>Activate : "choices"
+Activate-->>Agent : "best adapter choices"
+Agent->>MCP : "tools/call forward"
+MCP->>Forward : "load layer + proof"
+Forward->>Store : "resolve previous/next layer"
+Forward-->>Agent : "step view or next layer"
+Agent->>MCP : "tools/call reward"
+MCP->>Reward : "validate + evaluate reward"
+Reward-->>Agent : "rated results"
+```
+
+**Diagram sources**
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [search.ts:192-253](file://src/tools/search.ts#L192-L253)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
+
+## Detailed Component Analysis
+
+### MCP Transport and Request Lifecycle
+The HTTP MCP handler:
+
+- Accepts JSON-RPC requests at `/mcp`.
+- Validates bearer tokens when authentication is enabled.
+- Creates a new MCP server per request for concurrency.
+- Enforces a concurrent request limit and returns a retry hint on overload.
+- Injects space context using async local storage.
+- Emits audit events for request start/end and tool calls.
+- Converts internal errors into safe client-facing messages.
+
+```mermaid
+flowchart TD
+Start(["POST /mcp"]) --> Parse["Parse method, tool name, request id"]
+Parse --> Auth["Resolve bearer token if AUTH_ENABLED"]
+Auth --> Special["Handle listOfferingsForUI"]
+Special --> Limit{"Concurrent limit exceeded?"}
+Limit --> |Yes| Reject["Return 503 with Retry-After"]
+Limit --> |No| CreateServer["Create MCP server + transport"]
+CreateServer --> Context["Inject space context"]
+Context --> Handle["transport.handleRequest"]
+Handle --> Audit["Emit audit events"]
+Audit --> Done(["Response sent"])
+```
+
+**Diagram sources**
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+
+**Section sources**
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+
+### Activate Tool
+The activate tool finds the best adapter for a query and returns ranked choices. It:
+
+- Parses and validates input.
+- Supports authoring mode for creating or reviewing adapters.
+- Delegates search to `executeSearch`.
+- Maps search results into activation choices with labels, roles, scores, artifact instructions, and next actions.
+- Records MCP metrics for duration, input size, output size, calls, and errors.
+
+```mermaid
+flowchart TD
+Input["activate input"] --> Validate["Schema validation"]
+Validate --> Authoring{"Authoring mode?"}
+Authoring --> |Yes| ResolveAuthor["Resolve built-in author adapter"]
+Authoring --> |No| Search["executeSearch"]
+ResolveAuthor --> Choices["Build authoring choice"]
+Search --> MapChoices["Map search results to activation choices"]
+Choices --> Output["ActivateOutput"]
+MapChoices --> Output
+```
+
+**Diagram sources**
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [activate.ts:231-280](file://src/tools/activate.ts#L231-L280)
+
+**Section sources**
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [activate.ts:231-280](file://src/tools/activate.ts#L231-L280)
+
+### Forward Tool
+The forward tool executes one or more adapter layers. It:
+
+- Parses adapter or layer URIs.
+- Loads the current memory layer.
+- Starts or continues an execution session.
+- Pins the layer manifest on first forward to prevent UUID churn.
+- Handles user-input elicitation, proof submission, missing proofs, and previous-step application.
+- Appends execution traces and updates step quality.
+- Returns either the current layer view, the next layer, or completion guidance.
+
+```mermaid
+flowchart TD
+Start(["forward input"]) --> ParseURI["Parse adapter or layer URI"]
+ParseURI --> Load["Load memory layer"]
+Load --> Session{"New execution?"}
+Session --> |Yes| StartExec["Start execution + pin manifest"]
+Session --> |No| Continue["Continue existing execution"]
+StartExec --> Solution{"Solution provided?"}
+Continue --> Solution
+Solution --> |No| View["Return current layer view"]
+Solution --> |Yes| Elicit["Try user-input elicitation"]
+Elicit --> Proof["Handle proof submission"]
+Proof --> Previous{"Previous step pending?"}
+Previous --> |Yes| ApplyPrev["Apply solution to previous step"]
+Previous --> |No| Current["Validate current contract"]
+ApplyPrev --> Trace["Append execution trace"]
+Current --> Trace
+Trace --> Next["Resolve next layer"]
+Next --> End(["Forward output"])
+```
+
+**Diagram sources**
+- [forward.ts:43-59](file://src/tools/forward.ts#L43-L59)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [forward.ts:158-339](file://src/tools/forward.ts#L158-L339)
+
+**Section sources**
+- [forward.ts:43-59](file://src/tools/forward.ts#L43-L59)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [forward.ts:158-339](file://src/tools/forward.ts#L158-L339)
+
+### Reward Tool
+The reward tool finalizes an execution by recording outcome signals. It:
+
+- Requires a layer URI.
+- Prevents recording success when the last stored proof failed.
+- Evaluates reward signals including score, rater, rubric version, and LLM model ID.
+- Applies reward metrics to Qdrant.
+- Persists evaluation details to the execution trace store.
+- Returns rated results and counts.
+
+```mermaid
+flowchart TD
+Input["reward input"] --> Validate["Validate layer URI"]
+Validate --> Conflict{"Outcome success but last proof failed?"}
+Conflict --> |Yes| Error["Reject with conflict error"]
+Conflict --> |No| Evaluate["Evaluate reward"]
+Evaluate --> Metrics["Apply reward metrics"]
+Metrics --> Persist["Persist execution trace reward"]
+Persist --> Output["Rated results"]
+```
+
+**Diagram sources**
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+
+**Section sources**
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+
+### Spaces and Multi-Tenancy
+Spaces provide tenant isolation. The context system:
+
+- Derives allowed spaces from JWT claims.
+- Maintains a default write space and personal space.
+- Uses async local storage to propagate tenant and space context across async boundaries.
+- Narrows search scope when a space parameter is supplied.
+- Ensures reads and writes respect allowed spaces.
+
+```mermaid
+flowchart TD
+Token["JWT claims"] --> BuildCtx["Build SpaceContext"]
+BuildCtx --> ALS["AsyncLocalStorage"]
+ALS --> Read["getSpaceContext()"]
+ALS --> Write["getSpaceIdFromStorage()"]
+ALS --> Search["getSearchSpaceIds()"]
+Read --> Filter["buildSpaceFilter()"]
+Search --> Filter
+Filter --> Qdrant["Qdrant queries"]
+```
+
+**Diagram sources**
+- [tenant-context.ts:23-42](file://src/utils/tenant-context.ts#L23-L42)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
+- [tenant-context.ts:256-311](file://src/utils/tenant-context.ts#L256-L311)
+- [space-filter.ts:14-26](file://src/utils/space-filter.ts#L14-L26)
+
+**Section sources**
+- [tenant-context.ts:23-42](file://src/utils/tenant-context.ts#L23-L42)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
+- [tenant-context.ts:256-311](file://src/utils/tenant-context.ts#L256-L311)
+- [space-filter.ts:14-26](file://src/utils/space-filter.ts#L14-L26)
+
+### Vector Search and Embeddings
+SquadRules uses semantic similarity and hybrid ranking:
+
+- The embedding service generates embeddings from configured providers.
+- The memory store performs hybrid search with dense vectors, title vectors, activation pattern vectors, and BM25 sparse vectors.
+- Results are fused and rescored in Qdrant.
+- A fallback path exists if the hybrid query fails.
+- Title similarity search is also available separately.
+
+```mermaid
+flowchart TD
+Query["User query"] --> Embed["EmbeddingService.generateEmbedding"]
+Embed --> Vectors["Primary + Title + Activation vectors"]
+Vectors --> BM25["BM25 tokenizer"]
+Vectors --> Qdrant["Qdrant query"]
+BM25 --> Qdrant
+Qdrant --> Fusion["RRF fusion + formula boost"]
+Fusion --> Scores["Memories + scores"]
+```
+
+**Diagram sources**
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [store-title-similarity-search.ts:9-61](file://src/services/memory/store-title-similarity-search.ts#L9-L61)
+
+**Section sources**
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [store-title-similarity-search.ts:9-61](file://src/services/memory/store-title-similarity-search.ts#L9-L61)
+
+### Activate→Forward→Reward Workflow Chain
+The chain ensures auditable, reproducible task execution:
+
+1. **Activate** selects an adapter and provides next-action guidance.
+2. **Forward** executes layers, validates proofs, handles missing proofs, applies solutions to previous steps, and advances to the next layer.
+3. **Reward** records outcome signals after completion, preventing contradictory success rewards when prior proofs failed.
 
 ```mermaid
 sequenceDiagram
@@ -181,275 +470,91 @@ participant Agent as "AI Agent"
 participant Activate as "activate"
 participant Forward as "forward"
 participant Reward as "reward"
-participant Memory as "Memory Store"
-participant Qdrant as "Qdrant Service"
-participant Trace as "Execution Trace Store"
-Agent->>Activate : "query, space, execution_id"
-Activate->>Qdrant : "semantic search"
-Qdrant-->>Activate : "ranked choices"
-Activate-->>Agent : "choices, next_action"
-Agent->>Forward : "adapter_uri or layer_uri, solution?"
-Forward->>Memory : "load layer / adapter"
-Forward->>Trace : "start_execution"
-Forward->>Qdrant : "quality updates, proof checks"
-Forward-->>Agent : "current_layer, next_action, proof_hash"
-Agent->>Reward : "layer_uri, outcome, feedback"
-Reward->>Qdrant : "propagate reward metrics"
-Reward->>Trace : "set_reward"
-Reward-->>Agent : "results, total_rated, next_call=null"
+Agent->>Activate : "Find adapter"
+Activate-->>Agent : "Choices + next_action"
+Agent->>Forward : "Submit solution step-by-step"
+Forward-->>Agent : "Current or next layer"
+Agent->>Reward : "Record outcome"
+Reward-->>Agent : "Rated results"
 ```
 
 **Diagram sources**
-- [activate.ts:209-235](file://src/tools/activate.ts#L209-L235)
-- [forward.ts:93-130](file://src/tools/forward.ts#L93-L130)
-- [forward.ts:256-316](file://src/tools/forward.ts#L256-L316)
-- [reward.ts:27-110](file://src/tools/reward.ts#L27-L110)
-- [execution-trace-store.ts:119-145](file://src/services/execution-trace-store.ts#L119-L145)
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
 
 **Section sources**
-- [activate.ts:44-207](file://src/tools/activate.ts#L44-L207)
-- [forward.ts:45-91](file://src/tools/forward.ts#L45-L91)
-- [forward.ts:93-316](file://src/tools/forward.ts#L93-L316)
-- [reward.ts:18-110](file://src/tools/reward.ts#L18-L110)
-
-### Adapters: Deterministic, Auditable Task Execution
-An adapter is a stored unit of knowledge that can be searched, activated, and executed. Adapters support:
-- Header-based parsing for structured protocol metadata.
-- Default Markdown fallback parsing.
-- Artifact attachment for downloadable, checksummed assets.
-- Versioning and slug normalization.
-- Similarity checks to avoid duplicate adapters.
-
-The store adapter normalizes documents, parses frontmatter, resolves slugs, checks similar adapters, and delegates to header-based or default storage paths. Artifacts are stored separately but associated with adapters.
-
-```mermaid
-classDiagram
-class MemoryQdrantStore {
-+init()
-+storeAdapter(docs, llmModelId, options)
-+storeArtifact(content, options)
-+getMemory(memory_uuid, options)
-+searchMemories(query, limit, collapse)
-+scrollSpace(spaceId, options)
-+listAdapterArtifacts(adapterId)
-}
-class MemoryQdrantStoreAdapter {
-+storeAdapter(docs, llmModelId, options)
-+storeArtifact(content, options)
-}
-class QdrantService {
-+storeMemory(...)
-+retrieveById(uuid)
-+searchMemory(query, limit, domain)
-+updateQualityMetrics(id, metrics)
-+propagateRewardToAdapterHead(stepPointId, metricsUpdate)
-}
-MemoryQdrantStore --> MemoryQdrantStoreAdapter : "delegates adapter storage"
-MemoryQdrantStore --> QdrantService : "uses for retrieval/search"
-```
-
-**Diagram sources**
-- [store.ts:29-142](file://src/services/memory/store.ts#L29-L142)
-- [store-adapter.ts:35-152](file://src/services/memory/store-adapter.ts#L35-L152)
-- [service.ts:17-151](file://src/services/qdrant/service.ts#L17-L151)
-
-**Section sources**
-- [store-adapter.ts:43-148](file://src/services/memory/store-adapter.ts#L43-L148)
-- [store.ts:132-176](file://src/services/memory/store.ts#L132-L176)
-
-### Spaces: Logical Groupings of Adapters and Protocols
-Spaces organize adapters, layers, and artifacts into personal, group, app, or other categories. The spaces tool:
-- Reads the current request’s space context.
-- Includes the app space alongside allowed spaces.
-- Scrolls points per space.
-- Groups points by adapter.
-- Reports adapter titles, layer counts, slugs, URIs, and optionally artifacts.
-
-This makes spaces a practical grouping mechanism for tenant isolation, team sharing, and built-in application protocols.
-
-```mermaid
-flowchart TD
-Request["Request with space context"] --> GetAllowed["Get allowed space IDs"]
-GetAllowed --> IncludeApp["Include app space"]
-IncludeApp --> Scroll["Scroll space points"]
-Scroll --> GroupByAdapter["Group by adapter"]
-GroupByAdapter --> BuildInfo["Build space info"]
-BuildInfo --> Report["Return spaces, adapter counts, artifacts"]
-```
-
-**Diagram sources**
-- [spaces.ts:59-63](file://src/tools/spaces.ts#L59-L63)
-- [spaces.ts:172-188](file://src/tools/spaces.ts#L172-L188)
-- [spaces.ts:65-166](file://src/tools/spaces.ts#L65-L166)
-
-**Section sources**
-- [spaces.ts:1-255](file://src/tools/spaces.ts#L1-L255)
-
-### Protocols: Multi-Step Workflow Specifications
-Protocols are adapters composed of multiple layers. Forward traversal treats each layer as a step:
-- The first call opens the adapter or layer without a solution.
-- Subsequent calls submit solutions matching the layer’s contract.
-- Contracts may be tensor-based, comment-based, shell-based, or MCP-based.
-- Previous-step application allows correcting earlier steps when appropriate.
-- Completion directs the agent to reward.
-
-```mermaid
-flowchart TD
-Start["Open adapter or layer"] --> FirstCall{"First call without solution?"}
-FirstCall --> |Yes| ShowCurrent["Return current layer view"]
-FirstCall --> |No| SubmitSolution["Submit solution"]
-SubmitSolution --> ContractType{"Contract type?"}
-ContractType --> |Tensor| TensorFlow["Handle tensor forward"]
-ContractType --> |None| PreviousStep["Try apply to previous step"]
-ContractType --> |Proof| ValidateProof["Validate proof and hash chain"]
-PreviousStep --> NextLayer["Resolve next layer"]
-ValidateProof --> NextLayer
-TensorFlow --> NextLayer
-NextLayer --> Complete{"Last layer?"}
-Complete --> |Yes| Reward["next_action points to reward"]
-Complete --> |No| Continue["Continue forward"]
-```
-
-**Diagram sources**
-- [forward.ts:93-130](file://src/tools/forward.ts#L93-L130)
-- [forward.ts:136-139](file://src/tools/forward.ts#L136-L139)
-- [forward.ts:152-221](file://src/tools/forward.ts#L152-L221)
-- [forward.ts:224-316](file://src/tools/forward.ts#L224-L316)
-
-**Section sources**
-- [forward.ts:45-91](file://src/tools/forward.ts#L45-L91)
-- [forward.ts:93-316](file://src/tools/forward.ts#L93-L316)
-
-### Memory Management: Vector-Based Semantic Search, Embeddings, and Storage Backends
-SquadRules uses vector databases for semantic search over rules, adapters, protocols, and execution traces. Two backends are supported:
-- **Qdrant**: primary, remote-capable backend.
-- **LanceDB**: secondary, embedded backend used in local or simple mode.
-
-The embedding service selects providers in this order:
-1. Explicit provider preference.
-2. OpenAI when API key and model are configured.
-3. TEI when base URL and model are configured.
-4. Fastembed as the local default.
-
-It validates embedding dimensions, tracks latency, batch sizes, vector sizes, and emits audit events for success and failure.
-
-Storage responsibilities are split:
-- `MemoryQdrantStore` manages adapter and artifact persistence, space-scoped scrolling, and direct Qdrant access where needed.
-- `QdrantService` abstracts retrieval, search, quality updates, protocol lookup, and reward propagation.
-- Embedded path shares a single `LanceVectorRecordStore` instance across memory and qdrant service slots to keep reads and writes consistent.
-
-```mermaid
-graph TB
-Embedding["EmbeddingService<br/>src/services/embedding/service.ts"] --> Provider["Provider selection<br/>openai / tei / fastembed"]
-Provider --> Post["postEmbeddings"]
-Post --> Validate["Dimension validation<br/>anomaly detection"]
-Store["MemoryQdrantStore<br/>src/services/memory/store.ts"] --> QdrantClient["Qdrant client"]
-Store --> LanceEmbedded["Embedded LanceDB singleton"]
-QService["QdrantService<br/>src/services/qdrant/service.ts"] --> QdrantClient
-QService --> LanceEmbedded
-LanceEmbedded --> SharedInstance["Shared LanceVectorRecordStore<br/>src/services/vector-store/embedded-store-singleton.ts"]
-```
-
-**Diagram sources**
-- [service.ts:38-284](file://src/services/embedding/service.ts#L38-L284)
-- [store.ts:29-66](file://src/services/memory/store.ts#L29-L66)
-- [service.ts:17-161](file://src/services/qdrant/service.ts#L17-L161)
-- [embedded-store-singleton.ts:1-17](file://src/services/vector-store/embedded-store-singleton.ts#L1-L17)
-
-**Section sources**
-- [service.ts:38-284](file://src/services/embedding/service.ts#L38-L284)
-- [store.ts:29-176](file://src/services/memory/store.ts#L29-L176)
-- [service.ts:153-161](file://src/services/qdrant/service.ts#L153-L161)
-- [embedded-store-singleton.ts:1-17](file://src/services/vector-store/embedded-store-singleton.ts#L1-L17)
-
-### Agent Autonomy Model
-The codebase enforces an autonomy model where:
-- Agents are the primary users.
-- Agents must consult team knowledge before acting.
-- Familiarity does not establish preference; agents must verify team-specific adapters and protocols.
-- Agents create, repair, and maintain adapters when execution reveals gaps.
-- Built-in adapters teach discovery, execution, creation, repair, and sharing.
-- Entry points and prompts must stay aligned.
-- Less capable models receive precise instructions, explicit conditions, and observable completion criteria.
-- Real outcomes are verified; failures are repaired when recoverable.
-
-This philosophy appears in the agent guidelines and is reflected in tool behavior: activate returns explicit next actions, forward guides step-by-step execution, and reward closes the loop with measurable feedback.
-
-```mermaid
-flowchart TD
-Intent["Agent receives intent"] --> Consult["Consult team knowledge<br/>activate search"]
-Consult --> Choose{"Existing adapter or protocol?"}
-Choose --> |Yes| Execute["Execute via forward"]
-Choose --> |No| Create["Create or refine adapter"]
-Execute --> Verify["Verify real outcome"]
-Create --> Execute
-Verify --> Reward["Record reward"]
-Reward --> Learn["Improve future activation and quality"]
-```
-
-**Diagram sources**
-- [AGENTS.md:24-55](file://AGENTS.md#L24-L55)
-- [activate.ts:181-206](file://src/tools/activate.ts#L181-L206)
-- [forward.ts:256-316](file://src/tools/forward.ts#L256-L316)
-- [reward.ts:27-110](file://src/tools/reward.ts#L27-L110)
-
-**Section sources**
-- [AGENTS.md:24-55](file://AGENTS.md#L24-L55)
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
 
 ## Dependency Analysis
-The runtime boot sequence composes dependencies and selects backends based on configuration.
+The main runtime dependencies are:
+
+- MCP transport depends on auth middleware, tenant context, and tool registration.
+- Tools depend on memory store, embedding service, and Qdrant services.
+- Memory store depends on Qdrant client, Redis cache, embedding service, and space filters.
+- Embedding service depends on provider resolution and environment configuration.
+- Tenant context depends on configuration and space resolution utilities.
 
 ```mermaid
 graph LR
-Config["Configuration<br/>src/config.ts"] --> Runtime["Local runtime boot<br/>src/runtime/boot-local-runtime.ts"]
-Runtime --> MemoryStore["MemoryQdrantStore<br/>src/services/memory/store.ts"]
-Runtime --> QService["QdrantService<br/>src/services/qdrant/service.ts"]
-Runtime --> Embedding["EmbeddingService<br/>src/services/embedding/service.ts"]
-QService --> Embedded["Embedded store singleton<br/>src/services/vector-store/embedded-store-singleton.ts"]
+HTTP["http-mcp-handler.ts"] --> Tools["activate.ts / forward.ts / reward.ts"]
+Tools --> Memory["store-methods.ts"]
+Memory --> Qdrant["Qdrant client"]
+Memory --> Embed["service.ts"]
+Memory --> Tenant["tenant-context.ts"]
+Memory --> Space["space-filter.ts"]
+Embed --> Provider["Provider resolver + config"]
 ```
 
 **Diagram sources**
-- [config.ts:296-302](file://src/config.ts#L296-L302)
-- [boot-local-runtime.ts:51-84](file://src/runtime/boot-local-runtime.ts#L51-L84)
-- [store.ts:29-66](file://src/services/memory/store.ts#L29-L66)
-- [service.ts:17-161](file://src/services/qdrant/service.ts#L17-L161)
-- [embedded-store-singleton.ts:1-17](file://src/services/vector-store/embedded-store-singleton.ts#L1-L17)
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
+- [space-filter.ts:14-26](file://src/utils/space-filter.ts#L14-L26)
 
 **Section sources**
-- [config.ts:1-350](file://src/config.ts#L1-L350)
-- [boot-local-runtime.ts:51-84](file://src/runtime/boot-local-runtime.ts#L51-L84)
+- [http-mcp-handler.ts:115-308](file://src/http/http-mcp-handler.ts#L115-L308)
+- [activate.ts:168-229](file://src/tools/activate.ts#L168-L229)
+- [forward.ts:91-156](file://src/tools/forward.ts#L91-L156)
+- [reward.ts:132-175](file://src/tools/reward.ts#L132-L175)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
+- [tenant-context.ts:95-179](file://src/utils/tenant-context.ts#L95-L179)
+- [space-filter.ts:14-26](file://src/utils/space-filter.ts#L14-L26)
 
 ## Performance Considerations
-- Embedding requests track latency, batch size, vector size, and anomalies.
-- Search parameters include overfetch factor, max fetch cap, and group collapse controls.
-- Health checks for Qdrant use timeouts and race guards to avoid hanging startup.
-- Execution traces are appended asynchronously where possible, with warnings on persistence failures.
-- Embedded LanceDB provides a single shared store instance to reduce connection overhead and ensure consistency.
+- Hybrid search prefers Qdrant-side fusion and rescore paths, falling back to dense search when needed.
+- Embedding dimensions are probed and validated to avoid mismatched vectors.
+- Memory reads use Redis-backed caching where configured.
+- MCP transport limits concurrent requests and emits audit events for long-running operations.
+- Activate/search results are cached with a TTL keyed by space, query normalization, group collapse setting, and limit.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common issues and their locations:
+Common issues and their architectural causes:
 
-| Issue | Symptom | Where to inspect |
-|---|---|---|
-| Missing Qdrant configuration | Startup throws when QDRANT_URL is required | [config.ts:296-302](file://src/config.ts#L296-L302) |
-| Embedding dimension mismatch | Error about unexpected embedding length | [service.ts:65-75](file://src/services/embedding/service.ts#L65-L75) |
-| Reward persistence failure | 503-like error indicating reward storage unhealthy | [reward.ts:18-25](file://src/tools/reward.ts#L18-L25), [reward.ts:55-86](file://src/tools/reward.ts#L55-L86) |
-| Layer not found during forward | NOT_FOUND error | [forward.ts:106-108](file://src/tools/forward.ts#L106-L108) |
-| Execution trace mutation conflict | Error refusing reassignment of execution to different adapter | [execution-trace-store.ts:128-134](file://src/services/execution-trace-store.ts#L128-L134), [LanceExecutionTraceStore.ts:129-135](file://src/services/vector-store/lancedb/LanceExecutionTraceStore.ts#L129-L135) |
-| Spaces listing errors | Internal error returned as MCP text | [spaces.ts:242-251](file://src/tools/spaces.ts#L242-L251) |
+- **Activation returns no meaningful choices**: Check whether the query is being narrowed to an allowed space, whether built-in refining/creation footers are excluded, and whether hybrid search fell back to dense search.
+- **Forward rejects a forward link**: Ensure the submitted target matches the contract’s adapter URI exactly; bare MCP tool names are invalid.
+- **Reward cannot record success**: If the last stored proof for the layer failed, success is rejected until the step is fixed or failure is recorded.
+- **Space access denied**: Reads filter by `space_id`; writes use the default write space. Narrowing search to a space does not grant write access unless it is allowed.
+- **Embedding dimension mismatch**: The embedding service validates output dimensions against the expected dimension and logs audit failures.
 
 **Section sources**
-- [config.ts:296-302](file://src/config.ts#L296-L302)
-- [service.ts:65-75](file://src/services/embedding/service.ts#L65-L75)
-- [reward.ts:18-86](file://src/tools/reward.ts#L18-L86)
-- [forward.ts:106-108](file://src/tools/forward.ts#L106-L108)
-- [execution-trace-store.ts:119-145](file://src/services/execution-trace-store.ts#L119-L145)
-- [LanceExecutionTraceStore.ts:103-147](file://src/services/vector-store/lancedb/LanceExecutionTraceStore.ts#L103-L147)
-- [spaces.ts:242-251](file://src/tools/spaces.ts#L242-L251)
+- [search.ts:192-253](file://src/tools/search.ts#L192-L253)
+- [store-methods.ts:121-260](file://src/services/memory/store-methods.ts#L121-L260)
+- [forward-contract-match.ts:1-54](file://src/tools/forward-contract-match.ts#L1-L54)
+- [reward.ts:28-130](file://src/tools/reward.ts#L28-L130)
+- [tenant-context.ts:141-179](file://src/utils/tenant-context.ts#L141-L179)
+- [service.ts:48-128](file://src/services/embedding/service.ts#L48-L128)
 
 ## Conclusion
-SquadRules structures agent communication around MCP tools that implement a clear activate → forward → reward chain. Adapters provide deterministic, auditable execution; protocols compose multi-step workflows; spaces group related adapters and artifacts; and vector-backed memory enables semantic discovery. The embedding service abstracts provider selection and validation, while Qdrant and LanceDB serve as complementary storage backends. The autonomy model ensures agents consult team knowledge, maintain their own workflows, and close the loop with rewards that improve future behavior.
+SquadRules combines MCP tooling, adapter contracts, and vectorized memory to make AI agent workflows deterministic and auditable. The activate→forward→reward chain turns ambiguous natural-language requests into structured, provable executions. Spaces and tenant context isolate data, while hybrid search and embedding providers power semantic discovery. When designing workflows, prefer explicit adapter contracts, clear forward links, scoped subagent delegation, and honest reward signals. Use the examples as templates, but always align contracts with the verification ladder and the security properties enforced by the runtime.
 
 [No sources needed since this section summarizes without analyzing specific files]

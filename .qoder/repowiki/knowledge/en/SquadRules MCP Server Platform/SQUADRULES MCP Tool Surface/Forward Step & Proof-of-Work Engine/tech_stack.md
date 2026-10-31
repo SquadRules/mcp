@@ -1,1 +1,0 @@
-Zod for input/output schema validation; Node `crypto.createHash('sha256')` for proof hashing; cosine-similarity embedding check for comment relevance with configurable timeout via `COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS`; MCP client elicitation protocol for interactive user confirmation.

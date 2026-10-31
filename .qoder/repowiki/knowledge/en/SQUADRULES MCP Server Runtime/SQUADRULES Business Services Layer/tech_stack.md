@@ -1,0 +1,1 @@
+Qdrant vector database (with LanceDB embedded fallback), Redis (via ioredis) for KV/cache, Prometheus client for metrics, fastembed for local embeddings, OpenAI/TEI providers for remote embeddings.

@@ -1,0 +1,1 @@
+`login.ts` binds a local HTTP server for the OAuth callback; port can be pinned via the `SQUADRULES_LOGIN_CALLBACK_PORT` environment variable, and browser auto-open is disabled via `SQUADRULES_NO_BROWSER=1` or `--no-browser`.

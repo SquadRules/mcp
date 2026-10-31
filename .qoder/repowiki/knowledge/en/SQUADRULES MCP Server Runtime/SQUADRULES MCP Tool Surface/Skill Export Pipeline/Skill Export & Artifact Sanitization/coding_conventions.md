@@ -1,0 +1,4 @@
+- Diagnostic reporting uses the shared `SkillExportDiagnostic` type with stable string `code` values (e.g. `artifact_ext_mime_mismatch`, `artifact_stored_sha_mismatch`, `artifact_relative_path_invalid`) so callers can classify severity uniformly.
+- Pluggability is expressed as pure functions implementing a typed interface (e.g. `ArtifactSanitizationRule.evaluate` returns `null | SkillExportDiagnostic | SkillExportDiagnostic[]`) and are composed by a thin runner that flattens results.
+- Content integrity is tracked per file via a `sha256` field populated by the local `sha256Hex` utility, with stored hashes compared against recomputed ones to emit warnings on mismatch.
+- YAML frontmatter is treated as opaque text: fields are extracted with case-insensitive regexes and values are escaped via `escapeYamlScalar` before being re-emitted, avoiding a full YAML parse.

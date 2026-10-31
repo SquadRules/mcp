@@ -1,0 +1,1 @@
+Plain TypeScript with Node.js `path` for basename/extname normalization; diagnostics conform to the shared `SkillExportDiagnostic` type from the parent `skill-export` tool.

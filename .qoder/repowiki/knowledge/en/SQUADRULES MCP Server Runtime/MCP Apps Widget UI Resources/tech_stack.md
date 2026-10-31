@@ -1,0 +1,1 @@
+Vanilla JS IIFEs rendered inside host-managed iframes communicating over JSON-RPC 2.0 via `postMessage` per SEP-1865 (`@modelcontextprotocol/ext-apps`). No client-side build step — CSS/JS are TS string exports minified at resource-read time by `widget-inline-minify.ts`.

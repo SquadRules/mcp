@@ -1,0 +1,1 @@
+Central TypeScript type declarations for SQUADRULES domain models (memory, adapters, inference contracts, reward records) and a local archiver-zip shim.

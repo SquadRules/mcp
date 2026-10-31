@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: runtime_boot
+title: Runtime Boot & Configuration Resolution
+scope:
+    - src/runtime/
+    - src/config/
+    - src/constants/
+source_files: []
+depends_on: []
+related_to: []

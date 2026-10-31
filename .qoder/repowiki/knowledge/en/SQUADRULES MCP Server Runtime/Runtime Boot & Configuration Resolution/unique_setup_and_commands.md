@@ -1,0 +1,1 @@
+`MEM_BOOT_FORCE_INJECT=true` is the operator escape hatch to force delete-then-retrain of every shipped adapter at boot (repair path for corrupted/duplicated stores). `SQUADRULES_MCP_STDIO=1` or `SQUADRULES_CLI_SERVE=1` switches transport to stdio/simple mode; `TRANSPORT_TYPE=http` forces cluster mode.

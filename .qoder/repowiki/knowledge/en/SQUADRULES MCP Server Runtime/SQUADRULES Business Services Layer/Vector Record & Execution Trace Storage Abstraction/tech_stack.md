@@ -1,0 +1,1 @@
+LanceDB embedded store via `@lancedb/lancedb` with MVCC commit retries; vectors are stored as numeric columns named `vs<N>` where N matches the embedding dimension recorded in a sidecar metadata file.

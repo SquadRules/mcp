@@ -1,0 +1,1 @@
+Express.js application; security via `helmet` with a minimal Content-Security-Policy; rate limiting via `express-rate-limit` with `standardHeaders: 'draft-8'`; Prometheus metrics exposed through `../services/metrics/http-metrics.js`.

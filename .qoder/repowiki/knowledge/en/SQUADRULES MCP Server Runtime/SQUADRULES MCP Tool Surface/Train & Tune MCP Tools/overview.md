@@ -1,0 +1,1 @@
+MCP tools that register new adapters (train) and update existing adapter layers (tune), including schema validation, batch directory training, critic-loop review gating, and cache invalidation.

@@ -1,0 +1,1 @@
+Persistent memory layer backed by Qdrant that stores, retrieves, and searches agent adapters and artifacts as vectorized Markdown with hybrid dense/BM25 search.

@@ -7,21 +7,17 @@
 - [program.ts](file://src/cli/program.ts)
 - [config.ts](file://src/cli/config.ts)
 - [config-file.ts](file://src/cli/config-file.ts)
-- [config-file-write.ts](file://src/cli/config-file-write.ts)
-- [keyring.ts](file://src/cli/keyring.ts)
 - [auth-error.ts](file://src/cli/auth-error.ts)
-- [commands/activate.ts](file://src/cli/commands/activate.ts)
-- [commands/forward.ts](file://src/cli/commands/forward.ts)
-- [commands/reward.ts](file://src/cli/commands/reward.ts)
-- [commands/tune.ts](file://src/cli/commands/tune.ts)
-- [commands/delete.ts](file://src/cli/commands/delete.ts)
-- [commands/spaces.ts](file://src/cli/commands/spaces.ts)
-- [commands/export.ts](file://src/cli/commands/export.ts)
-- [commands/serve.ts](file://src/cli/commands/serve.ts)
-- [commands/login.ts](file://src/cli/commands/login.ts)
-- [commands/logout.ts](file://src/cli/commands/logout.ts)
-- [commands/token.ts](file://src/cli/commands/token.ts)
-- [commands/cli-train.ts](file://src/cli/commands/cli-train.ts)
+- [oauth-refresh.ts](file://src/cli/oauth-refresh.ts)
+- [keyring.ts](file://src/cli/keyring.ts)
+- [activate.ts](file://src/cli/commands/activate.ts)
+- [forward.ts](file://src/cli/commands/forward.ts)
+- [reward.ts](file://src/cli/commands/reward.ts)
+- [tune.ts](file://src/cli/commands/tune.ts)
+- [delete.ts](file://src/cli/commands/delete.ts)
+- [export.ts](file://src/cli/commands/export.ts)
+- [spaces.ts](file://src/cli/commands/spaces.ts)
+- [cli-train.ts](file://src/cli/commands/cli-train.ts)
 </cite>
 
 ## Table of Contents
@@ -33,539 +29,468 @@
 6. [Dependency Analysis](#dependency-analysis)
 7. [Performance Considerations](#performance-considerations)
 8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Security Considerations](#security-considerations)
-10. [Conclusion](#conclusion)
+9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
 
 ## Introduction
-This document is the comprehensive command-line interface reference for SquadRules. It explains how to install and invoke the CLI, configure local and remote targets, authenticate with an OAuth server, run data commands, manage skills and spaces, train adapters, export bundles, and operate a local or HTTP server. It also covers environment variables, configuration file behavior, error handling, exit codes, and security best practices for credential management.
+This document describes the SquadRules command-line interface that provides programmatic access to the framework’s MCP tools: activate, forward, train, reward, tune, delete, export, and spaces. It covers invocation, global options, output formats, configuration and authentication flows, scripting patterns, and platform-specific behavior. The CLI is local-by-default: without configuration it runs in-process against an embedded store; after login it targets a remote HTTP server automatically.
 
-The CLI ships three equivalent binaries: `squadrules`, `sq`, and `sqr`. Without arguments, it defaults to starting the MCP server over stdio when stdin is not a TTY; otherwise it shows help. With no explicit target, data commands run locally against the embedded store. Authentication is required only for HTTP targets.
+The functional reference for commands, environment variables, and output formats is maintained alongside the codebase documentation.
 
 **Section sources**
-- [CLI.md:1-44](file://docs/CLI.md#L1-L44)
-- [index.ts:1-19](file://src/cli/index.ts#L1-L19)
+- [CLI.md:1-45](file://docs/CLI.md#L1-L45)
 
 ## Project Structure
-The CLI is implemented as a Commander-based program that registers subcommands under a single entry point. Global options are applied before each action, and most commands follow the same pattern: resolve backend, call a backend method, render output, and handle errors.
+At runtime, the CLI entry point initializes logging, detects MCP host invocation, and delegates argument parsing to the Commander-based program builder. The program registers all data commands plus serve, login, logout, and token management. Global options are applied before each action so that flags like `--url` and `--no-browser` propagate consistently across subcommands.
 
 ```mermaid
 graph TB
-Entry["CLI entry<br/>src/cli/index.ts"] --> Program["Program builder<br/>src/cli/program.ts"]
-Program --> Activate["activate<br/>src/cli/commands/activate.ts"]
-Program --> Forward["forward<br/>src/cli/commands/forward.ts"]
-Program --> Train["train<br/>src/cli/commands/cli-train.ts"]
-Program --> Reward["reward<br/>src/cli/commands/reward.ts"]
-Program --> Tune["tune<br/>src/cli/commands/tune.ts"]
-Program --> Delete["delete<br/>src/cli/commands/delete.ts"]
-Program --> Spaces["spaces<br/>src/cli/commands/spaces.ts"]
-Program --> Export["export<br/>src/cli/commands/export.ts"]
-Program --> Serve["serve<br/>src/cli/commands/serve.ts"]
-Program --> Login["login<br/>src/cli/commands/login.ts"]
-Program --> Logout["logout<br/>src/cli/commands/logout.ts"]
-Program --> Token["token<br/>src/cli/commands/token.ts"]
+Entry["src/cli/index.ts<br/>Entry point"] --> Program["src/cli/program.ts<br/>Program builder"]
+Program --> Activate["src/cli/commands/activate.ts"]
+Program --> Forward["src/cli/commands/forward.ts"]
+Program --> Train["src/cli/commands/cli-train.ts"]
+Program --> Reward["src/cli/commands/reward.ts"]
+Program --> Tune["src/cli/commands/tune.ts"]
+Program --> Delete["src/cli/commands/delete.ts"]
+Program --> Export["src/cli/commands/export.ts"]
+Program --> Spaces["src/cli/commands/spaces.ts"]
 ```
 
 **Diagram sources**
-- [index.ts:1-19](file://src/cli/index.ts#L1-L19)
+- [index.ts:1-21](file://src/cli/index.ts#L1-L21)
 - [program.ts:31-79](file://src/cli/program.ts#L31-L79)
-- [commands/activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
-- [commands/forward.ts:12-32](file://src/cli/commands/forward.ts#L12-L32)
-- [commands/cli-train.ts:40-211](file://src/cli/commands/cli-train.ts#L40-L211)
-- [commands/reward.ts:13-66](file://src/cli/commands/reward.ts#L13-L66)
-- [commands/tune.ts:32-115](file://src/cli/commands/tune.ts#L32-L115)
-- [commands/delete.ts:13-30](file://src/cli/commands/delete.ts#L13-L30)
-- [commands/spaces.ts:12-34](file://src/cli/commands/spaces.ts#L12-L34)
-- [commands/export.ts:185-224](file://src/cli/commands/export.ts#L185-L224)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
-- [commands/login.ts:255-287](file://src/cli/commands/login.ts#L255-L287)
-- [commands/logout.ts:10-20](file://src/cli/commands/logout.ts#L10-L20)
-- [commands/token.ts:11-52](file://src/cli/commands/token.ts#L11-L52)
 
 **Section sources**
-- [program.ts:31-79](file://src/cli/program.ts#L31-L79)
+- [index.ts:1-21](file://src/cli/index.ts#L1-L21)
+- [program.ts:1-81](file://src/cli/program.ts#L1-L81)
 
 ## Core Components
-- Invocation and default transport: The entry point auto-appends `serve` when invoked without arguments and stdin is piped, enabling MCP hosts to launch the process with stdio.
-- Global options: `-u/--url`, `--timeout`, `--retries`, `--format`, `--space`, `--reseed`, and `--no-browser` apply across all commands.
-- Output formats: `auto`, `pretty`, `json`, and `text` control rendering; `auto` emits JSON when not attached to a terminal.
-- Configuration resolution: The API URL resolves from CLI flag, then environment variable `SQUADRULES_API_URL`, then saved config file, then local sentinel.
-- Authentication: `login`, `token`, and `logout` manage bearer tokens and refresh tokens via OAuth PKCE or direct token validation. Tokens can be stored in the OS keyring or config file.
-- Local development: `serve` starts the MCP server with stdio or HTTP, supports `.env`, metrics port, and updates the CLI default URL when running locally.
+- Invocation model:
+  - Three equivalent binaries (`squadrules`, `sq`, `sqr`) share one entry point.
+  - Bare invocation with piped stdin starts the MCP server over stdio; interactive terminal usage shows help.
+- Local-by-default execution:
+  - Without configuration, commands run in-process against the embedded store using a local sentinel target.
+  - After `login`, subsequent commands use the saved HTTP API URL unless overridden by `--url`.
+- Global options:
+  - `-u, --url`: API base URL or local sentinel.
+  - `--timeout`, `--retries`, `--format`, `--space`, `--reseed`, `--no-browser`.
+- Output formats:
+  - `auto`, `pretty`, `json`, `text`; `auto` emits JSON when not attached to a TTY for stable scripting.
+
+These behaviors are implemented by the entry point, program builder, and shared configuration helpers.
 
 **Section sources**
-- [CLI.md:46-75](file://docs/CLI.md#L46-L75)
-- [config.ts:8-27](file://src/cli/config.ts#L8-L27)
+- [CLI.md:9-75](file://docs/CLI.md#L9-L75)
+- [index.ts:1-21](file://src/cli/index.ts#L1-L21)
 - [program.ts:31-61](file://src/cli/program.ts#L31-L61)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
-- [commands/login.ts:255-287](file://src/cli/commands/login.ts#L255-L287)
+- [config.ts:8-20](file://src/cli/config.ts#L8-L20)
 
 ## Architecture Overview
-The CLI follows a consistent flow: parse global options, select backend (local or HTTP), execute command logic, format output, and handle authentication-related errors.
+The CLI follows a consistent flow per command: parse arguments, create a backend (local or HTTP), call the corresponding action, render results through a unified formatter, and handle authentication errors by printing guidance and optionally opening a browser.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant CLI as "CLI entry"
-participant Program as "Commander program"
-participant Cmd as "Subcommand handler"
-participant Backend as "Backend (local/HTTP)"
-participant Server as "SquadRules server"
-participant Keyring as "OS keyring / config file"
+participant CLI as "Command handler"
+participant Backend as "ActionBackend"
+participant Store as "Local or Remote Store"
+participant Auth as "Auth helpers"
 User->>CLI : squadrules <command> [options]
-CLI->>Program : createProgram().parseAsync()
-Program->>Cmd : preAction hook (merge globals)
-Cmd->>Backend : createBackendFromProgram(program)
-alt HTTP target
-Backend->>Keyring : readConfig(baseUrl)
-Keyring-->>Backend : { apiUrl, bearerToken, refreshToken }
-Backend->>Server : authenticated request
-Server-->>Backend : response
-else Local target
-Backend->>Backend : in-process operation
+CLI->>CLI : resolveOutputFormat()
+CLI->>Backend : createBackendFromProgram(program)
+CLI->>Backend : action(...)
+alt Local mode
+Backend->>Store : In-process operation
+else HTTP mode
+Backend->>Store : HTTP request
+Store-->>Backend : 401 with login_url
+Backend-->>CLI : throws AuthRequiredError
+CLI->>Auth : handleApiError(..., openInBrowser)
+Auth-->>User : Guidance + optional browser open
 end
-Cmd->>Cmd : emitResult(format, response)
-Cmd-->>User : formatted output
+CLI-->>User : emitResult(format, response, renderers)
 ```
 
 **Diagram sources**
-- [index.ts:11-19](file://src/cli/index.ts#L11-L19)
-- [program.ts:47-61](file://src/cli/program.ts#L47-L61)
-- [commands/activate.ts:18-34](file://src/cli/commands/activate.ts#L18-L34)
-- [commands/login.ts:73-87](file://src/cli/commands/login.ts#L73-L87)
-- [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
+- [activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
+- [forward.ts:12-32](file://src/cli/commands/forward.ts#L12-L32)
+- [auth-error.ts:12-20](file://src/cli/auth-error.ts#L12-L20)
+- [auth-error.ts:124-132](file://src/cli/auth-error.ts#L124-L132)
 
 ## Detailed Component Analysis
 
-### activate
-Finds the best matching adapter for a query. Supports scoping by space and renders pretty/text/json output with next-call hints.
+### Global Options and Configuration Resolution
+- Default URL resolution order:
+  1. Command-line `--url`.
+  2. Environment variable `SQUADRULES_API_URL`.
+  3. Saved config default URL.
+  4. Local sentinel for embedded store.
+- Environment variables:
+  - `SQUADRULES_API_URL`, `SQUADRULES_TIMEOUT_MS`, `SQUADRULES_RETRIES`, `SQUADRULES_FORMAT`, `MEM_BOOT_FORCE_INJECT`.
+- Profile-like behavior:
+  - Config supports multiple environments keyed by normalized API URL.
+  - Tokens may be stored in the OS keyring; the file stores only non-secret metadata and placeholders when applicable.
 
 ```mermaid
 flowchart TD
-Start(["activate"]) --> Parse["Parse query and --space"]
-Parse --> Backend["Create backend"]
-Backend --> Call["backend.activate(query, space?)"]
-Call --> Format{"Output format?"}
-Format --> |pretty| Pretty["renderActivatePretty"]
-Format --> |text| Text["renderActivateText"]
-Format --> |json| Json["structured response"]
-Pretty --> Emit["emitResult"]
-Text --> Emit
-Json --> Emit
-Emit --> End(["Exit"])
+Start(["CLI start"]) --> EnvCheck{"SQUADRULES_API_URL set?"}
+EnvCheck --> |Yes| UseEnv["Use env value"]
+EnvCheck --> |No| FileCheck{"Saved config has defaultUrl?"}
+FileCheck --> |Yes| UseFile["Use saved defaultUrl"]
+FileCheck --> |No| Local["Use local sentinel"]
+UseEnv --> End(["Resolved target"])
+UseFile --> End
+Local --> End
 ```
 
 **Diagram sources**
-- [commands/activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
+- [config.ts:8-20](file://src/cli/config.ts#L8-L20)
+- [config-file.ts:72-83](file://src/cli/config-file.ts#L72-L83)
 
 **Section sources**
-- [commands/activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
+- [CLI.md:29-57](file://docs/CLI.md#L29-L57)
+- [CLI.md:248-257](file://docs/CLI.md#L248-L257)
+- [config.ts:8-20](file://src/cli/config.ts#L8-L20)
+- [config-file.ts:1-11](file://src/cli/config-file.ts#L1-L11)
+- [config-file.ts:72-83](file://src/cli/config-file.ts#L72-L83)
 
-### forward
-Runs the first or next layer of an adapter. Accepts a URI and optional solution payload.
-
-```mermaid
-flowchart TD
-Start(["forward"]) --> Parse["Parse URI and --solution"]
-Parse --> Backend["Create backend"]
-Backend --> Call["backend.forward(uri, solution?)"]
-Call --> Format{"Output format?"}
-Format --> |pretty| Pretty["renderForwardPretty"]
-Format --> |text| Text["renderForwardText"]
-Format --> |json| Json["structured response"]
-Pretty --> Emit["emitResult"]
-Text --> Emit
-Json --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/forward.ts:12-32](file://src/cli/commands/forward.ts#L12-L32)
-
-**Section sources**
-- [commands/forward.ts:12-32](file://src/cli/commands/forward.ts#L12-L32)
-
-### reward
-Records a reward signal for an adapter execution. Validates outcome and score, then sends structured reward metadata.
-
-```mermaid
-flowchart TD
-Start(["reward"]) --> ValidateOutcome["Validate outcome is success/failure"]
-ValidateOutcome --> ValidateScore["Validate --score if provided"]
-ValidateScore --> Backend["Create backend"]
-Backend --> BuildOptions["Build reward options"]
-BuildOptions --> Call["backend.reward(uri, outcome, feedback, options)"]
-Call --> Format{"Output format?"}
-Format --> |pretty| Pretty["renderRewardPretty"]
-Format --> |text| Text["renderRewardText"]
-Pretty --> Emit["emitResult"]
-Text --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/reward.ts:13-66](file://src/cli/commands/reward.ts#L13-L66)
-
-**Section sources**
-- [commands/reward.ts:13-66](file://src/cli/commands/reward.ts#L13-L66)
-
-### tune
-Updates one or more adapter layers. Supports move-only operations, markdown files, JSON updates, and sensitive upload guard.
-
-```mermaid
-flowchart TD
-Start(["tune"]) --> CheckMoveOnly{"--space alone?"}
-CheckMoveOnly --> |Yes| MoveOnly["backend.tune(uris, { space })"]
-CheckMoveOnly --> |No| ModeSelect{"--files | --file | --updates?"}
-ModeSelect --> |files| ValidateFiles["Validate count matches URIs"]
-ValidateFiles --> ReadFiles["Read markdown files"]
-ModeSelect --> |file| ReadSingle["Read single markdown"]
-ModeSelect --> |updates| ParseJSON["Parse JSON updates"]
-ModeSelect --> |none| Error["Error: must provide --file, --updates, or --space alone"]
-ReadFiles --> BuildOpts["Build TuneOptions"]
-ReadSingle --> BuildOpts
-ParseJSON --> BuildOpts
-BuildOpts --> Call["backend.tune(uris, opts)"]
-MoveOnly --> Emit["emitResult"]
-Call --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/tune.ts:32-115](file://src/cli/commands/tune.ts#L32-L115)
-
-**Section sources**
-- [commands/tune.ts:32-115](file://src/cli/commands/tune.ts#L32-L115)
-
-### delete
-Deletes one or more adapter or layer resources.
-
-```mermaid
-flowchart TD
-Start(["delete"]) --> Backend["Create backend"]
-Backend --> Call["backend.delete(uris)"]
-Call --> Format{"Output format?"}
-Format --> |pretty| Pretty["renderDeletePretty"]
-Format --> |text| Text["renderDeleteText"]
-Pretty --> Emit["emitResult"]
-Text --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/delete.ts:13-30](file://src/cli/commands/delete.ts#L13-L30)
-
-**Section sources**
-- [commands/delete.ts:13-30](file://src/cli/commands/delete.ts#L13-L30)
-
-### spaces
-Lists available spaces and adapter counts, optionally including per-space adapter titles.
-
-```mermaid
-flowchart TD
-Start(["spaces"]) --> Backend["Create backend"]
-Backend --> Call["backend.spaces({ include_adapter_titles })"]
-Call --> Format{"Output format?"}
-Format --> |pretty| Pretty["renderSpacesPretty"]
-Format --> |text| Text["renderSpacesText"]
-Pretty --> Emit["emitResult"]
-Text --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/spaces.ts:12-34](file://src/cli/commands/spaces.ts#L12-L34)
-
-**Section sources**
-- [commands/spaces.ts:12-34](file://src/cli/commands/spaces.ts#L12-L34)
-
-### export
-Machine-facing bulk export command. Writes artifacts to disk and prints a compact summary or JSON manifest. Never dumps content bytes to stdout.
-
-```mermaid
-flowchart TD
-Start(["export"]) --> BuildInput["buildExportInput(uri, options)"]
-BuildInput --> Backend["Create backend"]
-Backend --> Call["backend.export(input)"]
-Call --> WriteExport["writeExport(response, options)"]
-WriteExport --> Manifest["buildManifest(response, written)"]
-Manifest --> Format{"Global --format?"}
-Format --> |json| JsonOut["emitResult(manifest)"]
-Format --> |pretty| PrettyOut["emitResult(summary)"]
-Format --> |text| TextOut["emitResult(paths)"]
-JsonOut --> End(["Exit"])
-PrettyOut --> End
-TextOut --> End
-```
-
-**Diagram sources**
-- [commands/export.ts:45-87](file://src/cli/commands/export.ts#L45-L87)
-- [commands/export.ts:122-155](file://src/cli/commands/export.ts#L122-L155)
-- [commands/export.ts:157-183](file://src/cli/commands/export.ts#L157-L183)
-- [commands/export.ts:185-224](file://src/cli/commands/export.ts#L185-L224)
-
-**Section sources**
-- [commands/export.ts:45-87](file://src/cli/commands/export.ts#L45-L87)
-- [commands/export.ts:122-155](file://src/cli/commands/export.ts#L122-L155)
-- [commands/export.ts:157-183](file://src/cli/commands/export.ts#L157-L183)
-- [commands/export.ts:185-224](file://src/cli/commands/export.ts#L185-L224)
-
-### serve
-Starts the MCP server with stdio or HTTP. Loads `.env`, validates ports, sets transport, and spawns the bootstrap process. When `--server-port` is used, it updates the CLI default URL.
-
-```mermaid
-flowchart TD
-Start(["serve"]) --> LoadEnv[".env load if exists"]
-LoadEnv --> MetricsPort["Validate --metrics-port"]
-MetricsPort --> Transport["resolveServeTransport(cli, env)"]
-Transport --> Port["resolveServeServerPort(cli, env)"]
-Port --> UpdateConfig{"--server-port set?"}
-UpdateConfig --> |Yes| WriteDefaultUrl["writeConfig({ apiUrl: http://localhost:<port> })"]
-UpdateConfig --> |No| SkipConfig["Skip config update"]
-WriteDefaultUrl --> Spawn["spawn bootstrap.js/ts"]
-SkipConfig --> Spawn
-Spawn --> Exit["Forward child exit code"]
-```
-
-**Diagram sources**
-- [commands/serve.ts:21-42](file://src/cli/commands/serve.ts#L21-L42)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
-
-**Section sources**
-- [commands/serve.ts:21-42](file://src/cli/commands/serve.ts#L21-L42)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
-
-### login
-Authenticates via browser PKCE or direct token validation. Stores bearer and refresh tokens in the OS keyring when available, falling back to the config file.
+### Authentication Flow
+- Browser-based login:
+  - Uses PKCE via the configured OAuth server.
+  - Stores bearer and refresh tokens securely when the OS keyring is available.
+- Token management:
+  - `token --validate` prints and validates the stored token.
+  - `logout` clears stored credentials for the current target.
+- Offline operation:
+  - Against the local sentinel, auth commands print guidance and fall back to a localhost default.
+- Refresh flow:
+  - Discovers token endpoints from `.well-known/oauth-protected-resource`.
+  - Exchanges refresh tokens for new access tokens with a client ID dedicated to the CLI.
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant CLI as "login command"
-participant Config as "readConfig/writeConfig"
-participant Keyring as "keyring"
-participant Server as "OAuth server"
-User->>CLI : squadrules login [--token | --no-browser]
-CLI->>Config : readConfig(baseUrl)
-alt --token provided
-CLI->>Server : GET /api/me (validate)
-Server-->>CLI : ok/invalid
-CLI->>Config : writeConfig({ apiUrl, bearerToken, refreshToken })
-else browser PKCE
-CLI->>Server : GET .well-known/oauth-protected-resource
-Server-->>CLI : endpoints
-CLI->>CLI : generate code_verifier/state/callbackPathToken
-CLI->>CLI : start local callback server
-CLI->>User : open browser to authEndpoint
-User->>Server : authorize
-Server-->>CLI : callback?code&state
-CLI->>Server : POST tokenEndpoint (authorization_code)
-Server-->>CLI : access_token + refresh_token
-CLI->>Config : writeConfig({ apiUrl, bearerToken, refreshToken })
-end
+participant CLI as "Login/Tokens"
+participant Keyring as "OS Keyring"
+participant Config as "Config File"
+participant Server as "OAuth Server"
+User->>CLI : squadrules login
+CLI->>Server : PKCE authorization flow
+Server-->>CLI : Authorization callback with tokens
+CLI->>Keyring : Store bearer and refresh tokens
+Keyring-->>CLI : Success
+CLI->>Config : Persist defaultUrl and placeholders
+CLI-->>User : Session ready
+User->>CLI : squadrules token --validate
+CLI->>Keyring : Read bearer token
+Keyring-->>CLI : Token
+CLI-->>User : Validation result
 ```
 
 **Diagram sources**
-- [commands/login.ts:80-102](file://src/cli/commands/login.ts#L80-L102)
-- [commands/login.ts:112-253](file://src/cli/commands/login.ts#L112-L253)
-- [commands/login.ts:255-287](file://src/cli/commands/login.ts#L255-L287)
+- [auth-error.ts:96-117](file://src/cli/auth-error.ts#L96-L117)
+- [oauth-refresh.ts:26-51](file://src/cli/oauth-refresh.ts#L26-L51)
+- [oauth-refresh.ts:62-96](file://src/cli/oauth-refresh.ts#L62-L96)
+- [keyring.ts:145-169](file://src/cli/keyring.ts#L145-L169)
+- [keyring.ts:188-210](file://src/cli/keyring.ts#L188-L210)
 - [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
-- [keyring.ts:145-223](file://src/cli/keyring.ts#L145-L223)
 
 **Section sources**
-- [commands/login.ts:80-102](file://src/cli/commands/login.ts#L80-L102)
-- [commands/login.ts:112-253](file://src/cli/commands/login.ts#L112-L253)
-- [commands/login.ts:255-287](file://src/cli/commands/login.ts#L255-L287)
+- [CLI.md:231-246](file://docs/CLI.md#L231-L246)
+- [auth-error.ts:12-20](file://src/cli/auth-error.ts#L12-L20)
+- [auth-error.ts:22-27](file://src/cli/auth-error.ts#L22-L27)
+- [auth-error.ts:96-117](file://src/cli/auth-error.ts#L96-L117)
+- [oauth-refresh.ts:8-10](file://src/cli/oauth-refresh.ts#L8-L10)
+- [oauth-refresh.ts:26-51](file://src/cli/oauth-refresh.ts#L26-L51)
+- [oauth-refresh.ts:62-96](file://src/cli/oauth-refresh.ts#L62-L96)
+- [keyring.ts:1-6](file://src/cli/keyring.ts#L1-L6)
+- [keyring.ts:104-111](file://src/cli/keyring.ts#L104-L111)
+- [keyring.ts:145-169](file://src/cli/keyring.ts#L145-L169)
+- [keyring.ts:188-210](file://src/cli/keyring.ts#L188-L210)
+- [config-file.ts:1-11](file://src/cli/config-file.ts#L1-L11)
 - [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
-- [keyring.ts:145-223](file://src/cli/keyring.ts#L145-L223)
 
-### logout
-Clears stored credentials for the current environment.
+### Command Reference
 
-```mermaid
-flowchart TD
-Start(["logout"]) --> GetBase["getBaseUrl()"]
-GetBase --> WriteConfig["writeConfig({ apiUrl, bearerToken: null })"]
-WriteConfig --> Done["Credentials cleared"]
-```
-
-**Diagram sources**
-- [commands/logout.ts:10-20](file://src/cli/commands/logout.ts#L10-L20)
+#### activate
+- Purpose: Find the best matching adapter for a query.
+- Usage: `squadrules activate <query...> [--space <space>]`
+- Parameters:
+  - `<query...>`: Search query (multiple words allowed).
+  - `--space <space>`: Scope results to this space (`personal` or a group name).
+- Output: Structured activation result rendered according to `--format`.
 
 **Section sources**
-- [commands/logout.ts:10-20](file://src/cli/commands/logout.ts#L10-L20)
+- [CLI.md:79-85](file://docs/CLI.md#L79-L85)
+- [activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
 
-### token
-Prints the stored bearer token to stdout, optionally validating it or triggering login.
-
-```mermaid
-flowchart TD
-Start(["token"]) --> ReadConfig["readConfig(baseUrl)"]
-ReadConfig --> HasToken{"bearerToken present?"}
-HasToken --> |No & --login| Login["loginWithBrowser(baseUrl)"]
-Login --> ReRead["readConfig(baseUrl) again"]
-HasToken --> |Yes| Validate{"--validate?"}
-Validate --> |Yes| CheckValid["GET /api/me"]
-CheckValid --> Print["stdout.write(token)"]
-Validate --> |No| Print
-Print --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/token.ts:11-52](file://src/cli/commands/token.ts#L11-L52)
-- [commands/login.ts:80-87](file://src/cli/commands/login.ts#L80-L87)
+#### forward
+- Purpose: Run the first or next layer of an adapter.
+- Usage: `squadrules forward <uri> [--solution <json>]`
+- Parameters:
+  - `<uri>`: SQUADRULES adapter or layer URI.
+  - `--solution <json>`: Forward solution as JSON string.
+- Output: Structured forward step result rendered according to `--format`.
 
 **Section sources**
-- [commands/token.ts:11-52](file://src/cli/commands/token.ts#L11-L52)
+- [CLI.md:87-93](file://docs/CLI.md#L87-L93)
+- [forward.ts:12-32](file://src/cli/commands/forward.ts#L12-L32)
 
-### train
-Registers new adapters from markdown, attaches artifacts, or forks existing adapters. Supports directory batch processing.
-
-```mermaid
-flowchart TD
-Start(["train"]) --> Mode{"--source-adapter-uri?"}
-Mode --> |Yes| Fork["Validate --model, build TrainJsonBody"]
-Fork --> CallJson["backend.trainJson(payload)"]
-Mode --> |No| PathCheck{"path provided?"}
-PathCheck --> |No| ErrMissing["Error: missing path"]
-PathCheck --> |Yes| Stat["statSync(target)"]
-Stat --> Dir{"Directory?"}
-Dir --> |Yes| Batch["runTrainBatch(backend, dir, options, trainOptions, format)"]
-Dir --> |No| File{"Regular file?"}
-File --> |No| ErrNotFile["Error: not a regular file"]
-File --> |Yes| ArtifactMode{"Artifact mode flags or inferred MIME?"}
-ArtifactMode --> |Yes| ArtifactPayload["Build TrainJsonBody (artifact)"]
-ArtifactPayload --> CallJson
-ArtifactMode --> |No| Markdown["readMarkdownUploadFromFile"]
-Markdown --> CallRaw["backend.train(markdown, trainOptions)"]
-CallJson --> Emit["emitResult(format, response)"]
-CallRaw --> Emit
-Batch --> Emit
-Emit --> End(["Exit"])
-```
-
-**Diagram sources**
-- [commands/cli-train.ts:40-211](file://src/cli/commands/cli-train.ts#L40-L211)
+#### reward
+- Purpose: Record a reward signal for an adapter execution.
+- Usage: `squadrules reward <uri> <outcome> <feedback> [--score <number>] [--rater <rater>] [--rubric-version <version>] [--model <model>]`
+- Parameters:
+  - `<uri>`: SQUADRULES layer URI.
+  - `<outcome>`: `success` or `failure`.
+  - `<feedback>`: Human-readable feedback describing completion or failure.
+  - `--score <number>`: Normalized reward score in the 0..1 range.
+  - `--rater <rater>`: Evaluator identifier used for export gating.
+  - `--rubric-version <version>`: Rubric or policy version used for evaluation.
+  - `--model <model>`: LLM model ID for attribution.
+- Validation: Enforces outcome values and numeric score format.
 
 **Section sources**
-- [commands/cli-train.ts:40-211](file://src/cli/commands/cli-train.ts#L40-L211)
+- [CLI.md:95-103](file://docs/CLI.md#L95-L103)
+- [reward.ts:13-66](file://src/cli/commands/reward.ts#L13-L66)
+
+#### tune
+- Purpose: Update one or more adapter layers.
+- Usage: `squadrules tune <uris...> [--file <file> | --files <files...> | --updates <json>] [--space <space>] [--allow-sensitive-upload]`
+- Parameters:
+  - `<uris...>`: One or more adapter or layer URIs.
+  - `--file <file>`: Apply one markdown file to all specified URIs.
+  - `--files <files...>`: Provide one markdown file per URI (count must match).
+  - `--updates <json>`: Provide updates object as JSON string.
+  - `--space <space>`: Move all layers of each target adapter to this space (move-only when used alone).
+  - `--allow-sensitive-upload`: Allow uploads containing token-like or private-key-like text.
+- Behavior: Supports move-only operations and integration test evidence injection via environment.
+
+**Section sources**
+- [CLI.md:105-113](file://docs/CLI.md#L105-L113)
+- [tune.ts:32-115](file://src/cli/commands/tune.ts#L32-L115)
+
+#### delete
+- Purpose: Delete one or more adapter or layer resources.
+- Usage: `squadrules delete <uris...>`
+- Parameters:
+  - `<uris...>`: Adapter or layer URIs to delete.
+
+**Section sources**
+- [CLI.md:115-121](file://docs/CLI.md#L115-L121)
+- [delete.ts:13-30](file://src/cli/commands/delete.ts#L13-L30)
+
+#### spaces
+- Purpose: List available spaces and adapter counts.
+- Usage: `squadrules spaces [--include-adapter-titles]`
+- Parameters:
+  - `--include-adapter-titles`: Include per-space adapter titles and layer counts.
+
+**Section sources**
+- [CLI.md:123-129](file://docs/CLI.md#L123-L129)
+- [spaces.ts:12-34](file://src/cli/commands/spaces.ts#L12-L34)
+
+#### train
+- Purpose: Register a new adapter from markdown, attach a text artifact to an adapter, or fork an existing adapter.
+- Usage:
+  - Single markdown file: `squadrules train ./my-adapter.md --model gpt-4 [--space personal] [--force]`
+  - Directory batch: `squadrules train ./adapters --recursive --model gpt-4`
+  - Fork: `squadrules train --source-adapter-uri squadrules://adapter/my-adapter --model gpt-4`
+  - Artifact: `squadrules train ./notes.txt --adapter squadrules://adapter/my-adapter [--mime text/plain]`
+- Parameters:
+  - `[path]`: Markdown/artifact file path or directory (omit when forking).
+  - `--model <model>`: Required for fork and artifact modes; used for attribution otherwise.
+  - `--force`: Force update if an adapter with the same label already exists.
+  - `--recursive`: Include nested `.md` files when path is a directory.
+  - `--source-adapter-uri <uri>`: Fork from an existing adapter (requires `--model`).
+  - `--space <space>`: Target space for train or fork.
+  - `--adapter <uri>`: Artifact mode parent adapter URI.
+  - `--artifact-name <name>`: Artifact filename override.
+  - `--mime <mime>`: MIME override for artifacts.
+  - `--relative-path <path>`: Optional skill-root-relative path for export bundles.
+  - `--allow-sensitive-upload`: Allow sensitive content in uploads.
+- Batch semantics:
+  - Each `.md` becomes an adapter; sibling files with recognizable extensions are attached to every `.md` in that directory when `--model` is set.
+  - Certain flags are single-file only and rejected in directory batch mode.
+
+**Section sources**
+- [CLI.md:131-165](file://docs/CLI.md#L131-L165)
+- [cli-train.ts:40-211](file://src/cli/commands/cli-train.ts#L40-L211)
+
+#### export
+- Purpose: Machine-facing bulk export of adapters and artifacts to disk. Never dumps content bytes to stdout.
+- Usage: `squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <name>] [--as <format>] [--delivery <download_ref|inline_base64>] [--directory <dir>] [--out <dir>] [--to <file>] [--zip-out <file>]`
+- Parameters:
+  - `[uri]`: Single-selection mode for adapter or layer URI.
+  - `--adapters <uri-or-slug>`: Repeatable selection of adapters by URI or slug.
+  - `--all-adapters`: Export every adapter in `--space`.
+  - `--space <name>`: Space name required with `--all-adapters`.
+  - `--as <format>`: Content format: `skill_zip` (default), `markdown`, `skill_tree`, `source`, `trace_jsonl`, `reward_jsonl`, `sft_jsonl`, `preference_jsonl`.
+  - `--delivery <mode>`: `skill_zip` only. `download_ref` returns a capability URL; `inline_base64` embeds zip bytes in the response. Local mode defaults to `inline_base64`.
+  - `--directory <dir>`: Local mode only with `--as markdown`; writes `<dir>/<slug>.md` per adapter. Cannot combine with `--out`, `--to`, or `--zip-out`.
+  - `--out <dir>`: Write artifacts into this directory (default: current directory).
+  - `--to <file>`: Write payload of a single `<uri>` to this exact path; requires non-`skill_zip` `--as`.
+  - `--zip-out <file>`: Write `skill_zip` bytes to this explicit file path.
+- Selection rules:
+  - Exactly one selection mode: positional `<uri>`, `--adapters`, or `--all-adapters`.
+  - `--space` is only valid with `--all-adapters`.
+- Output:
+  - Compact summary on stdout; `--format json` emits a manifest of written artifacts without content bytes.
+
+**Section sources**
+- [CLI.md:166-219](file://docs/CLI.md#L166-L219)
+- [export.ts:21-31](file://src/cli/commands/export.ts#L21-L31)
+- [export.ts:43-143](file://src/cli/commands/export.ts#L43-L143)
+- [export.ts:184-199](file://src/cli/commands/export.ts#L184-L199)
+- [export.ts:201-266](file://src/cli/commands/export.ts#L201-L266)
+- [export.ts:296-345](file://src/cli/commands/export.ts#L296-L345)
+
+### Output Formatting and Rendering
+- Global `--format` controls rendering for all data commands:
+  - `auto`: Pretty on TTY, JSON when piped.
+  - `pretty`: Human-readable summary; next-call hints go to stderr.
+  - `json`: Full structured response on stdout.
+  - `text`: Minimal plain-text rendering.
+- Commands provide pretty and text renderers and pass a `nextCall` hint where applicable.
+
+**Section sources**
+- [CLI.md:60-75](file://docs/CLI.md#L60-L75)
+- [program.ts:41-46](file://src/cli/program.ts#L41-L46)
+- [activate.ts:26-30](file://src/cli/commands/activate.ts#L26-L30)
+- [forward.ts:23-27](file://src/cli/commands/forward.ts#L23-L27)
+
+### Scripting and Automation Patterns
+- Stable machine output:
+  - Use `--format json` for deterministic parsing in scripts and CI.
+  - Avoid piping human-readable summaries; prefer JSON manifests from export.
+- Batch operations:
+  - `train` directory mode processes multiple adapters and siblings.
+  - `export --all-adapters` exports entire spaces efficiently.
+- Error handling:
+  - Commands validate inputs locally (e.g., reward outcomes, tune file counts).
+  - Network and auth errors are handled centrally; `--no-browser` disables browser launch in automation.
+- CI/CD integration:
+  - Set `SQUADRULES_API_URL` to target servers explicitly.
+  - Use `--no-browser` and pre-stored tokens for unattended runs.
+  - Prefer `export --format json` manifests to track written artifacts.
+
+**Section sources**
+- [CLI.md:60-75](file://docs/CLI.md#L60-L75)
+- [CLI.md:159-165](file://docs/CLI.md#L159-L165)
+- [reward.ts:31-42](file://src/cli/commands/reward.ts#L31-L42)
+- [tune.ts:68-96](file://src/cli/commands/tune.ts#L68-L96)
+- [auth-error.ts:22-27](file://src/cli/auth-error.ts#L22-L27)
+
+### Advanced Usage Patterns
+- Custom output formatting:
+  - Combine `--format json` with `jq` or other parsers for downstream processing.
+- Verbose logging and debugging:
+  - Inspect error messages printed by commands; auth errors include guidance and optional browser links.
+  - For local development, ensure the local sentinel is used or explicitly set `--url`.
+- Platform-specific considerations:
+  - Browser launching respects `BROWSER` and system defaults; unsafe overrides are ignored.
+  - Keyring fallback: If the OS keyring is unavailable or times out, secrets degrade to config file storage with warnings.
+
+**Section sources**
+- [CLI.md:60-75](file://docs/CLI.md#L60-L75)
+- [auth-error.ts:34-87](file://src/cli/auth-error.ts#L34-L87)
+- [auth-error.ts:96-117](file://src/cli/auth-error.ts#L96-L117)
+- [keyring.ts:45-64](file://src/cli/keyring.ts#L45-L64)
+- [keyring.ts:104-132](file://src/cli/keyring.ts#L104-L132)
+
+### Shell Integration and Productivity Tips
+- Equivalent binaries:
+  - Use `squadrules`, `sq`, or `sqr` interchangeably.
+- Quick invocation:
+  - Use `npx -y @squadrules/mcp` for one-off runs without global install.
+- Local-first workflow:
+  - Run commands locally without server setup; switch to remote after `login`.
+- Alias common patterns:
+  - Create aliases for frequent `export` or `train` batches.
+  - Pin adapter slugs in frontmatter to avoid ambiguity in scripts.
+
+**Section sources**
+- [CLI.md:9-27](file://docs/CLI.md#L9-L27)
+- [CLI.md:29-45](file://docs/CLI.md#L29-L45)
+- [CLI.md:151-165](file://docs/CLI.md#L151-L165)
 
 ## Dependency Analysis
-The CLI depends on several subsystems:
-
-- Command registration and global options: `program.ts`
-- Configuration resolution: `config.ts`, `config-file.ts`, `config-file-write.ts`
-- Credential storage: `keyring.ts`
-- Authentication helpers and error handling: `auth-error.ts`
-- Subcommands: `commands/*`
-- Environment variables: `SQUADRULES_*` and `SERVER_PORT`, `TRANSPORT_TYPE`, `METRICS_PORT`
+The CLI composes small, focused modules:
+- Program registration and global option propagation.
+- Per-command handlers that delegate to a backend abstraction.
+- Shared configuration, auth error handling, and output formatting.
+- Secure credential storage via keyring with config-file fallback.
 
 ```mermaid
 graph LR
 Program["program.ts"] --> Commands["commands/*"]
-Commands --> Config["config.ts"]
-Config --> ConfigFile["config-file.ts"]
-ConfigFile --> Keyring["keyring.ts"]
-Commands --> AuthError["auth-error.ts"]
-Commands --> Serve["commands/serve.ts"]
-Serve --> Bootstrap["bootstrap.js/ts"]
+Commands --> Backend["backend/* (resolved at runtime)"]
+Commands --> Format["format.ts / output.ts"]
+Commands --> Render["render.ts"]
+Commands --> AuthErr["auth-error.ts"]
+Program --> Config["config.ts / config-file.ts"]
+Config --> Keyring["keyring.ts"]
+Commands --> OAuth["oauth-refresh.ts"]
 ```
 
 **Diagram sources**
 - [program.ts:31-79](file://src/cli/program.ts#L31-L79)
-- [config.ts:8-27](file://src/cli/config.ts#L8-L27)
+- [activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
+- [config.ts:8-20](file://src/cli/config.ts#L8-L20)
 - [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
-- [keyring.ts:145-223](file://src/cli/keyring.ts#L145-L223)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
+- [keyring.ts:145-169](file://src/cli/keyring.ts#L145-L169)
+- [oauth-refresh.ts:26-51](file://src/cli/oauth-refresh.ts#L26-L51)
 
 **Section sources**
 - [program.ts:31-79](file://src/cli/program.ts#L31-L79)
-- [config.ts:8-27](file://src/cli/config.ts#L8-L27)
+- [activate.ts:12-35](file://src/cli/commands/activate.ts#L12-L35)
+- [config.ts:8-20](file://src/cli/config.ts#L8-L20)
 - [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
-- [keyring.ts:145-223](file://src/cli/keyring.ts#L145-L223)
-- [commands/serve.ts:92-195](file://src/cli/commands/serve.ts#L92-L195)
+- [keyring.ts:145-169](file://src/cli/keyring.ts#L145-L169)
+- [oauth-refresh.ts:26-51](file://src/cli/oauth-refresh.ts#L26-L51)
 
 ## Performance Considerations
-- Local-by-default mode avoids network latency by using the embedded store.
-- Request timeouts and retries are configurable globally; use `--timeout` and `--retries` to tune network calls.
-- Export is designed for machine consumption and writes directly to disk without streaming large payloads through stdout.
-- Keyring operations have a timeout and degradation latch to prevent blocking the CLI when the OS keychain is unresponsive.
+- Local mode avoids network overhead by running in-process against the embedded store.
+- Batch operations (`train` directories, `export --all-adapters`) reduce round trips and improve throughput.
+- Keyring timeouts are bounded to prevent hangs; degradation latches avoid repeated stalls.
+- Output formatting uses efficient renderers and avoids dumping large payloads to stdout.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-
 - Authentication failures:
-  - If a command returns an authentication error, the CLI may attempt to open the login URL. Use `--no-browser` to suppress browser opening.
-  - Validate your token with `squadrules token --validate`. If invalid, re-run `squadrules login`.
-  - For local targets, the CLI falls back to `http://localhost:3000` for auth commands; pass `--url http://<host>:<port>` to target a specific server.
-
+  - Ensure `login` succeeded for the active target or pass `--url` explicitly.
+  - If the OS keyring is unavailable, re-run `login` to restore secure storage.
 - Browser not opening:
-  - Set `BROWSER=true` or `BROWSER=none` to disable automatic browser launching.
-  - On unsupported systems, manually open the printed login URL.
-
-- Keyring unavailable:
-  - The CLI warns once and stores tokens in the config file when the OS keyring is unavailable or timed out.
-  - If the keychain becomes reachable later, re-authenticate to migrate secrets back to the keyring.
-
-- Export selection errors:
-  - Ensure exactly one selection mode: positional `<uri>`, `--adapters`, or `--all-adapters --space`.
-  - `--all-adapters` requires `--space`.
-
-- Train input errors:
-  - Missing path or non-regular file triggers explicit errors.
-  - Artifact mode requires `--adapter` and `--model`; MIME inference may require `--mime`.
-
-- Serve startup errors:
-  - Invalid `--metrics-port` or `--server-port` values cause immediate errors.
-  - If updating the CLI default URL fails, the command reports the error and exits.
-
-Exit codes:
-- Most commands exit with status 0 on success.
-- Validation errors and API errors typically exit with status 1.
-- `reward` explicitly exits with 1 for invalid outcome or score.
-- `login` exits with 1 if token validation fails or browser login fails.
-- `token` exits with 1 if no token is stored or validation fails.
+  - Check `BROWSER` environment variable; set to `none` to disable browser launch.
+  - Verify system browser binaries are accessible.
+- Export issues:
+  - Use `--as skill_tree` when download references are unsupported locally.
+  - Validate selection flags: exactly one of `<uri>`, `--adapters`, or `--all-adapters`.
+- Train validation:
+  - Confirm `--model` is provided for fork and artifact modes.
+  - Ensure file paths exist and are regular files.
 
 **Section sources**
-- [auth-error.ts:119-132](file://src/cli/auth-error.ts#L119-L132)
-- [commands/reward.ts:31-42](file://src/cli/commands/reward.ts#L31-L42)
-- [commands/login.ts:255-287](file://src/cli/commands/login.ts#L255-L287)
-- [commands/token.ts:11-52](file://src/cli/commands/token.ts#L11-L52)
-- [commands/export.ts:45-87](file://src/cli/commands/export.ts#L45-L87)
-- [commands/cli-train.ts:82-109](file://src/cli/commands/cli-train.ts#L82-L109)
-- [commands/serve.ts:116-140](file://src/cli/commands/serve.ts#L116-L140)
-
-## Security Considerations
-- Credential storage:
-  - Tokens are preferentially stored in the OS keyring when available. If unavailable, they fall back to the config file.
-  - The config file uses placeholders for keychain-stored tokens and migrates inline secrets to the keyring on first read.
-
-- Browser security:
-  - The CLI validates URLs and restricts allowed browser binaries. Unsafe `BROWSER` overrides are ignored.
-  - Control browser launching via `BROWSER` and `SQUADRULES_NO_BROWSER`.
-
-- Token validation:
-  - `login --token` validates tokens against `/api/me` before storing them.
-  - `token --validate` checks token validity before printing.
-
-- Sensitive uploads:
-  - `tune` and `train` support `--allow-sensitive-upload` to permit uploads containing token-like or private-key-like text. Use cautiously.
-
-- Local vs remote:
-  - Local mode has no auth server; auth commands automatically fall back to localhost. Always specify `--url` for production servers.
-
-**Section sources**
-- [config-file.ts:1-11](file://src/cli/config-file.ts#L1-L11)
-- [config-file.ts:90-207](file://src/cli/config-file.ts#L90-L207)
-- [config-file-write.ts:44-171](file://src/cli/config-file-write.ts#L44-L171)
-- [keyring.ts:1-6](file://src/cli/keyring.ts#L1-L6)
-- [auth-error.ts:22-77](file://src/cli/auth-error.ts#L22-L77)
-- [commands/login.ts:80-102](file://src/cli/commands/login.ts#L80-L102)
-- [commands/tune.ts:44-44](file://src/cli/commands/tune.ts#L44-L44)
-- [commands/cli-train.ts:59-60](file://src/cli/commands/cli-train.ts#L59-L60)
+- [CLI.md:231-246](file://docs/CLI.md#L231-L246)
+- [auth-error.ts:22-27](file://src/cli/auth-error.ts#L22-L27)
+- [auth-error.ts:96-117](file://src/cli/auth-error.ts#L96-L117)
+- [keyring.ts:104-132](file://src/cli/keyring.ts#L104-L132)
+- [export.ts:43-143](file://src/cli/commands/export.ts#L43-L143)
+- [cli-train.ts:82-103](file://src/cli/commands/cli-train.ts#L82-L103)
 
 ## Conclusion
-The SquadRules CLI provides a consistent, secure, and flexible interface for interacting with both local and remote SquadRules instances. It supports activation, forwarding, rewarding, tuning, deletion, listing spaces, training adapters, exporting bundles, and serving the MCP server. Configuration resolution, environment variables, and authentication handling are designed for safe local development and robust remote operations. Follow the troubleshooting and security sections to diagnose issues and protect credentials effectively.
+The SquadRules CLI offers a consistent, script-friendly interface for activating, executing, rewarding, tuning, deleting, exporting, and listing adapters and spaces. Its local-by-default design simplifies development, while robust configuration and authentication support enable secure remote workflows. With stable output formats, clear validation, and platform-aware behavior, it integrates well into both interactive and automated environments.
 
 [No sources needed since this section summarizes without analyzing specific files]
+
+## Appendices
+
+### Environment Variables Summary
+- `SQUADRULES_API_URL`: Default target (HTTP URL or local sentinel).
+- `SQUADRULES_TIMEOUT_MS`: Default request timeout in milliseconds.
+- `SQUADRULES_RETRIES`: Default max retries.
+- `SQUADRULES_FORMAT`: Default output format.
+- `MEM_BOOT_FORCE_INJECT`: Force boot re-injection (same as `--reseed`).
+
+**Section sources**
+- [CLI.md:248-257](file://docs/CLI.md#L248-L257)

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: tools
+title: SQUADRULES MCP Tool Surface
+scope:
+    - src/tools/
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/api_routes
+    - path: http_api/mcp_server_client

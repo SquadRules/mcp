@@ -1,0 +1,18 @@
+schema_version: 1
+module_path: services/persistence_state
+title: Persistence & Key-Value Store Layer
+scope:
+    - src/services/key-value-store.ts
+    - src/services/key-value-store-factory.ts
+    - src/services/redis-cache.ts
+    - src/services/redis.ts
+    - src/services/oidc-state-store.ts
+    - src/services/forward-runtime-store.ts
+    - src/services/execution-trace-store.ts
+    - src/services/proof-of-work-store.ts
+    - src/services/memory-store.ts
+    - src/services/activate-refinement-store.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/export

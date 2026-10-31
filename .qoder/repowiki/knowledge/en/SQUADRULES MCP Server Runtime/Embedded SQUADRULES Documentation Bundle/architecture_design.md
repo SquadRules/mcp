@@ -1,0 +1,5 @@
+Two parallel sub-trees serve distinct consumers:
+- `mem/` — the meta-adapter bundle (versioned at 5.0.0). `mem/README.md` is the authoritative index declaring slugs, versions, chain-linking rules, and the philosophy (autonomy, verification ladder: shell > subagent > comment; critic-loop runs off the executor thread via subagent hop). Each `.md` file is an adapter/workflow document consumed by the server at boot.
+- `tools/` — MCP tool specification docs (`activate`, `delete`, `export`, `forward`, `reward`, `spaces`, `train`, `tune`) describing the intent-detection → adapter-execution → outcome-validation contract agents follow.
+
+Dependency direction is one-way: these Markdown files are read-only assets loaded by the server; they do not import code. Cross-references between adapters use the `squadrules://adapter/<slug>` URI scheme and the `chain_root` frontmatter mechanism so `activate` resolves mid-chain matches back to the chain entry point. The `author-adapter` workflow chains into `critic-loop` via a `subagent` hop rather than a direct `forward`, enforcing separation of reviewer and executor.

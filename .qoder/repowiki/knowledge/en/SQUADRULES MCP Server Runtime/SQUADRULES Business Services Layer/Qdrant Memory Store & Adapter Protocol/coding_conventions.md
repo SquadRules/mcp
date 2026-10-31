@@ -1,0 +1,5 @@
+- Read paths go through `redisCacheService` with a fresh bypass variant (`getMemoryFresh`) so callers can opt out of caching when they need the latest data.
+- Hybrid search is expressed as a Qdrant `query` with multiple prefetch legs (primary/title/activation-pattern dense vectors plus BM25 legs) fused via RRF, then post-filtered by space context and protocol slugs.
+- Adapter Markdown parsing is split between header-based detection (`buildHeaderMemoryAdapter` in `adapter-builder.ts`) and fallback default storage, with both paths funneling through `checkSimilarAdapterByTitle` before persisting.
+- Contract validation uses a policy table (`CONTRACT_TYPE_POLICIES`) keyed by contract type, where each entry declares `requiredFields` and an optional `validate` function rather than branching on type.
+- Tenant/space isolation is enforced at every read/write by combining `getSearchSpaceIds()` / `getSpaceContext().allowedSpaceIds` with `buildSpaceFilter` filters passed to Qdrant queries.

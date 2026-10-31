@@ -1,0 +1,1 @@
+Express endpoints that expose the Model Context Protocol over HTTP, handle per-request MCP server lifecycle with concurrency limits and audit logging, and proxy OpenID Connect client registration to Keycloak.

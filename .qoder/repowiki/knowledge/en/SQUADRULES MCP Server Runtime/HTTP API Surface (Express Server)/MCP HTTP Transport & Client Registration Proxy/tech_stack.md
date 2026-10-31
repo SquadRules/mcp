@@ -1,0 +1,1 @@
+Express + `@modelcontextprotocol/sdk/server/streamableHttp.js` (`StreamableHTTPServerTransport`) for the MCP-over-HTTP transport; Node `fetch` for the Keycloak proxy; OIDC via Keycloak configuration (`KEYCLOAK_URL`, `KEYCLOAK_REALM`, `AUTH_CALLBACK_BASE_URL`).

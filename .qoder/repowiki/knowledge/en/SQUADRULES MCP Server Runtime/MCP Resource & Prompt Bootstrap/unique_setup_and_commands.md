@@ -1,0 +1,1 @@
+Embedded MCP docs/prompts/templates must be regenerated via `npm run build` or manually running `ts-node scripts/build-embed-docs.ts`; editing source docs without rebuilding leaves `embedded-mcp-resources.ts` stale (the file header marks it AUTO-GENERATED).

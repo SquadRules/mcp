@@ -1,0 +1,1 @@
+Cross-cutting services providing deterministic ID generation, markdown code-block extraction, adapter layer navigation, reward eligibility evaluation, and reward metric persistence.

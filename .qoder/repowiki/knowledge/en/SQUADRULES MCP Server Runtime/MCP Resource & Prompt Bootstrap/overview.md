@@ -1,0 +1,1 @@
+Bootstraps MCP server resource, prompt, and template handlers from embedded documentation and ships built-in adapters into the vector store at startup.

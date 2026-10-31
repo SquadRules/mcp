@@ -1,0 +1,1 @@
+Backend-neutral ports and a LanceDB adapter that persist memory records, adapter chains, artifacts, and execution traces for the vector-store layer.

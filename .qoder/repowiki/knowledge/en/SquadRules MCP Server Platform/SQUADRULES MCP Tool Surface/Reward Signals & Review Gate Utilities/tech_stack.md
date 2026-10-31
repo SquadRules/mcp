@@ -1,1 +1,0 @@
-Zod for input/output schema validation; MCP tool registration against an MCP server; Qdrant via `QdrantService` for reward persistence; `SquadrulesError` / `TrainError` typed error types.

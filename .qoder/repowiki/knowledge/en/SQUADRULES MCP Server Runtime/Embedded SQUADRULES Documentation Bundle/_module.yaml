@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: embed_docs
+title: Embedded SQUADRULES Documentation Bundle
+scope:
+    - src/embed-docs/
+source_files: []
+depends_on: []
+related_to: []

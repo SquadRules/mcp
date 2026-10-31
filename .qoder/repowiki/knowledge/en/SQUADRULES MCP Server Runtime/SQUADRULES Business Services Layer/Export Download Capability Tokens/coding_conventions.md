@@ -1,0 +1,5 @@
+- Each capability domain is split into a `<domain>-capability.ts` service (mint/verify/sign/build-url) and a `<domain>-capability-store.ts` file defining the record type and a singleton store instance.
+- Opaque capability tokens are constructed as `base64url(JSON.stringify({id, exp})).HMAC-SHA256(base64payload)` and verified by re-signing and comparing via `crypto.timingSafeEqual`.
+- Token expiry is enforced in two places: the payload's `exp` field compared against `Math.floor(Date.now()/1000)`, and the stored record's `expires_at` ISO string compared against `Date.now()`.
+- Store keys use a class-level `prefix` constant plus `this.key(id)` helper, and records are persisted through `keyValueStore.setJson`/`getJson` with the TTL passed from the config value `SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC`.
+- URL construction goes through a dedicated `buildExport*Url(opaque, baseUrl?)` helper that falls back to `resolvePublicExportBaseUrl()` when no explicit base is supplied.

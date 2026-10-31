@@ -1,0 +1,1 @@
+Commander.js for CLI parsing; native Node `fetch` (undici) for HTTP; pino structured logging routed to stderr via `SQUADRULES_LOG_STDERR`; OAuth Bearer tokens refreshed via `oauth-refresh.js` with proactive skew of 60s.

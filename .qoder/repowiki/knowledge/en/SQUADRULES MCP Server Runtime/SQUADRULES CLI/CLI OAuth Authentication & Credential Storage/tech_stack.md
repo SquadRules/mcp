@@ -1,0 +1,1 @@
+@napi-rs/keyring (keytar-compatible API) for OS-native credential storage; Node.js built-in URL/fetch/child_process for OIDC flows; no external JWT library — exp is parsed by base64url-decoding the middle segment.

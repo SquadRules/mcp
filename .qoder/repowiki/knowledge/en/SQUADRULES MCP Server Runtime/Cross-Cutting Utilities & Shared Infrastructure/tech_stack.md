@@ -1,0 +1,1 @@
+Pino for structured JSON logging; `@qdrant/js-client-rest` for vector operations; Zod (`zod-to-jsonschema.ts`) for schema generation; Node built-ins (`fs`, `crypto`, `url`) — no other runtime dependencies declared in this scope.

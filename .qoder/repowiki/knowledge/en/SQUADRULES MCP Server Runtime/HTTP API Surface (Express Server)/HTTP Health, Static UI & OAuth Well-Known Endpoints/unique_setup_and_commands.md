@@ -1,0 +1,1 @@
+The UI directory defaults to `dist/ui` next to the compiled output but can be overridden at runtime via the `SQUADRULES_UI_DIR` environment variable (absolute or relative to `process.cwd()`); the SPA must be built beforehand with `npm run ui:build` so that `index.html` and the `assets/SquadrulesPage-*.js` bundle exist.

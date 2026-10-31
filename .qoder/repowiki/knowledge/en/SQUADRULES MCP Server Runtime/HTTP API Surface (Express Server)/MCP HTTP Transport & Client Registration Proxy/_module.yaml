@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: http_api/mcp_server_client
+title: MCP HTTP Transport & Client Registration Proxy
+scope:
+    - src/http/http-mcp-handler.ts
+    - src/http/mcp-audit-emit.ts
+    - src/http/mcp-ui-offerings-auth-jsonrpc.ts
+    - src/http/http-client-registration-proxy.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/auth_oidc
+    - path: tools

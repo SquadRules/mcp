@@ -1,0 +1,1 @@
+Resolves the CLI's API URL and persists user credentials (bearer/refresh tokens) to an XDG-compliant config file, with optional OS keyring-backed secret storage.

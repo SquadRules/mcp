@@ -1,0 +1,1 @@
+Zod schemas define the contract; Node's `crypto.randomUUID()` generates execution IDs; metrics emitted via Prometheus-style counters/histograms in `../services/metrics/mcp-metrics.js`.

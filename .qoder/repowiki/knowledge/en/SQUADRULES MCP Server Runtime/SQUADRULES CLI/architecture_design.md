@@ -1,0 +1,7 @@
+The module is split into four cooperating layers around a single runtime:
+- Entry & wiring: `index.ts` bootstraps the process (routing logs to stderr before any shared logger is created) and auto-selects `serve` when stdin is not a TTY so MCP hosts can pipe commands via stdio; `program.ts` registers all Commander subcommands from `commands/`.
+- Transport abstraction: `backend/` defines the `ActionBackend` interface (`activate`, `forward`, `reward`) implemented by `http-backend.ts` (remote REST) and `local-backend.ts` (in-process store), selected at runtime by `resolve-backend.ts` based on config.
+- Auth & config: `config-file.ts` / `config.ts` resolve the API base URL and persist credentials; `auth_oauth.ts` handles browser-based OIDC login, refresh-token grant against the protected-resource metadata endpoint, and OS keyring-backed secret storage; `client-factory.ts` composes the HTTP client with retry and token-refresh logic.
+- Output: `output.ts` + `render-helpers.ts` + `format.ts` resolve the global `--format` flag and render command results as JSON, compact human-friendly pretty output, or minimal text.
+
+Cross-child contracts: every command in `commands/` goes through the `ActionBackend` abstraction rather than calling HTTP directly, which lets the same command surface work identically over the remote API and the local stdio transport used by MCP. The `log-sink-prelude.ts` import is required at the top of every file that may run before argument parsing so that log output never leaks onto stdout (the payload channel).

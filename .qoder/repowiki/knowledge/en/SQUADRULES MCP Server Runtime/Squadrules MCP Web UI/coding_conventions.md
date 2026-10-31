@@ -1,0 +1,6 @@
+- Route-level components are loaded lazily via `lazy(() => import(...))` and wrapped in `<Suspense fallback={<RouteFallback />}>` to keep the initial chunk under 500 kB.
+- Server communication goes exclusively through `lib/api.ts`'s `apiFetch`, which sets `Content-Type: application/json` and `credentials: 'same-origin'` on every request.
+- Domain state is exposed as custom hooks (e.g. `useProtocol`, `useRunSession`, `useReward`) that wrap TanStack Query's `useQuery` with stable query keys like `["protocol", uri]`.
+- User-facing strings are routed through `react-i18next`'s `useTranslation()` hook rather than inline literals, with English resources defined in `i18n/en.json`.
+- Styling uses Tailwind utility classes combined with CSS custom properties from `theme/tokens.css` (e.g. `var(--color-primary)`, `var(--layout-main-max)`) instead of hard-coded colors or sizes.
+- Protocol editor state is persisted as plain markdown with fenced ```json blocks per step, and round-tripped between markdown and typed form state via pure functions in `hooks/useProtocol.ts`.

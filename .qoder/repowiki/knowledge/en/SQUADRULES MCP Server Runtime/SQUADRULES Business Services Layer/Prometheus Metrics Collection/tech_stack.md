@@ -1,0 +1,1 @@
+Prometheus client library `@prometheus-io/client` (Counter/Histogram/Gauge types); Node.js `os` and `process` APIs for instance identity and memory stats; build-time version injected via `utils/build-version.js`.

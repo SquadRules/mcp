@@ -1,0 +1,1 @@
+Zod for all input/output schemas; MCP SDK's tool registration model; in-process Map-backed retry counters (no Redis dependency for the retry window).

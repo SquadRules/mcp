@@ -1,0 +1,1 @@
+MCP tool that exports adapters as markdown, source artifacts, skill bundles (JSON/ZIP), and training datasets (trace/reward/SFT/preference JSONL) from squadrules URIs.

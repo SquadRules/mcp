@@ -1,0 +1,1 @@
+Express middleware and handlers that authenticate browser sessions via Keycloak OIDC (PKCE) and validate server-to-server Bearer JWTs, exposing a unified AuthPayload to the rest of the API.

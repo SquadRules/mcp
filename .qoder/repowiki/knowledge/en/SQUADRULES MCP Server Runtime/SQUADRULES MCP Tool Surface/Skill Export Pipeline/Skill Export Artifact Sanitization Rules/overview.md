@@ -1,0 +1,1 @@
+Pluggable rule engine that validates exported skill artifacts (file extension vs declared MIME type) and emits structured diagnostics for the skill-export tool.

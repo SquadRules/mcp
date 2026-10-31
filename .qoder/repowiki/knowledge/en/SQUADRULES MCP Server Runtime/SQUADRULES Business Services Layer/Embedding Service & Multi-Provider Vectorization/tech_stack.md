@@ -1,0 +1,1 @@
+TypeScript service layer; OpenAI-compatible REST API and HuggingFace TEI HTTP endpoints via native `fetch`; local embeddings via the `fastembed` SDK's `FlagEmbedding.init` (ONNX-backed, model weights cached under `FASTEMBED_CACHE_DIR`).

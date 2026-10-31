@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: tools/forward
+title: Adapter Forward Workflow Tool
+scope:
+    - src/tools/forward.ts
+    - src/tools/forward-*.ts
+    - src/tools/forward_schema.ts
+source_files: []
+depends_on: []
+related_to: []

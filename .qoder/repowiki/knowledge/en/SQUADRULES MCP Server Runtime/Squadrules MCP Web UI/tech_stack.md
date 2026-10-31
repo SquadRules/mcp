@@ -1,0 +1,1 @@
+React 18 + Vite frontend, react-router-dom for routing, @tanstack/react-query for data fetching/caching, i18next + react-i18next for English-only translations, Tailwind utility classes over CSS custom property tokens (light/dark themes).

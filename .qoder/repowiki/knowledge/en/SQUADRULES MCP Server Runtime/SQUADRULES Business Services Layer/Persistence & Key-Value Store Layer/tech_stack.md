@@ -1,0 +1,1 @@
+Redis client via `redis` npm package; Qdrant persistence via `@qdrant/js-client-rest`; optional embedded LanceDB as fallback trace store; all JSON payloads serialized through `JSON.stringify`/`parse` over string values.

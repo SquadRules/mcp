@@ -1,0 +1,1 @@
+Commander.js for CLI argument parsing; Node.js built-in `https`/`http` for REST calls; OS-native keyring APIs for credential storage; XDG-compliant filesystem layout for config persistence.

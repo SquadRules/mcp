@@ -1,0 +1,1 @@
+Implements the MCP `forward`/`next` step engine that validates agent-submitted proofs against adapter inference contracts and drives multi-step adapter execution.

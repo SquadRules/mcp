@@ -1,0 +1,1 @@
+Server-side assembly and registration of MCP Apps (SEP-1865) HTML widgets for the activate, forward, and spaces tools, served as sandboxed iframe resources.

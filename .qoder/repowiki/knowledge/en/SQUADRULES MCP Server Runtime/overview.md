@@ -1,0 +1,1 @@
+Top-level runtime that boots the SQUADRULES MCP server, wiring configuration resolution, local runtime initialization, and stdio/HTTP transport selection around shared services and tools.

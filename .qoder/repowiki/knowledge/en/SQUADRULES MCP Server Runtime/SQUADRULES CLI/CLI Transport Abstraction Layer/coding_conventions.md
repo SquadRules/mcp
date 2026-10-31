@@ -1,0 +1,4 @@
+- Each backend method parses its options through the corresponding Zod schema from `src/tools/*_schema.js` before delegating to the underlying execute function.
+- LocalBackend wraps every store call in `runWithSpaceContextAsync(defaultSpaceContext(), ...)` to enforce single-tenant default space semantics regardless of ambient AUTH_ENABLED.
+- Embedding model loading is deferred: `ensureEmbeddingDimension()` is called only on paths that need vectors (`activate`, `train`, content-bearing `tune`), while read/mutate-only commands skip it.
+- Backend selection is performed by reading the raw `--url` option first and checking `isLocalTarget` before URL normalization, so the `stdio://local` sentinel bypasses http-only validation.

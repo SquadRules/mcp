@@ -1,0 +1,2 @@
+- Diagnostics emitted by any stage (markdown scanning, artifact sanitization) are aggregated into the `diagnostics` array of `SkillExportItem` rather than thrown, preserving export flow.
+- Every exported file carries a precomputed `sha256` string alongside its content, produced by the shared `sha256.ts` helper.

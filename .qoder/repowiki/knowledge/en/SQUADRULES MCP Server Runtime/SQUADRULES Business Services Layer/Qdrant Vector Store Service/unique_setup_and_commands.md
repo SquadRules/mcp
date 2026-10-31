@@ -1,0 +1,1 @@
+Collection schema (vector descriptors, payload index definitions) is bootstrapped by `initializeCollection` at startup; environment variables `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION`, `QDRANT_CA_CERT_PATH`, `QDRANT_RESCORE`, and `QDRANT_CREATE_ALIAS` control behavior. Tests use testcontainers for both Redis and Qdrant as stated in the project testing contract.

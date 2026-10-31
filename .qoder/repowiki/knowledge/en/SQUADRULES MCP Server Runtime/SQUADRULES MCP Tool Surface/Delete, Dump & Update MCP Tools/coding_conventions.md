@@ -1,0 +1,6 @@
+- Each tool exports a pure `execute*` function taking service dependencies and returning typed results, separate from the `register*Tool` factory that handles MCP wiring, metrics, and schema parsing.
+- Input and output types are declared in sibling `*_schema.ts` files using Zod objects with `.strict()` on outputs, and re-exported as TypeScript `type` aliases via `z.infer`.
+- URIs are parsed and built exclusively through shared helpers in `squadrules-uri.js` rather than ad-hoc string manipulation, distinguishing between adapter slugs and layer UUIDs.
+- Bulk operations iterate over URI arrays with per-item try/catch, accumulating per-result status objects (`deleted`/`error` or `updated`/`error`) plus `total_deleted`/`total_failed` counters instead of failing fast.
+- Metrics instrumentation wraps every tool invocation with `mcpToolDuration.startTimer`, `mcpToolCalls.inc`, `mcpToolErrors.inc`, and size observers keyed by `tool` and `tenant_id`.
+- Schema validation failures route through `mcpToolInputValidationErrorResult` from `mcp-tool-input-teaching.js` to produce structured teaching responses rather than raw Zod errors.

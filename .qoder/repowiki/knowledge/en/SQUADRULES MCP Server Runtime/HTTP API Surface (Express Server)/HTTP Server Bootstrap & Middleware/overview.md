@@ -1,0 +1,1 @@
+Bootstraps the Express HTTP server, wires global middleware (helmet, rate-limits, metrics), and centralizes error handling for the MCP/REST API surface.

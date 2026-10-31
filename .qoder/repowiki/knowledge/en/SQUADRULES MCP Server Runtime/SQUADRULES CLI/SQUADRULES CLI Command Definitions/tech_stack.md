@@ -1,0 +1,1 @@
+Commander.js for CLI parsing; Node's built-in `http` + `crypto` modules implement the PKCE OAuth callback server in `login.ts`; OIDC discovery via `.well-known/oauth-protected-resource`.

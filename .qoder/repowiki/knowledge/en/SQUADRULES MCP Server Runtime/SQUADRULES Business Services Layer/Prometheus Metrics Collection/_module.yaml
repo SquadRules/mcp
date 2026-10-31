@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: services/metrics
+title: Prometheus Metrics Collection
+scope:
+    - src/services/metrics/
+source_files: []
+depends_on: []
+related_to: []

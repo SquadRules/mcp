@@ -1,3 +1,0 @@
-- Each page component is loaded lazily via `React.lazy(() => import("./pages/XPage").then((m) => ({ default: m.XPage })))` and rendered inside `<Suspense fallback={<RouteFallback />}>` to defer code until the route is visited.
-- Global cross-cutting concerns are applied as nested providers around `<App />` in `main.tsx` rather than per-route or per-component — currently Query Client, Theme, and i18n.
-- Route definitions live declaratively in a single `AppRoutes` function using `react-router`'s nested `<Route>` syntax, with a catch-all `*` route pointing at `NotFoundPage`.

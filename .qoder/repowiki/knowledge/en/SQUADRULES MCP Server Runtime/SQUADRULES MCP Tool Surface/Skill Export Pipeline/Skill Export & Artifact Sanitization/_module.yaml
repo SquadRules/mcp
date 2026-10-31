@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: tools/skill_export/skill_assembly
+title: Skill Export & Artifact Sanitization
+scope:
+    - src/tools/skill-export/
+source_files: []
+depends_on: []
+related_to: []

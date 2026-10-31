@@ -1,0 +1,1 @@
+Zod schemas for input/output validation; Node `fs` for directory-based markdown dumps; `application/x-ndjson` for training data; SHA-256 digests and base64 encoding for ZIP bundle delivery; integration with Qdrant for slug→UUID resolution.

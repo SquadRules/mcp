@@ -1,0 +1,1 @@
+Express.js for routing; Node.js `node:stream` (`PassThrough`, `finished`) for zero-copy zip streaming; structured logging via `structuredLogger`; tenant scoping via `runWithSpaceContextAsync`.

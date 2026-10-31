@@ -1,0 +1,1 @@
+Transport-agnostic backend abstraction that lets CLI commands talk to either a remote HTTP server or an in-process embedded store through a single ActionBackend interface.

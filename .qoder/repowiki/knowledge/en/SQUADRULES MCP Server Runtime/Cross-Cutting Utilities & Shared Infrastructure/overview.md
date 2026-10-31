@@ -1,0 +1,1 @@
+Shared, framework-agnostic helpers for structured logging, audit trails, Qdrant vector operations, space/tenant scoping, and general-purpose serialization, URI building, and version comparison.

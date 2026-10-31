@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: cli/output_rendering
+title: CLI Output Rendering & Format Resolution
+scope:
+    - src/cli/output.ts
+    - src/cli/render.ts
+    - src/cli/render-helpers.ts
+    - src/cli/format.ts
+source_files: []
+depends_on: []
+related_to: []

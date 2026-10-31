@@ -1,0 +1,1 @@
+Node.js CLI entry point that wires Commander subcommands to an authenticated REST API client, with a transport abstraction supporting remote HTTP and in-process stdio backends.

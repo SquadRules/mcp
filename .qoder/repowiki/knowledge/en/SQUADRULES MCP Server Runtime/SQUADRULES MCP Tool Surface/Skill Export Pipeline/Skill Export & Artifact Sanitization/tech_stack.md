@@ -1,0 +1,1 @@
+Node.js streams + `archiver` for ZIP creation; SHA-256 computed inline (no crypto library dependency); YAML frontmatter parsed with hand-rolled regexes rather than a YAML parser.

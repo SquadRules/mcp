@@ -1,0 +1,4 @@
+- Domain records use ISO timestamp strings (e.g. `created_at`, `last_attempt`) rather than Date objects, keeping payloads serializable across Qdrant and JSON boundaries.
+- Optional or evolving fields are marked with `?` and nullable union types like `string | null` instead of being omitted entirely, preserving backward compatibility when consumers drop them.
+- Discriminated unions model contract variants via nested optional properties (e.g. `shell?: {...}`, `forward?: {...}`) so callers branch on which key is present.
+- Transitional aliases (`ProofOfWorkType = InferenceContractType`, `ProofOfWorkDefinition = InferenceContractDefinition`) are kept alongside new names to reduce churn during terminology migration.

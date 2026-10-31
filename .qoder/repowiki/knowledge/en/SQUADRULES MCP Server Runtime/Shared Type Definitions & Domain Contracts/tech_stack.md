@@ -1,0 +1,1 @@
+TypeScript declaration files (.ts/.d.ts); the archiver-zip shim bridges @types/archiver v7 against the ESM `ZipArchive` API shipped by archiver@8.

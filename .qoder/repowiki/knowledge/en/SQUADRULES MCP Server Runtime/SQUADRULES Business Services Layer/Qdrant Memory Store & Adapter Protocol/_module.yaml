@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: services/memory
+title: Qdrant Memory Store & Adapter Protocol
+scope:
+    - src/services/memory/
+source_files: []
+depends_on: []
+related_to:
+    - path: resources
+    - path: services/qdrant

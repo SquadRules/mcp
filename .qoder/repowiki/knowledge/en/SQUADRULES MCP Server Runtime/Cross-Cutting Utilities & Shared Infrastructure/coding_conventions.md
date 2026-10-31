@@ -1,0 +1,5 @@
+- Public APIs are exported as named functions or small typed interfaces rather than classes, keeping utilities stateless and importable anywhere.
+- Audit-side-stream writes go through `writeAuditLine` / `buildAuditLine` with bindings pre-sanitized via `sanitizeBindingsForAudit`, which strips control characters, caps depth/keys/string length, and clones via JSON round-trip before any file write.
+- Multi-tenant data access always composes `buildSpaceFilter(getSpaceContext().allowedSpaceIds)` into Qdrant queries instead of hard-coding space IDs.
+- Human-facing text uses `spaceIdToDisplayName` / `spaceKindFromSpaceId` against the canonical `SQUADRULES_APP_SPACE_ID` constant from `../config.js` rather than string literals.
+- Error paths log via the shared `logger.warn`/`logger.error` and continue execution where failure is non-fatal (e.g., recreation fallback in `addVectorsToCollection`), never throwing out of migration loops.

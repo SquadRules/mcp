@@ -1,0 +1,1 @@
+`node dist/bootstrap.js` is the recommended process entrypoint (e.g. container CMD); it installs early error handlers before loading `dist/index.js`, which auto-runs when `isDirectRun()` detects it as argv[1]. `npm run test` executes the full unit + integration suite (integration uses testcontainers for Redis/Qdrant).

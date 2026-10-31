@@ -1,0 +1,5 @@
+- Each download endpoint validates an opaque token through a dedicated `verifyExport*Capability` service before proceeding, returning a 403 with a typed error code when invalid or expired.
+- All downstream operations are wrapped in `runWithSpaceContextAsync(record.space_context, ...)` so the request runs under the exported resource's tenant/space.
+- Error paths log via `structuredLogger.error` and return a JSON body with a stable `EXPORT_*_FAILED` error code, guarding against double-write by checking `res.headersSent` first.
+- Integrity/metadata is exposed via both `X-SQUADRULES-*` and lowercase `X-SquadRules-*` header pairs to support dual clients during the SquadRules migration.
+- Streaming responses set `Content-Disposition: attachment` plus a binary marker header (`X-SQUADRULES-Export-Binary: 1`) to signal binary payloads to consumers.

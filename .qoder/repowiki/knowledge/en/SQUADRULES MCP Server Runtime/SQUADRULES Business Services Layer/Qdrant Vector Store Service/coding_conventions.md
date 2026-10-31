@@ -1,0 +1,5 @@
+- Every database operation is wrapped in `conn.executeWithReconnect(async () => { ... })` rather than calling the client directly, centralizing retry and error handling.
+- Domain logic lives in separate files keyed by concern (store/retrieval/updates/search/protocol/quality/resources/listing/snapshots/reward-propagation), each exporting functions that take a `QdrantConnection` as their first parameter.
+- The facade class `QdrantService` only forwards calls to the domain modules and exposes private connection fields through safe getters instead of exposing internals.
+- Tenant scoping is applied uniformly via `buildSpaceFilter(getSpaceContext().allowedSpaceIds, ...)` before any scroll/query against the collection.
+- Environment flags are parsed through the local `parseBooleanEnv` helper rather than raw `process.env` comparisons.

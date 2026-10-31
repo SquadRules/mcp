@@ -1,0 +1,20 @@
+schema_version: 1
+module_path: http_api/api_routes
+title: HTTP REST API Route Handlers
+scope:
+    - src/http/http-api-routes.ts
+    - src/http/http-api-begin.ts
+    - src/http/http-api-begin-step.ts
+    - src/http/http-api-attest.ts
+    - src/http/http-api-delete.ts
+    - src/http/http-api-dump.ts
+    - src/http/http-api-me.ts
+    - src/http/http-api-snapshot.ts
+    - src/http/http-api-spaces.ts
+    - src/http/http-api-train-json.ts
+    - src/http/http-api-train-raw.ts
+    - src/http/http-api-update.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools

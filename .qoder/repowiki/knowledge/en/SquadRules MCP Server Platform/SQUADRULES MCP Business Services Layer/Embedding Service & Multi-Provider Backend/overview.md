@@ -1,1 +1,0 @@
-Provides vector embedding generation for the MCP server, routing requests across OpenAI, TEI, and local fastembed backends with retry, audit, anomaly detection, and health probing.

@@ -1,0 +1,6 @@
+- Each subsystem lives in its own file named `<domain>-metrics.ts` and only declares metric instances — no business logic.
+- Every metric is registered through the shared `register` exported from `./registry.ts` via the `registers: [register]` option rather than a global registry.
+- Metric names follow the `squadrules_<subsystem>_<metric>` prefix convention (e.g. `squadrules_http_requests_total`, `squadrules_embedding_duration_seconds`).
+- Duration metrics use Histogram type with explicit `buckets` arrays covering sub-millisecond to multi-second ranges; size/count metrics use Counter or Histogram depending on distribution needs.
+- Tenant-scoped metrics declare `tenant_id` as an explicit `labelNames` entry instead of relying on default labels, keeping tenant isolation per-request.
+- Default labels are centralized in `registry.ts` (`service`, `squadrules_version`, `instance`) and never duplicated inside individual metric definitions.

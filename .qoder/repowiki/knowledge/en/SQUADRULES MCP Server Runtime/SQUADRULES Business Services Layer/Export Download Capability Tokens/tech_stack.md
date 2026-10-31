@@ -1,0 +1,1 @@
+Node.js `crypto` module for `randomUUID`, HMAC-SHA256 signing, and `timingSafeEqual`; tokens are base64url-encoded JSON payloads. Persistence uses the shared in-memory `keyValueStore` (backed by Redis in production via `key-value-store-factory`).

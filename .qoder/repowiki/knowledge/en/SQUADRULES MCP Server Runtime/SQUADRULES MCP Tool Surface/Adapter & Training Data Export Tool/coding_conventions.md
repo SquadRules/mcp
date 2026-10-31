@@ -1,0 +1,5 @@
+- Each export format branch returns an `ExportOutput` object typed by the shared Zod schema, carrying `uri`, `format`, `content_type`, `content`, and `item_count` plus format-specific fields.
+- URI handling goes through `parseSquadrulesUri` from `squadrules-uri.js` before any storage access, with slug vs UUID branches handled explicitly.
+- Cross-field validation between selection modes and format constraints is expressed via Zod `superRefine` rather than ad-hoc runtime checks.
+- Optional dependencies like `QdrantService` are passed as `undefined`-tolerant parameters and guarded with explicit 'lookup unavailable' errors instead of being required.
+- Training-data builders (`buildRewardJsonlItems`, `buildSftJsonlItems`, `buildPreferenceJsonlItems`) accept `TrainingPair[]` and return arrays of their respective NDJSON shape, serialized via the shared `stringifyLines` helper.

@@ -1,0 +1,1 @@
+Plain Markdown with YAML frontmatter (`slug`, `version`, `chain_root`) consumed by the SQUADRULES server; no runtime dependencies inside this module.

@@ -1,0 +1,8 @@
+Flat collection of single-responsibility modules with no internal sub-packages; each file exports pure functions or a small typed API consumed by src/tools/, src/services/, src/http/, and src/cli/. Internal layering is by concern:
+- Logging & observability: `log-core.ts` (Pino bootstrap), `structured-logger.ts` (typed wrapper + HTTP middleware + audit side-stream), `audit-log-events.ts` (allowlisted event schema), `audit-secret-patterns.ts`, `audit-mcp-summary.ts`.
+- Vector store (Qdrant): `qdrant-vector-types.ts` (shared types), `qdrant-collection-utils.ts`, `qdrant-query-utils.ts`, `qdrant-vector-management.ts` (migration/recreate), `qdrant-collection-utils.ts`, re-exported via barrel `qdrant-utils.ts`; all calls go through `buildSpaceFilter` / `getSpaceContext` for multi-tenant isolation.
+- Space & tenant scoping: `space-filter.ts` (Qdrant filter builders), `space-display.ts` (human labels), `resolve-space-param.ts`, `protected-space-write-guard.ts`, `tenant-context.ts`.
+- Serialization & I/O: `canonical-stringify.ts`, `safe-stringify.ts`, `memory-body.ts`, `memory-store-utils.ts`, `frontmatter.ts`, `dump-markdown.ts`, `zod-to-jsonschema.ts`.
+- Configuration & env: `normalize-redis-url.ts`, `build-version.ts`, `version-compare.ts`, `protocol-slug.ts`, `uri-builder.ts`, `directory-access.ts`.
+- Squadrules-specific paths: `squadrules-local-artifact-dirs.ts`, `squadrules-user-dirs.ts`.
+Dependency direction is one-way outward: this module imports from `../config.js` and `../utils/tenant-context.js` but is not imported by those files, keeping it a leaf dependency sink.

@@ -1,1 +1,0 @@
-Zod for input/output schema validation; Qdrant vector store accessed via `MemoryQdrantStore.searchMemories`; Redis-backed key-value cache (with memory fallback) for activate/search results using v6 cache keys.

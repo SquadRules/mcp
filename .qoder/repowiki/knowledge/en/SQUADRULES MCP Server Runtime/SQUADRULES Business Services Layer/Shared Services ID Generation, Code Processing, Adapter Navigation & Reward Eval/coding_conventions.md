@@ -1,0 +1,5 @@
+- Deterministic Qdrant IDs are produced by hashing URIs with `uuid.v5` against the module-level `SQUADRULES_NAMESPACE` constant rather than generating random IDs per write.
+- Adapter layer navigation functions accept an optional `qdrantService` parameter so callers can inject a mock or alternate implementation instead of importing the global singleton directly.
+- When an `executionId` is present, navigation functions short-circuit to `forwardRuntimeStore.getLayerManifest` to return pinned UUIDs, falling back to live Qdrant queries otherwise.
+- Eligibility checks return a `{ eligible, blockers }` record populated by collecting blocker strings (e.g. `missing_rubric_version`, `score_below_sft_threshold`) rather than throwing on failure.
+- Pure helper modules export named functions (not classes) and operate on plain data shapes typed locally at the top of the file.

@@ -1,0 +1,1 @@
+TypeScript with dynamic `import()` for lazy loading the embedded store; relies on `commander` for program option access and Zod schemas from `src/tools/*_schema.js` for input validation inside LocalBackend.

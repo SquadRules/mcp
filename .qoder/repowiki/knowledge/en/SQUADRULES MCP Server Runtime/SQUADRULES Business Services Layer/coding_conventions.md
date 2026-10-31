@@ -1,0 +1,3 @@
+- Cross-child communication goes through explicit TypeScript interfaces (e.g. `IVectorRecordStore`, `IExecutionTraceStore`, adapter contracts) rather than direct imports of concrete implementations.
+- Each child exposes a single service/init entry point (`service.ts`, `store-init.ts`, `connection.ts`) that centralizes configuration and lifecycle.
+- Observability is added per child by registering Prometheus metrics against the shared `metrics/registry.ts` with a default `service` label identifying the subsystem.

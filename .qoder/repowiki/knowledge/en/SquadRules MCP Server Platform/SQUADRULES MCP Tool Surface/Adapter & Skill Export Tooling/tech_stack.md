@@ -1,1 +1,0 @@
-Zod for input/output schema validation; `archiver` for streaming ZIP creation; Node `AsyncLocalStorage` for per-export metric isolation; `squadrules://` URI scheme parsed by `squadrules-uri.ts`.

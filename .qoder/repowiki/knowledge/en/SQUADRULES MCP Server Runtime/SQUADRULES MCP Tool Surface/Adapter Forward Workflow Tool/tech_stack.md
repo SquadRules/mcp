@@ -1,0 +1,1 @@
+Zod schemas for all request/response contracts; MCP tool registration via `server.registerTool`; Qdrant-backed memory and proof-of-work stores; Node `crypto.randomUUID` for execution IDs.

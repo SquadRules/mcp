@@ -2,17 +2,21 @@
 
 <cite>
 **Referenced Files in This Document**
+- [threat-model.md](file://docs/security/threat-model.md)
+- [audit-log.md](file://docs/security/audit-log.md)
+- [incident-runbook.md](file://docs/security/incident-runbook.md)
 - [http-auth-middleware.ts](file://src/http/http-auth-middleware.ts)
-- [http-auth-callback.ts](file://src/http/http-auth-callback.ts)
-- [http-auth-oidc-redirect.ts](file://src/http/http-auth-oidc-redirect.ts)
 - [bearer-validate.ts](file://src/http/bearer-validate.ts)
-- [oidc-profile-claims.ts](file://src/http/oidc-profile-claims.ts)
+- [http-auth-oidc-redirect.ts](file://src/http/http-auth-oidc-redirect.ts)
+- [http-auth-callback.ts](file://src/http/http-auth-callback.ts)
 - [oidc-state-store.ts](file://src/services/oidc-state-store.ts)
+- [oidc-profile-claims.ts](file://src/http/oidc-profile-claims.ts)
 - [tenant-context.ts](file://src/utils/tenant-context.ts)
 - [config.ts](file://src/config.ts)
-- [http-www-authenticate.ts](file://src/http/http-www-authenticate.ts)
-- [audit-log.md](file://docs/security/audit-log.md)
-- [threat-model.md](file://docs/security/threat-model.md)
+- [http-mcp-cors.ts](file://src/http/http-mcp-cors.ts)
+- [http-server-config.ts](file://src/http/http-server-config.ts)
+- [audit-log-events.ts](file://src/utils/audit-log-events.ts)
+- [audit-secret-patterns.ts](file://src/utils/audit-secret-patterns.ts)
 </cite>
 
 ## Table of Contents
@@ -28,259 +32,211 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the security model for SquadRules authentication and authorization. It covers OIDC/OAuth2 integration with Keycloak, optional Google IdP support through Keycloak, JWT validation, session management, role-based access control via groups, tenant isolation, space-level permissions, audit logging, and security hardening guidance. It also documents the authentication flows for both HTTP and stdio transports and provides configuration references for identity providers and compliance considerations.
+This document provides comprehensive security documentation for the SquadRules framework, focusing on authentication mechanisms, authorization models, OIDC/OAuth2 integration with Keycloak, bearer token validation, group-based and space-scoped authorization, threat modeling, audit logging, sensitive data handling, and production hardening guidance. It is intended for operators, platform engineers, and security reviewers who need to understand how identity flows into access decisions and how those decisions are logged and protected.
 
-SquadRules is an agent-first MCP framework where agents are primary users. Authentication validates both human and agent requests using JWT tokens from Keycloak or federated IdPs such as Google. Authorization is derived from token groups and mapped to deterministic space IDs for tenant isolation.
+SquadRules is an agent-first MCP framework where AI agents drive workflows through adapters. Identity and authorization are central because agents may perform read, write, search, training, and export operations that touch tenant-scoped memory and vector stores. The system supports browser-initiated OIDC login via Keycloak and programmatic Bearer token authentication for MCP clients. Authorization is derived from authenticated claims and mapped to space-scoped contexts that constrain reads and writes.
 
 ## Project Structure
-The authentication and authorization system spans HTTP middleware, OIDC callback handling, Bearer token validation, profile claim processing, OIDC state storage, and tenant context derivation. Configuration is centralized and includes rate limits, allowed issuers and audiences, group allowlists, and audit settings.
+Security-related functionality spans HTTP middleware, OIDC redirect and callback handlers, JWT validation, profile claim processing, OIDC state storage, tenant/space context derivation, configuration, CORS, rate limiting, helmet security headers, and structured audit logging.
 
 ```mermaid
 graph TB
-Client["HTTP Client / MCP Host"] --> Middleware["Auth Middleware"]
-Middleware --> Callback["OIDC Callback"]
-Middleware --> Validate["Bearer Token Validator"]
+Browser["Browser or MCP Client"] --> API["HTTP Server"]
+API --> AuthMiddleware["Auth Middleware"]
+AuthMiddleware --> Callback["OIDC Callback Handler"]
+AuthMiddleware --> Redirect["OIDC Redirect Builder"]
+AuthMiddleware --> BearerValidate["Bearer Token Validator"]
+BearerValidate --> Keycloak["Keycloak JWKS / Userinfo"]
 Callback --> StateStore["OIDC State Store"]
-Validate --> Claims["OIDC Profile Claims"]
-Middleware --> TenantCtx["Tenant Context"]
-Config["Configuration"] --> Middleware
-Config --> Validate
-Config --> Callback
-Config --> TenantCtx
+AuthMiddleware --> TenantCtx["Tenant & Space Context"]
+API --> Cors["MCP CORS Handler"]
+API --> RateLimit["Rate Limiters"]
+API --> Helmet["Helmet Security Headers"]
+API --> Audit["Audit Logger"]
 ```
 
 **Diagram sources**
 - [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
-- [http-auth-callback.ts:122-228](file://src/http/http-auth-callback.ts#L122-L228)
 - [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
-- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
-- [oidc-state-store.ts:50-61](file://src/services/oidc-state-store.ts#L50-L61)
-- [tenant-context.ts:256-291](file://src/utils/tenant-context.ts#L256-L291)
-- [config.ts:140-194](file://src/config.ts#L140-L194)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+- [http-auth-oidc-redirect.ts:15-78](file://src/http/http-auth-oidc-redirect.ts#L15-L78)
+- [oidc-state-store.ts:50-75](file://src/services/oidc-state-store.ts#L50-L75)
+- [tenant-context.ts:256-303](file://src/utils/tenant-context.ts#L256-L303)
+- [http-mcp-cors.ts:3-28](file://src/http/http-mcp-cors.ts#L3-L28)
+- [http-server-config.ts:74-99](file://src/http/http-server-config.ts#L74-L99)
 
 **Section sources**
 - [http-auth-middleware.ts:1-330](file://src/http/http-auth-middleware.ts#L1-L330)
-- [http-auth-callback.ts:1-231](file://src/http/http-auth-callback.ts#L1-L231)
 - [bearer-validate.ts:1-209](file://src/http/bearer-validate.ts#L1-L209)
-- [oidc-profile-claims.ts:1-288](file://src/http/oidc-profile-claims.ts#L1-L288)
+- [http-auth-callback.ts:1-231](file://src/http/http-auth-callback.ts#L1-L231)
+- [http-auth-oidc-redirect.ts:1-92](file://src/http/http-auth-oidc-redirect.ts#L1-L92)
 - [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
+- [oidc-profile-claims.ts:1-288](file://src/http/oidc-profile-claims.ts#L1-L288)
 - [tenant-context.ts:1-312](file://src/utils/tenant-context.ts#L1-L312)
-- [config.ts:1-350](file://src/config.ts#L1-L350)
+- [config.ts:1-351](file://src/config.ts#L1-L351)
+- [http-mcp-cors.ts:1-29](file://src/http/http-mcp-cors.ts#L1-L29)
+- [http-server-config.ts:1-100](file://src/http/http-server-config.ts#L1-L100)
 
 ## Core Components
-- Auth middleware enforces authentication on protected paths, supports browser sessions and Bearer tokens, and attaches a space context for tenant isolation.
-- OIDC callback exchanges authorization codes for tokens, signs a secure session cookie, and handles logout flows.
-- Bearer validator verifies JWT issuer, audience, expiration, and signature using JWKS; it can enrich groups via userinfo when needed.
-- OIDC profile claims normalize groups, derive account labels, and merge id_token/access_token payloads safely.
-- OIDC state store persists PKCE state across instances using Redis or in-memory fallback.
-- Tenant context derives deterministic space IDs from sub, groups, realm, and issuer, enabling strict multi-tenant isolation.
-- Configuration centralizes environment variables for Keycloak, OIDC scopes, trusted issuers, allowed audiences, group allowlist, rate limits, and audit settings.
+- Authentication middleware enforces session or Bearer authentication for protected paths and derives space-scoped context.
+- OIDC redirect builder constructs PKCE authorization URLs and persists transient login state.
+- OIDC callback exchanges authorization codes for tokens, merges id_token and access_token payloads, signs a secure session cookie, and redirects users.
+- Bearer token validator verifies issuer, audience, expiration, signature via JWKS, and optionally enriches groups from OIDC userinfo.
+- OIDC profile claim processor whitelists safe claims, normalizes groups, derives account labels, and merges token payloads safely.
+- OIDC state store persists PKCE code verifier and state using Redis when configured, otherwise in-memory.
+- Tenant and space context maps authenticated identity to personal and group spaces, constraining allowed operations.
+- Configuration centralizes environment variables for Keycloak, OIDC scopes, trusted issuers, allowed audiences, group allowlists, rate limits, and audit settings.
+- CORS handler configures MCP-specific cross-origin behavior.
+- Server configuration applies helmet CSP, rate limiters, JSON body limits, and structured logging.
+- Audit logging emits embedding/anomaly/MCP events and optional append-only audit file lines with secret redaction.
 
 **Section sources**
-- [http-auth-middleware.ts:1-330](file://src/http/http-auth-middleware.ts#L1-L330)
-- [http-auth-callback.ts:1-231](file://src/http/http-auth-callback.ts#L1-L231)
-- [bearer-validate.ts:1-209](file://src/http/bearer-validate.ts#L1-L209)
-- [oidc-profile-claims.ts:1-288](file://src/http/oidc-profile-claims.ts#L1-L288)
-- [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
-- [tenant-context.ts:1-312](file://src/utils/tenant-context.ts#L1-L312)
-- [config.ts:1-350](file://src/config.ts#L1-L350)
+- [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
+- [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+- [http-auth-oidc-redirect.ts:15-78](file://src/http/http-auth-oidc-redirect.ts#L15-L78)
+- [oidc-state-store.ts:50-75](file://src/services/oidc-state-store.ts#L50-L75)
+- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
+- [tenant-context.ts:217-248](file://src/utils/tenant-context.ts#L217-L248)
+- [config.ts:141-195](file://src/config.ts#L141-L195)
+- [http-mcp-cors.ts:3-28](file://src/http/http-mcp-cors.ts#L3-L28)
+- [http-server-config.ts:74-99](file://src/http/http-server-config.ts#L74-L99)
+- [audit-log.md:30-47](file://docs/security/audit-log.md#L30-L47)
 
 ## Architecture Overview
-The system uses two authentication paths:
-- Browser-initiated OIDC login with PKCE and signed session cookies.
-- Machine-to-machine Bearer JWT validation against Keycloak (or federated IdPs).
+The authentication architecture supports two primary flows:
 
-Authorization is derived from token groups and mapped to space IDs. The middleware sets a space context that restricts read/write operations per tenant and space.
+- Browser-initiated OIDC login:
+  - Unauthenticated GET requests to protected paths redirect to Keycloak with PKCE.
+  - Keycloak returns an authorization code to `/auth/callback`.
+  - The server exchanges the code for tokens, merges payloads, sets a signed session cookie, and redirects to the UI.
+
+- Programmatic Bearer authentication:
+  - MCP clients send a Bearer token.
+  - The server validates issuer, audience, expiration, and signature against Keycloak JWKS.
+  - Groups may be enriched from userinfo if missing from the access token.
+  - Authenticated claims are converted into space-scoped context.
 
 ```mermaid
 sequenceDiagram
-participant Browser as "Browser"
-participant App as "SquadRules Server"
-participant IdP as "Keycloak / Google IdP"
+participant Client as "Client"
+participant Server as "HTTP Server"
+participant Keycloak as "Keycloak"
 participant Store as "OIDC State Store"
-Browser->>App : GET /api or /mcp (no auth)
-App-->>Browser : 401 + WWW-Authenticate + login_url
-Browser->>App : GET /auth (login redirect)
-App->>Store : set(state, code_verifier)
-App-->>Browser : 302 to Keycloak authorization URL
-Browser->>IdP : OIDC authorize (PKCE S256)
-IdP-->>Browser : Redirect with code
-Browser->>App : GET /auth/callback?code&state
-App->>Store : consume(state)
-App->>IdP : POST token exchange (code + code_verifier)
-IdP-->>App : id_token + access_token (+ expires_in)
-App->>App : Merge payloads, apply group allowlist
-App-->>Browser : Set-Cookie signed session + 302 to UI
+Client->>Server : "GET /api or /mcp without auth"
+Server->>Server : "Redirect to OIDC login"
+Server->>Store : "Persist state + code_verifier"
+Store-->>Server : "OK"
+Server-->>Client : "302 to Keycloak"
+Client->>Keycloak : "Authorize (PKCE)"
+Keycloak-->>Client : "Redirect to /auth/callback?code&state"
+Client->>Server : "GET /auth/callback"
+Server->>Store : "Consume state"
+Store-->>Server : "code_verifier"
+Server->>Keycloak : "Exchange code for tokens"
+Keycloak-->>Server : "id_token + access_token"
+Server->>Server : "Merge payloads, sign session cookie"
+Server-->>Client : "302 to /ui"
 ```
 
 **Diagram sources**
+- [http-auth-middleware.ts:301-305](file://src/http/http-auth-middleware.ts#L301-L305)
+- [http-auth-oidc-redirect.ts:52-78](file://src/http/http-auth-oidc-redirect.ts#L52-L78)
+- [oidc-state-store.ts:53-60](file://src/services/oidc-state-store.ts#L53-L60)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+
+**Section sources**
 - [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
-- [http-auth-oidc-redirect.ts:15-66](file://src/http/http-auth-oidc-redirect.ts#L15-L66)
-- [http-auth-callback.ts:122-228](file://src/http/http-auth-callback.ts#L122-L228)
-- [oidc-state-store.ts:50-61](file://src/services/oidc-state-store.ts#L50-L61)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+- [http-auth-oidc-redirect.ts:15-78](file://src/http/http-auth-oidc-redirect.ts#L15-L78)
+- [oidc-state-store.ts:50-75](file://src/services/oidc-state-store.ts#L50-L75)
 
 ## Detailed Component Analysis
 
-### HTTP Authentication Middleware
-The middleware protects `/api`, `/api/*`, `/mcp`, `/ui`, and `/ui/*`. When `AUTH_ENABLED` is true:
-- Browser GET requests without a valid session are redirected to OIDC login.
-- MCP clients receive 401 with `WWW-Authenticate` and structured JSON-RPC errors when appropriate.
-- Bearer tokens are validated only when trusted issuers and allowed audiences are configured.
-- A space context is attached based on `req.auth` and request parameters.
-
-Session handling:
-- Session cookie name: `squadrules_session`.
-- Cookie payload is HMAC-SHA256 signed with `SESSION_SECRET`.
-- Expiration is checked; expired or malformed cookies are rejected.
-
-Bearer handling:
-- Validates issuer, audience, expiration, and signature via JWKS.
-- Returns structured error responses with `error=invalid_token` and optional `login_url`.
-
-Space scoping:
-- If a `space` or `space_id` query parameter is provided, it must be in the user’s allowed spaces.
-- The middleware narrows `allowedSpaceIds` and `defaultWriteSpaceId` accordingly.
+### OIDC Browser Login and Logout Flow
+The browser flow uses PKCE to avoid exposing client secrets. The server generates a random state and code verifier, stores them in the OIDC state store, and redirects the browser to Keycloak. On callback, the server consumes the state atomically, exchanges the code for tokens, merges id_token and access_token payloads, applies group filtering, computes session TTL, signs a secure session cookie, and redirects to the UI. Logout clears the session cookie and can initiate RP-initiated logout at Keycloak with an `id_token_hint` when available.
 
 ```mermaid
 flowchart TD
-Start(["Request"]) --> CheckEnabled{"AUTH_ENABLED?"}
-CheckEnabled --> |No| Allow["Allow unauthenticated"]
-CheckEnabled --> |Yes| Protected{"Protected path?"}
-Protected --> |No| Allow
-Protected --> |Yes| HasSession{"Valid session?"}
-HasSession --> |Yes| UseSession["Use session payload"]
-HasSession --> |No| HasBearer{"Has Bearer?"}
-HasBearer --> |No| Unauth["401 + WWW-Authenticate + login_url"]
-HasBearer --> |Yes| ValidateBearer["Validate JWT (iss, aud, exp, sig)"]
-ValidateBearer --> Valid{"Valid?"}
-Valid --> |No| Unauth
-Valid --> |Yes| BuildCtx["Build SpaceContext"]
-UseSession --> BuildCtx
-BuildCtx --> ScopeCheck{"space param allowed?"}
-ScopeCheck --> |No| Forbidden["403 forbidden"]
-ScopeCheck --> |Yes| Next["Run handler with ctx"]
+Start(["Protected Request"]) --> CheckSession["Check Session Cookie"]
+CheckSession --> HasSession{"Valid Session?"}
+HasSession --> |Yes| Allow["Allow Request<br/>Set Space Context"]
+HasSession --> |No| IsGet{"GET and Not MCP?"}
+IsGet --> |Yes| Redirect["Redirect to Keycloak<br/>Store PKCE State"]
+IsGet --> |No| Unauthorized["401 With WWW-Authenticate"]
+Redirect --> Callback["/auth/callback(code,state)"]
+Callback --> ConsumeState["Consume PKCE State"]
+ConsumeState --> Exchange["Exchange Code for Tokens"]
+Exchange --> Merge["Merge id_token + access_token"]
+Merge --> FilterGroups["Apply Group Allowlist"]
+FilterGroups --> SignCookie["Sign Session Cookie"]
+SignCookie --> Done(["Redirect to UI"])
 ```
 
 **Diagram sources**
+- [http-auth-middleware.ts:190-305](file://src/http/http-auth-middleware.ts#L190-L305)
+- [http-auth-oidc-redirect.ts:52-78](file://src/http/http-auth-oidc-redirect.ts#L52-L78)
+- [oidc-state-store.ts:53-60](file://src/services/oidc-state-store.ts#L53-L60)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+
+**Section sources**
 - [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
-
-**Section sources**
-- [http-auth-middleware.ts:1-330](file://src/http/http-auth-middleware.ts#L1-L330)
-- [http-www-authenticate.ts:17-47](file://src/http/http-www-authenticate.ts#L17-L47)
-
-### OIDC Callback and Logout
-The callback endpoint:
-- Requires `AUTH_ENABLED`, `KEYCLOAK_URL`, `SESSION_SECRET`, and `AUTH_CALLBACK_BASE_URL`.
-- Validates `code` and `state`; consumes PKCE state atomically.
-- Exchanges the code for tokens at Keycloak’s token endpoint.
-- Merges id_token and access_token payloads, ensuring consistent `sub` and deriving `iss`/`realm`.
-- Applies the group allowlist and computes session TTL from `expires_in` or access token expiry.
-- Sets a secure, httpOnly session cookie and redirects to the UI.
-
-Logout flow:
-- Clears the Squadrules session cookie.
-- Optionally performs RP-initiated logout to Keycloak with `id_token_hint`.
-- Redirects to continue-signin or back to the UI.
-
-```mermaid
-sequenceDiagram
-participant Browser as "Browser"
-participant App as "Callback Handler"
-participant Store as "OIDC State Store"
-participant KC as "Keycloak"
-Browser->>App : GET /auth/callback?code&state
-App->>Store : consume(state)
-Store-->>App : {codeVerifier, createdAt}
-App->>KC : POST /token (grant_type=authorization_code)
-KC-->>App : {id_token, access_token, expires_in}
-App->>App : mergeCallbackTokenPayloads()
-App->>App : applyOidcGroupsAllowlist()
-App-->>Browser : Set-Cookie signed session + 302 /ui/
-```
-
-**Diagram sources**
-- [http-auth-callback.ts:122-228](file://src/http/http-auth-callback.ts#L122-L228)
-- [oidc-state-store.ts:50-61](file://src/services/oidc-state-store.ts#L50-L61)
-
-**Section sources**
 - [http-auth-callback.ts:1-231](file://src/http/http-auth-callback.ts#L1-L231)
+- [http-auth-oidc-redirect.ts:1-92](file://src/http/http-auth-oidc-redirect.ts#L1-L92)
+- [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
 
-### Bearer Token Validation
-Bearer validation:
-- Uses `jose` to verify JWT signatures via JWKS fetched from the issuer’s certs endpoint.
-- Checks issuer against `AUTH_TRUSTED_ISSUERS`, audience against `AUTH_ALLOWED_AUDIENCES`, and expiration.
-- Supports Keycloak special cases: accepts `aud="account"` or empty `aud` when issuer contains `/realms/`.
-- Extracts groups from access token, nested id_token, or userinfo endpoint.
-- Optionally merges userinfo groups into access token groups.
-- Enriches the auth payload with whitelisted profile fields and account labels.
+### Bearer Token Validation and Enrichment
+Bearer tokens are validated only when trusted issuers and allowed audiences are configured. Validation checks issuer, audience, expiration, and signature via JWKS. If groups are absent from the access token, the server may fetch user info using the same token to obtain group membership. Groups are then filtered by the OIDC group allowlist and used to derive space context.
 
 ```mermaid
 flowchart TD
-Start(["Bearer token"]) --> Decode["Decode payload (unverified)"]
-Decode --> IssuerCheck{"Issuer trusted?"}
-IssuerCheck --> |No| Reject["Reject"]
-IssuerCheck --> |Yes| JWKS["Get JWKS for issuer"]
-JWKS --> Verify["jwtVerify(token, getKey, {issuer})"]
-Verify --> Valid{"Signature valid?"}
-Valid --> |No| Reject
-Valid --> |Yes| AudienceCheck{"Audience allowed?"}
-AudienceCheck --> |No| Reject
-AudienceCheck --> |Yes| Groups["Extract groups (access/nested/userinfo)"]
-Groups --> Allowlist["applyOidcGroupsAllowlist()"]
-Allowlist --> Enrich["enrichAuthPayloadFromVerifiedJwt()"]
-Enrich --> Return["Return AuthPayload"]
+Entry(["Bearer Token Present"]) --> Configured{"Trusted Issuers<br/>and Allowed Audiences Set?"}
+Configured --> |No| RejectConfig["Reject: Bearer Not Validated"]
+Configured --> |Yes| Decode["Decode JWT Payload"]
+Decode --> IssuerCheck{"Issuer Trusted?"}
+IssuerCheck --> |No| RejectIssuer["Reject: Issuer Not Trusted"]
+IssuerCheck --> |Yes| Verify["Verify Signature via JWKS"]
+Verify --> AudienceCheck{"Audience Allowed?"}
+AudienceCheck --> |No| RejectAudience["Reject: Audience Not Allowed"]
+AudienceCheck --> |Yes| ExtractSub["Extract sub and iss"]
+ExtractSub --> GroupsFromToken["Extract Groups From Access Token"]
+GroupsFromToken --> MissingGroups{"Groups Empty?"}
+MissingGroups --> |Yes| FetchUserinfo["Fetch OIDC Userinfo"]
+MissingGroups --> |No| MaybeMerge["Maybe Merge Userinfo Groups"]
+FetchUserinfo --> ApplyAllowlist["Apply Group Allowlist"]
+MaybeMerge --> ApplyAllowlist
+ApplyAllowlist --> BuildPayload["Build AuthPayload"]
+BuildPayload --> Done(["Return AuthPayload"])
 ```
 
 **Diagram sources**
 - [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
+- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
 
 **Section sources**
 - [bearer-validate.ts:1-209](file://src/http/bearer-validate.ts#L1-L209)
-
-### OIDC Profile Claims and Group Allowlist
-Profile claims:
-- Whitelists safe fields: preferred_username, name, given_name, family_name, email, email_verified, identity_provider.
-- Derives account kind (`local` vs `sso`) and label (e.g., `Google (SSO)`).
-- Normalizes groups from arrays, strings, or JSON-encoded arrays.
-
-Group allowlist:
-- Supports exact matches and prefix matches (entries ending with `/`).
-- Case-insensitive path matching after normalization.
-- Empty allowlist keeps all token groups; non-empty restricts which paths become spaces.
-
-Merging callback payloads:
-- Ensures consistent `sub` between id_token and access_token.
-- Prefers access token groups; falls back to id_token groups.
-- Derives `iss` and `realm` deterministically for space ID generation.
-
-**Section sources**
 - [oidc-profile-claims.ts:1-288](file://src/http/oidc-profile-claims.ts#L1-L288)
 
-### OIDC State Store
-The OIDC state store manages PKCE state (`code_verifier`) for login transactions:
-- Keys are global because login has no space context.
-- TTL is 10 minutes.
-- Backend selection depends on whether Redis is configured; otherwise, in-memory fallback is used.
-- Atomic consume operation prevents replay attacks.
-
-**Section sources**
-- [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
-
-### Tenant Context and Space-Level Permissions
-Tenant context:
-- Uses AsyncLocalStorage to propagate space context across async boundaries.
-- Derives deterministic space IDs from `sub`, `groups`, `realm`, and `iss`.
-- Personal space ID format: `user:{realm}:{uuidv5(iss + "\\nuser\\n" + sub)}`.
-- Group space ID format: `group:{realm}:{uuidv5(iss + "\\ngroup\\n" + fullPath)}`.
-- When `AUTH_ENABLED` is true but no auth context exists, a sentinel space is used to prevent accidental data sharing.
-
-Space scoping:
-- Query parameters `space` or `space_id` narrow allowed spaces and default write space.
-- Search may include the Squadrules app space unless explicitly scoped.
-- Writes use `defaultWriteSpaceId`; reads may include app space depending on scope.
+### Group-Based Authorization and Space Scoping
+Authorization is not based solely on user identity; it is derived from groups and realm/issuer information. Personal spaces are deterministic per user and issuer, while group spaces are derived from normalized group paths. The middleware narrows allowed spaces when a `space` query parameter is provided, enforcing strict isolation.
 
 ```mermaid
 classDiagram
+class AuthPayload {
++string sub
++string[] groups
++string iss
++string realm
++string preferred_username
++string name
++string given_name
++string family_name
++string email
++boolean email_verified
++string identity_provider
++string account_kind
++string account_label
+}
 class SpaceContext {
 +string userId
 +string[] groupIds
@@ -291,158 +247,211 @@ class SpaceContext {
 +string requestId
 +string[] activateSpaceScope
 }
-class TenantContext {
-+getSpaceContext(request) SpaceContext
-+runWithSpaceContext(ctx, fn) T
-+runWithSpaceContextAsync(ctx, fn) Promise~T~
-+getSearchSpaceIds() string[]
-+runWithOptionalSpaceAsync(spaceParam, fn) Promise~T~
-+getTenantId(request) string
+class ProfileClaims {
++extractGroupsFromPayload(payload) string[]
++applyOidcGroupsAllowlist(groups, allowlist) string[]
++mergeCallbackTokenPayloads(input) MergedCallbackClaims
++deriveAccountKindAndLabel(identityProvider) AccountLabels
 }
-TenantContext --> SpaceContext : "creates and propagates"
+AuthPayload --> SpaceContext : "derives"
+ProfileClaims --> AuthPayload : "enriches"
+ProfileClaims --> SpaceContext : "normalizes groups"
 ```
 
 **Diagram sources**
+- [bearer-validate.ts:22-39](file://src/http/bearer-validate.ts#L22-L39)
 - [tenant-context.ts:23-42](file://src/utils/tenant-context.ts#L23-L42)
-- [tenant-context.ts:256-291](file://src/utils/tenant-context.ts#L256-L291)
+- [oidc-profile-claims.ts:78-95](file://src/http/oidc-profile-claims.ts#L78-L95)
+- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
+- [oidc-profile-claims.ts:200-256](file://src/http/oidc-profile-claims.ts#L200-L256)
 
 **Section sources**
-- [tenant-context.ts:1-312](file://src/utils/tenant-context.ts#L1-L312)
+- [tenant-context.ts:217-303](file://src/utils/tenant-context.ts#L217-L303)
+- [oidc-profile-claims.ts:78-153](file://src/http/oidc-profile-claims.ts#L78-L153)
+- [oidc-profile-claims.ts:200-256](file://src/http/oidc-profile-claims.ts#L200-L256)
+
+### OIDC State Storage and PKCE Security
+PKCE state is stored with a short TTL and consumed atomically to prevent replay. When Redis is configured, state is shared across instances; otherwise, it falls back to in-memory storage. This design ensures login works in clustered deployments while keeping transient secrets out of cookies.
+
+```mermaid
+flowchart TD
+Generate["Generate state + code_verifier"] --> Store["Store in OIDC State Store"]
+Store --> TTL["TTL 600 seconds"]
+Store --> Backend{"Redis Available?"}
+Backend --> |Yes| Shared["Shared Across Instances"]
+Backend --> |No| Local["In-Memory Only"]
+Callback["/auth/callback"] --> Consume["Atomic consume(state)"]
+Consume --> Use["Use code_verifier for token exchange"]
+```
+
+**Diagram sources**
+- [http-auth-oidc-redirect.ts:52-78](file://src/http/http-auth-oidc-redirect.ts#L52-L78)
+- [oidc-state-store.ts:16-60](file://src/services/oidc-state-store.ts#L16-L60)
+
+**Section sources**
+- [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
+- [http-auth-oidc-redirect.ts:52-78](file://src/http/http-auth-oidc-redirect.ts#L52-L78)
+
+### Sensitive Data Handling and Secret Redaction
+Audit logs sanitize strings and object keys to prevent control characters and line breaks from breaking log lines. Known secret patterns such as Bearer tokens and common provider prefixes are redacted before writing to sinks. This reduces the risk of credential leakage in operational logs.
+
+```mermaid
+flowchart TD
+Event["Structured Log Event"] --> Sanitize["Sanitize Bindings"]
+Sanitize --> Redact["Redact Known Secrets"]
+Redact --> Emit["Emit to Structured Logger"]
+Emit --> OptionalFile{"AUDIT_LOG_FILE Set?"}
+OptionalFile --> |Yes| WriteAudit["Write Coarse Audit Line"]
+OptionalFile --> |No| End(["End"])
+```
+
+**Diagram sources**
+- [audit-log.md:84-88](file://docs/security/audit-log.md#L84-L88)
+- [audit-log-events.ts:68-88](file://src/utils/audit-log-events.ts#L68-L88)
+- [audit-secret-patterns.ts:6-26](file://src/utils/audit-secret-patterns.ts#L6-L26)
+
+**Section sources**
+- [audit-log.md:84-88](file://docs/security/audit-log.md#L84-L88)
+- [audit-log-events.ts:1-89](file://src/utils/audit-log-events.ts#L1-L89)
+- [audit-secret-patterns.ts:1-27](file://src/utils/audit-secret-patterns.ts#L1-L27)
+
+### Security Headers, CORS, and HTTPS Considerations
+The server applies helmet with a restrictive content security policy suitable for API endpoints. CORS is configured for the MCP endpoint to expose `WWW-Authenticate` and allow necessary headers. HTTPS is enforced for the session cookie when the callback base URL starts with HTTPS. Operators should place the service behind a reverse proxy that terminates TLS and enforces modern security policies.
+
+```mermaid
+flowchart TD
+Request["Incoming Request"] --> Helmet["Helmet CSP Applied"]
+Helmet --> Cors["MCP CORS Headers Set"]
+Cors --> SecureCookie{"AUTH_CALLBACK_BASE_URL Starts With HTTPS?"}
+SecureCookie --> |Yes| SecureFlag["Set-Cookie Secure Flag"]
+SecureCookie --> |No| LaxOnly["SameSite=Lax Without Secure"]
+```
+
+**Diagram sources**
+- [http-server-config.ts:33-47](file://src/http/http-server-config.ts#L33-L47)
+- [http-mcp-cors.ts:3-28](file://src/http/http-mcp-cors.ts#L3-L28)
+- [http-auth-callback.ts:69-72](file://src/http/http-auth-callback.ts#L69-L72)
+
+**Section sources**
+- [http-server-config.ts:33-47](file://src/http/http-server-config.ts#L33-L47)
+- [http-mcp-cors.ts:3-28](file://src/http/http-mcp-cors.ts#L3-L28)
+- [http-auth-callback.ts:69-72](file://src/http/http-auth-callback.ts#L69-L72)
 
 ## Dependency Analysis
-Authentication components depend on configuration and shared services:
-- Middleware depends on OIDC redirect utilities, bearer validation, tenant context, and WWW-Authenticate helpers.
-- Callback depends on OIDC state store and profile claims merging.
-- Bearer validation depends on jose library and profile claims enrichment.
-- Tenant context depends on config constants and space resolution utilities.
+Authentication and authorization depend on configuration, OIDC providers, key-value storage, and structured logging.
 
 ```mermaid
 graph LR
-Config["config.ts"] --> Middleware["http-auth-middleware.ts"]
-Config --> Validate["bearer-validate.ts"]
+Config["config.ts"] --> AuthMiddleware["http-auth-middleware.ts"]
+Config --> BearerValidate["bearer-validate.ts"]
 Config --> Callback["http-auth-callback.ts"]
-Config --> Tenant["tenant-context.ts"]
-Middleware --> Validate
-Middleware --> Tenant
+Config --> ServerConfig["http-server-config.ts"]
+BearerValidate --> ProfileClaims["oidc-profile-claims.ts"]
+Callback --> ProfileClaims
+AuthMiddleware --> TenantCtx["tenant-context.ts"]
 Callback --> StateStore["oidc-state-store.ts"]
-Callback --> Claims["oidc-profile-claims.ts"]
-Validate --> Claims
+AuthMiddleware --> AuditEvents["audit-log-events.ts"]
+AuditEvents --> SecretPatterns["audit-secret-patterns.ts"]
 ```
 
 **Diagram sources**
-- [config.ts:140-194](file://src/config.ts#L140-L194)
+- [config.ts:141-195](file://src/config.ts#L141-L195)
 - [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
 - [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
-- [http-auth-callback.ts:122-228](file://src/http/http-auth-callback.ts#L122-L228)
-- [oidc-state-store.ts:50-61](file://src/services/oidc-state-store.ts#L50-L61)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
 - [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
-- [tenant-context.ts:256-291](file://src/utils/tenant-context.ts#L256-L291)
+- [tenant-context.ts:256-303](file://src/utils/tenant-context.ts#L256-L303)
+- [oidc-state-store.ts:50-75](file://src/services/oidc-state-store.ts#L50-L75)
+- [audit-log-events.ts:68-88](file://src/utils/audit-log-events.ts#L68-L88)
+- [audit-secret-patterns.ts:6-26](file://src/utils/audit-secret-patterns.ts#L6-L26)
 
 **Section sources**
-- [config.ts:1-350](file://src/config.ts#L1-L350)
-- [http-auth-middleware.ts:1-330](file://src/http/http-auth-middleware.ts#L1-L330)
-- [bearer-validate.ts:1-209](file://src/http/bearer-validate.ts#L1-L209)
-- [http-auth-callback.ts:1-231](file://src/http/http-auth-callback.ts#L1-L231)
-- [oidc-state-store.ts:1-76](file://src/services/oidc-state-store.ts#L1-L76)
-- [oidc-profile-claims.ts:1-288](file://src/http/oidc-profile-claims.ts#L1-L288)
-- [tenant-context.ts:1-312](file://src/utils/tenant-context.ts#L1-L312)
+- [config.ts:141-195](file://src/config.ts#L141-L195)
+- [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
+- [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
+- [http-auth-callback.ts:122-229](file://src/http/http-auth-callback.ts#L122-L229)
+- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
+- [tenant-context.ts:256-303](file://src/utils/tenant-context.ts#L256-L303)
+- [oidc-state-store.ts:50-75](file://src/services/oidc-state-store.ts#L50-L75)
+- [audit-log-events.ts:68-88](file://src/utils/audit-log-events.ts#L68-L88)
+- [audit-secret-patterns.ts:6-26](file://src/utils/audit-secret-patterns.ts#L6-L26)
 
 ## Performance Considerations
-- JWKS caching reduces repeated key fetching per issuer.
-- OIDC state store uses atomic operations to avoid race conditions during login.
-- Userinfo calls for groups are optional and bounded by timeout; failures degrade gracefully to empty groups.
-- Audit logging splits rich events from coarse file lines to reduce overhead.
-- Rate limiting is configurable for HTTP, auth, and MCP routes.
+- JWKS caching avoids repeated network calls for the same issuer.
+- OIDC userinfo fetch has an 8-second timeout and degrades gracefully when unavailable.
+- Group merging from userinfo is optional and controlled by configuration.
+- Rate limiters protect `/auth`, `/api`, and `/mcp` endpoints independently.
+- Structured logging and audit file writes are designed to avoid blocking request handling.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- Missing OIDC configuration: Ensure `AUTH_ENABLED`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `AUTH_CALLBACK_BASE_URL`, and `SESSION_SECRET` are set.
-- Invalid token errors: Verify `AUTH_TRUSTED_ISSUERS` and `AUTH_ALLOWED_AUDIENCES`; check Keycloak client scopes and protocol mappers.
-- Group spaces missing: Confirm Keycloak Group Membership mapper and `OIDC_GROUPS_ALLOWLIST`; consider enabling `OIDC_BEARER_MERGE_USERINFO_GROUPS`.
-- Session not persisting: Check `SESSION_SECRET` and `AUTH_CALLBACK_BASE_URL` HTTPS setting for Secure cookie flag.
-- Audit logs not written: Ensure `AUDIT_LOG_FILE` is set and categories match allowlisted values; review sanitization and level settings.
+Common issues include misconfigured OIDC callbacks, missing session secrets, invalid PKCE state, expired tokens, and insufficient group mapping.
+
+- **Missing OIDC configuration**: When `AUTH_ENABLED=true`, required variables must be set; otherwise startup throws an error.
+- **Invalid state on callback**: If PKCE state is missing or expired, the callback redirects with an error.
+- **Token exchange failure**: Non-OK responses from Keycloak result in redirect errors.
+- **Mismatched subject**: Merging id_token and access_token fails when subjects differ.
+- **Bearer not validated**: If trusted issuers or allowed audiences are missing, Bearer requests receive a specific rejection message.
+- **Group visibility**: If groups do not appear in spaces, ensure Keycloak’s Group Membership mapper is configured and consider enabling userinfo group merging.
+
+Operational investigation should use `request_id`, `tenant_id`, and category-based filters in structured logs and the optional audit file.
 
 **Section sources**
-- [config.ts:247-265](file://src/config.ts#L247-L265)
-- [bearer-validate.ts:120-208](file://src/http/bearer-validate.ts#L120-L208)
-- [oidc-profile-claims.ts:119-153](file://src/http/oidc-profile-claims.ts#L119-L153)
-- [audit-log.md:30-47](file://docs/security/audit-log.md#L30-L47)
+- [config.ts:254-266](file://src/config.ts#L254-L266)
+- [http-auth-callback.ts:135-199](file://src/http/http-auth-callback.ts#L135-L199)
+- [http-auth-middleware.ts:237-251](file://src/http/http-auth-middleware.ts#L237-L251)
+- [audit-log.md:47-88](file://docs/security/audit-log.md#L47-L88)
+- [incident-runbook.md:29-64](file://docs/security/incident-runbook.md#L29-L64)
 
 ## Conclusion
-SquadRules implements a robust, multi-path authentication and authorization system centered on OIDC/OAuth2 with Keycloak and federated IdPs like Google. Browser sessions and machine-to-machine Bearer tokens are supported, with strict tenant isolation via deterministic space IDs derived from token claims. Group-based roles map to spaces, and audit logging provides operational visibility. Proper configuration of issuers, audiences, group allowlists, and rate limits is essential for secure deployment.
+SquadRules implements a layered security model combining OIDC browser login, Bearer JWT validation, group-based authorization, and deterministic space scoping. The system emphasizes traceability through structured logs and optional audit files, restricts sensitive data exposure through sanitization and redaction, and applies defensive defaults such as helmet CSP, rate limiting, and CORS controls. Production deployments should enforce HTTPS, configure Keycloak carefully, rotate secrets regularly, monitor anomaly events, and follow the incident runbook for containment and recovery.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
-### Authentication Flows
-
-#### HTTP Transport Flow
-- Browser-initiated login with PKCE and signed session cookies.
-- MCP clients receive 401 with `WWW-Authenticate` and structured JSON-RPC errors when authentication is required.
-- Bearer tokens are validated against trusted issuers and allowed audiences.
+### Threat Model Summary
+The threat model identifies assets such as adapter chains, memory content, embeddings, tenant authorization context, sessions, cache entries, and provider credentials. It covers attackers including malicious tenants, insiders, external probes, supply-chain compromise, and provider abuse. Mitigations include input validation, audit logging, anomaly detection, space-scoped filtering, rate limiting, CI scanning, SBOM generation, image signing, and incident playbooks.
 
 **Section sources**
-- [http-auth-middleware.ts:172-327](file://src/http/http-auth-middleware.ts#L172-L327)
-- [http-www-authenticate.ts:17-47](file://src/http/http-www-authenticate.ts#L17-L47)
+- [threat-model.md:27-105](file://docs/security/threat-model.md#L27-L105)
 
-#### Stdio Transport Flow
-- Stdio mode runs local simple mode with embedded LanceDB and no HTTP listener.
-- `AUTH_ENABLED` defaults to false for stdio; explicit enablement requires complete auth configuration.
-- Local writes target a personal space; no shared default space when auth is enabled.
+### Audit Logging Specification
+Audit logging centers on embedding/search anomaly events and MCP tool call events. The main structured logger receives rich records; an optional append-only file receives coarse lines for allowlisted categories. MCP audit levels control verbosity for MCP events. Correlation uses `request_id` and `correlation_id`.
 
 **Section sources**
-- [config.ts:131-139](file://src/config.ts#L131-L139)
-- [tenant-context.ts:57-74](file://src/utils/tenant-context.ts#L57-L74)
+- [audit-log.md:1-47](file://docs/security/audit-log.md#L1-L47)
+- [audit-log.md:69-155](file://docs/security/audit-log.md#L69-L155)
+- [audit-log.md:157-187](file://docs/security/audit-log.md#L157-L187)
 
-### Identity Provider Configuration
-
-#### Keycloak Setup
-- Configure realm, client, redirect URIs, and Group Membership protocol mapper.
-- Set `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `AUTH_CALLBACK_BASE_URL`, and `SESSION_SECRET`.
-- For server-side calls, optionally set `KEYCLOAK_INTERNAL_URL` for Docker networking.
-
-**Section sources**
-- [config.ts:140-151](file://src/config.ts#L140-L151)
-- [bearer-validate.ts:43-59](file://src/http/bearer-validate.ts#L43-L59)
-
-#### Google IdP Support
-- Add Google as a federated IdP in Keycloak realm.
-- Ensure identity provider mapping emits `identity_provider` claim for account labeling.
-- Verify redirect URIs and scopes align with Keycloak client configuration.
+### Configuration Reference for Authentication Backends
+Key configuration areas include:
+- Keycloak connection: `KEYCLOAK_URL`, `KEYCLOAK_INTERNAL_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`.
+- Callback and session: `AUTH_CALLBACK_BASE_URL`, `SESSION_SECRET`, `SESSION_MAX_AGE_SEC`.
+- Bearer validation: `AUTH_MODE`, `AUTH_TRUSTED_ISSUERS`, `AUTH_ALLOWED_AUDIENCES`.
+- Group filtering: `OIDC_GROUPS_ALLOWLIST`, `OIDC_BEARER_MERGE_USERINFO_GROUPS`.
+- Rate limits: `AUTH_RATE_LIMIT_WINDOW_MS`, `AUTH_RATE_LIMIT_MAX`, `HTTP_RATE_LIMIT_WINDOW_MS`, `HTTP_RATE_LIMIT_MAX`, `MCP_RATE_LIMIT_WINDOW_MS`, `MCP_RATE_LIMIT_MAX`.
+- Audit: `AUDIT_LOG_FILE`, `AUDIT_LOG_LEVEL`.
 
 **Section sources**
-- [oidc-profile-claims.ts:16-22](file://src/http/oidc-profile-claims.ts#L16-L22)
+- [config.ts:141-195](file://src/config.ts#L141-L195)
+- [config.ts:121-126](file://src/config.ts#L121-L126)
+- [config.ts:99-105](file://src/config.ts#L99-L105)
 
-### Security Best Practices
-- Enable `AUTH_ENABLED` in production and validate all required environment variables.
-- Restrict `OIDC_GROUPS_ALLOWLIST` to only necessary group paths.
-- Use HTTPS for `AUTH_CALLBACK_BASE_URL` to enforce Secure cookies.
-- Configure rate limits for HTTP, auth, and MCP routes.
-- Monitor audit logs for embedding anomalies and MCP tool calls.
-- Rotate secrets regularly and keep them out of source control.
-
-**Section sources**
-- [config.ts:162-194](file://src/config.ts#L162-L194)
-- [audit-log.md:145-156](file://docs/security/audit-log.md#L145-L156)
-
-### Threat Mitigations
-- Data poisoning mitigated by input validation, schema enforcement, and anomaly logging.
-- Prompt injection mitigated by deterministic adapter execution and structured validation.
-- Cross-tenant leakage mitigated by space-scoped filtering and strict tenant-aware checks.
-- Embedding API abuse mitigated by rate limiting and structured audit records.
-- Supply-chain risks mitigated by CI scanning, SBOM generation, and image signing.
+### Hardening Guidelines for Production
+- Always enable HTTPS and set `AUTH_CALLBACK_BASE_URL` to an HTTPS origin so the session cookie uses the Secure flag.
+- Configure Keycloak with explicit client scopes, Group Membership mappers, and restricted post-logout redirect URIs.
+- Set `AUTH_TRUSTED_ISSUERS` and `AUTH_ALLOWED_AUDIENCES` explicitly rather than relying on defaults.
+- Restrict `OIDC_GROUPS_ALLOWLIST` to only the group paths that should become spaces.
+- Enable `AUDIT_LOG_FILE` and ship it to a secure, append-only log store with rotation and retention policies.
+- Monitor `audit.anomaly` events for unusual latency, norms, dimension mismatches, zero results, and low scores.
+- Place the service behind a reverse proxy that enforces TLS, HSTS, modern cipher suites, and request size limits.
+- Rotate `SESSION_SECRET`, Keycloak client secrets, and embedding provider keys regularly.
+- Review the incident runbook and maintain clear escalation paths for sev-1 and sev-2 events.
 
 **Section sources**
-- [threat-model.md:48-105](file://docs/security/threat-model.md#L48-L105)
-
-### Compliance Considerations
-- Audit logging specification defines event categories, levels, and sanitization policies.
-- Operators should map controls to their own compliance frameworks.
-- Retention and rotation of audit logs are environment responsibilities.
-
-**Section sources**
-- [audit-log.md:1-29](file://docs/security/audit-log.md#L1-L29)
-- [audit-log.md:157-179](file://docs/security/audit-log.md#L157-L179)
+- [http-auth-callback.ts:69-72](file://src/http/http-auth-callback.ts#L69-L72)
+- [config.ts:254-266](file://src/config.ts#L254-L266)
+- [audit-log.md:30-47](file://docs/security/audit-log.md#L30-L47)
+- [incident-runbook.md:17-27](file://docs/security/incident-runbook.md#L17-L27)

@@ -1,0 +1,6 @@
+- Each MCP tool is declared as one object in `SQUADRULES_TOOL_REGISTRY` with `strictInputSchema` pointing to a dedicated `*_schema.js` Zod schema and `outputSchema` pointing to its output schema.
+- Human-readable descriptions fall back from `resolveToolDoc(toolName)` to a short inline string, keeping documentation code-derivable while preserving a fallback.
+- Agent-teaching error payloads follow a fixed shape: `{ error: 'INVALID_TOOL_INPUT', tool, message, next_action, invalid_fields, example }`, produced through `withRetry` which injects `retry_count`, `max_retries`, and `must_obey`.
+- Per-call retry scoping derives a stable key from the request by reading `execution_id` from the layer URI, then falling back through `X-Idempotency-Key` / `transport_session_id` / `origin_ip` / `'unknown'`.
+- Tools that need to accept malformed JSON register their input via `mcpLooseToolInput(strictSchema)` so the MCP SDK defers parsing to the handler's safeParse path.
+- Structured MCP error results are returned as `{ isError: true, content: [{ type: 'text', text: JSON.stringify(payload) }] }` rather than raw strings, enabling clients to parse actionable payloads.

@@ -1,0 +1,1 @@
+No parent-level command; each child exposes its own initialization entry point (e.g. `qdrant/service.ts`, `embedding/service.ts`, `memory/store-init.ts`) composed from the top-level factory files.

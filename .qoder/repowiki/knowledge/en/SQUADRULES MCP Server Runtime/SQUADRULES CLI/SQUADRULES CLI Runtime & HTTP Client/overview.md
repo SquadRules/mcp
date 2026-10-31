@@ -1,0 +1,1 @@
+Node.js CLI entry point and runtime for the SQUADRULES tool, wiring Commander commands to an authenticated REST API client with retry, token refresh, and local/stdio transport.

@@ -1,0 +1,1 @@
+The bundle is versioned independently (currently 5.0.0) and shipped into the app space at boot; changes here require retraining adapters via the `train` / `bulk-insert-adapters-via-cli` workflows rather than a build step.

@@ -1,0 +1,6 @@
+Three thin Express route modules mounted by the parent app:
+- `http-export-download-routes.ts` exposes `GET /export/skill-zip/:opaque`, verifies the opaque token via `verifyExportDownloadCapability`, then delegates streaming to `streamSkillZipHttpResponse` from `export-skill-zip-http.ts`, which composes `collectSkillExportItemsForZip` → `flattenSkillItemsToZipPaths` → `pipeSkillZipToWritable` into an `express.Response` as a `PassThrough` stream.
+- `http-export-artifact-download-routes.ts` exposes `GET /export/artifact/:opaque`, verifies via `verifyExportArtifactDownloadCapability`, resolves the artifact through `MemoryQdrantStore.getMemory` under the record's space context, and sends it as a plain attachment with integrity headers.
+- `export-skill-zip-http.ts` is a pure streaming helper (no Express dependency beyond `Response`) reused by the route layer.
+
+Dependency direction is one-way: routes depend on services (`../services/export-*-capability.js`, `../services/memory/store.js`, `../services/qdrant/service.js`) and tools (`../tools/export-skill-items.js`, `../tools/skill-export/zip-bundle.js`, `../tools/export-telemetry.js`); nothing in this module is imported by those layers. Tenant isolation is enforced by wrapping every downstream call in `runWithSpaceContextAsync(record.space_context)`.

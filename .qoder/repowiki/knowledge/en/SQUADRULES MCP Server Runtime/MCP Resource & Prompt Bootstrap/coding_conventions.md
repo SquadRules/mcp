@@ -1,0 +1,5 @@
+- Bootstrap functions register a placeholder resource/prompt and immediately call `.remove()` to force the SDK to install its internal method handlers before any real handlers are added.
+- Embedded content is consumed exclusively through accessor functions (`getResource`, `getResources`, `getPrompt`, `getPrompts`) from `embedded-mcp-resources.ts` rather than importing the raw object directly.
+- Doc and prompt URIs follow the `squadrules://<subdir>/<filename>` scheme, with titles derived by replacing separators and capitalizing words.
+- Mem adapter filenames are validated against the `MEM_FILE_SLUG_KEY` regex (`^[a-z0-9]+(-[a-z0-9]+)*$`) and treated as the canonical slug, overriding a differing frontmatter slug with a warning.
+- Boot-time operations wrap work in `runWithSpaceContextAsync` using an app-space context keyed by `SQUADRULES_APP_SPACE_ID` so injected adapters land in the correct space.

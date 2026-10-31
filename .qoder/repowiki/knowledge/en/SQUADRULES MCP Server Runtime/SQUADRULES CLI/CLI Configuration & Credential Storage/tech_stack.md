@@ -1,0 +1,1 @@
+Node.js `fs` + `path` for XDG-style JSON persistence; OS keyring via the project's `./keyring.js` abstraction (with `__KEYCHAIN__` sentinel fallback to plaintext file storage).

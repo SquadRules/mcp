@@ -1,0 +1,1 @@
+Express route handlers exposing the /api/* REST surface for agent-driven adapter lifecycle operations: activate, forward, reward, train, tune, snapshot, export, spaces, and identity.

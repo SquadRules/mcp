@@ -1,0 +1,1 @@
+Qdrant via `@qdrant/js-client-rest` over HTTP/REST; TLS support through Node's built-in CA loading; embedded fallback via the project's own LanceDB-backed record store double-cast to the QdrantService shape.

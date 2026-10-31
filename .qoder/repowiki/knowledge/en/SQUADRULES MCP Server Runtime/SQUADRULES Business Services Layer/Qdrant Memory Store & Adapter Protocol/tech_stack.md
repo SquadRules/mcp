@@ -1,0 +1,1 @@
+Qdrant via `@qdrant/js-client-rest` with named dense vectors (Cosine) plus a BM25 sparse vector for hybrid search; Redis-backed shared cache for memory reads; embedding vectors produced by the project's `embeddingService`.

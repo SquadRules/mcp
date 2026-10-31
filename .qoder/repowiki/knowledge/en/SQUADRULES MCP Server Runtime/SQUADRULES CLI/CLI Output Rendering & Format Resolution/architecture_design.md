@@ -1,0 +1,7 @@
+Four-file layering inside src/cli/:
+- format.ts: resolves the effective `ResolvedFormat` (`pretty` | `json` | `text`) from the Commander `--format` flag, then `SQUADRULES_FORMAT` env, defaulting to `auto` which picks `pretty` on TTY and `json` when piped.
+- output.ts: low-level writers (`writeStdout`, `writeStderr`, `writeJson`, `writeError`) plus the central `emitResult<T>(format, data, view)` dispatcher that branches on the resolved format and invokes a per-command `ResultView<T>` with `pretty`/`text`/optional `nextCall` hooks.
+- render.ts: command-specific `renderXxxPretty` / `renderXxxText` pairs for activate, forward, reward, tune, delete, spaces, train; also builds the `nextCallHint` stderr snippet by inspecting `next_call` or `choices[].forward_first_call` in responses.
+- render-helpers.ts: shared semantic color functions (the `c` namespace — heading, label, score, success, error, dim, role, space) backed by a per-call chalk instance so colors are auto-stripped when stdout is not a TTY, plus an ASCII table builder used by the spaces renderer.
+
+Dependency direction is one-way: render.ts → render-helpers.ts; output.ts depends only on format.ts types. Command handlers import renderers and pass them as `ResultView` objects to `emitResult`, keeping I/O out of business logic.

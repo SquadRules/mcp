@@ -1,4 +1,0 @@
-- User-facing strings are routed through `useTranslation()` with namespaced keys (e.g. `account.*`, `skill.*`, `squadrules.*`, `protocol.*`) rather than inline literals.
-- Loading/error/empty states are handled by early returns at the top of the component that render a loading paragraph or an error/alert block before the main content.
-- Interactive controls use a consistent Tailwind baseline: `min-h-[44px] min-w-[44px] rounded-[var(--radius-md)]` with focus rings via `focus-visible:outline-2 focus-visible:outline-[var(--color-focus-ring)]`.
-- URL state is kept in sync with local state via `useSearchParams`, with form submissions writing back to the query string using `setSearchParams(next, { replace: true })`.

@@ -1,0 +1,4 @@
+- Secrets stored in the config file use the `__KEYCHAIN__` sentinel value from `config-file-internals.ts` instead of actual token strings when the OS keyring is available.
+- Legacy single-env flat config objects (`{ SQUADRULES_API_URL, bearerToken, refreshToken }`) are detected via `isSingleEnvFlatConfig` and migrated on first read/write into the new `{ defaultUrl, environments: { [url]: { bearerToken?, refreshToken? } } }` shape.
+- API URLs are normalized by stripping trailing slashes through `normalizeApiUrl` before being compared or persisted, ensuring environment keys match regardless of slash usage.
+- One-time warnings for degraded behavior (keychain unreachable, keyring unavailable) are implemented with module-level boolean flags that guard `warnKeychainUnreachableOnce` / `warnFallbackOnce` so the message prints at most once per process.

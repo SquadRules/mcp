@@ -1,0 +1,1 @@
+Orchestrates the canonical SQUADRULES MCP tool surface by registering activate, forward, train, tune, reward, delete, export, and spaces tools around a shared Zod schema registry.

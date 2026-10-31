@@ -1,4 +1,0 @@
-- HTTP calls go through the shared `apiFetch` wrapper rather than calling `fetch` directly, ensuring consistent JSON headers and same-origin credentials.
-- Server response errors are surfaced by throwing `Error` with the parsed `message` field or `statusText`, instead of returning error objects.
-- Type aliases in `lib/runToolTypes.ts` re-export tool-schema types under UI-friendly names (`RunContract`, `RunLayer`, etc.) so UI code stays decoupled from `src/tools/*_schema.js`.
-- Pure utility functions in `utils/` take plain data arguments and return transformed values without accessing DOM or network state, making them easy to unit-test.

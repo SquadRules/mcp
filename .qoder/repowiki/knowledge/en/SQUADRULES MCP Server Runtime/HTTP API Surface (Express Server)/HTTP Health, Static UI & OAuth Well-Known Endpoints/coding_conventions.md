@@ -1,0 +1,4 @@
+- Each route group is exposed as a named `setupXxx(app)` function that registers routes on the passed Express instance, keeping mounting logic separate from route definitions.
+- Cross-origin requests on well-known endpoints set `Access-Control-Allow-Origin` from `req.headers.origin` together with a `Vary: Origin` header before responding.
+- Optional external dependencies (Redis, embedding provider, Qdrant) are probed defensively with `.catch(() => false)` or try/catch so that a single failing backend does not crash the /health response.
+- Configuration values are read exclusively from `../config.js` constants (`AUTH_CALLBACK_BASE_URL`, `KEYCLOAK_URL`, `REDIS_URL`, etc.) rather than from `process.env` inside handlers.

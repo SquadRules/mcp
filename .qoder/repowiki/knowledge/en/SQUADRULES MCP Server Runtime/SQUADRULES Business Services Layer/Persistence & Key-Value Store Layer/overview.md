@@ -1,0 +1,1 @@
+Provides the shared key-value store abstraction (Redis or in-memory) and domain-specific stores for OIDC state, proof-of-work, forward runtime, execution traces, search/memory cache, and activation refinement.

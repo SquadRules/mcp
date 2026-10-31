@@ -1,0 +1,1 @@
+Node.js process environment variables drive all configuration; vector storage is dual-backed by Qdrant (external, selected via `QDRANT_URL`) or embedded LanceDB (file-based, default for stdio mode); embedding models are probed lazily via `ensureEmbeddingDimension` and loaded eagerly when needed.

@@ -1,0 +1,1 @@
+MCP tool that detects the best adapter for a query, returns ranked activation choices with artifact materialization instructions, and supports an authoring workflow for creating or reviewing adapters.

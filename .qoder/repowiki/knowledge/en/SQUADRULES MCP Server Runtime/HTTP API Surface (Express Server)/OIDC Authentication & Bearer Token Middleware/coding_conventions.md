@@ -1,0 +1,6 @@
+- OIDC configuration values are imported from `../config.js` rather than read directly from `process.env` at call sites, keeping environment access centralized.
+- Sensitive JWT payload fields are never echoed verbatim; only explicitly whitelisted keys (`preferred_username`, `name`, `given_name`, `family_name`, `email`, `email_verified`, `identity_provider`) are copied into `AuthPayload` / `MergedCallbackClaims` via dedicated extractors.
+- Group membership is normalized through `extractGroupsFromPayload` and filtered through `applyOidcGroupsAllowlist` before reaching any downstream handler, regardless of whether the identity came from a session cookie or a Bearer token.
+- Optional string fields on `AuthPayload` are assigned only after truthiness checks (`typeof x === 'string' && x.length > 0`), so missing claims are omitted rather than set to empty strings.
+- Trace logging for auth decisions is gated behind `process.env['AUTH_TRACE'] === 'true' || process.env['LOG_LEVEL'] === 'trace'` blocks instead of unconditional logging.
+- OIDC URL construction normalizes trailing slashes by calling `.replace(/\/$/, '')` on base URLs before concatenating path segments.

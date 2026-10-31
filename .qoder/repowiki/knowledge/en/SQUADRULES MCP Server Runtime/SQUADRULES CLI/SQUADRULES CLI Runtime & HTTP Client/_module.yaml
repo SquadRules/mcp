@@ -1,0 +1,22 @@
+schema_version: 1
+module_path: cli/client_runtime
+title: SQUADRULES CLI Runtime & HTTP Client
+scope:
+    - src/cli/index.ts
+    - src/cli/program.ts
+    - src/cli/client-factory.ts
+    - src/cli/api-client.ts
+    - src/cli/local-target.ts
+    - src/cli/download-export-ref.ts
+    - src/cli/skill-zip-local-write.ts
+    - src/cli/train-batch.ts
+    - src/cli/upload-guards.ts
+    - src/cli/fetch-error.ts
+    - src/cli/resolve-api-base.ts
+    - src/cli/resolve-timeout.ts
+    - src/cli/safe-http-url.ts
+    - src/cli/log-sink-prelude.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: cli/config

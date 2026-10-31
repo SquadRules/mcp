@@ -1,0 +1,6 @@
+- Each route file exports a single `setupXxxRoute(app, ...)` factory that registers its Express routes, keeping one handler per file.
+- Request bodies are validated against a canonical Zod schema imported from `../tools/*_schema.js`, and validation failure returns `{ error: 'INVALID_INPUT', message }` with status 400.
+- Business logic is invoked inside `runHttpApiWithSpaceContext(req, () => executeXxx(...))` so tenant/space context flows from the request into the tool layer.
+- Structured logging uses `structuredLogger.info` for entry and `structuredLogger.error` for catch blocks, with the route path embedded in the log message.
+- Domain exceptions are handled by explicit `instanceof TrainError` / `SquadrulesError` checks that map to stable error-code responses rather than generic 500s.
+- Shared cross-cutting concerns (error normalization, OIDC profile derivation) are factored into sibling helpers under `src/http/` (e.g. `http-route-errors.js`, `oidc-profile-claims.js`) instead of being duplicated in handlers.

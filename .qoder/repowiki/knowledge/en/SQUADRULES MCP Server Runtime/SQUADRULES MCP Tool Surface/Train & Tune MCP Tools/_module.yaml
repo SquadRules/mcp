@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: tools/train_tune
+title: Train & Tune MCP Tools
+scope:
+    - src/tools/train.ts
+    - src/tools/tune.ts
+    - src/tools/train_*.ts
+    - src/tools/tune-*.ts
+    - src/tools/tune_schema.ts
+source_files: []
+depends_on: []
+related_to: []

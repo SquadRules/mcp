@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: tools/tool_registry
+title: MCP Tool Registry & Input Teaching
+scope:
+    - src/tools/tool-registry.ts
+    - src/tools/local-artifact-dir-contract.ts
+    - src/tools/mcp-tool-input-teaching.ts
+    - src/tools/mcp-runtime-error.ts
+    - src/tools/mcp-loose-input-schema.ts
+source_files: []
+depends_on: []
+related_to: []

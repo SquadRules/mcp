@@ -1,0 +1,5 @@
+- Adapter and workflow documents declare identity through YAML frontmatter fields `slug`, `version`, and optionally `chain_root` pointing to the chain entry slug.
+- Cross-adapter references use the canonical `squadrules://adapter/<slug>` URI form in both prose and JSON examples, never bare filenames.
+- Chaining uses `forward` + slug for deterministic routing and reserves `subagent` hops (with `forward.target = squadrules://adapter/critic-loop`) exclusively for adversarial review, keeping the critic off the executor thread.
+- Verification follows the documented ladder — `shell` first, then `subagent`, then `comment` as a closing ACK — with interpreter names restricted to `bash`, `sh`, `python3`, `python`, or `node`.
+- Tool spec files under `tools/` describe the agent-facing contract (input/output schemas, roles, rules) without embedding implementation code, mirroring the activate → forward → reward workflow boundary.

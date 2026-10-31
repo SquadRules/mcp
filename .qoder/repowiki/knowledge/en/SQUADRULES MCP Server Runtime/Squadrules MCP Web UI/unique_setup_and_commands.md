@@ -1,0 +1,1 @@
+The app is served under the `/ui` path (`BrowserRouter basename="/ui"`); assets are inlined at build time (`build.assetsInlineLimit: 0`) so Helmet's `img-src 'self'` policy allows the logo SVG to load from `/ui/assets/*.svg`. Runtime version is injected via the `VITE_SQUADRULES_VERSION` env var.

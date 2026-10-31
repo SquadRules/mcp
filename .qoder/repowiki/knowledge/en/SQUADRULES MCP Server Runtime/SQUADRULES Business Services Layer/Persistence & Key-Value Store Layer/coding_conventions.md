@@ -1,0 +1,5 @@
+- Domain stores expose a singleton instance at module scope (e.g. `keyValueStore`, `redisCacheService`, `oidcStateStore`, `proofOfWorkStore`, `forwardRuntimeStore`, `activateRefinementStore`) rather than requiring callers to construct them.
+- All KV-backed stores access data exclusively through the `keyValueStore` factory export; they never import `RedisService` or `MemoryStore` directly, keeping backend choice centralized.
+- Key naming follows a `<domain>:<entity>:<id>` convention with TTLs declared as named constants at the top of each store file (e.g. `NONCE_TTL_SEC`, `HASH_TTL_SEC`, `REFINE_COUNT_TTL_SEC`).
+- Errors from KV operations are caught and logged via `structured-logger` while returning safe defaults (null, empty array, zero) instead of propagating exceptions to callers.
+- Cross-process cache invalidation is published on a dedicated Redis channel (`cache:invalidation`) after mutating keys, allowing other processes to react to search/memory/begin cache changes.

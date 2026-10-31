@@ -1,0 +1,1 @@
+Defines and registers Prometheus metrics across SQUADRULES subsystems (HTTP, agent, embedding, memory, Qdrant, MCP, anomaly, export, system) via a shared registry with default service labels.

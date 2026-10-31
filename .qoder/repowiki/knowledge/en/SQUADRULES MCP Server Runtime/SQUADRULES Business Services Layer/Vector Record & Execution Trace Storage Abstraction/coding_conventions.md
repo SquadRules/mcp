@@ -1,0 +1,5 @@
+- Every persistent write goes through `withCommitRetry`, which detects Lance/LanceDB commit-conflict messages and retries with exponential backoff + jitter rather than failing immediately.
+- Read paths open-or-skip tables lazily (`openTableIfPresent` / `openTableIfPresent`) so cold starts never create disk files; tables are created only on first write via `ensureTableForWrite`.
+- The `LanceVectorRecordStore` surface mirrors the legacy `QdrantService` API (e.g. `retrieveById`, `getMemoryByUUID`, `createOrUpdateAlias` no-ops) so existing callers can be migrated without changing call sites.
+- Domain types in `types.ts` are re-exported from `../../types/memory.js` and kept free of any backend-client import, keeping the ports backend-neutral.
+- Vector column names are derived from the stored schema width (`vs${dimension}`) rather than hard-coded, with width validation performed before upserts.

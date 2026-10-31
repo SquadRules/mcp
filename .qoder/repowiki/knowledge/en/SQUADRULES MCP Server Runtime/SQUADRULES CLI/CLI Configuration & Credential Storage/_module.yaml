@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: cli/config
+title: CLI Configuration & Credential Storage
+scope:
+    - src/cli/config-file.ts
+    - src/cli/config-file-internals.ts
+    - src/cli/config-file-write.ts
+    - src/cli/config.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: cli/auth_oauth
+    - path: cli/client_runtime

@@ -1,0 +1,1 @@
+Zod schemas drive both runtime validation and generated documentation/UI; tool docs are resolved from embedded markdown via `resolveToolDoc`.

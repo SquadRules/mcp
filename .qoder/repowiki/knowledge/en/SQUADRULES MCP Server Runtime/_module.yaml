@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: ""
+title: SQUADRULES MCP Server Runtime
+scope:
+    - src/bootstrap.ts
+    - src/config.ts
+    - src/index.ts
+    - src/me-response.ts
+    - src/metrics-server.ts
+    - src/server.ts
+source_files: []
+depends_on: []
+related_to: []

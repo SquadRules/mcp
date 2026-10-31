@@ -1,0 +1,1 @@
+Express.js for HTTP routing; Zod (`safeParse`) for request schema validation; raw-body for unbounded markdown ingestion on `/api/train/raw`.

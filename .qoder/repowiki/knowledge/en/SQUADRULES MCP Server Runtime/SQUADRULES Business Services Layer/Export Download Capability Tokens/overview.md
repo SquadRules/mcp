@@ -1,0 +1,1 @@
+Generates and verifies HMAC-signed, time-limited capability tokens that authorize one-time download of exported skill bundles or individual artifacts.

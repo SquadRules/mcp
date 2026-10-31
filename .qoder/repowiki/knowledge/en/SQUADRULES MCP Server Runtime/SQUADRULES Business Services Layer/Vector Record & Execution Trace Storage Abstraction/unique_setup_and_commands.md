@@ -1,0 +1,1 @@
+The embedded store writes its data into `<squadrules-config-dir>/lancedb` (resolved via `getSquadrulesConfigDir()`); the SDK native bindings are loaded lazily inside `openLanceConnection` so importing this module does not pull in native code when the Qdrant path is active.

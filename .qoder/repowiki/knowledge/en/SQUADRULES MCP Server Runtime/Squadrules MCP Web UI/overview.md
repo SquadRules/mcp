@@ -1,0 +1,1 @@
+React/Vite single-page application that lets agents and users author, preview, run, and inspect Squadrules protocol adapters through a sidebar-navigated web interface.

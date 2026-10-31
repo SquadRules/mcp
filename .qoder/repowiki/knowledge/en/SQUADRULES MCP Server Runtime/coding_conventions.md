@@ -1,0 +1,3 @@
+- Process-wide error handling is installed once at startup via `installGlobalErrorHandlers()` plus explicit SIGTERM/SIGINT handlers that set `process.exitCode` rather than relying on Node defaults.
+- Configuration flows through `src/config.ts` helpers (`getEnvString`/`getEnvInt`/`getEnvBoolean`/`getEnvRequired`) so every child reads env values from exported constants instead of accessing `process.env` directly.
+- The `TRANSPORT_TYPE` constant drives a single branching point in `index.ts` that selects between stdio and HTTP transports, keeping both paths sharing the same `bootLocalRuntime()` sequence.

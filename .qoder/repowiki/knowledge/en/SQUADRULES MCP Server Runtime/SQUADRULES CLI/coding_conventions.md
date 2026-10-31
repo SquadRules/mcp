@@ -1,0 +1,3 @@
+- Commands implement their workflow as activate → forward → reward using the shared `ActionBackend` interface rather than direct HTTP calls.
+- Every source file that may execute before argument parsing imports `./log-sink-prelude.js` first so logs go to stderr and stdout remains the payload channel.
+- Credential-sensitive values (bearer tokens, refresh tokens) are persisted via the keyring layer exposed by `keyring.ts` instead of plain config files.

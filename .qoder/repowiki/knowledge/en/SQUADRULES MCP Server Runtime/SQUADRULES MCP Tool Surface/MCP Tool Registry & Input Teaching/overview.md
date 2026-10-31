@@ -1,0 +1,1 @@
+Defines the canonical SQUADRULES MCP tool surface, converts Zod validation failures into agent-teaching error payloads, and provides shared schema helpers for loose input handling and local artifact handoff.

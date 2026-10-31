@@ -1,0 +1,1 @@
+chalk for terminal-aware ANSI coloring (per-call `new chalk.Instance({ level })` based on `process.stdout.isTTY`); commander for reading global options via `program.optsWithGlobals()`.

@@ -1,0 +1,1 @@
+BROWSER env controls browser launching: true/none/no/false/0 disables opening; SQUADRULES_NO_BROWSER=1 also disables it. The keyring module supports __setKeyringForTest for unit tests to inject a fake backend and reset the degradation latch.

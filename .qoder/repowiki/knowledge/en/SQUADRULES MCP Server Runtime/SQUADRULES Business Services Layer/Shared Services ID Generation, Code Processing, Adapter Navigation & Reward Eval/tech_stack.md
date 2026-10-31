@@ -1,0 +1,1 @@
+uuid library (v4 + v5 with a hard-coded SquadRules namespace) plus Node `crypto.randomUUID`; regex-driven code parsing without a dedicated parser library.

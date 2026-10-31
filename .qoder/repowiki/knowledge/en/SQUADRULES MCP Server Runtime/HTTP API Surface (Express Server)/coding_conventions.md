@@ -1,0 +1,3 @@
+- Route groups are split one file per concern and mounted by the central server bootstrap rather than defined inline.
+- Authentication is performed via shared middleware producing an `AuthPayload` instead of per-route token parsing.
+- Cross-cutting behavior (metrics, helmet, rate-limiting, error handling) is applied globally before route mounting.

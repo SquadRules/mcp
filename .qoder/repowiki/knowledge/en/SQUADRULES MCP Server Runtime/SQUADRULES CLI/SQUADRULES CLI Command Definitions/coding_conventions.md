@@ -1,0 +1,5 @@
+- Each command file exports a `*Command(program: Command)` factory that registers its subcommand on the shared Commander program instance rather than constructing its own program.
+- Business-facing commands resolve the backend via `createBackendFromProgram(program)` and render results through `emitResult(resolveOutputFormat(program), response, { pretty, text, nextCall })` from the shared output/render layer.
+- API errors are uniformly caught and forwarded to `handleApiError(error, !isBrowserDisabled())` so 401 responses trigger the browser login flow automatically.
+- Auth-sensitive commands derive their API base URL through `getBaseUrl()` from `login.ts`, which falls back to `http://localhost:3000` when the resolved target is the local sentinel.
+- Validation failures write human-readable messages via `writeError` and terminate with `process.exit(1)` instead of throwing.

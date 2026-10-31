@@ -1,0 +1,5 @@
+- Challenge shapes are built from stored `ProofOfWorkDefinition` in a dedicated renderer (`buildChallengeShapeForDisplay`) that filters untrusted fields and throws `SquadrulesError` on unknown contract types instead of passing them through.
+- Blocked or error responses are constructed via `buildErrorPayload` plus a typed result shape (`HandleProofResult` with `blockedPayload` / `proofHash` / `alreadyRecorded`) so callers uniformly branch on success vs. recoverable failure.
+- Nonce-based replay protection is enforced by storing/retrieving nonces through `proofOfWorkStore.setNonce`/`getNonce` and rotating the nonce on mismatch before returning a NONCE_MISMATCH error.
+- Layer URIs are normalized and reconstructed through `parseSquadrulesUri` / `buildLayerUri` rather than string concatenation, preserving the optional `execution_id` query parameter across the pipeline.
+- Quality metrics updates are wrapped in try/catch and logged via `structuredLogger` while incrementing `squadrulesQualityUpdateErrors` on failure, so quality tracking never aborts the primary request.

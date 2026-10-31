@@ -1,0 +1,6 @@
+Two parallel capability domains share the same token scheme: `export-download-capability.ts` (skill zip downloads) and `export-artifact-download-capability.ts` (individual artifact downloads). Each domain pairs a capability service with a thin store wrapper:
+- Service layer (`*-capability.ts`) mints opaque tokens as `base64url(payload).HMAC-SHA256(payload)` and returns a URL built via `buildExport*Url`, which resolves its base from `resolvePublicExportBaseUrl()`.
+- Store layer (`*-capability-store.ts`) defines a typed record interface and an in-memory key-value facade over `keyValueStore.setJson/getJson`, keyed by `mem:<domain>:<id>` with TTL equal to `SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC`.
+- Verification (`verifyExport*Capability`) re-computes the HMAC, decodes the payload, checks expiry against current epoch seconds, then looks up the record and double-checks both id and `expires_at`.
+- Both domains capture `space_context` from `getSpaceContextFromStorage()` at mint time for tenant isolation.
+Dependency direction is one-way: services depend on stores; stores depend only on `key-value-store-factory` and `tenant-context`; neither touches HTTP or storage backends directly.

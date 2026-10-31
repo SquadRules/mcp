@@ -1,0 +1,4 @@
+- Each data command exposes a paired `renderXxxPretty` / `renderXxxText` function consuming its typed output shape (e.g. `ActivateOutput`, `ForwardOutput`, `RewardOutput`).
+- Human-readable output is built by pushing styled lines into a `lines: string[]` array and joining with `\n`, using the shared `c.*` semantic color helpers rather than raw chalk calls.
+- The `nextCallHint` helper emits the shell snippet to stderr in pretty mode only, while JSON mode keeps `next_call` structured in the body — never mixing text into JSON.
+- Colorization goes through `ttyChalk()` so every call re-evaluates `process.stdout.isTTY`, ensuring colors are stripped when output is piped regardless of import time.

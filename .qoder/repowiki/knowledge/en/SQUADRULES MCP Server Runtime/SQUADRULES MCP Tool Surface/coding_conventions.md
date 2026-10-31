@@ -1,0 +1,3 @@
+- Each MCP tool exposes paired `*_input_schema.ts` / `*_output_schema.ts` Zod schemas imported by `tool-registry.ts` as the single source of truth for the tool's contract.
+- Validation failures are surfaced to agents through the shared `mcp-tool-input-teaching` helper rather than raw Zod errors.
+- Tool names are declared once in `SQUADRULES_TOOL_REGISTRY` and referenced elsewhere only via the exported `SquadrulesToolName` union type.

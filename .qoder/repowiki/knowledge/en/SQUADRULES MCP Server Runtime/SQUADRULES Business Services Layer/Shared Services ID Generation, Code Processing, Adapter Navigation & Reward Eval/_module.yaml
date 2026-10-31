@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: services/shared_infra
+title: 'Shared Services: ID Generation, Code Processing, Adapter Navigation & Reward Evaluation'
+scope:
+    - src/services/id-generator.ts
+    - src/services/code-block-processor.ts
+    - src/services/adapter-layer-count.ts
+    - src/services/adapter-navigation.ts
+    - src/services/reward-evals.ts
+    - src/services/reward-metrics.ts
+source_files: []
+depends_on: []
+related_to: []

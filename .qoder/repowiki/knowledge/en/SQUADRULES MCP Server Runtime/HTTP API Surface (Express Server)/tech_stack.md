@@ -1,0 +1,1 @@
+Express.js as the HTTP framework across all children; Keycloak OIDC for both browser sessions and MCP authorization discovery.

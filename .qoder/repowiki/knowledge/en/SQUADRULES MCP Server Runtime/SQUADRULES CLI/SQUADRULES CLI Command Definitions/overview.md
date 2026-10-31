@@ -1,0 +1,1 @@
+Commander.js subcommands for the squadrules CLI, implementing the activate → forward → reward workflow plus auth, spaces, token, serve, train, tune, delete, export, and metadata operations.

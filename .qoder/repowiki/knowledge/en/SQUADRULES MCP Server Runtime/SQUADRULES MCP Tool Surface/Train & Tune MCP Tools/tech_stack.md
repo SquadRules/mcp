@@ -1,0 +1,1 @@
+Zod schemas for all tool inputs/outputs; Qdrant as the adapter store backend accessed through `QdrantService`; Redis-backed cache invalidated after tune writes; OpenTelemetry metrics (`mcpToolCalls`, `mcpToolDuration`, `mcpToolErrors`, `mcpToolInputSize`, `mcpToolOutputSize`) instrument every tool invocation.

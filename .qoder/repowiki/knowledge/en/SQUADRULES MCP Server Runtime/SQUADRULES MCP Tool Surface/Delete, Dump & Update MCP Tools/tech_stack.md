@@ -1,0 +1,1 @@
+Zod for input/output schema validation; MCP tool registration via `server.registerTool`; Redis-backed cache for memory reads during dump; Qdrant service for persistence operations.

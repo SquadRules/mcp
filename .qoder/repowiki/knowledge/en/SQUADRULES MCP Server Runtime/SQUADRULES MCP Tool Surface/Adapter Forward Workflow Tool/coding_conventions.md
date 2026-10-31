@@ -1,0 +1,6 @@
+- All public I/O shapes are defined as Zod schemas in `forward_schema.ts` and re-exported as both runtime validators and TypeScript types via `z.infer<typeof ...>`.
+- Legacy v1 solution payloads (flat `type` + matching field like `shell`/`forward`/`user_input`/`comment`) are normalized into the v2 envelope `{ type, outcome, evidence }` by `normalizeForwardSolutionFormat` before validation.
+- Fire-and-forget persistence is wrapped in a `traceFireAndForget(op)` helper that logs failures via `structuredLogger.warn` without propagating errors to the caller.
+- Errors thrown inside the tool handler are caught and converted to MCP error responses via `formatForwardToolError`, while non-`SquadrulesError` exceptions bubble up unchanged.
+- Metrics instrumentation follows a fixed pattern: increment `mcpToolCalls`/`mcpToolErrors` on entry/exit, wrap the handler body with `mcpToolDuration.startTimer`, and observe `mcpToolInputSize`/`mcpToolOutputSize` with JSON stringified payload lengths.
+- UI-facing guidance is produced centrally by `buildForwardView`, which sets `next_action` text and injects a `solution_template` built from `buildEmptySolutionTemplate(contract.type)` plus any pre-filled `nonce`/`proof_hash`.

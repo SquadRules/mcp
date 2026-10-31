@@ -1,1 +1,0 @@
-Built on top of `@modelcontextprotocol/sdk/server/mcp.js` (registerResource/registerPrompt APIs); embedded content is produced at build time by `scripts/build-embed-docs.ts` and shipped as plain JS string maps rather than loaded from disk at runtime.

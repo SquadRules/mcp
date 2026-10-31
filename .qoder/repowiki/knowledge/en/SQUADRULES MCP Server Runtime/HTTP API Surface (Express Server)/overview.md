@@ -1,0 +1,1 @@
+Wires an Express server that exposes REST, MCP-over-HTTP, OIDC flows, health/UI endpoints, and export downloads under a shared auth/metrics/error middleware stack.

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: http_api
+title: HTTP API Surface (Express Server)
+scope:
+    - src/http/
+source_files: []
+depends_on: []
+related_to: []

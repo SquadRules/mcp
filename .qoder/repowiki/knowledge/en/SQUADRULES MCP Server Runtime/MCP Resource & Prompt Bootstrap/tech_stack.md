@@ -1,0 +1,1 @@
+TypeScript against `@modelcontextprotocol/sdk/server/mcp.js` for `registerResource`/`registerPrompt`/`ResourceTemplate`; embedded content is produced by a custom `scripts/build-embed-docs.ts` generator that serializes `src/embed-docs/` into a single JS module.

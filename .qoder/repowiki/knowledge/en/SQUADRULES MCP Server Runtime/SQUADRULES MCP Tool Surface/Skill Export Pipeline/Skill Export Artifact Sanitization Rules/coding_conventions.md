@@ -1,0 +1,4 @@
+- Each sanitization check is implemented as a factory function returning an `ArtifactSanitizationRule` object with a stable string `id` and a pure `evaluate` method — no side effects or I/O inside rules.
+- Diagnostics use stable, snake_case `code` identifiers (e.g. `artifact_ext_mime_mismatch`, `artifact_missing_mime`) so callers can match outcomes without parsing messages.
+- MIME comparisons go through `normalizeMimeType` to lowercase and strip parameters before any equality or membership checks.
+- Allowed MIME sets are centralized in `extension-mime-map.ts` keyed by file extension, keeping extension-to-MIME policy out of rule logic.

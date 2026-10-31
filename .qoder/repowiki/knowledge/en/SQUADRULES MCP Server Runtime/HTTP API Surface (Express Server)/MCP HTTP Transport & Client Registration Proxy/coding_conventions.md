@@ -1,0 +1,5 @@
+- Per-request MCP servers: each `/mcp` invocation constructs a new `createServer(memoryStore)` plus a new `StreamableHTTPServerTransport`, rather than sharing a singleton transport across requests.
+- Audit emission is gated by `AUDIT_LOG_LEVEL` checks at every call site (`emitRequestStart`, `emitRequestEnd`, `emitToolCallAudit`) instead of wrapping the whole handler.
+- Error surfaces to JSON-RPC clients go through `mcpErrorToHelp`, which maps internal errors to `{message, error_code, retry_hint}` envelopes with code -32603, never leaking raw stack traces.
+- Keycloak URLs are normalized by stripping trailing slashes via `.replace(/\/$/, '')` before concatenation, applied consistently in `keycloakFetchBase` and the URL rewrite helpers.
+- Public-facing URLs are rewritten by extracting the last path segment (clientId) and reconstructing against `AUTH_CALLBACK_BASE_URL`, used for both `registration_client_uri` and `Location` headers.

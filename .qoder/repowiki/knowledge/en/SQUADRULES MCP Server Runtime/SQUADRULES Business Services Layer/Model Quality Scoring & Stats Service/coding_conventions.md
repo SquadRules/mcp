@@ -1,0 +1,4 @@
+- Pure scoring/bonus algorithms live in dedicated files (`scoring.ts`, `bonuses.ts`, `healer.ts`) and expose plain functions that take data structures as arguments, keeping the orchestrator free of domain math.
+- External services (Qdrant, key-value store) are accessed through injected or lazily-imported singletons rather than direct instantiation, with fallback defaults returned on error paths.
+- Persistent state mutations go through helper functions (`updateImplementationBonusHelper`, `updateHealerBonusHelper`, `addRecentDiscovery`) that both mutate the in-memory object and call `saveStatsState`.
+- Quality labels are drawn from a fixed union type (`excellent` | `high` | `standard` | `basic` | `below_threshold`) computed by threshold checks in `determineQuality` / `calculateStepQualityMetadata`.

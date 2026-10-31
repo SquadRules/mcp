@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: http_api/export_download
+title: Export Download HTTP Endpoints
+scope:
+    - src/http/export-skill-zip-http.ts
+    - src/http/http-export-artifact-download-routes.ts
+    - src/http/http-export-download-routes.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: services/export_capability

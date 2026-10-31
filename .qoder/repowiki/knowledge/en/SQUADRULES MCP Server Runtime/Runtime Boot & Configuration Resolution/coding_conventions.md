@@ -1,0 +1,4 @@
+- Configuration resolution is expressed as pure functions taking `process.env` (or a mock env object) as arguments so defaults derive from other resolved values and tests can pass arbitrary env records without polluting global state.
+- Boolean env flags accept a canonical set of truthy strings (`'1' | 'true' | 'yes' | 'on'`) and falsy strings (`'false' | '0' | 'no' | 'n'`), with unparseable values returning `undefined` so callers apply their own defaults.
+- Startup-side-effect code is isolated behind optional boolean gates (`healthProbe`, `loadEmbeddings`, `seedAdapters`, `forceSeed`) so the same boot function powers both the full server path and the fast CLI local backend.
+- Validation functions return arrays of diagnostic messages rather than throwing, letting callers aggregate multiple violations and convert them to a single startup error after all checks run.

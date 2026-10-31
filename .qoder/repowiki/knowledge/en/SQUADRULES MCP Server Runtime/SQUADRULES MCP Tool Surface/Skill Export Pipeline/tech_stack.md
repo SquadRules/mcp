@@ -1,0 +1,1 @@
+Node.js TypeScript; depends on external services `MemoryQdrantStore` and `QdrantService` (via `../dump.ts`) to resolve adapter content, and uses the `squadrules://` URI scheme as the canonical identity for adapters/layers.

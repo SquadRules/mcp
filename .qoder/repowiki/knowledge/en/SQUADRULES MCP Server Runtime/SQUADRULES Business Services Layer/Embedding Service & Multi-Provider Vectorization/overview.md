@@ -1,0 +1,1 @@
+Provides embedding generation over OpenAI, TEI, and local fastembed backends with retry/backoff, anomaly auditing, dimension probing, and BM25 sparse-token support.

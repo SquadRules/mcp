@@ -2,427 +2,348 @@
 
 <cite>
 **Referenced Files in This Document**
-- [README.md](file://README.md)
 - [package.json](file://package.json)
+- [docs/README.md](file://docs/README.md)
 - [docs/CLI.md](file://docs/CLI.md)
 - [.agents/skills/squadrules/SKILL.md](file://.agents/skills/squadrules/SKILL.md)
 - [.agents/skills/squadrules/references/install.md](file://.agents/skills/squadrules/references/install.md)
-- [.agents/skills/squadrules/references/action-routing.md](file://.agents/skills/squadrules/references/action-routing.md)
-- [src/config/runtime-mode.ts](file://src/config/runtime-mode.ts)
-- [src/stdio/stdio-server.ts](file://src/stdio/stdio-server.ts)
-- [src/services/qdrant/connection.ts](file://src/services/qdrant/connection.ts)
-- [src/config.ts](file://src/config.ts)
+- [docs/adapter-authoring-guide.md](file://docs/adapter-authoring-guide.md)
 </cite>
 
 ## Table of Contents
 1. [Introduction](#introduction)
-2. [What SquadRules Is](#what-squadrules-is)
-3. [Installation Requirements](#installation-requirements)
-4. [Quick Start](#quick-start)
-5. [Manual Installation](#manual-installation)
-6. [MCP Configuration](#mcp-configuration)
-7. [Skill Installation](#skill-installation)
-8. [Your First Interaction](#your-first-interaction)
-9. [Core Concepts](#core-concepts)
-10. [Connecting SquadRules to AI Apps](#connecting-squadrules-to-ai-apps)
-11. [Running Your First Workflow](#running-your-first-workflow)
-12. [Troubleshooting](#troubleshooting)
-13. [Next Steps](#next-steps)
+2. [Project Structure](#project-structure)
+3. [Core Components](#core-components)
+4. [Architecture Overview](#architecture-overview)
+5. [Detailed Component Analysis](#detailed-component-analysis)
+6. [Dependency Analysis](#dependency-analysis)
+7. [Performance Considerations](#performance-considerations)
+8. [Troubleshooting Guide](#troubleshooting-guide)
+9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
 
 ## Introduction
-SquadRules is an agent-first MCP framework that helps AI assistants remember team preferences and workflows. Instead of repeating instructions, your AI can consult shared knowledge, follow team conventions, and keep that knowledge up to date as things change.
+This guide helps you install, configure, and run SquadRules MCP for the first time. It covers:
+- Installing the npm package
+- Configuring environment variables
+- Running infrastructure dependencies (Qdrant, Redis, Keycloak)
+- Starting the server with Docker Compose or manually
+- Creating your first adapter
+- Running basic workflows through the CLI
+- Understanding the CLI interface
+- Verifying installation
+- Setting up a development environment (TypeScript compilation, testing, debugging)
 
-The most important idea is simple: one AI plus one human is a team. The AI maintains the knowledge; the human configures preferences through the AI.
+SquadRules is an agent-first MCP framework where AI agents are the primary users. The core workflow is activate → forward → reward, and adapters provide deterministic, auditable task execution. Vector databases such as Qdrant (primary) and LanceDB (secondary) power semantic search over rules and workflows. Storage includes Redis for sessions and rate limiting, vector stores for embeddings, and the filesystem for configuration and adapters. Authentication uses Keycloak plus Google IdP for OAuth2/JWT. Skills under `.agents/skills/` are hand-authored routing logic; `squadrules` is the canonical action router.
 
-## What SquadRules Is
-SquadRules gives AI assistants a shared place to keep preferences and ways of working. It is not just another chat memory store. It is designed so that:
-
-- Agents are the primary users.
-- Humans configure preferences through agents.
-- Workflows are deterministic and auditable.
-- Adapters encode team-specific rules for tasks like building, deploying, reviewing, testing, or automating work.
-- Vector storage powers semantic search over rules and workflows.
-- The `activate → forward → reward` chain guides agents from intent detection through execution to feedback.
-
-This means you do not need to manually manage every rule. You describe what matters, and the agent helps maintain it.
+## Project Structure
+At a high level:
+- `src/` contains the TypeScript server, CLI, HTTP routes, services, tools, UI, and utilities.
+- `docs/` holds curated documentation not derivable from code.
+- `.agents/skills/squadrules/` contains the agent-facing skill that routes action intents to the activate → forward → reward chain.
+- `package.json` defines binaries, scripts, dependencies, and Node engine requirements.
 
 ```mermaid
-flowchart TD
-Human["Human describes a task"] --> Agent["AI agent"]
-Agent --> SquadRules["SquadRules MCP server"]
-SquadRules --> Memory["Team knowledge and adapters"]
-Memory --> Agent
-Agent --> Result["Result following team conventions"]
+graph TB
+A["package.json<br/>binaries, scripts, engines"] --> B["CLI entry<br/>dist/cli/index.js"]
+B --> C["MCP server<br/>stdio or HTTP"]
+C --> D["Vector store<br/>Qdrant / LanceDB"]
+C --> E["Cache / session store<br/>Redis"]
+C --> F["Auth provider<br/>Keycloak + Google IdP"]
 ```
 
-[No sources needed since this diagram shows conceptual workflow, not actual code structure]
-
-## Installation Requirements
-Before installing SquadRules, make sure your environment meets these requirements:
-
-| Requirement | Details |
-|---|---|
-| Node.js | Version 24 or newer |
-| MCP host | An AI app that supports MCP |
-| Vector store | A Qdrant instance reachable by default at `localhost:6333` with no authentication |
-| Embedding backend | Exactly one configured embedding provider |
-| Terminal access | Required for global installation and skill setup |
-
-The package declares Node.js 24+ as its engine requirement, and the documentation explicitly requires Node.js 24 or newer.
+**Diagram sources**
+- [package.json:30-34](file://package.json#L30-L34)
+- [package.json:159-161](file://package.json#L159-L161)
 
 **Section sources**
-- [package.json:160-162](file://package.json#L160-L162)
-- [README.md:13-16](file://README.md#L13-L16)
+- [package.json:1-194](file://package.json#L1-L194)
+- [docs/README.md:1-33](file://docs/README.md#L1-L33)
+
+## Core Components
+- **CLI**: `squadrules`, `sq`, and `sqr` are equivalent binaries pointing at the same entry point. They support local-by-default operation against embedded LanceDB and remote operation against an HTTP server.
+- **Server**: Starts in stdio mode by default for MCP hosts, or HTTP mode when requested.
+- **Adapters**: Markdown-based contracts that define flows, verification steps, and artifacts.
+- **Embedding backends**: Exactly one must be configured (OpenAI, OpenAI-compatible/Ollama, or TEI).
+- **Infrastructure**: Qdrant is required for boot; Redis and Keycloak are used for sessions/rate-limiting and authentication respectively.
+
+**Section sources**
+- [package.json:30-34](file://package.json#L30-L34)
+- [docs/CLI.md:9-44](file://docs/CLI.md#L9-L44)
 - [.agents/skills/squadrules/references/install.md:12-25](file://.agents/skills/squadrules/references/install.md#L12-L25)
 
-## Quick Start
-If you want the fastest path to try SquadRules:
+## Architecture Overview
+The end-to-end flow for a new user is:
+1. Install Node.js and the npm package.
+2. Start Qdrant locally.
+3. Configure exactly one embedding backend via environment variables.
+4. Point your MCP host at `squadrules serve`.
+5. Verify tools appear in your host.
+6. Optionally start the HTTP server and authenticate against Keycloak.
 
-1. Install Node.js 24+.
-2. Run the global install command.
-3. Add SquadRules to your MCP host configuration.
-4. Install the SquadRules skill.
-5. Ask your AI assistant to build your first workflow.
-
-The repository’s quick start uses `npx -y @squadrules/mcp@latest` directly from your MCP host configuration, then installs the `squadrules` skill through the skills tooling.
-
-**Section sources**
-- [README.md:18-50](file://README.md#L18-L50)
-
-## Manual Installation
-The manual installation path is intended for end users who want full control over how their MCP host connects to SquadRules.
-
-### Step 1: Install the package globally
-Run:
-
-```bash
-npm install -g @squadrules/mcp
-```
-
-This installs the `squadrules` CLI and exposes the MCP server entry point used by MCP hosts.
-
-### Step 2: Start a vector store
-SquadRules needs a vector store to boot. By default, it expects Qdrant on `localhost:6333` without authentication. If you do not already have Qdrant running, you can start it with Docker:
-
-```bash
-docker run -p 6333:6333 qdrant/qdrant
-```
-
-Any Qdrant reachable at `localhost:6333` works; Docker is only a convenience.
-
-### Step 3: Choose an embedding backend
-You must configure exactly one embedding backend. The supported options include:
-
-| Backend | Environment variables |
-|---|---|
-| OpenAI (hosted) | `OPENAI_API_KEY` |
-| OpenAI-compatible / Ollama (local) | `OPENAI_API_URL`, `OPENAI_EMBEDDING_MODEL`, `OPENAI_API_KEY` |
-| TEI | `TEI_BASE_URL`, optional `TEI_MODEL` |
-
-The implementation reads these values from environment variables and selects the active provider accordingly.
-
-### Step 4: Verify the installation
-After installation, verify the CLI is available:
-
-```bash
-squadrules --help
-```
-
-**Section sources**
-- [.agents/skills/squadrules/references/install.md:27-90](file://.agents/skills/squadrules/references/install.md#L27-L90)
-- [src/config.ts:70-81](file://src/config.ts#L70-L81)
-
-## MCP Configuration
-There are two main ways to connect SquadRules to an MCP host.
-
-### Option A: Quick npx connection
-Add SquadRules to your MCP host configuration using `npx`:
-
-```json
-{
-  "mcpServers": {
-    "squadrules": {
-      "command": "npx",
-      "args": ["-y", "@squadrules/mcp@latest"]
-    }
-  }
-}
-```
-
-This is the simplest option because the MCP host downloads and runs the package on demand.
-
-### Option B: Global install with `squadrules serve`
-If you installed SquadRules globally, configure your MCP host to run the `serve` command:
-
-```json
-{
-  "mcpServers": {
-    "squadrules": {
-      "command": "squadrules",
-      "args": ["serve"],
-      "env": {
-        "QDRANT_URL": "http://localhost:6333",
-        "QDRANT_API_KEY": "",
-        "OPENAI_API_KEY": "sk-..."
-      }
-    }
-  }
-}
-```
-
-Important notes:
-
-- `serve` defaults to stdio transport, so no `--transport` flag is required.
-- All parameters are environment-overridable.
-- The default Qdrant URL is `http://localhost:6333`.
-- The default Qdrant API key is empty, meaning no authentication for local setups.
-
-```mermaid
-sequenceDiagram
-participant Host as "MCP Host"
-participant Server as "SquadRules MCP Server"
-participant Qdrant as "Qdrant Vector Store"
-participant Embedding as "Embedding Backend"
-Host->>Server : Start squadrules serve
-Server->>Qdrant : Initialize connection
-Qdrant-->>Server : Health check
-Server->>Embedding : Resolve provider
-Embedding-->>Server : Provider ready
-Server-->>Host : MCP tools available
-```
-
-**Diagram sources**
-- [src/stdio/stdio-server.ts:6-12](file://src/stdio/stdio-server.ts#L6-L12)
-- [src/services/qdrant/connection.ts:24-60](file://src/services/qdrant/connection.ts#L24-L60)
-- [src/config.ts:70-81](file://src/config.ts#L70-L81)
-
-**Section sources**
-- [README.md:18-37](file://README.md#L18-L37)
-- [.agents/skills/squadrules/references/install.md:37-63](file://.agents/skills/squadrules/references/install.md#L37-L63)
-- [src/config/runtime-mode.ts:43-55](file://src/config/runtime-mode.ts#L43-L55)
-- [src/services/qdrant/connection.ts:24-60](file://src/services/qdrant/connection.ts#L24-L60)
-
-## Skill Installation
-The SquadRules skill tells your AI when to use SquadRules. It contains routing logic that directs action intents through the `activate → forward → reward` chain.
-
-Install the skill with:
-
-```bash
-npx skills add SquadRules/mcp --skill squadrules
-```
-
-Use an app that supports both MCP and skills. If you are unsure where to add the configuration or run the command, ask your AI assistant to help set up SquadRules for your app.
-
-The skill is agent-internal. Humans should not need to interact with SquadRules directly; the agent routes actions automatically while humans observe passively.
-
-**Section sources**
-- [README.md:39-50](file://README.md#L39-L50)
-- [.agents/skills/squadrules/SKILL.md:1-20](file://.agents/skills/squadrules/SKILL.md#L1-L20)
-- [.agents/skills/squadrules/SKILL.md:22-33](file://.agents/skills/squadrules/SKILL.md#L22-L33)
-
-## Your First Interaction
-The recommended first interaction is collaborative and agent-led. Try something like:
-
-> Let's build our first SquadRules flow together. Ask me what I do often, help me improve it, and save the flow for next time.
-
-This prompts the agent to:
-
-1. Discover recurring tasks.
-2. Identify team-specific conventions.
-3. Route through SquadRules when appropriate.
-4. Create or repair adapters as needed.
-5. Save the workflow for future use.
-
-**Section sources**
-- [README.md:52-55](file://README.md#L52-L55)
-- [.agents/skills/squadrules/SKILL.md:35-46](file://.agents/skills/squadrules/SKILL.md#L35-L46)
-
-## Core Concepts
-SquadRules is built around a few core ideas that shape how you use it.
-
-### Agent-first design
-Agents are the primary users. The skill is written for the agent, not the human. The agent detects action intents, consults team knowledge, and executes workflows according to team rules.
-
-### One team per human-AI pair
-Even one human and one AI assistant form a team. SquadRules stores preferences and workflows for that team context.
-
-### The activate → forward → reward chain
-This is the central workflow:
-
-1. **Activate:** Find the best matching adapter for an intent.
-2. **Forward:** Execute one or more adapter layers.
-3. **Reward:** Record success or failure feedback.
-
-The agent must complete the full chain before responding to the user or starting substantive work.
-
-### Adapters are team runbooks
-Adapters do not teach the AI how to perform generic tasks. They encode team-specific conventions such as branch naming, ticket references, commit formats, deployment sequences, approvals, and post-action checks.
-
-```mermaid
-flowchart TD
-Intent["Action intent"] --> Activate["activate"]
-Activate --> Forward["forward"]
-Forward --> NextLayer{"More layers?"}
-NextLayer --> |Yes| Forward
-NextLayer --> |No| Reward["reward"]
-Reward --> Response["Response or next steps"]
-```
-
-**Diagram sources**
-- [.agents/skills/squadrules/SKILL.md:35-46](file://.agents/skills/squadrules/SKILL.md#L35-L46)
-- [.agents/skills/squadrules/references/action-routing.md:19-30](file://.agents/skills/squadrules/references/action-routing.md#L19-L30)
-
-**Section sources**
-- [.agents/skills/squadrules/SKILL.md:22-46](file://.agents/skills/squadrules/SKILL.md#L22-L46)
-- [.agents/skills/squadrules/references/action-routing.md:19-47](file://.agents/skills/squadrules/references/action-routing.md#L19-L47)
-
-## Connecting SquadRules to AI Apps
-Most MCP-enabled AI apps connect to SquadRules through an MCP configuration file. The exact location depends on your app, but the connection pattern is consistent.
-
-### Common integration patterns
-| Integration type | How it works |
-|---|---|
-| MCP host with npx | The host runs `npx -y @squadrules/mcp@latest` when connecting |
-| MCP host with global install | The host runs `squadrules serve` with environment variables |
-| Developer HTTP mode | The server listens on HTTP with `/mcp`, `/api/*`, `/ui`, and `/health` endpoints |
-| Local embedded mode | Data commands run against an embedded LanceDB store without a remote server |
-
-### Choosing stdio vs HTTP
-By default, `squadrules serve` uses stdio transport. HTTP mode is useful for developers or environments that require an HTTP endpoint. You can enable HTTP mode with `--transport http` or by setting `TRANSPORT_TYPE=http`.
-
-**Section sources**
-- [README.md:18-37](file://README.md#L18-L37)
-- [.agents/skills/squadrules/references/install.md:85-90](file://.agents/skills/squadrules/references/install.md#L85-L90)
-- [docs/CLI.md:176-184](file://docs/CLI.md#L176-L184)
-- [src/config/runtime-mode.ts:43-55](file://src/config/runtime-mode.ts#L43-L55)
-
-## Running Your First Workflow
-Once SquadRules is connected, your first workflow usually starts with an action intent. Examples include:
-
-- Building or deploying something
-- Creating a pull request or merge request
-- Writing or formatting code
-- Testing or debugging
-- Automating a repetitive process
-
-The agent should detect the intent, call `activate`, follow `forward` until the chain ends, and then call `reward`.
-
-### Example workflow sequence
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant Agent as "AI Agent"
-participant MCP as "SquadRules MCP"
-participant Adapter as "Adapter Layer"
-User->>Agent : "Deploy to staging"
-Agent->>MCP : activate("deploy to staging")
-MCP-->>Agent : Matched adapter with next_action
-Agent->>MCP : forward(uri, solution)
-MCP-->>Agent : Next layer or reward
-Agent->>MCP : reward(uri, outcome)
-MCP-->>Agent : Finalized run
-Agent-->>User : Result with team conventions applied
+participant Host as "MCP Host"
+participant CLI as "squadrules serve"
+participant Qdrant as "Qdrant"
+participant Embed as "Embedding Backend"
+participant Auth as "Keycloak"
+User->>Host : Configure mcpServers.squadrules
+Host->>CLI : Launch stdio process
+CLI->>Qdrant : Connect on startup
+CLI->>Embed : Resolve embedding provider
+Host-->>User : Tools available (activate, forward, reward, ...)
+Note over CLI,Qdrant : Server cannot boot without a vector store
+alt HTTP transport
+Host->>CLI : --transport http
+CLI->>Auth : OIDC login flow
+end
 ```
 
 **Diagram sources**
-- [.agents/skills/squadrules/SKILL.md:35-46](file://.agents/skills/squadrules/SKILL.md#L35-L46)
-- [.agents/skills/squadrules/references/action-routing.md:19-30](file://.agents/skills/squadrules/references/action-routing.md#L19-L30)
+- [.agents/skills/squadrules/references/install.md:12-25](file://.agents/skills/squadrules/references/install.md#L12-L25)
+- [.agents/skills/squadrules/references/install.md:65-74](file://.agents/skills/squadrules/references/install.md#L65-L74)
+- [docs/CLI.md:221-229](file://docs/CLI.md#L221-L229)
 
-### Using the CLI directly
-You can also test SquadRules directly from the terminal:
+## Detailed Component Analysis
 
-```bash
-npx -y @squadrules/mcp activate "how do I deploy a release"
+### Installation and Environment Setup
+- Prerequisites:
+  - Node.js 24 or later.
+  - A reachable Qdrant instance (default `localhost:6333`, no auth).
+  - Exactly one embedding backend configured via environment variables.
+- Install globally:
+  - Run `npm install -g @squadrules/mcp`.
+  - Confirm the CLI with `squadrules --help`.
+- Configure your MCP host:
+  - Add `squadrules` to your host’s `mcpServers` configuration.
+  - Use command `squadrules` with args `serve`.
+  - Set environment variables for Qdrant and your chosen embedding backend.
+- Verify:
+  - Your host should list SquadRules tools (`activate`, `forward`, `reward`, etc.).
+  - If you can run the CLI directly, confirm `squadrules --help`.
+
+Environment variables:
+- Qdrant:
+  - `QDRANT_URL`: defaults to `http://localhost:6333`.
+  - `QDRANT_API_KEY`: defaults to empty string for no-auth localhost.
+- Embedding backend (choose one):
+  - OpenAI hosted: set `OPENAI_API_KEY`.
+  - OpenAI-compatible / Ollama: set `OPENAI_API_URL`, `OPENAI_EMBEDDING_MODEL`, and `OPENAI_API_KEY`.
+  - TEI: set `TEI_BASE_URL` and optionally `TEI_MODEL`.
+
+Optional HTTP listener:
+- Default is stdio. To enable HTTP, pass `--transport http` or set `TRANSPORT_TYPE=http`.
+
+**Section sources**
+- [.agents/skills/squadrules/references/install.md:12-31](file://.agents/skills/squadrules/references/install.md#L12-L31)
+- [.agents/skills/squadrules/references/install.md:37-63](file://.agents/skills/squadrules/references/install.md#L37-L63)
+- [.agents/skills/squadrules/references/install.md:65-74](file://.agents/skills/squadrules/references/install.md#L65-L74)
+- [.agents/skills/squadrules/references/install.md:76-90](file://.agents/skills/squadrules/references/install.md#L76-L90)
+
+### Infrastructure Dependencies
+- Qdrant:
+  - Required for server boot.
+  - Quick start: run a container exposing port 6333.
+  - Any reachable Qdrant endpoint works if you set `QDRANT_URL`.
+- Redis:
+  - Used for sessions and rate limiting.
+  - Configure via environment variables expected by the service layer.
+- Keycloak:
+  - Provides OAuth2/JWT authentication.
+  - Configure client registration and scopes according to the server’s OIDC integration.
+
+Note: Container images, Docker Compose deployment, and Helm charts are owned by sibling repositories. Use them to deploy Qdrant, Redis, and Keycloak alongside the server.
+
+**Section sources**
+- [.agents/skills/squadrules/references/install.md:12-25](file://.agents/skills/squadrules/references/install.md#L12-L25)
+- [docs/README.md:23-26](file://docs/README.md#L23-L26)
+
+### Initial Server Setup
+- Stdio mode (recommended for MCP hosts):
+  - No flags needed; `serve` defaults to stdio.
+  - Configure your host to invoke `squadrules serve`.
+- HTTP mode:
+  - Pass `--transport http` or set `TRANSPORT_TYPE=http`.
+  - Use `--server-port` or `SERVER_PORT` to control the listen address.
+  - Root `--url` does not set the listen address.
+
+Verification endpoints:
+- `/health` should respond on the base URL when running HTTP.
+- `/mcp` is the MCP JSON-RPC endpoint.
+
+Authentication (HTTP targets only):
+- Use `squadrules login` to perform browser PKCE login or supply a token.
+- After login, data commands automatically target the stored HTTP API URL.
+
+**Section sources**
+- [docs/CLI.md:221-229](file://docs/CLI.md#L221-L229)
+- [docs/CLI.md:231-246](file://docs/CLI.md#L231-L246)
+
+### First-Time Workflow Walkthrough
+- Create your first adapter:
+  - Follow the Adapter Authoring Guide to define trigger, inputs, authority, outcome, and evidence.
+  - Choose the appropriate contract type using the verification ladder: shell, subagent, or comment.
+  - For executable gates, prefer the script-export pattern with an attached artifact.
+- Run basic workflows:
+  - Use `activate` to find the best matching adapter for a query.
+  - Use `forward` to execute the next layer until the chain indicates reward.
+  - Use `reward` to record success or failure feedback.
+- Understand the CLI:
+  - Local-by-default means commands run in-process against embedded LanceDB unless you specify a remote URL.
+  - Global options include `--url`, `--timeout`, `--retries`, `--format`, `--space`, and `--reseed`.
+  - Output formats: auto, pretty, json, text.
+
+```mermaid
+flowchart TD
+Start(["Start"]) --> Activate["Run 'activate' with a short query"]
+Activate --> Choice{"Adapter found?"}
+Choice --> |Yes| Forward["Run 'forward' with the returned URI"]
+Choice --> |No| Create["Create or train an adapter"]
+Create --> Train["Use 'train' to register markdown or attach artifacts"]
+Train --> Forward
+Forward --> Next{"next_action indicates reward?"}
+Next --> |No| Forward
+Next --> |Yes| Reward["Run 'reward' with outcome and feedback"]
+Reward --> End(["Done"])
 ```
 
-Or after a global install:
+**Diagram sources**
+- [docs/CLI.md:79-103](file://docs/CLI.md#L79-L103)
+- [docs/CLI.md:131-149](file://docs/CLI.md#L131-L149)
 
-```bash
-squadrules activate "how do I deploy a release"
+**Section sources**
+- [docs/adapter-authoring-guide.md:11-21](file://docs/adapter-authoring-guide.md#L11-L21)
+- [docs/adapter-authoring-guide.md:23-44](file://docs/adapter-authoring-guide.md#L23-L44)
+- [docs/adapter-authoring-guide.md:85-113](file://docs/adapter-authoring-guide.md#L85-L113)
+- [docs/CLI.md:79-103](file://docs/CLI.md#L79-L103)
+- [docs/CLI.md:131-149](file://docs/CLI.md#L131-L149)
+
+### CLI Interface Reference
+- Binaries: `squadrules`, `sq`, `sqr`.
+- Invocation:
+  - Global install: `npm install -g @squadrules/mcp` then `squadrules --help`.
+  - Without global install: `npx -y @squadrules/mcp activate "how do I deploy a release"`.
+- Local-by-default:
+  - Commands run in-process against embedded LanceDB unless a remote URL is specified.
+- Global options:
+  - `-u, --url <url>`: API base URL or `local`/`stdio`.
+  - `--timeout <seconds>`: Request timeout.
+  - `--retries <n>`: Max retries.
+  - `--format <format>`: Output format.
+  - `--space <space>`: Space scope.
+  - `--reseed`: Force re-injection of bundled adapters in local mode.
+  - `--no-browser`: Never open a browser for auth.
+- Commands:
+  - `activate`, `forward`, `reward`, `tune`, `delete`, `spaces`, `train`, `export`, `serve`.
+- Authentication:
+  - `login`, `token`, `logout` for HTTP targets.
+
+**Section sources**
+- [docs/CLI.md:9-44](file://docs/CLI.md#L9-L44)
+- [docs/CLI.md:46-75](file://docs/CLI.md#L46-L75)
+- [docs/CLI.md:77-229](file://docs/CLI.md#L77-L229)
+- [docs/CLI.md:231-246](file://docs/CLI.md#L231-L246)
+
+### Development Environment Setup
+- Node.js:
+  - Engine requirement is Node.js 24 or later.
+- Build:
+  - `npm run build` compiles TypeScript and builds the React UI.
+  - `npm run ui:build` builds the UI separately.
+- Type checking:
+  - `npm run typecheck` runs TypeScript checks for both server and UI.
+- Testing:
+  - Unit tests: Jest.
+  - UI tests: Vitest.
+  - Automation tests: Node test runner scripts.
+- Linting:
+  - ESLint, markdownlint, and custom doc-link checker.
+- Debugging:
+  - Use your IDE’s Node debugger against `dist/cli/index.js`.
+  - For HTTP mode, inspect logs and health endpoints.
+
+**Section sources**
+- [package.json:40-79](file://package.json#L40-L79)
+- [package.json:159-161](file://package.json#L159-L161)
+
+## Dependency Analysis
+Key runtime dependencies relevant to setup:
+- Vector stores:
+  - Qdrant client for remote-capable vector storage.
+  - LanceDB for embedded secondary storage.
+- Cache/session store:
+  - Redis client for sessions and rate limiting.
+- HTTP stack:
+  - Express for HTTP server routes.
+- Embeddings:
+  - Fastembed for local embedding fallback.
+- Authentication:
+  - JWT library for token validation.
+
+```mermaid
+graph LR
+P["package.json"] --> Q["@qdrant/js-client-rest"]
+P --> L["@lancedb/lancedb"]
+P --> R["redis"]
+P --> E["express"]
+P --> F["fastembed"]
+P --> J["jose"]
 ```
 
-**Section sources**
-- [docs/CLI.md:14-23](file://docs/CLI.md#L14-L23)
-- [.agents/skills/squadrules/references/action-routing.md:19-30](file://.agents/skills/squadrules/references/action-routing.md#L19-L30)
-
-## Troubleshooting
-This section covers the most common beginner setup issues.
-
-### Node.js version too old
-**Symptom:** Installation fails or the runtime reports an unsupported Node.js version.  
-**Fix:** Upgrade to Node.js 24 or newer.
+**Diagram sources**
+- [package.json:81-121](file://package.json#L81-L121)
 
 **Section sources**
-- [package.json:160-162](file://package.json#L160-L162)
-- [README.md:13-16](file://README.md#L13-L16)
+- [package.json:81-121](file://package.json#L81-L121)
 
-### Qdrant is unreachable
-**Symptom:** The server exits immediately or cannot reach the vector store.  
-**Fix:** Confirm Qdrant is running on `localhost:6333` or update `QDRANT_URL`. Test connectivity with:
+## Performance Considerations
+- Prefer Qdrant for production-scale semantic search; use LanceDB for local/embedded scenarios.
+- Keep embedding model selection consistent across environments to avoid drift.
+- Tune Redis connection settings for high-throughput sessions and rate limiting.
+- Avoid unnecessary network hops by using local-by-default CLI behavior during development.
 
-```bash
-curl http://localhost:6333/readyz
-```
+[No sources needed since this section provides general guidance]
 
-**Section sources**
-- [.agents/skills/squadrules/references/install.md:92-96](file://.agents/skills/squadrules/references/install.md#L92-L96)
-- [src/services/qdrant/connection.ts:24-36](file://src/services/qdrant/connection.ts#L24-L36)
-
-### Embedding errors
-**Symptom:** Embedding calls fail or the server cannot initialize embeddings.  
-**Fix:** Ensure exactly one embedding backend is configured and its endpoint, model, or API key is correct.
-
-**Section sources**
-- [.agents/skills/squadrules/references/install.md:97-98](file://.agents/skills/squadrules/references/install.md#L97-L98)
-- [src/config.ts:70-81](file://src/config.ts#L70-L81)
-
-### Auth failures against remote Qdrant
-**Symptom:** Authentication fails when connecting to a remote Qdrant instance.  
-**Fix:** Set `QDRANT_API_KEY` to the remote key. Leave it empty only for no-auth localhost setups.
-
-**Section sources**
-- [.agents/skills/squadrules/references/install.md:99-100](file://.agents/skills/squadrules/references/install.md#L99-L100)
-- [src/services/qdrant/connection.ts:24-36](file://src/services/qdrant/connection.ts#L24-L36)
-
-### MCP server unavailable or unauthenticated
-**Symptom:** The agent cannot route actions because the MCP server is down, misconfigured, or unauthenticated.  
-**Fix:**
-
-1. Check whether the MCP endpoint URL is correct.
-2. Verify `GET /health` responds on the same base URL if using HTTP.
-3. Confirm the MCP host configuration points at the expected `/mcp` endpoint.
-4. Ensure the host allows the required tools.
-5. Reauthenticate if the session expired.
-
-This is treated as a critical error: stop routing and ask the user to remediate.
+## Troubleshooting Guide
+Common issues and resolutions:
+- Server exits immediately or cannot reach vector store:
+  - Ensure Qdrant is reachable on `localhost:6333` or set `QDRANT_URL` appropriately.
+  - Test connectivity with `curl http://localhost:6333/readyz`.
+- Embedding errors:
+  - Ensure exactly one embedding backend is configured and its endpoint/model/key are correct.
+- Auth failures against remote Qdrant:
+  - Set `QDRANT_API_KEY` for remote instances; leave it empty only for no-auth localhost.
+- CLI target confusion:
+  - Remember that without `login`, data commands target the embedded store.
+  - Use `--url` to explicitly target a remote server.
+- HTTP server not starting:
+  - Verify `--transport http` or `TRANSPORT_TYPE=http`.
+  - Check `--server-port` or `SERVER_PORT`.
+  - Confirm `/health` responds on the base URL.
 
 **Section sources**
-- [.agents/skills/squadrules/SKILL.md:70-79](file://.agents/skills/squadrules/SKILL.md#L70-L79)
-- [.agents/skills/squadrules/references/action-routing.md:172-191](file://.agents/skills/squadrules/references/action-routing.md#L172-L191)
+- [.agents/skills/squadrules/references/install.md:92-100](file://.agents/skills/squadrules/references/install.md#L92-L100)
+- [docs/CLI.md:29-44](file://docs/CLI.md#L29-L44)
+- [docs/CLI.md:221-229](file://docs/CLI.md#L221-L229)
 
-### Skills not detected
-**Symptom:** The agent does not use SquadRules even though the MCP server is connected.  
-**Fix:** Make sure the `squadrules` skill is installed and your MCP host supports skills. Use:
+## Conclusion
+You now have the essentials to install SquadRules MCP, configure environment variables, run infrastructure dependencies, start the server, create your first adapter, and execute basic workflows. Use the CLI reference for deeper operations and consult the Adapter Authoring Guide for robust adapter design. For deployment packaging and orchestration, refer to the sibling repositories for containers and Helm charts.
 
-```bash
-npx skills add SquadRules/mcp --skill squadrules
-```
+[No sources needed since this section summarizes without analyzing specific files]
 
-**Section sources**
-- [README.md:39-50](file://README.md#L39-L50)
-- [.agents/skills/squadrules/SKILL.md:1-20](file://.agents/skills/squadrules/SKILL.md#L1-L20)
+## Appendices
 
-## Next Steps
-After your first successful workflow, consider:
-
-- Training new adapters for recurring team tasks.
-- Updating existing adapters when processes change.
-- Exporting adapters for backup or sharing.
-- Exploring spaces if your team shares knowledge across groups.
-- Reading the CLI reference for bulk operations.
-
-The CLI provides commands for `activate`, `forward`, `reward`, `train`, `tune`, `delete`, `export`, and `spaces`. For deeper architecture, API details, and internal behavior, consult the project Wiki rather than this getting started guide.
+### Verification Checklist
+- Node.js version meets engine requirement.
+- Qdrant is reachable and responding.
+- Exactly one embedding backend is configured.
+- MCP host lists SquadRules tools.
+- Optional: HTTP server responds on `/health`.
+- Optional: Authentication succeeds via Keycloak.
 
 **Section sources**
-- [docs/CLI.md:77-184](file://docs/CLI.md#L77-L184)
-- [docs/README.md:1-8](file://docs/README.md#L1-L8)
+- [package.json:159-161](file://package.json#L159-L161)
+- [.agents/skills/squadrules/references/install.md:76-90](file://.agents/skills/squadrules/references/install.md#L76-L90)
+- [docs/CLI.md:221-229](file://docs/CLI.md#L221-L229)

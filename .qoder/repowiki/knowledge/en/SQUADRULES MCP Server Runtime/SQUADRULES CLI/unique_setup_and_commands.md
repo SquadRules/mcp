@@ -1,0 +1,1 @@
+Invocation defaults to `serve` (stdio transport) when no arguments are given and stdin is not a TTY, enabling MCP hosts to spawn the process and pipe commands; a human terminal invocation shows help instead.

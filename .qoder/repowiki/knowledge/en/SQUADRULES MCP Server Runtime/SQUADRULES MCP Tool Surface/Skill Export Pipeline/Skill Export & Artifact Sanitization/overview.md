@@ -1,0 +1,1 @@
+Assembles protocol adapters into SKILL.md bundles with YAML frontmatter, attached artifacts, diagnostics, and ZIP packaging for downstream skill consumers.

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: tools/activate
+title: Adapter Activation Tool (Intent Detection)
+scope:
+    - src/tools/activate.ts
+    - src/tools/activate-artifacts.ts
+    - src/tools/activate_schema.ts
+source_files: []
+depends_on: []
+related_to: []

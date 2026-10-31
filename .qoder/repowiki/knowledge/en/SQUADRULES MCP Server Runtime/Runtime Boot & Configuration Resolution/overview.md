@@ -1,0 +1,1 @@
+Bootstraps the local runtime (vector store, embeddings, Qdrant/LanceDB selection, adapter seeding) and resolves runtime-mode configuration (stdio vs HTTP transport, auth posture, stdio safety checks).

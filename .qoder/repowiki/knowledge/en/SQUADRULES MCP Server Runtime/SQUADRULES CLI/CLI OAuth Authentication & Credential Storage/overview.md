@@ -1,0 +1,1 @@
+CLI-side OAuth helpers: browser launch, OIDC login-URL rewriting, refresh_token grant against the protected-resource metadata endpoint, and OS-native keyring-backed credential persistence.

@@ -1,0 +1,1 @@
+MCP tool that loads an adapter layer's contract, validates and applies a solution (shell/forward/user_input/comment/subagent), advances the proof-of-work chain, and returns the next layer or reward prompt.

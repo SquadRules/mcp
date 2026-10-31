@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: tools/skill_export/artifact_sanitization
+title: Skill Export Artifact Sanitization Rules
+scope:
+    - src/tools/skill-export/artifact-sanitization/
+source_files: []
+depends_on: []
+related_to: []

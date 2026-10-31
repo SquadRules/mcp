@@ -1,0 +1,1 @@
+Bundles SQUADRULES adapter policies, authoring guides, and MCP tool specifications that are injected into the app space at boot for agent-driven workflow execution.

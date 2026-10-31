@@ -1,0 +1,1 @@
+Collection schema is auto-provisioned on first use via `initializeQdrantStore` (creates collection, adds missing named vectors, migrates old layouts, ensures BM25 sparse config and full-text payload indexes); requires `QDRANT_URL`/`QDRANT_API_KEY` env vars and a configured `SQUADRULES_APP_SPACE_ID`. Tests spin up Qdrant via testcontainers alongside Redis.

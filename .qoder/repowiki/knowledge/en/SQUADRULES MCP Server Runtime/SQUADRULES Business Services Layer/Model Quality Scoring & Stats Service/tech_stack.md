@@ -1,0 +1,1 @@
+TypeScript service layer backed by a Redis key-value store (via `../key-value-store-factory.js`) for persistent stats state; optional Qdrant integration loaded dynamically for protocol step queries; Prometheus-style counters/gauges via `../metrics/agent-metrics.js`.

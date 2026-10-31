@@ -1,5 +1,0 @@
-- Public I/O contracts are defined as Zod schemas in a dedicated `_schema.ts` file and re-exported as TypeScript types via `z.infer<typeof ...>`.
-- Scores exposed to agents are normalized through `normalizePublicSearchScore` (sigmoid with PUBLIC_SCORE_PIVOT=0.5) so they fall into a stable 0.0–1.0 range before filtering or display.
-- Built-in protocol URIs/slugs (refine, create) are stripped from user queries before search and cache-key computation via `queryForSearch` to prevent them from influencing matching.
-- Optional downstream calls (footer version resolution, chain-root resolution, Qdrant lookups) are wrapped in try/catch that log via `structuredLogger.warn` and return safe defaults rather than propagating errors.
-- Caching follows a vN key-version pattern (`activate:v6:...`) with explicit debug logging distinguishing hit vs miss and recording backend type, TTL, and tenant/request IDs.

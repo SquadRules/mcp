@@ -1,0 +1,1 @@
+Express.js for routing; Vite-built SPA served statically; Keycloak as upstream OIDC provider proxied through `.well-known/openid-configuration`; RFC 9728 (Protected Resource Metadata) and RFC 8414 (Authorization Server Metadata) compliance.

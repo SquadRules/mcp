@@ -1,0 +1,1 @@
+Resolves the global --format flag and renders squadrules data-command results into JSON, compact human-friendly pretty output, or minimal text.

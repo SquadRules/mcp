@@ -1,0 +1,4 @@
+- Each feature area exposes a `setupXxx(app, ...)` function that mounts routes or middleware onto the shared Express instance, keeping wiring declarative in `http-server.ts`.
+- Per-path rate limits are created through the shared `createRateLimiter` factory rather than inline `rateLimit()` calls, reusing identifiers and window/limit constants from `../config.js`.
+- Domain-level route errors are surfaced via `sendToolRouteError(res, error, fallbackCode)` which maps `SquadrulesError.statusCode` (or generic `status`/`statusCode`) to a 4xx/5xx HTTP status and a stable JSON `{error, message}` payload.
+- All process-level logging goes through `structuredLogger` (success/info/error) instead of `console.log`, including startup, health-check URLs, and listen errors.

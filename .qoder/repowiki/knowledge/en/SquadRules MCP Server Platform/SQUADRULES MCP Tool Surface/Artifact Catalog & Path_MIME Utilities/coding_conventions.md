@@ -1,3 +1,0 @@
-- Public helpers return `null` to signal invalid input (e.g. `normalizeArtifactRelativePath`, `inferArtifactMimeFromName`) instead of throwing, letting callers filter out bad records.
-- Canonical allowlists are built once at module load time into a `Set` or frozen `Array` (see `ALLOWED_ARTIFACT_MIMES`) so lookups are O(1) and the source-of-truth cannot be mutated.
-- String fields are normalized defensively via `trim().toLowerCase()` before comparison or storage, applied consistently across MIME handling and path normalization.

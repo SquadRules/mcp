@@ -1,0 +1,1 @@
+Zod schemas define the agent-server wire protocol; SHA-256 via Node `crypto` hashes proof records; cosine-similarity embedding validation for comment proofs uses `embeddingService.generateEmbedding` with a configurable timeout (`COMMENT_SEMANTIC_VALIDATION_TIMEOUT_MS`).

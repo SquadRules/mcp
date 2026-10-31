@@ -1,0 +1,1 @@
+Service layer that persists and retrieves agent memory, protocol steps, resources, and quality metrics in a Qdrant vector collection, with an embedded-store fallback for LanceDB environments.

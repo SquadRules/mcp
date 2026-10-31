@@ -1,1 +1,0 @@
-Embedded LanceDB via `@lancedb/lancedb` with MVCC commit semantics; semantic search over stored vectors uses JS cosine similarity rather than a vector index.

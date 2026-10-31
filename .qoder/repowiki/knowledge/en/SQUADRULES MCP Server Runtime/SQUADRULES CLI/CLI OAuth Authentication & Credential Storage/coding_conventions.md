@@ -1,0 +1,4 @@
+- External/native dependencies (@napi-rs/keyring, system browsers) are loaded lazily via dynamic require/execFile and wrapped in try/catch so failures degrade gracefully rather than crashing the CLI.
+- Network operations accept an injectable fetchImpl parameter defaulting to global fetch, enabling deterministic testing of HTTP paths.
+- Credential keys are derived deterministically from the normalized API base URL, with a '::refresh' suffix appended for refresh-token entries to keep access and refresh tokens in separate accounts.
+- Long-running or untrusted I/O (keyring ops, browser launch, OIDC refresh) is guarded by timeouts/sanitization and returns null/false on failure instead of throwing, keeping CLI entry points resilient.
