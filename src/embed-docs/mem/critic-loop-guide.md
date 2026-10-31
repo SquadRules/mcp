@@ -1,5 +1,5 @@
 ---
-version: "5.14.5"
+version: "5.14.6"
 slug: critic-loop-guide
 title: Critic Loop Integration and Mutation Gate Guide
 ---
