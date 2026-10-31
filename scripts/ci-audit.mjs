@@ -112,7 +112,7 @@ async function main() {
   const overrides = auditedOverrideUpdates(before.vulnerabilities, manifest.overrides);
   if (overrides.length) {
     for (const [name, version] of overrides) manifest.overrides[name] = version;
-    writeFileSync('package.json', `${JSON.stringify(manifest, null, 2)}\\n`);
+    writeFileSync('package.json', `${JSON.stringify(manifest, null, 2)}\n`);
     console.log(`Applying audited security overrides: ${overrides.map(([name, version]) => `${name}@${version}`).join(', ')}`);
     const lock = spawnSync('npm', ['install', '--package-lock-only', '--ignore-scripts', '--no-audit'], {
       stdio: 'inherit', env: { ...process.env, NPM_CONFIG_IGNORE_SCRIPTS: 'true' },
