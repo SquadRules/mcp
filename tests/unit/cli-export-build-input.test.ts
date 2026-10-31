@@ -83,6 +83,31 @@ describe('cli buildExportInput selection union', () => {
     expect(input.format).toBe('skill_zip');
   });
 
+  it('omits delivery when --delivery is not provided', () => {
+    const input = buildExportInput(ADAPTER_URI, {});
+    expect(input.delivery).toBeUndefined();
+  });
+
+  it('passes --delivery through for skill_zip', () => {
+    expect(buildExportInput(ADAPTER_URI, { delivery: 'inline_base64' }).delivery).toBe('inline_base64');
+    expect(buildExportInput(ADAPTER_URI, { delivery: 'download_ref' }).delivery).toBe('download_ref');
+    expect(
+      buildExportInput(undefined, { allAdapters: true, space: 'personal', delivery: 'inline_base64' }).delivery
+    ).toBe('inline_base64');
+  });
+
+  it('rejects an unknown --delivery value', () => {
+    expect(() => buildExportInput(ADAPTER_URI, { delivery: 'carrier-pigeon' })).toThrow(
+      /--delivery must be one of: download_ref, inline_base64/
+    );
+  });
+
+  it('rejects --delivery with a non-skill_zip format', () => {
+    expect(() => buildExportInput(ADAPTER_URI, { as: 'skill_tree', delivery: 'inline_base64' })).toThrow(
+      /--delivery is only valid with --as skill_zip/
+    );
+  });
+
   it('accepts --to with a single uri and a content format', () => {
     const input = buildExportInput(ADAPTER_URI, { as: 'source', to: '/tmp/artifacts/gates.py' });
     expect(input.uri).toBe(ADAPTER_URI);
