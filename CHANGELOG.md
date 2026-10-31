@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.14.7](https://github.com/SquadRules/mcp/compare/v5.14.6...v5.14.7) (2026-10-31)
+
+
+### Bug Fixes
+
+* **cli:** export markdown bulk via --directory with slug-named files ([faeb30f](https://github.com/SquadRules/mcp/commit/faeb30f6c8ad39343ba7b29a6941ba4ca838f3b4))
+* **cli:** export markdown bulk via --directory, slug filenames ([#240](https://github.com/SquadRules/mcp/issues/240)) ([faeb30f](https://github.com/SquadRules/mcp/commit/faeb30f6c8ad39343ba7b29a6941ba4ca838f3b4))
+
 ## [5.14.6](https://github.com/SquadRules/mcp/compare/v5.14.5...v5.14.6) (2026-10-31)
 
 
