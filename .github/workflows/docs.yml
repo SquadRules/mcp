@@ -1,22 +1,23 @@
-# Docs bot: update the Qoder wiki when source changes, open a docs-typed PR,
-# and auto-merge via the SquadRules auto GitHub App. This keeps the wiki in sync with code
-# without manual intervention. The wiki is code-derivable (never hand-edit
-# .qoder/repowiki/en/content/); this workflow updates it incrementally from source.
-#
-# Triggers: workflow_dispatch (manual) and push to main for the paths declared as
-# wiki inputs in .qoder/repowiki/wiki_plan.yaml (src/**, docs/**, .agents/**) plus the
-# plan file itself, so the trigger scope and the declared generation scope cannot drift.
-# Generated output lands only under .qoder/repowiki/**, which is deliberately NOT in the
-# filter: a merged wiki-regeneration PR must not retrigger generation. Publishing that
-# output stays in sync-qoder-repowiki-to-github-wiki.yml, which is untouched.
-# The docs bot uses QODER_PERSONAL_ACCESS_TOKEN
-# to run the Qoder CLI wiki generation, and AUTO_APP_ID + AUTO_APP_PRIVATE_KEY
-# to create and auto-merge the PR. Schedule trigger disabled to reduce CI noise.
+# Qoder wiki lifecycle: incremental updates for a completed main/en wiki, fresh
+# bootstrap for missing or foreign-branch output, deliberate manual regeneration.
+# All Qoder runs execute in a disposable local clone; only validated output is
+# copied back, committed on a docs branch, and proposed through a PR.
+# Generated wiki output is deliberately excluded from push triggers to avoid loops.
+# The downstream GitHub Wiki sync remains a separate workflow.
 
 name: Docs wiki regeneration
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'auto (incremental or bootstrap), or explicit full regeneration'
+        type: choice
+        required: true
+        default: auto
+        options:
+          - auto
+          - regenerate
   push:
     branches: [main]
     paths:
@@ -28,13 +29,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: docs-wiki-main
+  cancel-in-progress: false
+
 jobs:
   regenerate-wiki:
     name: Regenerate Qoder wiki
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     outputs:
       changed: ${{ steps.changes.outputs.changed }}
+      pr_number: ${{ steps.create-pr.outputs.pr_number }}
+      pr_sha: ${{ steps.create-pr.outputs.pr_sha }}
     steps:
       - name: Generate GitHub App token (SquadRules auto)
         id: app-token
@@ -116,46 +123,84 @@ jobs:
       - name: Regenerate Qoder wiki
         env:
           QODER_PERSONAL_ACCESS_TOKEN: ${{ secrets.QODER_PERSONAL_ACCESS_TOKEN }}
+          REQUESTED_WIKI_MODE: ${{ inputs.mode || 'auto' }}
         run: |
           set -euo pipefail
-          # Qoder CLI wiki incremental update (.qoder/repowiki/en/content/ from source).
-          # --update regenerates only pages affected by source changes, not the full wiki.
-          npx -y @qoder-ai/qodercli@latest wiki --update -f .qoder/repowiki/wiki_plan.yaml --repo . --language en
-          echo "Wiki updated at $(date -u)"
+          MODE="$(node scripts/wiki-generation-state.mjs mode "$GITHUB_WORKSPACE" "$REQUESTED_WIKI_MODE")"
+          echo "Qoder generation mode: $MODE"
+          # The final component must be "mcp": Qoder records the checkout
+          # directory name as wiki_repo.name alongside its git branch identity.
+          TEMP_ROOT="$(mktemp -d "$RUNNER_TEMP/qoder-wiki.XXXXXXXX")"
+          trap 'rm -rf "$TEMP_ROOT"' EXIT
+          GEN="$TEMP_ROOT/mcp"
+          git clone --local --no-hardlinks "$GITHUB_WORKSPACE" "$GEN"
+          test "$(git -C "$GEN" branch --show-current)" = main
+          if [ "$MODE" = bootstrap ]; then
+            # Discard the foreign-branch wiki only in the disposable clone.
+            rm -rf "$GEN/.qoder/repowiki/en"
+          fi
+          (
+            cd "$GEN"
+            case "$MODE" in
+              update)
+                npx -y @qoder-ai/qodercli@latest wiki --update \
+                  -f .qoder/repowiki/wiki_plan.yaml --repo . --branch main --language en ;;
+              bootstrap)
+                npx -y @qoder-ai/qodercli@latest wiki \
+                  -f .qoder/repowiki/wiki_plan.yaml --repo . --branch main --language en ;;
+              regenerate)
+                npx -y @qoder-ai/qodercli@latest wiki --regenerate \
+                  -f .qoder/repowiki/wiki_plan.yaml --repo . --branch main --language en ;;
+            esac
+          )
+          node scripts/wiki-generation-state.mjs validate "$GEN" "$GITHUB_WORKSPACE"
+          rsync -a --delete "$GEN/.qoder/repowiki/en/" "$GITHUB_WORKSPACE/.qoder/repowiki/en/"
+          if [ -d "$GEN/.qoder/repowiki/knowledge" ]; then
+            mkdir -p "$GITHUB_WORKSPACE/.qoder/repowiki/knowledge"
+            rsync -a --delete "$GEN/.qoder/repowiki/knowledge/" "$GITHUB_WORKSPACE/.qoder/repowiki/knowledge/"
+          fi
+          echo "Validated $MODE wiki output before copying to the PR workspace"
 
       - name: Check for changes
         id: changes
         run: |
           set -euo pipefail
-          if git diff --quiet .qoder/repowiki/; then
+          # Staging captures new pages and deleted pages, unlike git diff alone.
+          git add -A .qoder/repowiki/
+          if git diff --cached --quiet -- .qoder/repowiki/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No wiki changes detected."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Wiki changes detected:"
-            git diff --stat .qoder/repowiki/
+            git diff --cached --stat -- .qoder/repowiki/
           fi
 
       - name: Create docs PR
+        id: create-pr
         if: steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           set -euo pipefail
-          BRANCH="docs/wiki-regen-$(date +%Y%m%d-%H%M%S)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="docs/wiki-regen-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "squadrules-auto[bot]"
+          git config user.email "343860684+squadrules-auto[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add .qoder/repowiki/
           git commit -m "docs: regenerate Qoder wiki from source"
+          # Checkout deliberately persists no credentials; use the App token.
+          gh auth setup-git
           git push origin "$BRANCH"
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "docs: regenerate Qoder wiki" \
-            --body "Automated wiki regeneration from source. This PR was opened by the Docs bot workflow." \
-            --label "documentation,automerge"
-          echo "PR created for branch $BRANCH"
+          PR_SHA="$(git rev-parse HEAD)"
+          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" \
+            --base main --head "$BRANCH" --title "docs: regenerate Qoder wiki" \
+            --body "Automated, validated Qoder wiki generation for main. Resolves #205." \
+            --label "documentation,automerge")"
+          PR_NUMBER="${PR_URL##*/}"
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "Invalid PR URL: $PR_URL" >&2; exit 1; }
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr_sha=$PR_SHA" >> "$GITHUB_OUTPUT"
+          echo "Created wiki PR #$PR_NUMBER ($PR_SHA)"
+
 
   auto-merge:
     name: Auto-merge docs PR
@@ -175,14 +220,12 @@ jobs:
       - name: Auto-merge the docs PR
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ needs.regenerate-wiki.outputs.pr_number }}
+          PR_SHA: ${{ needs.regenerate-wiki.outputs.pr_sha }}
         run: |
           set -euo pipefail
-          # Find the most recent docss PR opened by the bot (within last hour).
-          PR_NUMBER=$(gh pr list --state open --author "github-actions[bot]" --label "documentation,automerge" --json number --jq '.[0].number' 2>/dev/null || echo "")
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No docs PR found to auto-merge."
-            exit 0
-          fi
-          echo "Auto-merging PR #$PR_NUMBER"
-          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
-          echo "Auto-merge enabled for PR #$PR_NUMBER"
+          test -n "$PR_NUMBER" && test -n "$PR_SHA"
+          # Never select a different PR based on age, label or bot identity.
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --auto --squash --delete-branch --match-head-commit "$PR_SHA"
+          echo "Auto-merge requested for wiki PR #$PR_NUMBER"
