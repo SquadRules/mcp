@@ -152,7 +152,6 @@
     "testcontainers": "^12.2.0",
     "ts-jest": "29.4.14",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
     "undici": "8.12.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
