@@ -171,8 +171,8 @@ never dumps adapter or content bytes to stdout.
 
 ```bash
 squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <name>] \
-  [--as <format>] [--delivery <download_ref|inline_base64>] [--out <dir>] \
-  [--to <file>] [--zip-out <file>]
+  [--as <format>] [--delivery <download_ref|inline_base64>] [--directory <dir>] \
+  [--out <dir>] [--to <file>] [--zip-out <file>]
 ```
 
 - `--as <format>` — content format: `skill_zip` (default), `markdown`,
@@ -183,7 +183,19 @@ squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <n
   bytes come back in the response itself. Local mode serves no download URL, so
   it defaults to `inline_base64`; passing `--delivery download_ref` there fails
   with an actionable error.
+- `--directory <dir>` — `markdown` only, local mode only: the local backend writes
+  each selected adapter as `<dir>/<slug>.md` (slug-named, scriptable) instead of
+  returning content, which is what enables `--adapters`/`--all-adapters` bulk
+  markdown exports. Relative paths resolve against the current directory; the
+  target must be within the allowed export directories
+  (`SQUADRULES_ALLOWED_EXPORT_DIRS`, which defaults to include the current
+  directory). Cannot be combined with `--out`, `--to`, or `--zip-out`. Against an
+  http target the command fails with an actionable error — use
+  `--as skill_zip`/`skill_tree` with `--out` there.
 - `--out <dir>` — write artifacts into this directory (default: current directory).
+  Markdown artifacts are named `<slug>.md` after the adapter URI's slug (falling
+  back to the sanitized adapter title for layer URIs); other formats keep
+  title-based names.
 - `--to <file>` — write the payload of a single `<uri>` selection to this exact
   file path, creating parent directories. Requires a non-`skill_zip` `--as`
   format and cannot be combined with `--out` or `--zip-out`. Use it to place an
@@ -197,6 +209,9 @@ squadrules export --all-adapters --space personal --out ./out
 
 # one adapter as flat markdown
 squadrules export squadrules://adapter/my-adapter --as markdown --out ./out
+
+# every adapter in a space as slug-named markdown files (local mode)
+squadrules export --all-adapters --space personal --as markdown --directory ./backup
 
 # one artifact's source at an exact path (stdio materialize)
 squadrules export squadrules://artifact/my-gate --as source \

@@ -1,7 +1,9 @@
 /**
  * Security-hardened directory access for MCP `directory` parameter.
  *
- * Only accepted in SIMPLE/stdio mode. Rejects symlink escapes, path traversal,
+ * Only accepted in SIMPLE/stdio mode, or from the CLI local in-process backend
+ * (`simpleModeEquivalent`), which is a single-user SIMPLE-mode-equivalent runtime.
+ * Rejects symlink escapes, path traversal,
  * and paths outside the configured allowlist. Every access is audit-logged.
  */
 import fs from 'node:fs';
@@ -15,11 +17,22 @@ export const MAX_DIRECTORY_DEPTH = 8;
 /** Maximum adapter count per batch directory operation. */
 export const MAX_BATCH_ADAPTERS = 256;
 
+export interface DirectoryAccessOptions {
+  /**
+   * True only for the CLI local in-process backend: a single-user runtime with no
+   * HTTP surface, equivalent to SIMPLE/stdio mode. Lifts the transport/auth gate
+   * (check 1) only — every path check (absolute, no `..`, symlink resolution,
+   * allowlist, depth) still applies.
+   */
+  simpleModeEquivalent?: boolean;
+}
+
 /**
  * Resolve and validate a directory path for MCP batch operations.
  *
  * Security checks (in order):
  * 1. SIMPLE/stdio-only gate — rejects when transport is HTTP or auth is enabled.
+ *    Skipped only for `simpleModeEquivalent` callers (the CLI local backend).
  * 2. Absolute path required.
  * 3. No `..` segments after splitting.
  * 4. Symlink resolution via `fs.realpathSync`.
@@ -32,10 +45,11 @@ export const MAX_BATCH_ADAPTERS = 256;
  */
 export function resolveAndValidateDirectory(
   directory: string,
-  operation: 'export' | 'train'
+  operation: 'export' | 'train',
+  options: DirectoryAccessOptions = {}
 ): string {
-  // 1. SIMPLE/stdio-only gate
-  if (TRANSPORT_TYPE !== 'stdio' || AUTH_ENABLED) {
+  // 1. SIMPLE/stdio-only gate (the CLI local backend is SIMPLE-equivalent)
+  if (!options.simpleModeEquivalent && (TRANSPORT_TYPE !== 'stdio' || AUTH_ENABLED)) {
     throw new Error(
       `The "directory" parameter is only available in SIMPLE/stdio mode. ` +
       `Current transport: ${TRANSPORT_TYPE}, auth: ${AUTH_ENABLED ? 'enabled' : 'disabled'}. ` +
