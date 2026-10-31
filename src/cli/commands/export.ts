@@ -18,7 +18,7 @@ import { resolveSkillZipOutputPath, writeExportedSkillZipToFile } from '../skill
 import { createBackendFromProgram } from '../backend/resolve-backend.js';
 import type { ActionBackend } from '../backend/action-backend.js';
 
-interface ExportCliOptions {
+export interface ExportCliOptions {
     as?: string;
     out?: string;
     zipOut?: string;
@@ -26,9 +26,10 @@ interface ExportCliOptions {
     adapters?: string[];
     allAdapters?: boolean;
     space?: string;
+    delivery?: string;
 }
 
-interface WrittenArtifact {
+export interface WrittenArtifact {
     path: string;
     bytes: number;
     format: string;
@@ -73,6 +74,19 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
 
     const baseFormat = format as ExportInput['format'];
 
+    const delivery = (options.delivery ?? '').trim();
+    let deliveryMode: ExportInput['delivery'] = undefined;
+    if (delivery.length > 0) {
+        if (delivery !== 'download_ref' && delivery !== 'inline_base64') {
+            throw new Error('--delivery must be one of: download_ref, inline_base64.');
+        }
+        if (baseFormat !== 'skill_zip') {
+            throw new Error('--delivery is only valid with --as skill_zip.');
+        }
+        deliveryMode = delivery;
+    }
+    const deliveryField = deliveryMode ? { delivery: deliveryMode } : {};
+
     const toFile = (options.to ?? '').trim();
     if (toFile.length > 0) {
         if (!hasUri) {
@@ -90,16 +104,17 @@ export function buildExportInput(uri: string | undefined, options: ExportCliOpti
     }
 
     if (hasUri) {
-        return { uri: trimmedUri, format: baseFormat, include_reward: true };
+        return { uri: trimmedUri, format: baseFormat, include_reward: true, ...deliveryField };
     }
     if (hasAdapters) {
-        return { adapters: options.adapters!, format: baseFormat, include_reward: true };
+        return { adapters: options.adapters!, format: baseFormat, include_reward: true, ...deliveryField };
     }
     return {
         all_adapters: true,
         space_name: options.space!.trim(),
         format: baseFormat,
-        include_reward: true
+        include_reward: true,
+        ...deliveryField
     };
 }
 
@@ -136,7 +151,7 @@ function resolveOutDir(out?: string): string {
 }
 
 /** Write the export payload to disk and return what was written. Never prints content bytes. */
-async function writeExport(
+export async function writeExport(
     backend: ActionBackend,
     response: ExportOutput,
     options: ExportCliOptions
@@ -153,8 +168,14 @@ async function writeExport(
         } else if (response.content_encoding === 'base64' && response.content.length > 0) {
             data = Buffer.from(response.content, 'base64');
             filenameHint = response.download_ref?.filename;
+        } else if (response.download_ref?.url) {
+            throw new Error(
+                'skill_zip export returned a download_ref this backend cannot fetch (local mode serves no export download URL). Re-run without --delivery, with --delivery inline_base64, or use --as skill_tree.'
+            );
         } else {
-            throw new Error('skill_zip export returned neither a download_ref nor inline base64 content.');
+            throw new Error(
+                'skill_zip export returned no inline base64 content and no download_ref. Use --as skill_tree as an alternative.'
+            );
         }
         const zipPath = resolveSkillZipOutputPath(options.zipOut, { downloadBasename: filenameHint }, outDir);
         mkdirSync(path.dirname(zipPath), { recursive: true });
@@ -224,6 +245,10 @@ export function exportCommand(program: Command): void {
             '--as <format>',
             'export content format: skill_zip (default), markdown, skill_tree, source, trace_jsonl, reward_jsonl, sft_jsonl, preference_jsonl',
             'skill_zip'
+        )
+        .option(
+            '--delivery <mode>',
+            'skill_zip delivery: download_ref (capability URL the backend downloads) or inline_base64 (zip bytes in the response); local mode defaults to inline_base64'
         )
         .option('--out <dir>', 'write exported artifact(s) into this directory (default: current directory)')
         .option('--to <file>', 'write the single <uri> payload to this exact file path (any non-skill_zip --as format)')

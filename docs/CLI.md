@@ -171,12 +171,18 @@ never dumps adapter or content bytes to stdout.
 
 ```bash
 squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <name>] \
-  [--as <format>] [--out <dir>] [--to <file>] [--zip-out <file>]
+  [--as <format>] [--delivery <download_ref|inline_base64>] [--out <dir>] \
+  [--to <file>] [--zip-out <file>]
 ```
 
 - `--as <format>` — content format: `skill_zip` (default), `markdown`,
   `skill_tree`, `source`, `trace_jsonl`, `reward_jsonl`, `sft_jsonl`,
   `preference_jsonl`.
+- `--delivery <mode>` — `skill_zip` only. `download_ref`: the server returns a
+  capability URL the backend downloads (http backend). `inline_base64`: the zip
+  bytes come back in the response itself. Local mode serves no download URL, so
+  it defaults to `inline_base64`; passing `--delivery download_ref` there fails
+  with an actionable error.
 - `--out <dir>` — write artifacts into this directory (default: current directory).
 - `--to <file>` — write the payload of a single `<uri>` selection to this exact
   file path, creating parent directories. Requires a non-`skill_zip` `--as`

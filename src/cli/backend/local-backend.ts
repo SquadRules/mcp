@@ -198,7 +198,13 @@ export class LocalBackend implements ActionBackend {
   async export(input: ExportInput): Promise<ExportOutput> {
     const parsed = exportInputSchema.parse(input);
     const { memoryStore, qdrantService } = this.runtime;
-    // No download base URL in local mode: skill_zip is returned inline (base64).
-    return this.run(() => executeExport(memoryStore, qdrantService, parsed, {}));
+    // Local mode serves no HTTP download route, so a skill_zip download_ref URL would be
+    // unfetchable by the CLI. Default skill_zip to inline base64 bytes; an explicit
+    // delivery (including download_ref) is preserved as requested.
+    const withDelivery: ExportInput =
+      parsed.format === 'skill_zip' && parsed.delivery === undefined
+        ? { ...parsed, delivery: 'inline_base64' }
+        : parsed;
+    return this.run(() => executeExport(memoryStore, qdrantService, withDelivery, {}));
   }
 }
