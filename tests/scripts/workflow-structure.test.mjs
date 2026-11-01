@@ -286,6 +286,8 @@ test('ci gate is always-on, classifies the revision and fails closed', () => {
   assert.match(classify, /scripts\/ci-change-class\.mjs/);
   assert.match(classify, /git merge-base/);
   assert.match(classify, /git diff --name-only/);
+  assert.match(classify, /git diff --name-only -z/, 'Preserve raw Unicode and unusual Git paths');
+  assert.match(classify, /ci-change-class\.mjs --null/, 'The classifier must consume NUL-delimited paths');
   assert.match(classify, /--empty-diff/, 'An empty revision must fail rather than wait');
   assert.match(classify, /unclassified/, 'A failed classification must expect every lane');
 
