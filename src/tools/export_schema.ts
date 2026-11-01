@@ -48,7 +48,7 @@ export const exportInputSchema = z
     all_adapters: z.boolean().optional(),
     space_name: z.string().optional(),
     format: exportFormatSchema.optional().default('skill_zip'),
-    delivery: exportDeliverySchema.optional(),
+    delivery: exportDeliverySchema.optional().describe('Byte transport for the response payload: `skill_zip` ZIP bytes, or `source` artifact bytes. `inline_base64` on `source` is the materialization path — an agent cannot re-write raw text byte-exactly.'),
     include_reward: z.boolean().optional().default(true),
     directory: z.string().optional().describe('Absolute directory path to write per-adapter files. SIMPLE/stdio mode only (CLI: local mode). Each selected adapter is written as <directory>/<slug>.md and the response carries directory_manifest instead of inline content. Required for `format: markdown` with an `adapters` or `all_adapters` selection.')
   })
@@ -108,10 +108,10 @@ export const exportInputSchema = z
       }
     }
 
-    if (data.delivery !== undefined && data.format !== 'skill_zip') {
+    if (data.delivery !== undefined && data.format !== 'skill_zip' && data.format !== 'source') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: '`delivery` is only valid with `format: skill_zip`.'
+        message: '`delivery` is only valid with `format: skill_zip` or `format: source`.'
       });
     }
   });

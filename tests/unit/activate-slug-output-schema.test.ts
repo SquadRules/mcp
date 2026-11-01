@@ -12,6 +12,7 @@ import {
 } from '../../src/utils/protocol-slug.js';
 import { getAdapterSlugForSearchOutput } from '../../src/services/memory/memory-accessors.js';
 import { activateOutputSchema } from '../../src/tools/activate_schema.js';
+import { buildArtifactMaterializeInstruction } from '../../src/tools/artifact-materialize-command.js';
 import { searchOutputSchema } from '../../src/tools/search_schema.js';
 
 const SAMPLE_ADAPTER_URI = 'squadrules://adapter/sample-adapter';
@@ -171,16 +172,15 @@ describe('activateOutputSchema slug field', () => {
               download_url: 'https://example.test/export/artifact/token',
               sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               content_type: 'text/x-python',
-              materialize: {
-                tool: 'export',
-                arguments: {
-                  uri: 'https://example.test/export/artifact/token',
-                  format: 'source'
-                },
-                out: '$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/helper.py',
-                sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-                chmod: '700'
-              }
+              // Built by the emitter, so the schema is checked against what
+              // activate actually returns (issue #231).
+              materialize: buildArtifactMaterializeInstruction({
+                transport: 'http',
+                artifactUri: 'squadrules://artifact/helper-py',
+                downloadUrl: 'https://example.test/export/artifact/token',
+                relativePath: 'artifacts/helper.py',
+                sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              })
             }
           ]
         },
@@ -202,5 +202,6 @@ describe('activateOutputSchema slug field', () => {
       ]
     });
     expect(r.success).toBe(true);
+    expect(r.success && r.data.choices[0]?.linked_artifacts?.[0]?.materialize.cmd).toContain('curl -fsS -o');
   });
 });

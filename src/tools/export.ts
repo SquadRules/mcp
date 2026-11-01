@@ -99,11 +99,11 @@ async function executeExportImpl(
     }
   }
   if (typeof input.uri === 'string' && parseSquadrulesUri(input.uri.trim()).kind === 'artifact') {
-    return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter);
+    return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter, input.delivery);
   }
 
   if (input.format === 'source' && typeof input.uri === 'string') {
-    return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter);
+    return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter, input.delivery);
   }
 
   const adapterUris = await resolveExportUris(memoryStore, input);
