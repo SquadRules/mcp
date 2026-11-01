@@ -1,5 +1,18 @@
 # Changelog
 
+## [5.15.0](https://github.com/SquadRules/mcp/compare/v5.14.7...v5.15.0) (2026-11-01)
+
+
+### Features
+
+* **lint:** validate documented npm run targets against package.json scripts ([#244](https://github.com/SquadRules/mcp/issues/244)) ([26c96a5](https://github.com/SquadRules/mcp/commit/26c96a53997eaee295a67e6d4f85106f44ea1657))
+
+
+### Bug Fixes
+
+* **artifacts:** byte-exact source delivery and an executable materialize command ([#248](https://github.com/SquadRules/mcp/issues/248)) ([49d2f8e](https://github.com/SquadRules/mcp/commit/49d2f8e293d3e0933323b8c882f90b03f49fda95)), closes [#231](https://github.com/SquadRules/mcp/issues/231)
+* **ci:** repair Qoder bot PR creation and Unicode docs CI gate ([#246](https://github.com/SquadRules/mcp/issues/246)) ([d0484fc](https://github.com/SquadRules/mcp/commit/d0484fc772809014b7c0b9d959969e6f129f5455))
+
 ## [5.14.7](https://github.com/SquadRules/mcp/compare/v5.14.6...v5.14.7) (2026-10-31)
 
 
