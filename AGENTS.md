@@ -65,6 +65,10 @@ of truth; other contributor documents should link here.
   [`.qoder/rules/task-isolation.md`](.qoder/rules/task-isolation.md). The main
   checkout is human-only; every task runs in its own linked worktree with an
   ownership receipt.
+- **Low-memory host (under 4 GB available):**
+  [`.qoder/rules/low-memory-hosts.md`](.qoder/rules/low-memory-hosts.md). Do not run
+  repo-wide lint or the test suite locally; push the branch and watch the CI gate on
+  the PR instead.
 - **Contributor setup, build/test contract, code style, and design
   principles:** [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **Code-derivable reference** (architecture, auth, storage, search, workflow
