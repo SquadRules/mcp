@@ -62,7 +62,7 @@ before(() => {
   write('docs/guide.md', 'Start the suite with `npm run dev:serve`.\n');
 
   // Stale reference in a script comment, and one in a compose comment.
-  write('scripts/deploy.sh', '# deploy helper\n# legacy: npm run infra:up\nnpm run build\n');
+  write('scripts/deploy.sh', '# deploy helper\n# bring the stack up with npm run infra:up\nnpm run build\n');
   write('compose/infra.yaml', '# bring the stack up with npm run cluster:up\nservices: {}\n');
 
   // Historical prose documenting a removal — must not be reported.
