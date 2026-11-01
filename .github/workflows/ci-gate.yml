@@ -130,15 +130,19 @@ jobs:
         if: steps.classify.outputs.docs == 'true'
         run: |
           set -euo pipefail
-          # Own 20-minute wall-clock budget so a stalled install cannot consume the
-          # gate job's 90-minute timeout. Strict link checking is safe here: frontmatter
-          # is stripped before link extraction (scripts/lint-docs-links.mjs).
-          timeout --kill-after=60 1200 bash -c '
+          # Own 30-minute wall-clock budget so a stalled install cannot consume the
+          # gate job's 90-minute timeout. Runs the canonical aggregate (`npm run lint`
+          # = ESLint + skills + markdown + docs links), not a hand-picked subset:
+          # ESLint is the only checker of forbidden wording in Markdown, so a
+          # documentation-only revision must run it too — no change class may leave
+          # lint unrun, especially now that the pre-commit hook defers ESLint on
+          # low-memory hosts (ADR 0038). Strict link checking is safe here:
+          # frontmatter is stripped before extraction (scripts/lint-docs-links.mjs).
+          timeout --kill-after=60 1800 bash -c '
             set -euo pipefail
             npm ci
-            npm run lint:markdown
+            npm run lint
             node scripts/lint-docs-links.mjs --strict
-            npm run lint:skills
           '
 
       - name: Require integration and security evidence
