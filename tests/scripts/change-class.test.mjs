@@ -25,6 +25,26 @@ test('documentation-only changes owe no application evidence', () => {
   }
 });
 
+test('NUL input preserves Unicode, spaces and quotes in generated wiki paths', () => {
+  const paths = [
+    '.qoder/repowiki/knowledge/en/SquadRules UI — Theme/overview.md',
+    '.qoder/repowiki/en/content/Page with "quotes".md',
+    '.qoder/repowiki/en/content/Line\\nBreak.md',
+  ];
+  const result = run(paths.join('\0') + '\0', ['--null']);
+  assert.equal(result.status, 0, result.stderr);
+  const classified = stdout(result);
+  assert.equal(classified.docs, true);
+  assert.equal(classified.app, false, 'Unicode wiki pages must not require app lanes');
+  assert.equal(classified.reason, 'documentation-only');
+  assert.equal(classified.files, paths.length);
+
+  // Preserve fail-closed behavior for genuinely unmatched paths.
+  const mixed = stdout(run(paths.concat('mystery/settings.ini').join('\0') + '\0', ['--null']));
+  assert.equal(mixed.app, true);
+  assert.equal(mixed.reason, 'unmatched-paths');
+});
+
 test('source changes demand the application lanes', () => {
   assert.equal(classify(['src/bootstrap.ts']).app, true);
   assert.equal(classify(['src/bootstrap.ts']).docs, false);
