@@ -131,7 +131,7 @@ function readChangedPaths() {
   // --null expects git diff --name-only -z, which emits raw path bytes.
   if (process.stdin.isTTY) throw new Error('stdin is a terminal, not a file list');
   const raw = readFileSync(0, 'utf8');
-  return raw.split(process.argv.includes('--null') ? '\\0' : '\\n');
+  return raw.split(process.argv.includes('--null') ? '\0' : '\n');
 }
 
 function main() {
