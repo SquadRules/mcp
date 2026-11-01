@@ -63,3 +63,11 @@ while still running the light linters. Override either way with
 The merge gate is enforced server-side, so a skipped local run cannot let an
 unverified change land. CI tests the exact commit that would merge, on hardware with
 the memory this host does not have, and its verdict is the one that counts.
+
+That rests on a guarantee, not a hope: per
+[ADR 0038](../../docs/adr/0038-lint-runs-for-every-change-class.md) the always-on
+`CI gate passed` documentation lane runs the canonical aggregate `npm run lint`, so
+every class — documentation-only, application, mixed, and the fail-closed unclassified
+cases — executes ESLint in CI. `tests/scripts/workflow-structure.test.mjs` asserts that
+aggregate. If the lane ever regresses to a subset of `lint:*` scripts, this rule's
+premise breaks: fix the lane before deferring locally.
