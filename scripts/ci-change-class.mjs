@@ -26,7 +26,7 @@
  * files at all: it prints the reason and exits non-zero instead of letting the gate
  * spend its wait budget on workflows that were never going to run.
  *
- * Usage: git diff --name-only "$MB" "$HEAD" | node scripts/ci-change-class.mjs [--empty-diff]
+ * Usage: git diff --name-only -z "$MB" "$HEAD" | node scripts/ci-change-class.mjs --null [--empty-diff]
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -125,10 +125,13 @@ function emit(result) {
 }
 
 function readChangedPaths() {
-  // An interactive run has no diff stream; treat it as unreadable rather than
-  // blocking on the terminal. Node accepts fd 0 for a redirected stdin.
+  // Git's default newline output C-quotes paths containing Unicode, tabs or
+  // newlines. Treating those as literal paths makes a docs-only PR appear
+  // unclassified and strands the required gate waiting for nonexistent app CI.
+  // --null expects git diff --name-only -z, which emits raw path bytes.
   if (process.stdin.isTTY) throw new Error('stdin is a terminal, not a file list');
-  return readFileSync(0, 'utf8');
+  const raw = readFileSync(0, 'utf8');
+  return raw.split(process.argv.includes('--null') ? '\0' : '\n');
 }
 
 function main() {
@@ -136,7 +139,7 @@ function main() {
   let paths = [];
   let unreadable = false;
   try {
-    paths = readChangedPaths().split('\n');
+    paths = readChangedPaths();
   } catch {
     unreadable = true;
   }
