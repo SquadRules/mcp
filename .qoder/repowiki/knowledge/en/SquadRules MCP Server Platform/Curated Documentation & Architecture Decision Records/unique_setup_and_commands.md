@@ -1,1 +1,0 @@
-Run `npm run lint:docs` for link validation and `npm run lint:markdown` for style checks against the repository's markdown rules.

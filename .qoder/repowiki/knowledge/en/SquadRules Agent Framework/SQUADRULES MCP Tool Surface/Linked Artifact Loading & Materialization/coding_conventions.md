@@ -1,0 +1,3 @@
+- Raw Qdrant payload fields are coerced via defensive type checks with explicit defaults (e.g. empty string, null, '1', 'text/plain') instead of relying on TypeScript types alone.
+- Transport-aware behavior is selected by branching on an `isStdio` flag, producing either an HTTP capability URL or a `squadrules://artifact/<slug>` stdio URI for the same artifact row.
+- Agent-facing actions are expressed as declarative instruction objects (`MaterializeInstruction`) describing what tool to call and postconditions (digest, permissions) rather than imperative shell commands.

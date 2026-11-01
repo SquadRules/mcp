@@ -1,0 +1,1 @@
+The process-level log sink is activated by importing `./log-sink-prelude.js` as the very first statement in `cli/index.ts`; without it, INFO logs from local-mode boot would corrupt stdout data payloads. Auto-serve behavior triggers when `process.argv.length <= 2 && !process.stdin.isTTY` (MCP stdio transport).

@@ -1,6 +1,0 @@
-- Challenge payloads are built by composing `buildChallengeShapeForDisplay` (from `next-pow-challenge-shape.ts`) and then overlaying runtime fields like `nonce`, `proof_hash`, and `invocation_display` rather than constructing objects inline.
-- Error responses follow a uniform shape produced by `buildErrorPayload`: `{ must_obey, current_step, challenge, message, error_code, retry_count, next_action }`, with `must_obey` derived from `retryCount >= MAX_RETRIES`.
-- Two-phase retry escalation is implemented by incrementing `proofOfWorkStore.incrementRetry` keyed off the active nonce (or memory uuid fallback), returning `MAX_RETRIES_EXCEEDED` only after the threshold is reached.
-- Cross-layer navigation goes through `resolveAdapterNextLayer` / `resolveAdapterPreviousLayer` from `services/adapter-navigation.js` instead of reading `memory.adapter` pointers directly, keeping chain traversal centralized.
-- Shell command assembly uses `pickShellChallengeFields` to normalize optional fields and `buildShellChallengeArgv` to select interpreter mode (`-c`, `-e`, or other-style) based on known interpreter sets, avoiding ad-hoc argv concatenation.
-- All I/O side effects (Qdrant quality updates, Redis cache reads/writes, embedding calls) are wrapped in try/catch blocks that log via `structuredLogger` and emit metrics counters rather than propagating errors.

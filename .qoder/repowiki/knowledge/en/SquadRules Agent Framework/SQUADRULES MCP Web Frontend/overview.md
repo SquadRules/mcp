@@ -1,0 +1,1 @@
+React/Vite frontend that wires pages, shared components, hooks, and theme/i18n resources into a single SPA for editing protocols and running guided adapter workflows.

@@ -1,0 +1,1 @@
+Persistent memory layer backed by Qdrant that stores, indexes, and retrieves knowledge adapters and artifacts with hybrid dense/BM25/activation-pattern search.

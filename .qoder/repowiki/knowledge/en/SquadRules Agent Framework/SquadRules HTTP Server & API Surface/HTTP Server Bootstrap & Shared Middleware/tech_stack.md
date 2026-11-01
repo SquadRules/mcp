@@ -1,0 +1,1 @@
+Express.js with helmet for security headers, express-rate-limit for per-route throttling, and a custom structured logger (`../utils/structured-logger.js`). Helmet ESM/CJS dual-export interop is handled explicitly because ts-node resolves CJS declarations differently than tsc under NodeNext.

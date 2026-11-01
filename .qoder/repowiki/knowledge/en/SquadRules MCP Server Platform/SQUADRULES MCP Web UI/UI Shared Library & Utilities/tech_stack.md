@@ -1,1 +1,0 @@
-TypeScript + browser `fetch`; TipTap editor stack (`@tiptap/core`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `@tiptap/extension-table`, `@tiptap/markdown` with GFM enabled).

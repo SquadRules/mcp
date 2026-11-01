@@ -1,0 +1,1 @@
+Commander-based CLI subcommands for exporting adapters, training new ones (markdown/artifact/fork/batch), tuning layers, and deleting adapter/layer resources.

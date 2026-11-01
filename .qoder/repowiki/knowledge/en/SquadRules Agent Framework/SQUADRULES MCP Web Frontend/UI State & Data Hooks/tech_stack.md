@@ -1,0 +1,1 @@
+React hooks built on `@tanstack/react-query` for server state; TanStack Query's `useQuery`/`useMutation` are the only async primitives. Backend contract types are re-imported directly from `../../tools/*_schema.js` rather than duplicated.

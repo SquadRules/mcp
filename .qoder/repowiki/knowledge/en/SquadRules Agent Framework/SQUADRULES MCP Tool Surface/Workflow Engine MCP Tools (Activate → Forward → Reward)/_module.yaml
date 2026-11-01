@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: tools/workflow_engine
+title: Workflow Engine MCP Tools (Activate → Forward → Reward)
+scope:
+    - src/tools/activate.ts
+    - src/tools/forward.ts
+    - src/tools/reward.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/api_routes

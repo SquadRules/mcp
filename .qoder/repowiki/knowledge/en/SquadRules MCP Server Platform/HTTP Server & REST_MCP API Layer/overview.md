@@ -1,1 +1,0 @@
-Express-based HTTP server exposing the SquadRules REST API, MCP JSON-RPC transport, OIDC auth flow, health/UI/static routes, and export downloads.

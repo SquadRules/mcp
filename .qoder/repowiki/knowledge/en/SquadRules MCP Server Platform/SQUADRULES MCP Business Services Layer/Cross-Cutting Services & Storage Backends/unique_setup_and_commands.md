@@ -1,1 +1,0 @@
-Runtime mode is selected by environment variables: `QDRANT_URL` presence selects Qdrant over embedded LanceDB; `REDIS_URL` selects Redis over `MemoryStore`; `EMBEDDING_PROVIDER` plus `OPENAI_API_KEY`/`TEI_BASE_URL`/`FASTEMBED_MODEL` select the embedding backend. Startup should call `probeEmbeddingDimension()` before `memoryStore.init()` to resolve vector dimensions.

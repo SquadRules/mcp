@@ -1,0 +1,1 @@
+Three MCP tool handlers implementing the agent workflow pipeline: intent detection via activate, adapter execution via forward with proof-of-work and layer navigation, and outcome validation via reward.

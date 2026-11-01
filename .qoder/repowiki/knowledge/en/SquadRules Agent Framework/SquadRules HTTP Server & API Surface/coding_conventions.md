@@ -1,0 +1,3 @@
+- Route modules expose a `setupXxxRoutes(app, ...)` function that mounts Express routes on the provided app instance rather than creating their own server.
+- Shared state (MemoryQdrantStore, QdrantService) is passed into route setup functions as arguments instead of being imported from service modules inside route handlers.
+- Authentication is applied once via a single Express middleware (`http-auth-middleware.ts`) so downstream handlers read identity from the request object rather than re-validating tokens.

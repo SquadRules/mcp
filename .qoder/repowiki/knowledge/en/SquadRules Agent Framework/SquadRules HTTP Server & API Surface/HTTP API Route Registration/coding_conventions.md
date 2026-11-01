@@ -1,0 +1,5 @@
+- Each endpoint is implemented as a `setupXxxRoute(app, ...)` factory exported from its own `http-api-*.ts` file and registered centrally in `http-api-routes.ts`.
+- Request bodies are validated with a Zod schema imported from the matching `../tools/*_schema.js` file via `.safeParse`, returning a uniform `{ error: 'INVALID_INPUT', message }` on failure.
+- Handler bodies wrap business-tool calls with `runHttpApiWithSpaceContext(req, () => executeXxx(...))` to propagate tenant/space context across services.
+- Errors thrown by tool layers are caught and forwarded through `sendToolRouteError(res, error, CODE)` to produce consistent JSON error responses.
+- Authenticated endpoints read `req.auth` (typed as `AuthPayload`) attached by upstream middleware rather than performing auth themselves.

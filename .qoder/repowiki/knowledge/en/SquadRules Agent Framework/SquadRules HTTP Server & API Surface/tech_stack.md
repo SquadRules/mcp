@@ -1,0 +1,1 @@
+Express.js as the HTTP framework shared across all route and middleware children; Keycloak OIDC for browser sessions and Bearer JWT validation for machine clients.

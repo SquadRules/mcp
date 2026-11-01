@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: ""
+title: SquadRules Agent Framework
+scope:
+    - .agents/
+    - docs/
+source_files: []
+depends_on: []
+related_to: []

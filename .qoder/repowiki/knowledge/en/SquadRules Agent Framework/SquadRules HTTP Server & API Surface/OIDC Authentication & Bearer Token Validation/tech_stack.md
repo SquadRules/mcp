@@ -1,0 +1,1 @@
+jose for JWT/JWKS verification (`jwtVerify`, `createRemoteJWKSet`); @exodus/bytes for base64url/utf8 encoding used in the custom HMAC-SHA256 session cookie format; Express for routing and middleware.

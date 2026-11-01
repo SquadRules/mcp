@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: services/embedding_service
-title: Embedding Service & Multi-Provider Backend
-scope:
-    - src/services/embedding/
-source_files: []
-depends_on: []
-related_to:
-    - path: services/memory_store

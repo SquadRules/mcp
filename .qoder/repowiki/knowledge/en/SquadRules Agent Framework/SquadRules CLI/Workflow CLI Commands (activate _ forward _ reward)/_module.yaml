@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: cli/workflow_commands
+title: Workflow CLI Commands (activate / forward / reward)
+scope:
+    - src/cli/commands/activate.ts
+    - src/cli/commands/forward.ts
+    - src/cli/commands/reward.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/api_routes

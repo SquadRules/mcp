@@ -1,0 +1,1 @@
+Qdrant via `@qdrant/js-client-rest`; Node.js streams + native `fetch` for snapshot download; `uuid` for ID generation; `@qdrant/js-client-rest`'s vendored undici v6 requires a global `fetch` patch on Node 25+.

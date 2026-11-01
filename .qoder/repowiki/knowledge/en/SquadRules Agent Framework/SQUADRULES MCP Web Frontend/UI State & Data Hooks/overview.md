@@ -1,0 +1,1 @@
+React hooks that surface server endpoints, protocol editor state, run-session persistence, and theme preference for the Squadrules UI.

@@ -1,1 +1,0 @@
-Computes quality scores, implementation/healer bonuses, and protocol-level workflow ratings for LLM agent contributions, persisting state via a key-value store.

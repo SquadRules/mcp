@@ -1,0 +1,1 @@
+The app is served under the `/ui` path prefix (`BrowserRouter basename="/ui"`); the favicon is expected at `/ui/favicon.svg` and the runtime theme preference is stored in `localStorage` under the key `squadrules:ui:theme-preference`.

@@ -1,0 +1,3 @@
+- Each concern (middleware, routes, error handling, static UI, export downloads) is isolated in its own `http-*.ts` file and wired into the Express app via a dedicated `setupXxx(app, ...)` function called from the composition root.
+- Cross-cutting concerns (logging, metrics, helmet, rate limiting, JSON parsing) are registered once in `configureMiddleware` at the top of the stack, before any route-specific middleware.
+- Rate limiting is applied per URL prefix (`/auth`, `/api`, `/mcp`) using the shared `createRateLimiter` factory with identifiers and window/limit values sourced from `../config.js` constants.

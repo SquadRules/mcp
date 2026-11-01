@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: tools/artifacts
+title: Linked Artifact Loading & Materialization
+scope:
+    - src/tools/activate-artifacts.ts
+    - src/tools/artifact-catalog.ts
+    - src/tools/artifact-materialize-command.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/export_download

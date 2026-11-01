@@ -1,0 +1,4 @@
+- Env-driven configuration is exposed as pure functions taking `NodeJS.ProcessEnv` (defaulting to `process.env`) so callers can pass a mock env for unit tests without mutating global state.
+- Boolean env parsing goes through a helper (`getEnvBoolean` / `parseEnvBoolean`) that accepts `true/false/yes/no/1/0/on/off` (case-insensitive) and returns a sensible default when unset.
+- Startup-side-effect modules (banner composition, boot orchestration) accept derived values as parameters rather than importing them directly, keeping the logic testable and free of filesystem/network I/O.
+- Built-in user-facing strings (footer labels, protocol titles) are read from embedded markdown frontmatter via `getMetaDoc` + `parseFrontmatter` instead of being hardcoded literals.

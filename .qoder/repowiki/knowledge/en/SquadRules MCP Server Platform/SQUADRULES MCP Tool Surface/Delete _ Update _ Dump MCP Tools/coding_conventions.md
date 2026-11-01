@@ -1,6 +1,0 @@
-- Each tool pairs a `*_schema.ts` module exporting Zod schemas and `z.infer`-derived TS types with a sibling `*.ts` module that exports an `execute*` function plus a `register*Tool` MCP registration helper.
-- The `execute*` function is kept free of MCP/server concerns and takes service dependencies as parameters, enabling reuse by both MCP tools and HTTP routes.
-- Per-call metrics are recorded around every tool handler using `mcpToolDuration.startTimer`, `mcpToolCalls.inc`, `mcpToolErrors.inc`, `mcpToolInputSize.observe`, and `mcpToolOutputSize.observe`, tagged with `{ tool, tenant_id }`.
-- Input payloads are validated with `schema.safeParse` inside the MCP handler, and failures are returned via `mcpToolInputValidationErrorResult` rather than thrown.
-- Batch operations iterate over URIs with try/catch per item, pushing `{ uri, status, message }` result entries and incrementing `total_deleted`/`total_updated`/`total_failed` counters instead of failing fast on the first error.
-- URIs are parsed through the shared `squadrules-uri.js` helpers (`parseSquadrulesUri`, `parseSquadrulesUriOrThrow`, `buildLayerUri`, `assertWireAdapterUri`) rather than ad-hoc string splitting.

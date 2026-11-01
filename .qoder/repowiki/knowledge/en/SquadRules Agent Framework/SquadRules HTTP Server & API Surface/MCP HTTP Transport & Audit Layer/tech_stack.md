@@ -1,0 +1,1 @@
+Express + `@modelcontextprotocol/sdk/server/streamableHttp.js` (`StreamableHTTPServerTransport`) for the MCP-over-HTTP transport; Node `AsyncLocalStorage` for per-request context propagation; JSON-RPC 2.0 envelopes with implementation-defined error codes in the `-32000..-32099` range.

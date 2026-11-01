@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: cli/export_train_delete_commands
+title: Export, Train, Tune & Delete CLI Commands
+scope:
+    - src/cli/commands/export.ts
+    - src/cli/commands/delete.ts
+    - src/cli/commands/delete-metadata.ts
+    - src/cli/commands/tune.ts
+    - src/cli/commands/cli-train.ts
+source_files: []
+depends_on: []
+related_to: []

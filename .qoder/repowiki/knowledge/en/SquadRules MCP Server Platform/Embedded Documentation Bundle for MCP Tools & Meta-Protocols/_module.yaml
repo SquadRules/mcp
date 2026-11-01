@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: embed_docs
-title: Embedded Documentation Bundle for MCP Tools & Meta-Protocols
-scope:
-    - src/embed-docs/
-source_files: []
-depends_on: []
-related_to:
-    - path: resources

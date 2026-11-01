@@ -1,0 +1,1 @@
+Qdrant vector database via `@qdrant/js-client-rest`; hybrid search combines dense embeddings (primary/title/activation-pattern vectors), BM25 sparse vectors, and text-match boosts fused with RRF; Redis-backed shared cache for memory reads; CodeBlockProcessor for identifier extraction from markdown code fences.

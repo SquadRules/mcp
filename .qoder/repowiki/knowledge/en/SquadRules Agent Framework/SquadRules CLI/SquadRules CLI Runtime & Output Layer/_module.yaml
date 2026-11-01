@@ -1,0 +1,20 @@
+schema_version: 1
+module_path: cli/cli_runtime
+title: SquadRules CLI Runtime & Output Layer
+scope:
+    - src/cli/index.ts
+    - src/cli/program.ts
+    - src/cli/output.ts
+    - src/cli/render.ts
+    - src/cli/render-helpers.ts
+    - src/cli/format.ts
+    - src/cli/log-sink-prelude.ts
+    - src/cli/local-target.ts
+    - src/cli/download-export-ref.ts
+    - src/cli/upload-guards.ts
+    - src/cli/skill-zip-local-write.ts
+    - src/cli/fetch-error.ts
+    - src/cli/auth-error.ts
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,1 @@
+Transport-agnostic backend abstraction that lets the CLI drive either a remote SquadRules server or an in-process embedded store through a single ActionBackend interface.

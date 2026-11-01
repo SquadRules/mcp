@@ -1,1 +1,0 @@
-Node.js environment variables as the sole configuration source; uses `crypto.randomBytes` for process-local export-secret generation; delegates model weight caching to fastembed's own downloader.

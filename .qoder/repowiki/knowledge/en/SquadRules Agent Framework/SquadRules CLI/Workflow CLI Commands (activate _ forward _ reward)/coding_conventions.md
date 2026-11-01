@@ -1,0 +1,5 @@
+- Each command is exposed as an exported function `xCommand(program: Command)` that mutates the shared Commander program instance rather than constructing its own.
+- Backend access goes through `createBackendFromProgram(program)` instead of direct instantiation, keeping authentication/session resolution out of command handlers.
+- Output rendering uses `emitResult` with paired `pretty`/`text` renderers from `../render.js` plus an optional `nextCall` hint for interactive follow-up suggestions.
+- API-layer failures are uniformly caught and delegated to `handleApiError(error, !isBrowserDisabled())` from `../auth-error.js`.
+- User-input validation errors use `writeError` followed by `process.exit(1)` rather than throwing, separating client-side validation from server-side error handling.

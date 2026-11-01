@@ -1,5 +1,0 @@
-- Port implementations delegate to focused sub-engines (reader/mutator/search/writer/engine) rather than implementing each method inline, keeping read, write, search, and admin surfaces separated.
-- All persistent writes go through `withCommitRetry` wrapping Lance's `mergeInsert(...whenMatchedUpdateAll().whenNotMatchedInsertAll())` pattern, so concurrent writers resolve conflicts via MVCC re-read + retry instead of application-level locking.
-- Reads before any write treat an absent table as empty via `openTableIfPresent()` returning null, avoiding cold-start disk writes; tables are created lazily on first write via `ensureTableForWrite(firstRow)` inferring schema from data.
-- The LanceDB SDK is never top-level-imported; it is loaded dynamically via `await import('@lancedb/lancedb')` inside `openLanceConnection` so the Qdrant path never pulls in native bindings at startup.
-- Domain types in `types.ts` are pure value shapes with no backend-client imports, and concrete adapters map between their native payloads (Arrow rows / Qdrant points) and these neutral shapes.

@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: http_api/auth_oidc
+title: OIDC Authentication & Bearer Token Validation
+scope:
+    - src/http/bearer-validate.ts
+    - src/http/http-auth-callback.ts
+    - src/http/http-auth-middleware.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: cli/shared_client_config
+    - path: http_api/api_routes
+    - path: http_api/mcp_handler

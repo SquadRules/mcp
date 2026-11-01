@@ -1,0 +1,5 @@
+- User-facing text is routed through `useTranslation()` and keyed names (e.g. `nav.home`, `run.shell.exitCode`) rather than inline literals.
+- Visual styling composes Tailwind utilities with CSS custom properties for colors, radii, and layout dimensions (e.g. `bg-[var(--color-surface)]`, `rounded-[var(--radius-md)]`, `w-[var(--layout-sidebar-width)]`).
+- Type-dispatched behavior across challenge kinds (shell / forward / user_input / comment) is implemented via `if (type === ...)` branches inside a single component, with parallel `TYPE_BADGE_CLASS` / `CHALLENGE_TYPE_LABEL` maps for badge styling and labels.
+- Form inputs follow a consistent pattern: controlled `useState` field, explicit `id` matching a label's `htmlFor`, `min-h-[44px]` touch target, border/focus-ring styling via CSS variables, and `disabled` prop passthrough.
+- Components are exported as named function components with their props typed inline via the destructured parameter signature.

@@ -1,0 +1,1 @@
+CSS custom properties for theming; i18next + react-i18next for internationalization with interpolation enabled (escapeValue: false).

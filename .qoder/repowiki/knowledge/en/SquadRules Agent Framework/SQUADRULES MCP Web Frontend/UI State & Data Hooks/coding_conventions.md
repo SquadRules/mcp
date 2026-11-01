@@ -1,0 +1,5 @@
+- Server-bound hooks wrap an `async function` that calls `apiFetch` and throws an `Error` whose `message` falls back to `res.statusText` when the response body has no `message` field.
+- Read queries expose a hook returning `useQuery({ queryKey, queryFn, enabled })`; mutations expose a hook returning `useMutation({ mutationFn })`.
+- Backend schema types are imported from `../../tools/*_schema.js` (e.g. `ActivateOutput`, `ForwardOutput`, `RewardOutput`, `ExportOutput`) instead of being redeclared locally.
+- Client-side persistence uses a named constant key prefixed with `squadrules.` (`squadrules.runSessions.v1`, `squadrules:ui:theme-preference`) and guards `typeof window === 'undefined'` before touching `localStorage` or DOM APIs.
+- Legacy server field names are mapped to current shapes inside a dedicated normalizer (`normalizeRunSession`) so callers always see the canonical `RunSession` type.

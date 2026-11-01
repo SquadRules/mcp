@@ -1,1 +1,0 @@
-Qdrant JS client (`@qdrant/js-client-rest`) with named dense vectors per embedding dimension, BM25 sparse vectors for hybrid search, and RRF fusion of multiple prefetch legs; Redis-backed shared cache via `redisCacheService`.

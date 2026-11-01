@@ -1,0 +1,1 @@
+Computes quality scores, implementation/healer bonuses, and protocol-level metadata for LLM model contributions, persisting state via a key-value store.

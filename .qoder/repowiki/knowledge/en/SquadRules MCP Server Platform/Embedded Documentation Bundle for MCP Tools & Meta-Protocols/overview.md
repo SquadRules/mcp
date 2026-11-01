@@ -1,1 +1,0 @@
-Markdown documentation bundle shipped with the Squadrules app that defines meta-protocol adapters and documents each MCP tool's contract, intent, and workflow for AI agents.

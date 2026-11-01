@@ -1,1 +1,0 @@
-React hooks built on `@tanstack/react-query` for server-state caching; local persistence via `window.localStorage`; theme resolution via `window.matchMedia` media queries.

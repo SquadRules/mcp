@@ -1,0 +1,1 @@
+Local mode is activated by default when no `--url` is set (the `stdio://local` sentinel); passing an `http(s)` URL switches to the remote backend. The `--reseed` flag forces structural repair seeding via `MEM_BOOT_FORCE_INJECT`.

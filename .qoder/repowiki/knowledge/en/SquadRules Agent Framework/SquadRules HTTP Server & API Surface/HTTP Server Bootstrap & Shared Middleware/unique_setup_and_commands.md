@@ -1,0 +1,1 @@
+The server binds to `0.0.0.0` (not localhost) so containers can reach it, and exits with code 1 when the configured `SERVER_PORT` is already in use — callers should handle the non-zero exit rather than retrying the same port.

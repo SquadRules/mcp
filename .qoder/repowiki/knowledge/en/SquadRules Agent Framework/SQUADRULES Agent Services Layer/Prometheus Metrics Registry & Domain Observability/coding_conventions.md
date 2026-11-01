@@ -1,0 +1,4 @@
+- Metric instances are created with an explicit `name` starting with `squadrules_`, a human-readable `help` string, and a `registers: [register]` array pointing at the shared registry.
+- Tenant isolation is expressed by including a `tenant_id` label on per-tenant metrics rather than as a default label on the registry.
+- Duration metrics use Histograms with millisecond-to-second buckets (e.g. `[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5]`), while size/count metrics use Counter or Histogram with byte-sized buckets.
+- Domain-specific metric groups live in one file named `<domain>-metrics.ts`, exporting only the metric instances (and optional helpers like in `export-metrics.ts`).

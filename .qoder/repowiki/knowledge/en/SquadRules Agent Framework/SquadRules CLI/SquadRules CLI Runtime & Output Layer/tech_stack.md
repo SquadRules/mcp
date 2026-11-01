@@ -1,0 +1,1 @@
+Commander.js for CLI argument parsing; chalk for ANSI color output (per-call instance keyed off `process.stdout.isTTY`); Node built-ins (`fs`, `path`, `child_process.execFile`, `os.platform`, `fetch`/undici) for I/O, file writing, and browser launching.

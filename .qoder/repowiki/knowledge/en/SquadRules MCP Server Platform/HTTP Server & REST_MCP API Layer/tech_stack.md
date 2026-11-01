@@ -1,1 +1,0 @@
-Express.js for HTTP routing; HMAC-SHA256 signed session cookies (no express-session); OIDC bearer-token validation against configured issuers/audiences; raw-body for large markdown payloads; Zod schema validation via `trainInputSchema` from `../tools/train_schema.js`.

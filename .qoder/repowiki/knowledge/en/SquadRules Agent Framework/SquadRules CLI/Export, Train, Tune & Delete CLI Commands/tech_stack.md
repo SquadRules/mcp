@@ -1,0 +1,1 @@
+Commander.js for CLI parsing; Node `fs`/`path` for local file I/O; exports use the typed `ExportInput`/`ExportOutput` schema from `../../tools/export_schema.js`.

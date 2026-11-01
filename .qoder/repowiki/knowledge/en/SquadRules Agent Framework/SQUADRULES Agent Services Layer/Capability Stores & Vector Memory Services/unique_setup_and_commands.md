@@ -1,0 +1,1 @@
+Runtime behavior is controlled by environment flags: `QDRANT_URL` presence selects Qdrant vs embedded LanceDB for both memory and trace stores; `OPENAI_API_KEY` vs `TEI_BASE_URL+TEI_MODEL` selects the embedding provider; `SQUADRULES_REDIS_PREFIX` namespaces all Redis keys. `npm run test` runs unit + integration suites (integration uses testcontainers for Redis/Qdrant).

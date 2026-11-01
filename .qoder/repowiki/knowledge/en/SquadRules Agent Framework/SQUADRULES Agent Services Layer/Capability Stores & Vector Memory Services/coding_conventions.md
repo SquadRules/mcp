@@ -1,0 +1,6 @@
+- Backend selection is done at module load time via an `isXxxConfigured` flag from config.js, exporting a singleton instance that is either the real backend or its embedded counterpart (e.g. `executionTraceStore`, `qdrantService`).
+- Key-value operations go through the `IKeyValueStore` abstraction exported from `key-value-store-factory.ts`, which resolves to `RedisService` or `MemoryStore` — callers never import either concrete class directly.
+- Each capability service exposes a module-level singleton instance alongside its class (e.g. `embeddingService`, `redisCacheService`, `keyValueStore`), so consumers import the ready-to-use object rather than constructing one.
+- Metrics are registered against the shared `Registry` in `metrics/registry.ts` with default labels (`service`, `squadrules_version`, `instance`), and tenant isolation is achieved by adding `tenant_id` per metric call rather than as a default label.
+- Qdrant mutations are wrapped in `QdrantConnection.executeWithReconnect` and per-execution locks (`withMutationLock` / `withExecutionMutation`) to serialize writes and handle transient connection failures.
+- Domain types live in `vector-store/types.ts` and are imported by both Qdrant and LanceDB adapters, keeping payload shapes backend-neutral and preventing client-library leakage into the port layer.

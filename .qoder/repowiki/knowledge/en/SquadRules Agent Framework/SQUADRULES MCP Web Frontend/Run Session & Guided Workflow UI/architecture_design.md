@@ -1,0 +1,8 @@
+Two top-level page components under `src/ui/pages/` plus three focused components under `src/ui/components/run/`:
+- `RunsPage.tsx` is a read-only list of persisted `RunSession`s (via `useRunSessions`) with resume/remove actions that navigate to `/protocols/:uri/run?session=:id`.
+- `RunGuidedPage.tsx` is the stateful orchestrator: it owns the current `RunSession`, wires `useForwardStart` / `useForwardStep` / `useReward` mutations, persists sessions via `useRunSessions.upsert`, and renders `RunGuidedContent` when a session exists.
+- `RunGuidedContent.tsx` is a presentational component driven by props; it composes `ChallengeCard`, `StepFlowGraph`, `RenderedMarkdown`, and `SolutionForm`, and computes flow progress from `run.history` + `run.status`.
+- `SolutionForm.tsx` renders one of four contract-shaped forms (`shell`, `forward`, `user_input`, `comment`) based on `RunContract.type`, validating per-type rules and emitting a `DraftSolution`.
+- `runContractToChallenge.ts` is a pure mapper from `RunContract` to `ChallengeCard` props, keeping challenge rendering decoupled from form logic.
+
+Dependency direction is strictly downward: pages depend on hooks (`@/hooks/*`) and shared UI primitives (`SurfaceCard`, `ErrorAlert`, `ChallengeCard`, `StepFlowGraph`, `RenderedMarkdown`); components depend only on types from `@/lib/runToolTypes`. The module has no internal API — it consumes the existing tool hooks and persists session state in-memory via the `useRunSessions` hook.

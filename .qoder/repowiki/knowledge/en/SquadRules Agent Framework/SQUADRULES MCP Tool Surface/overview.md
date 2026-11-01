@@ -1,0 +1,1 @@
+Orchestrates the SQUADRULES MCP tool surface by registering activate/forward/reward/train/tune/delete/export/spaces tools, their Zod schemas, and shared forwarding infrastructure consumed by each child.

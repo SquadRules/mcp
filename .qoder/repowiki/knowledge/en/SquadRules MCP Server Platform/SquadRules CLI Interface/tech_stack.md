@@ -1,1 +1,0 @@
-TypeScript CLI built on Commander.js for argument parsing; Node.js stdlib for filesystem/keyring access; XDG Base Directory spec for config location; OS-native keyring (via `keyring.ts`) for bearer/refresh token storage with PKCE OAuth flow.

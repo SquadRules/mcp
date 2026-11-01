@@ -1,0 +1,1 @@
+React + React Router + React Query on Vite; TipTap-based rich text editor; CSS custom properties for light/dark design tokens; i18next for English translations.
