@@ -85,7 +85,11 @@ root docs. The only auto-generated documentation is the Qoder RepoWiki (see
 ### Enforcement
 
 - `scripts/lint-docs-links.mjs` (`npm run lint:docs`) fails on dangling relative
-  links and links to retired paths, and checks the colocated-README contract.
+  links, links to retired paths, and `npm run <target>` citations that are not
+  keys in `package.json#scripts`; it also checks the colocated-README contract.
+  Prose that documents a retirement ("its former `npm run X` target was
+  retired") and ADR bodies are exempt, since rewriting an accepted ADR is
+  forbidden; an on-line `squadrules-npm-target-keep` comment overrides the rest.
 - `.agents/skills/squadrules-dev/references/doc-governance.md` audits and
   auto-repairs drift, and hands wiki regeneration to Qoder + the
   `sync-qoder-repowiki-to-github-wiki` workflow (`scripts/sync-wiki.sh`).
