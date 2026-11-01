@@ -108,10 +108,14 @@ the separate `download_url` field, which the instruction never expressed.
 - `tests/integration/write/squadrules-train-artifact.test.ts` — end-to-end over a
   real server: `activate` row, `curl`-based `cmd`, digest, and the base64 export
   decoding back to the trained body.
-- The shell semantics were executed on the Termux host that wrote this record
-  (Android, arm64, `dash`, coreutils `base64`/`sha256sum`, `curl`), 11 checks. The
-  Jest suite was **not** run there: this host cannot hold it in memory, so the
-  TypeScript and integration coverage is proven by CI on the PR head SHA, per
+- Executed on the Termux host that wrote this record (Android, arm64, `dash`,
+  coreutils `base64`/`sha256sum`, `curl`): 35 checks — the emitted `cmd` run as a
+  shell, the `delivery` gate, the strict `activate` output schema against the real
+  builder, and `executeExportSource` raw/base64 digests. The three unit files ran
+  under `node:test` with a `.js`→`.ts` import shim, because this host holds no
+  `node_modules`.
+- Not run there: `tsc` type checking, repo-wide `eslint .`, the full Jest suite, and
+  the integration test. Those are proven by CI on the PR head commit, per
   `.qoder/rules/low-memory-hosts.md`.
 
 ## Revisit condition

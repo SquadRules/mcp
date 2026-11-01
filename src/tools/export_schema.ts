@@ -141,6 +141,8 @@ export const exportOutputSchema = z.object({
   content_encoding: z.enum(['base64']).optional(),
   /** SHA-256 of decoded export bytes when applicable (for example ZIP). */
   bundle_sha256: z.string().optional(),
+  /** SHA-256 hex of the bytes in `content`; a `source` response can verify itself. */
+  sha256: z.string().optional(),
   /** Number of adapters included in a multi-export bundle. */
   export_adapter_count: z.number().optional(),
   /** Optional compact manifest JSON string for skill bundles. */
