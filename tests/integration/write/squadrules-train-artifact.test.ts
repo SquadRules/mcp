@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
@@ -165,6 +166,11 @@ Done.`;
       sha256: expect.any(String),
       chmod: '700'
     });
+    // HTTP transport materializes by downloading, never by retyping bytes (issue #231).
+    expect(String(linked?.materialize?.arguments?.uri ?? '')).toBe(`squadrules://artifact/${linked?.slug}`);
+    expect(String(linked?.materialize?.cmd ?? '')).toContain('curl -fsS -o');
+    expect(String(linked?.materialize?.cmd ?? '')).toContain(String(linked?.download_url ?? ''));
+    expect(linked?.materialize?.arguments?.delivery).toBeUndefined();
 
     const exportMarkdown = await mcpConnection.client.callTool({
       name: 'export',
@@ -181,6 +187,17 @@ Done.`;
     const sourceArtifactParsed = parseMcpJson(exportSourceArtifact, 'export source artifact');
     expect(sourceArtifactParsed.content_type).toBe('text/x-python');
     expect(sourceArtifactParsed.content).toBe(artifactBody);
+    const artifactDigest = createHash('sha256').update(artifactBody, 'utf8').digest('hex');
+    expect(sourceArtifactParsed.sha256).toBe(artifactDigest);
+
+    const exportSourceBase64 = await mcpConnection.client.callTool({
+      name: 'export',
+      arguments: { uri: `squadrules://artifact/${artifactUuid}`, format: 'source', delivery: 'inline_base64' }
+    });
+    const sourceBase64Parsed = parseMcpJson(exportSourceBase64, 'export source base64');
+    expect(sourceBase64Parsed.content_encoding).toBe('base64');
+    expect(sourceBase64Parsed.sha256).toBe(artifactDigest);
+    expect(Buffer.from(String(sourceBase64Parsed.content), 'base64').toString('utf8')).toBe(artifactBody);
 
     const exportSourceArtifactSlug = await mcpConnection.client.callTool({
       name: 'export',

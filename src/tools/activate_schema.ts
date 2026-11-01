@@ -25,16 +25,23 @@ const executionIdSchema = z
   .regex(/^[0-9a-f-]{36}$/i, 'must be a UUID');
 const materializeInstructionSchema = z
   .object({
-    tool: z.literal('export').describe('MCP tool to call for artifact materialization'),
+    tool: z.literal('export').describe('MCP tool that returns the artifact bytes (required on stdio)'),
     arguments: z
       .object({
-        uri: z.string().describe('Artifact URI to export'),
-        format: z.literal('source').describe('Export format for artifact content')
+        uri: z.string().describe('Artifact URI to export: squadrules://artifact/{slug|uuid}'),
+        format: z.literal('source').describe('Export format for artifact content'),
+        delivery: z
+          .literal('inline_base64')
+          .optional()
+          .describe('Set on stdio transport: base64 so the bytes survive the write')
       })
       .strict(),
-    out: z.string().describe('Absolute path where the agent must write the content (uses $SQUADRULES_LOCAL_ARTIFACT_DIR)'),
-    sha256: z.string().describe('SHA-256 digest the agent must verify after writing'),
-    chmod: z.literal('700').describe('File permissions the agent must set after verification')
+    out: z.string().describe('Path where the bytes land (uses $SQUADRULES_LOCAL_ARTIFACT_DIR)'),
+    sha256: z.string().describe('SHA-256 hex of the artifact bytes; `cmd` verifies it'),
+    chmod: z.literal('700').describe('File permissions the agent must set after verification'),
+    cmd: z
+      .string()
+      .describe('Exact POSIX shell line that writes the file, verifies the digest, and sets permissions. Run it verbatim.')
   })
   .strict();
 const linkedArtifactSchema = z
@@ -45,7 +52,7 @@ const linkedArtifactSchema = z
     download_url: z.string(),
     sha256: z.string(),
     content_type: z.string(),
-    materialize: materializeInstructionSchema.describe('Instruction to call the MCP export tool, write the artifact to disk, verify the digest, and make it executable')
+    materialize: materializeInstructionSchema.describe('Run `cmd` verbatim to materialize the artifact; on stdio, call the `export` tool first and put its `content` into $B64')
   })
   .strict();
 const activateChoiceCommonSchema = z.object({

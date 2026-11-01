@@ -169,7 +169,7 @@ The server never names a path on your machine; you do.
   "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/<name>.py" --gate <name>`.
 - Verify before shipping — **two** checks, both required:
   1. `activate` the adapter and confirm `linked_artifacts[].relative_path` is
-     exactly the path `cmd` invokes. Follow each row's `materialize` instruction before
+     exactly the path `cmd` invokes. Run each row's `materialize.cmd` before
      the contract that needs it.
   2. **Export check:** call MCP **`export`** with
      `uri: "squadrules://adapter/<slug>"` and `format: skill_tree` (or
@@ -206,8 +206,8 @@ Signal. Frontmatter: `slug` (required), `version` (optional), `chain_root`
 
 **Scripts are obtained, not assumed:** when a step's `cmd` invokes a script, the
 adapter must state in its own text how the agent obtains that file before
-running the command — follow the `activate` artifact row's `materialize`
-instruction, or `export` the adapter. A step that says only "run `python3
+running the command — run the `activate` artifact row's `materialize.cmd`,
+or `export` the adapter. A step that says only "run `python3
 …/artifacts/x.py`" leaves the agent guessing where the file is; a
 missing-file gate failure is the most common
 result of that omission.

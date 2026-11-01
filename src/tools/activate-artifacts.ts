@@ -61,11 +61,11 @@ export async function loadLinkedArtifacts(
           sha256: artifact.sha256,
           relativePath
         });
-        // stdio transport: no HTTP listener available; use squadrules:// artifact URI
-        // so the agent calls `squadrules export` instead of curl.
-        const downloadUrl = isStdio
-          ? `squadrules://artifact/${artifact.slug}`
-          : capability.url;
+        const artifactUri = `squadrules://artifact/${artifact.slug}`;
+        // stdio transport: no HTTP listener available, so there is nothing to
+        // download and `download_url` carries the artifact URI instead. The bytes
+        // then arrive through the `export` tool as base64.
+        const downloadUrl = isStdio ? artifactUri : capability.url;
         return {
           slug: artifact.slug,
           filename: artifact.name,
@@ -75,6 +75,7 @@ export async function loadLinkedArtifacts(
           content_type: artifact.content_type,
           materialize: buildArtifactMaterializeInstruction({
             transport: isStdio ? 'stdio' : 'http',
+            artifactUri,
             downloadUrl,
             relativePath,
             sha256: artifact.sha256

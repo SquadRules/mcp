@@ -54,8 +54,8 @@ export function diagnoseShellFailure(
       detail: `the reported output says a file was not found ("${missingFile[0].trim()}")`,
       recovery:
         'A missing file is deterministic — do NOT run the same command again. ' +
-        "Obtain the file first: follow the materialize instruction from the activate choice's linked_artifacts row " +
-        '(call the MCP export tool, write the content to disk, verify the digest), or call `export` for that ' +
+        "Obtain the file first: run the `cmd` of the materialize instruction from the activate choice's linked_artifacts row " +
+        'verbatim (on stdio, call the MCP export tool first and put its `content` in $B64), or call `export` for that ' +
         'adapter (format skill_tree for the file list, skill_zip for the bundle) and take the script from artifacts/. ' +
         'If the file is in neither place, the adapter ships no such script: do not create it and do not substitute a ' +
         'different command — report the step as failed with the missing path in stderr and rate the run failure.'
