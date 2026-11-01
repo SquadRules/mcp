@@ -29,7 +29,7 @@ test('NUL input preserves Unicode, spaces and quotes in generated wiki paths', (
   const paths = [
     '.qoder/repowiki/knowledge/en/SquadRules UI — Theme/overview.md',
     '.qoder/repowiki/en/content/Page with "quotes".md',
-    '.qoder/repowiki/en/content/Line\\nBreak.md',
+    '.qoder/repowiki/en/content/Line\nBreak.md',
   ];
   const result = run(paths.join('\0') + '\0', ['--null']);
   assert.equal(result.status, 0, result.stderr);
