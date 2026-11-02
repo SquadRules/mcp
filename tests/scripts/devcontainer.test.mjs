@@ -23,22 +23,23 @@ test('devcontainer brings the infra up with the env file Compose actually interp
   assert.match(initializeCommand, /--profile fullstack/);
   // Without --env-file, Compose interpolates from compose/.env (the compose file's directory)
   // and qdrant's `${QDRANT_API_KEY:?...}` aborts the whole `up`.
-  assert.match(initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.env/);
+  assert.match(initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.devcontainer\/env/);
 });
 
-test('devcontainer starts the app after building it', () => {
-  const { postStartCommand, forwardPorts } = readDevcontainer();
+test('devcontainer dev service runs with hot reload, no postStartCommand needed', () => {
+  const devcontainer = readDevcontainer();
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
-  assert.match(postStartCommand, /npm run build/);
-  assert.match(postStartCommand, /npm run dev:cluster/);
+  // The dev service in compose/infra.yaml runs the app with hot reload (tsc --watch + node --watch).
+  // No postStartCommand is needed - the service starts automatically with the container.
+  assert.equal(devcontainer.postStartCommand, undefined, 'postStartCommand should not be set (hot reload is in the dev service)');
   assert.equal(pkg.scripts['dev:cluster'], `node ${CLUSTER_HELPER}`);
 
   // The app listens on SERVER_PORT (3300 in scripts/env/.env.template); it must be forwarded.
   const template = readFileSync('scripts/env/.env.template', 'utf8');
   const serverPort = Number(/^SERVER_PORT=(\d+)$/m.exec(template)?.[1]);
   assert.ok(Number.isInteger(serverPort) && serverPort > 0, 'template SERVER_PORT');
-  assert.ok(forwardPorts.includes(serverPort), `forwardPorts must include ${serverPort}`);
+  assert.ok(devcontainer.forwardPorts.includes(serverPort), `forwardPorts must include ${serverPort}`);
 });
 
 test('cluster helper reaches infra by compose service name, never by localhost', () => {
