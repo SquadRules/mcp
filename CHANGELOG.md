@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.17.0](https://github.com/SquadRules/mcp/compare/v5.16.0...v5.17.0) (2026-11-02)
+
+
+### Features
+
+* **artifacts:** unify linked-artifact materialization via URLs ([#257](https://github.com/SquadRules/mcp/issues/257)) ([#259](https://github.com/SquadRules/mcp/issues/259)) ([2f7ab1f](https://github.com/SquadRules/mcp/commit/2f7ab1f687db6ef8387e842c49c9db5d884ce09d))
+
 ## [5.16.0](https://github.com/SquadRules/mcp/compare/v5.15.0...v5.16.0) (2026-11-02)
 
 
