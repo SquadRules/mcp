@@ -173,11 +173,9 @@ describe('activateOutputSchema slug field', () => {
               sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               content_type: 'text/x-python',
               // Built by the emitter, so the schema is checked against what
-              // activate actually returns (issue #231).
+              // activate actually returns (ADR 0040, issue #231).
               materialize: buildArtifactMaterializeInstruction({
-                transport: 'http',
-                artifactUri: 'squadrules://artifact/helper-py',
-                downloadUrl: 'https://example.test/export/artifact/token',
+                url: 'https://example.test/export/artifact/token',
                 relativePath: 'artifacts/helper.py',
                 sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
               })

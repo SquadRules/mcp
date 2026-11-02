@@ -2,6 +2,12 @@
 
 ## Status
 
+**Superseded** by [ADR 0040](0040-unify-artifact-materialization-via-urls.md) on
+2026-11-02: linked-artifact materialization is unified on a transport-neutral URL
+(stdio `file://` from a server-written local cache, HTTP capability URL), so the
+per-transport `cmd` and the stdio `inline_base64` + `$B64` carrier recorded below
+are replaced. Body preserved unchanged per ADR doctrine.
+
 Accepted — decision taken 2026-11-01 and implemented by the accompanying change
 ([#231](https://github.com/SquadRules/mcp/issues/231)). Supersedes **Decision §6** of
 [ADR 0033](0033-gate-scripts-as-adapter-artifacts.md) (the transport-agnostic

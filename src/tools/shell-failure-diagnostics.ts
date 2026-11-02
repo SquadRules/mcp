@@ -55,8 +55,9 @@ export function diagnoseShellFailure(
       recovery:
         'A missing file is deterministic — do NOT run the same command again. ' +
         "Obtain the file first: run the `cmd` of the materialize instruction from the activate choice's linked_artifacts row " +
-        'verbatim (on stdio, call the MCP export tool first and put its `content` in $B64), or call `export` for that ' +
-        'adapter (format skill_tree for the file list, skill_zip for the bundle) and take the script from artifacts/. ' +
+        'verbatim — it curls the server-provided URL (a file:// cache path on stdio, a capability URL on HTTP), verifies the ' +
+        'sha256 digest, and publishes the file atomically — or call `export` for that adapter (format skill_tree for the file ' +
+        'list, skill_zip for the bundle) and take the script from artifacts/. ' +
         'If the file is in neither place, the adapter ships no such script: do not create it and do not substitute a ' +
         'different command — report the step as failed with the missing path in stderr and rate the run failure.'
     };

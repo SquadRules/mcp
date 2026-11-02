@@ -25,23 +25,16 @@ const executionIdSchema = z
   .regex(/^[0-9a-f-]{36}$/i, 'must be a UUID');
 const materializeInstructionSchema = z
   .object({
-    tool: z.literal('export').describe('MCP tool that returns the artifact bytes (required on stdio)'),
-    arguments: z
-      .object({
-        uri: z.string().describe('Artifact URI to export: squadrules://artifact/{slug|uuid}'),
-        format: z.literal('source').describe('Export format for artifact content'),
-        delivery: z
-          .literal('inline_base64')
-          .optional()
-          .describe('Set on stdio transport: base64 so the bytes survive the write')
-      })
-      .strict(),
+    method: z.literal('url').describe('Always `url`: `cmd` downloads the bytes from `url` on every transport'),
+    url: z
+      .string()
+      .describe('Source URL `cmd` downloads: a file:// cache path on stdio, an http(s) capability URL on HTTP'),
     out: z.string().describe('Path where the bytes land (uses $SQUADRULES_LOCAL_ARTIFACT_DIR)'),
     sha256: z.string().describe('SHA-256 hex of the artifact bytes; `cmd` verifies it'),
-    chmod: z.literal('700').describe('File permissions the agent must set after verification'),
+    chmod: z.literal('700').describe('File permissions `cmd` sets on the verified bytes before publishing'),
     cmd: z
       .string()
-      .describe('Exact POSIX shell line that writes the file, verifies the digest, and sets permissions. Run it verbatim.')
+      .describe('Exact POSIX shell line that downloads, verifies the digest, chmods, and atomically publishes. Run it verbatim.')
   })
   .strict();
 const linkedArtifactSchema = z
@@ -49,10 +42,10 @@ const linkedArtifactSchema = z
     slug: z.string(),
     filename: z.string(),
     relative_path: z.string().nullable(),
-    download_url: z.string(),
+    download_url: z.string().describe('Source URL for the artifact bytes: a file:// cache path on stdio, a short-lived capability URL on HTTP. Prefer running materialize.cmd over fetching it yourself.'),
     sha256: z.string(),
     content_type: z.string(),
-    materialize: materializeInstructionSchema.describe('Run `cmd` verbatim to materialize the artifact; on stdio, call the `export` tool first and put its `content` into $B64')
+    materialize: materializeInstructionSchema.describe('Run `cmd` verbatim to materialize the artifact: it curls `url`, verifies the sha256 digest, and publishes atomically — no export call and no $B64')
   })
   .strict();
 const activateChoiceCommonSchema = z.object({
@@ -138,7 +131,7 @@ export const activateOutputSchema = z.object({
    * challenges. The server never resolves these to a path on its own filesystem.
    */
   squadrules_local_artifact_dir: z.array(z.string()).optional(),
-  transport: z.enum(['stdio', 'http']).optional().describe('MCP transport mode. When "stdio", no HTTP listener is available; use squadrules:// artifact URIs and `squadrules export` instead of curl.')
+  transport: z.enum(['stdio', 'http']).optional().describe('MCP transport mode. When "stdio", no HTTP listener is available; linked-artifact materialize URLs are file:// paths from the server\'s local cache, and materialize.cmd curls them like any other URL.')
 }).strict();
 
 export type ActivateInput = z.infer<typeof activateInputSchema>;

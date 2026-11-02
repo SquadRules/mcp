@@ -200,8 +200,8 @@ squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <n
   file path, creating parent directories. Requires a non-`skill_zip` `--as`
   format and cannot be combined with `--out` or `--zip-out`. Use it to place an
   artifact at the path a shell contract expects. The `materialize.cmd` line in an
-  `activate` response is the transport-matched route; this flag is the CLI
-  equivalent.
+  `activate` response is the transport-neutral URL route the agent runs; this flag
+  is the manual CLI equivalent for a one-off read.
 - `--zip-out <file>` — write `skill_zip` bytes to this explicit file path.
 
 ```bash

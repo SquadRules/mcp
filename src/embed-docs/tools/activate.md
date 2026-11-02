@@ -56,19 +56,21 @@ optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plu
 **`linked_artifacts[]`** — a `match` choice whose adapter ships scripts carries one
 row per artifact: `slug`, `filename`, `relative_path`, `content_type`, `sha256`,
 `download_url`, and `materialize`. The `materialize` field carries the exact
-`cmd` that puts the file on disk: it creates the parent directory, writes the
-bytes, verifies the `sha256` digest, and sets `chmod 700`. **Run that line
+`cmd` that puts the file on disk: it curls `materialize.url` into a staging file,
+verifies the `sha256` digest, sets `chmod 700`, and atomically renames it into
+place under `$SQUADRULES_LOCAL_ARTIFACT_DIR/<relative_path>`. **Run that line
 verbatim — do not retype artifact bytes into an editor, a heredoc, or an inline
-script; byte-exactness is the framework's job, not yours.** The byte source
-depends on the transport:
+script; byte-exactness is the framework's job, not yours.** The command is
+transport-neutral: `curl` fetches `materialize.url` the same way on both
+transports, and `download_url` carries that same source URL.
 
-- **HTTP:** `cmd` downloads `download_url` with `curl -fsS`, zero-copy. The
-  paired `arguments` (`uri: "squadrules://artifact/{slug}"`, `format: "source"`)
-  are for *reading* the artifact instead.
-- **stdio/local:** there is no listener to download from, so call the MCP
-  `export` tool with the row's `arguments` — it returns the bytes as
-  `content` with `content_encoding: "base64"` — set `B64` to that `content`, then
-  run `cmd`. `cmd` stops with a stated reason when `B64` is unset.
+- **HTTP:** `materialize.url` is a short-lived capability URL served by the
+  listener; `curl` downloads it directly.
+- **stdio/local:** there is no listener, so the running server writes the verified
+  bytes to its private local cache and `materialize.url` is a `file://` path that
+  `curl` reads. No `export` call, no base64, and no `$B64` variable are involved.
+  If that `file://` source is gone (an OS temp-cleaner removed it), re-run
+  `activate` to refresh it.
 
 Follow the instruction **before** the first `shell` contract that invokes an
 artifact path. `relative_path` is exactly the path the adapter's
