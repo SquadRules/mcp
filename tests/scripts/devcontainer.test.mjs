@@ -91,10 +91,9 @@ test('the Dev Containers CLI reuses the infra Compose project instead of startin
   assert.equal(compose.name, 'squadrules-mcp');
 
   // The CLI's own `docker compose -f <abs>/compose/infra.yaml config` passes neither --env-file nor
-  // -p, and Compose interpolates from the compose file's directory. initializeCommand therefore
-  // links compose/.env -> ../.env; the root `.env` gitignore pattern matches at any depth, so the
-  // link (and every secret behind it) stays untracked.
-  assert.match(devcontainer.initializeCommand, /ln -sfn \.\.\/\.env \$\{localWorkspaceFolder\}\/compose\/\.env/);
+  // -p. initializeCommand uses --env-file to point directly at .devcontainer/env (tracked in git
+  // with static dev credentials), so no symlink or root .env is needed for dev containers.
+  assert.match(devcontainer.initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.devcontainer\/env/);
   assert.match(readFileSync('.gitignore', 'utf8'), /^\.env$/m);
 
   // The symlink is why the required-variable guard survives: it must never be softened to `:-`
