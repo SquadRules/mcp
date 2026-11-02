@@ -159,18 +159,23 @@ Done.`;
     expect(Array.isArray(parentMatch?.linked_artifacts)).toBe(true);
     const linked = parentMatch?.linked_artifacts?.[0];
     expect(linked?.filename).toBe(artifactName);
+    // This suite is Qdrant-gated, so it runs in the HTTP lane; the stdio `file://`
+    // cache route is covered by the artifact-local-cache and
+    // artifact-materialize-command units.
     expect(String(linked?.download_url ?? '')).toContain('/export/artifact/');
     expect(linked?.materialize).toMatchObject({
-      tool: 'export',
-      arguments: { format: 'source' },
+      method: 'url',
       sha256: expect.any(String),
       chmod: '700'
     });
-    // HTTP transport materializes by downloading, never by retyping bytes (issue #231).
-    expect(String(linked?.materialize?.arguments?.uri ?? '')).toBe(`squadrules://artifact/${linked?.slug}`);
+    // Transport-neutral materialization (ADR 0040): run cmd verbatim — it curls the
+    // row's URL, verifies the digest, and publishes atomically. No export call, no $B64.
+    expect(String(linked?.materialize?.url ?? '')).toBe(String(linked?.download_url ?? ''));
+    expect(String(linked?.materialize?.out ?? '')).toBe(
+      `$SQUADRULES_LOCAL_ARTIFACT_DIR/${String(linked?.relative_path ?? '')}`
+    );
     expect(String(linked?.materialize?.cmd ?? '')).toContain('curl -fsS -o');
     expect(String(linked?.materialize?.cmd ?? '')).toContain(String(linked?.download_url ?? ''));
-    expect(linked?.materialize?.arguments?.delivery).toBeUndefined();
 
     const exportMarkdown = await mcpConnection.client.callTool({
       name: 'export',

@@ -280,12 +280,13 @@ exists:
    failed step, not your typo.
 
 **At execution time:** run the `materialize.cmd` carried by that
-`linked_artifacts[]` row verbatim — it creates the parent directory, writes the
-file under `$SQUADRULES_LOCAL_ARTIFACT_DIR`, verifies the digest, and sets
-permissions. On the stdio transport, call the MCP `export` tool with the row's
-`arguments` first and set `B64` to the returned `content`; on HTTP, `cmd`
-downloads the artifact itself. Do not retype artifact bytes through an editor or
-a heredoc — an exact-byte write is not an agent task.
+`linked_artifacts[]` row verbatim — it creates the parent directory, curls the
+row's source URL (a `file://` cache path on stdio, a capability URL on HTTP) into
+a staging file under `$SQUADRULES_LOCAL_ARTIFACT_DIR`, verifies the `sha256`
+digest, and atomically renames it into place with `chmod 700`. The command is the
+same on both transports; there is no `export`-first step and no `$B64`. Do not
+retype artifact bytes through an editor or a heredoc — an exact-byte write is not
+an agent task.
 `forward` responses do not repeat the list, so materialize during the
 run's first step. When the choice carries no artifact row, the agent obtains the
 script with **`export`** (`format: skill_tree` or `format: skill_zip`) and takes
