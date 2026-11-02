@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.16.0](https://github.com/SquadRules/mcp/compare/v5.15.0...v5.16.0) (2026-11-02)
+
+
+### Features
+
+* **devcontainer:** full-stack hot-reload development environment ([#256](https://github.com/SquadRules/mcp/issues/256)) ([d90ba61](https://github.com/SquadRules/mcp/commit/d90ba6111e41481dbf3b1ba491017574ed2733bf))
+
+
+### Bug Fixes
+
+* **devcontainer:** auto-start app in CLUSTER mode against compose infra ([#253](https://github.com/SquadRules/mcp/issues/253)) ([8b64411](https://github.com/SquadRules/mcp/commit/8b64411be2fc852a96c082acd0a500b375154c2f))
+
 ## [5.15.1](https://github.com/SquadRules/mcp/compare/v5.15.0...v5.15.1) (2026-11-02)
 
 
