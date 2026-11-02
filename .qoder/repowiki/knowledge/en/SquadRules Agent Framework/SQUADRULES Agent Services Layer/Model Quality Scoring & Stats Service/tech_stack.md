@@ -1,0 +1,1 @@
+TypeScript; persistence via a shared `keyValueStore` abstraction (Redis-backed); metrics emitted through `../metrics/agent-metrics`; protocol step data read from Qdrant.

@@ -1,0 +1,5 @@
+Two parallel sub-trees serve different consumers:
+- `tools/` contains one `.md` per MCP tool (`activate`, `train`, `tune`, `export`, `reward`, `spaces`, `delete`, `forward`). Each file is a human+agent-facing spec describing inputs, outputs, roles, and cross-tool flow (activate → forward → reward). These are the embedded docs that surface to agents through the MCP tool descriptions.
+- `mem/` holds bundled meta-adapters and policy documents injected into the Squadrules app space at boot (per `mem/README.md`). It includes adapter definitions (`author-adapter`, `critic-loop`, `refine-search`, `adapter-migration`, `bulk-insert-adapters-via-cli`) plus reference guides (`challenge-type-guide`, `protocol-linking-guide`, `critic-loop-guide`).
+
+Dependency direction is one-way: `tools/` references the workflow defined in `mem/README.md` (activate→forward→reward), while `mem/` defines the contract shapes that `tools/train` registers. The bundle version is pinned at `5.0.0` in `mem/README.md`. There is no code here — it is pure Markdown consumed by the runtime's adapter loader and surfaced as MCP tool instructions.

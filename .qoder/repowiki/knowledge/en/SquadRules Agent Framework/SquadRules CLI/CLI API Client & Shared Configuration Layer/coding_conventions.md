@@ -1,0 +1,5 @@
+- Base URL resolution follows a fixed precedence chain — explicit constructor/env var > persisted defaultUrl > local sentinel — applied consistently in both `ApiClient` constructor and `getCliApiUrlDefault`.
+- Secrets are never read directly from the config file: `readConfig` always goes through `keyring.ts`, which returns null when unavailable, letting callers fall back to inline file values or placeholders.
+- Keyring operations are wrapped in a shared timeout (`withKeyringTimeout` / `runKeyringOp`) and a process-wide degradation latch so a single hung call disables future calls rather than stalling every request.
+- Per-environment configuration is keyed by the normalized API URL (no trailing slash), stored under `environments[url]`, and migrated from the legacy flat `{ SQUADRULES_API_URL, bearerToken }` shape on first write.
+- When the OS keyring is available, tokens written to disk use the `__KEYCHAIN__` placeholder instead of the secret, with `persistEnvironmentSentinel` marking which fields were successfully promoted.

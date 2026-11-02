@@ -1,0 +1,1 @@
+Plain Markdown; the `mem/` bundle is versioned (currently 5.0.0) and injected into the Squadrules app space at boot as built-in adapters and policy documents.

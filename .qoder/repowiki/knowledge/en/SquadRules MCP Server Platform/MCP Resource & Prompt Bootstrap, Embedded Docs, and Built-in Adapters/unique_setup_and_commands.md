@@ -1,1 +1,0 @@
-The embedded MCP resources in `src/resources/embedded-mcp-resources.ts` are marked AUTO-GENERATED and must be regenerated via `npm run build` (or manually `ts-node scripts/build-embed-docs.ts`); editing it directly is prohibited. The shipped adapter markdown lives under `src/embed-docs/mem/*.md` and is picked up at boot via `getMemDir()` / `getMemDirFallback()`.

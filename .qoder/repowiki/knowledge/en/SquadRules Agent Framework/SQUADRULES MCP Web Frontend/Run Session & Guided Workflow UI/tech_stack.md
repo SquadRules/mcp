@@ -1,0 +1,1 @@
+React + TypeScript with react-i18next for internationalization, react-router for navigation, and Tailwind utility classes styled against CSS custom properties (e.g. `--color-primary`, `--color-surface-elevated`).

@@ -1,0 +1,1 @@
+@modelcontextprotocol/sdk's `StdioServerTransport` for the stdio MCP wire; embedded LanceDB as the default vector store when no `QDRANT_URL` is set, with optional external Qdrant; fastembed-based embedding providers resolved through `provider-resolver`.

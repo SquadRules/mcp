@@ -1,6 +1,0 @@
-- Each MCP tool is split into a handler file exporting a `registerXxxTool(server, memoryStore, options)` function and a sibling `xxx_schema.ts` file exporting Zod input/output schemas plus inferred TypeScript types.
-- Handler entry functions wrap body calls in `mcpToolDuration.startTimer` / `mcpToolCalls.inc` / `mcpToolErrors.inc` / `mcpToolInputSize.observe` / `mcpToolOutputSize.observe` with `tenant_id` labels for metrics tracking.
-- Input parameters are validated by calling `zSchema.safeParse(params)` and returning `mcpToolInputValidationErrorResult(toolName, error, params)` on failure before any business logic runs.
-- Optional fields are forwarded to downstream payloads using spread-with-undefined guards like `...(input.x !== undefined && { x: input.x })` so omitted values are not serialized.
-- Critic-loop review evidence is enforced at the schema level via `superRefine` adding a `review_evidence` issue when required (adapter trains or tune content updates), and also re-checked in the handler via `assertReviewEvidencePassed`.
-- Error responses are normalized through a formatter (`formatTrainErrorPayload` for train, generic handling for tune) that maps internal codes to user-facing error objects with sanitized detail keys.

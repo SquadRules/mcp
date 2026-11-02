@@ -1,0 +1,1 @@
+Reusable React components and the run workflow form that render Squadrules MCP challenge cards, layout shell, markdown, editor, and guided solution submission flows.

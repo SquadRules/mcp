@@ -1,5 +1,0 @@
-- User-facing strings are never hardcoded in JSX; every label, heading, hint, and button text goes through `useTranslation()` keys scoped per page (`home.*`, `runs.*`, `run.*`).
-- Navigation between pages uses `<Link>` to static routes and `navigate()` for dynamic redirects, with all path parameters URL-encoded via `encodeURIComponent` before interpolation.
-- Async mutations (start/step/reward) follow a try/catch pattern that calls a local `persist(session)` helper to atomically update both component state and the session store, setting status to `error` on failure.
-- UI styling uses Tailwind utility classes combined with CSS custom properties (`--color-text-heading`, `--color-primary`, `--color-border`, etc.) rather than inline style objects or theme functions.
-- Run session state machines transition through explicit string statuses (`running`, `ready_to_reward`, `completed`, `error`) derived from server responses (e.g. checking whether `next_action` includes `reward`).

@@ -1,0 +1,1 @@
+Bootstraps the Express server and wires shared middleware, OIDC auth, MCP transport, REST API routes, export downloads, health/well-known endpoints, and the Vite SPA into a single request pipeline.

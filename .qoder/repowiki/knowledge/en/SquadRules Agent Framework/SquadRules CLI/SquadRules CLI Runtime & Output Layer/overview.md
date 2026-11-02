@@ -1,0 +1,1 @@
+Node.js CLI entry point, Commander program assembly, output-format resolution, human/JSON renderers, and shared I/O, auth, fetch, upload, and export helpers for the squadrules command.

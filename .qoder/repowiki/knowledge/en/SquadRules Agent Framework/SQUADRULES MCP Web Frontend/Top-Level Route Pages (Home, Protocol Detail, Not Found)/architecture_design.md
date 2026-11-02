@@ -1,0 +1,6 @@
+Three sibling React function components under `src/ui/pages/`, each exported as a route leaf:
+- `HomePage.tsx` — landing/dashboard that queries spaces via `useSpaces()`, renders a search form navigating to `/squadrules`, and three entry cards linking to `/squadrules`, `/protocols/new`, and `/runs`.
+- `ProtocolDetailPage.tsx` — reads a URL param `uri` via `react-router`'s `useParams`, fetches protocol content through `useProtocol(uri, true)`, parses it with `parseProtocolMarkdown`, then renders step flow (`StepFlowGraph`), steps (`ChallengeCard` + `RenderedMarkdown`), triggers/completion sections, and export actions (markdown blob download, skill zip bundle via `fetchSkillZipBundle`).
+- `NotFoundPage.tsx` — minimal 404 using `ErrorAlert` with a go-back action.
+
+All pages are presentational: they compose shared atoms from `@/components/*` (`SurfaceCard`, `SpaceTypeBadge`, `ErrorAlert`, `CopyButton`, `RenderedMarkdown`, `StepFlowGraph`, `ChallengeCard`) and consume data through hooks in `@/hooks/*`. There is no internal routing configuration here; routes are wired elsewhere. Styling uses Tailwind utility classes layered over CSS custom properties (`--color-*`, `--radius-md`, etc.).

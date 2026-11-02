@@ -55,15 +55,23 @@ optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plu
 
 **`linked_artifacts[]`** — a `match` choice whose adapter ships scripts carries one
 row per artifact: `slug`, `filename`, `relative_path`, `content_type`, `sha256`,
-`download_url`, and `materialize`. The `materialize` field is a structured
-instruction object (not a shell command) that tells you how to obtain the
-artifact: it specifies the MCP `export` tool to call, the arguments (`uri` and
-`format: "source"`), the output path (`out`, which uses
-`$SQUADRULES_LOCAL_ARTIFACT_DIR`), the expected `sha256` digest, and the `chmod`
-permissions. Follow this instruction **before** the first `shell` contract that
-invokes an artifact path: call the MCP `export` tool with the specified
-arguments, write the returned content to the `out` path, verify the `sha256`,
-and set the permissions. `relative_path` is exactly the path the adapter's
+`download_url`, and `materialize`. The `materialize` field carries the exact
+`cmd` that puts the file on disk: it creates the parent directory, writes the
+bytes, verifies the `sha256` digest, and sets `chmod 700`. **Run that line
+verbatim — do not retype artifact bytes into an editor, a heredoc, or an inline
+script; byte-exactness is the framework's job, not yours.** The byte source
+depends on the transport:
+
+- **HTTP:** `cmd` downloads `download_url` with `curl -fsS`, zero-copy. The
+  paired `arguments` (`uri: "squadrules://artifact/{slug}"`, `format: "source"`)
+  are for *reading* the artifact instead.
+- **stdio/local:** there is no listener to download from, so call the MCP
+  `export` tool with the row's `arguments` — it returns the bytes as
+  `content` with `content_encoding: "base64"` — set `B64` to that `content`, then
+  run `cmd`. `cmd` stops with a stated reason when `B64` is unset.
+
+Follow the instruction **before** the first `shell` contract that invokes an
+artifact path. `relative_path` is exactly the path the adapter's
 contract expects, so materialize from the `activate` choice you picked —
 `forward` does not repeat this list.
 

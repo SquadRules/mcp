@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: ui/runs_area
+title: Run Session & Guided Workflow UI
+scope:
+    - src/ui/pages/RunsPage.tsx
+    - src/ui/pages/RunGuidedPage.tsx
+    - src/ui/components/run/
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/api_routes

@@ -1,1 +1,0 @@
-Qdrant via `@qdrant/js-client-rest` for remote memory/vector storage; LanceDB (via `lancedb` package) for embedded vector storage; Redis (via `ioredis`) for distributed cache/pub-sub with an in-memory fallback; OpenAI API and optional TEI/FastEmbed providers for text embeddings.

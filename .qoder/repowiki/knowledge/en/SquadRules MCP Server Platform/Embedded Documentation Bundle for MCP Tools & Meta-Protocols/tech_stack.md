@@ -1,1 +1,0 @@
-Plain Markdown with YAML frontmatter (slug, version, chain_root); served as embedded assets rather than built via any compiler.

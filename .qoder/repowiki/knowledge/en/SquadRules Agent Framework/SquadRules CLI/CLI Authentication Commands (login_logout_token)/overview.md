@@ -1,0 +1,1 @@
+Implements the `squadrules login`, `logout`, and `token` CLI commands that obtain, store, validate, and clear Bearer tokens via PKCE browser flow or direct token input.

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: tools/export
+title: Adapter & Skill Export Tooling
+scope:
+    - src/tools/export.ts
+    - src/tools/skill-export/
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/export_download

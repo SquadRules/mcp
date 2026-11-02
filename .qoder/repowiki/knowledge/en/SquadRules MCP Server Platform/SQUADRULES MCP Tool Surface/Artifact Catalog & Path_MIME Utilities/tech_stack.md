@@ -1,1 +1,0 @@
-TypeScript with Node's `path` module for basename/extname; relies on the in-memory Qdrant store abstraction (`MemoryQdrantStore`) rather than talking to a real vector DB directly.

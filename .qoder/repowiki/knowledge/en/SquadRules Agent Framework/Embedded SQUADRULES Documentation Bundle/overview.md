@@ -1,0 +1,1 @@
+Markdown documentation bundle shipped into the Squadrules app space at boot, providing MCP tool specs and meta-adapter authoring guides consumed by agents via activate/forward.

@@ -1,1 +1,0 @@
-Implements the forward/next step workflow that validates agent solutions against per-step proof-of-work contracts, chains proofs across adapter layers, and drives two-phase retry escalation.

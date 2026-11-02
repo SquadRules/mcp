@@ -1,0 +1,6 @@
+- Commands register themselves by exporting a `*Command(program)` function that calls `program.command(...).option(...).action(...)`, keeping each command in its own file.
+- Every command wraps its action body in try/catch and routes non-ENOTREG/ENOENT errors through `handleApiError(error, !isBrowserDisabled())` from `../auth-error.js`.
+- Human-readable output is produced via `emitResult(resolveOutputFormat(program), payload, { pretty: renderXxxPretty, text: renderXxxText })` using paired pretty/text renderers from `../render.js` rather than direct console writes.
+- Machine-facing bulk operations (export, directory train batch) write artifacts to disk and emit only a compact manifest/summary via `--format json`, never dumping raw content bytes to stdout.
+- Integration-test review evidence is injected through the `SQUADRULES_REVIEW_EVIDENCE` environment variable, parsed as JSON and attached to `trainOptions`/`tuneOpts` when present.
+- Markdown uploads go through `readMarkdownUploadFromFile(file, '<command>', allowSensitive)` from `../upload-guards.js` instead of reading files directly, centralizing sensitive-content detection.

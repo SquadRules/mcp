@@ -104,11 +104,54 @@ fi
 # (git sets it during commit quarantine; otherwise almost every blob looks missing).
 drop_index_missing_blobs
 assert_index_substantially_intact
+# Repo-wide ESLint builds a type program for every TS file and needs a multi-GB V8
+# heap. On constrained hosts (phones running Termux, small VMs, containers) it aborts
+# mid-run with "Ineffective mark-compacts near heap limit", which is evidence about
+# the host, not about the branch. Such hosts defer `eslint .` to CI — the required
+# `CI gate passed` context validates this exact head commit with the same toolchain —
+# and keep the light linters here. Force either way:
+#   SQUADRULES_PRECOMMIT_LINT=force git commit …   /   SQUADRULES_PRECOMMIT_LINT=skip
+available_mem_mb() {
+  if [ -r /proc/meminfo ]; then
+    kb=$(sed -n 's/^MemAvailable:[[:space:]]*\([0-9][0-9]*\) kB$/\1/p' /proc/meminfo | head -n 1)
+    if [ -n "$kb" ]; then
+      echo "$((kb / 1024))"
+      return
+    fi
+  fi
+  node -e 'const os=require("node:os");process.stdout.write(String(Math.floor(os.freemem()/1048576)))' 2>/dev/null
+}
+
+mem_mb=$(available_mem_mb)
+lint_here=yes
+case "${SQUADRULES_PRECOMMIT_LINT:-auto}" in
+  force) lint_here=yes ;;
+  skip) lint_here=no ;;
+  *)
+    case "$mem_mb" in
+      '' | *[!0-9]*) : ;; # memory unknown: keep the strict behaviour
+      *) [ "$mem_mb" -lt 4096 ] && lint_here=no ;;
+    esac
+    ;;
+esac
+
 # `git commit` exports GIT_INDEX_FILE (and related vars). lint:skills may run
 # `pip install git+https://...`; nested git must not see those or it can rewrite
 # this worktree's index. Parent shell keeps git's env for hook git commands.
-( unset GIT_INDEX_FILE GIT_DIR GIT_PREFIX GIT_OBJECT_DIRECTORY || true
-  npm run lint >&2
-) || exit 1
+if [ "$lint_here" = "yes" ]; then
+  ( unset GIT_INDEX_FILE GIT_DIR GIT_PREFIX GIT_OBJECT_DIRECTORY || true
+    npm run lint >&2
+  ) || exit 1
+else
+  echo >&2 ""
+  echo >&2 "  pre-commit: 'eslint .' deferred to CI (host reports ${mem_mb} MB available, threshold 4096 MB)."
+  echo >&2 "  Do not re-run it locally. Validate on the PR instead:"
+  echo >&2 "    gh pr checks --watch --fail-fast"
+  echo >&2 "  Light linters still run here; override with SQUADRULES_PRECOMMIT_LINT=force."
+  echo >&2 ""
+  ( unset GIT_INDEX_FILE GIT_DIR GIT_PREFIX GIT_OBJECT_DIRECTORY || true
+    npm run lint:skills >&2 && npm run lint:markdown >&2 && npm run lint:docs >&2
+  ) || exit 1
+fi
 drop_index_missing_blobs
 assert_index_substantially_intact

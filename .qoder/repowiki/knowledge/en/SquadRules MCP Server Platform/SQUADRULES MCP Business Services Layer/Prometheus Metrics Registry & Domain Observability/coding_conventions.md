@@ -1,5 +1,0 @@
-- Metric instances are declared as top-level named exports with `name` values following the `squadrules_<domain>_<metric>` prefix convention.
-- Every metric definition passes `registers: [register]` to bind it to the shared registry exported from `./registry.js`.
-- Tenant isolation is expressed by including `tenant_id` in `labelNames` rather than as a default label, so it can be set per-request context.
-- Domain-specific metric groups live in their own file under `src/services/metrics/`, each importing only `prom-client` types and the shared `register`.
-- Histogram buckets are declared explicitly per metric using numeric arrays tuned to the expected value range (seconds, bytes, counts).

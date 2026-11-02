@@ -1,0 +1,5 @@
+- Each provider implementation records its resolved dimension by calling `setResolvedEmbeddingDimension` and marks itself as successful via `setSuccessfulProvider(provider, model, dimension)` after a successful response.
+- Every provider call wraps success/error paths with `auditProviderCall` (or `logEmbeddingAuditSuccess`/`logEmbeddingAuditError`) reporting provider, model, inputCount, inputCharLength, outputDimension, latencyMs, and httpStatus.
+- HTTP-based providers implement a uniform retry loop using `computeBackoffMs` / `computeRetryDelayMs` / `computeDeadline` with a configurable `EMBEDDING_MAX_RETRIES` and wall-clock budget, treating 429/502/503/504 as retriable and distinguishing non-retriable quota errors.
+- Provider selection is decoupled into a pure `resolveCandidateProvider()` function plus a separate `setSuccessfulProvider` mutation, keeping 'what we'll try' distinct from 'what actually worked'.
+- Expensive initialization (fastembed model loading, embedding dimension probing) is guarded by a module-level memoized promise so concurrent callers share one inflight operation and failures are not cached.

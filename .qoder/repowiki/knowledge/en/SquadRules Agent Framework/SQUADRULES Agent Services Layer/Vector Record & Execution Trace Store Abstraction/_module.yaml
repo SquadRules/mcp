@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: services/vector_store
+title: Vector Record & Execution Trace Store Abstraction
+scope:
+    - src/services/vector-store/
+source_files: []
+depends_on: []
+related_to: []

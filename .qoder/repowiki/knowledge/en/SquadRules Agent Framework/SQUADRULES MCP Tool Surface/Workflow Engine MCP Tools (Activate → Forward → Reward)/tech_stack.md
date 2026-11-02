@@ -1,0 +1,1 @@
+TypeScript MCP tool handlers using Zod for input validation, Node `crypto.randomUUID()` for execution IDs, and a layered memory model backed by Qdrant + a local `MemoryQdrantStore`. Proof-of-work and step quality tracking integrate with external stores (`proofOfWorkStore`, `executionTraceStore`).

@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: ui/shared_assets
+title: UI Theme Tokens & English i18n Resources
+scope:
+    - src/ui/theme/
+    - src/ui/i18n/
+source_files: []
+depends_on: []
+related_to: []

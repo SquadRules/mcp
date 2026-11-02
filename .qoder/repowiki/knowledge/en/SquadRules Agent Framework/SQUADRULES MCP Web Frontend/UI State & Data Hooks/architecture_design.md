@@ -1,0 +1,8 @@
+Flat collection of independent React hooks under `src/ui/hooks/`, each owning one concern:
+- Server data via TanStack Query: `useAuth` (`/api/me`), `useActivate` (`/api/activate`), `useSpaces` (`/api/spaces`), `useProtocol` (`/api/export` markdown export).
+- Mutations via TanStack Mutation: `useForwardStart` / `useForwardStep` (`/api/forward`), `useReward` (`/api/reward`).
+- All HTTP goes through a shared `@/lib/api` client; error bodies are normalized into `Error` objects carrying `statusCode`.
+- Protocol editing is a self-contained pipeline in `useProtocol.ts`: `parseProtocolMarkdown` → `parseProtocolMarkdownToForm` (stateful form) → `buildMarkdownFromForm`, with types mirroring the backend schemas imported from `../../tools/*_schema.js`.
+- Run sessions use a two-layer pattern: `useRunSessions` manages a `localStorage` store keyed by `squadrules.runSessions.v1` with a `normalizeRunSession` normalizer that maps legacy field names (`protocol_uri`→`adapter_uri`, `challenge`→`contract`, `current_step`→`current_layer`, `ready_to_attest`→`ready_to_reward`, `attest_uri`→`reward_uri`) to the current `RunSession` shape; `useRunSession(id)` derives a single session from that store.
+- Theme state in `useThemePreference.tsx` exposes a `ThemeProvider` + `useThemePreferenceContext` consuming `window.matchMedia('(prefers-color-scheme: dark)')` and syncing `document.documentElement.data-theme` plus `colorScheme`, persisted under `squadrules:ui:theme-preference`.
+Dependency direction is one-way: hooks depend on `@/lib/api`, `@tanstack/react-query`, and backend schema types — nothing in this module imports UI components except type-only references.

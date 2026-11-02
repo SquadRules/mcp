@@ -1,0 +1,5 @@
+- Each MCP tool gets its own dedicated `.md` file under `tools/` with a consistent shape: purpose statement, When to call section, happy-path flow, Input/Output sections, and cross-reference to other tools.
+- Meta-adapters in `mem/` follow a fixed H2-section structure: Activation Patterns first, Reward Signal last, with fenced ```json blocks containing a top-level `contract` object as the machine-readable payload.
+- Cross-adapter links use the `squadrules://adapter/<slug>` URI scheme rather than raw MCP tool calls, with `forward.target` validated against the contract to prove the correct slug was invoked.
+- Artifact identity is pinned via a leading `# squadrules-artifact:` comment block declaring `slug` and `version`, used for deduplication on re-train instead of deriving from filenames.
+- Verification follows a strict ladder enforced by these docs: `shell` (with required interpreter), then `subagent` (for critic delegation), with `comment` reserved as a closing ACK only.

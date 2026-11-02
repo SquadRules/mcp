@@ -1,0 +1,19 @@
+schema_version: 1
+module_path: cli/shared_client_config
+title: CLI API Client & Shared Configuration Layer
+scope:
+    - src/cli/api-client.ts
+    - src/cli/client-factory.ts
+    - src/cli/config.ts
+    - src/cli/config-file.ts
+    - src/cli/config-file-internals.ts
+    - src/cli/config-file-write.ts
+    - src/cli/keyring.ts
+    - src/cli/oauth-refresh.ts
+    - src/cli/resolve-api-base.ts
+    - src/cli/safe-http-url.ts
+    - src/cli/rewrite-login-url.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/auth_oidc

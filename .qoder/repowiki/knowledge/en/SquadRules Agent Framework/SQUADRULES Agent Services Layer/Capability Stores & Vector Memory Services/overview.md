@@ -1,0 +1,1 @@
+Backend-agnostic persistence layer providing memory/vector stores, embedding providers, execution traces, Redis-backed caching, and Prometheus metrics for the agent workflow.

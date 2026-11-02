@@ -1,0 +1,7 @@
+Children are layered around a set of backend-neutral port interfaces that get resolved at startup via config flags:
+- `key-value-store-factory.ts` selects `RedisService` vs in-memory `MemoryStore` based on `isRedisConfigured`, giving every child (embedding audit, proof-of-work, OIDC state) a uniform KV contract.
+- `execution-trace-store.ts` similarly resolves between `ExecutionTraceStore` (Qdrant-backed) and `LanceExecutionTraceStore` (embedded LanceDB) based on `isQdrantConfigured`, so reward/forward/export tool paths never import Qdrant directly.
+- `memory/` is the high-level knowledge adapter pipeline; it composes `qdrant/` (vector DB client), `embedding/` (dense vectors + BM25 tokenization), and `vector-store/` (LanceDB record layer for artifact layers/search results).
+- `metrics/` is a shared Prometheus registry consumed uniformly by all children (HTTP, agent, embedding, memory, Qdrant, system) to expose domain-scoped counters/histograms.
+- `stats/` sits alongside as a read-only scoring service over model contributions, persisting via the same KV abstraction.
+The top-level files (`activate-refinement-store.ts`, `adapter-layer-count.ts`, `adapter-navigation.ts`, `reward-evals.ts`, `reward-metrics.ts`) act as thin orchestrators that compose these children into the activate → forward → reward workflow.

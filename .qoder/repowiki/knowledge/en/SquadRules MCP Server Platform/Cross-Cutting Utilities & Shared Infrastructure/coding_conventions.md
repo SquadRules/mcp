@@ -1,6 +1,0 @@
-- User-supplied strings and object keys are passed through `sanitizeLogMessage` / `sanitizeBindingKey` (strip CR/LF, control chars, truncate) before any log or audit write, preventing log injection.
-- Audit events are restricted to an allowlisted union (`AuditCategory`, `AuditEventName`); unknown categories/events are dropped rather than forwarded to the audit side-stream.
-- Request-scoped multitenant state is accessed via `AsyncLocalStorage` through `getSpaceContextFromStorage()` / `getSpaceIdFromStorage()` instead of passing context objects down the call stack.
-- Qdrant-related exports are consolidated behind the `qdrant-utils.ts` barrel so consumers import only from the single entry point.
-- Vector names are derived deterministically from the resolved embedding dimension (e.g. `vs${dim}`, `adapter_title_vs${dim}`) so different dimensions get separate collections without code changes.
-- Configuration values are read from `../config.js` constants (e.g. `AUTH_ENABLED`, `QDRANT_COLLECTION_CURRENT`, `LOG_LEVEL`) rather than directly from `process.env` inside business logic.

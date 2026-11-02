@@ -1,3 +1,0 @@
-- URI parsing returns a discriminated union (`kind: 'adapter'|'artifact'|'layer'`) carrying both the normalized id and the original raw input for round-tripping.
-- Public-facing parsers come in pairs: a permissive version that throws plain `Error`, and an `OrThrow` variant that wraps failures in `SquadrulesError` with code `INVALID_URI` and HTTP status 400 for wire-layer consumers.
-- Builder functions are pure and symmetric with their parsers (e.g. `buildAdapterUri` / `parseSquadrulesUri`), producing the canonical `squadrules://` form rather than accepting arbitrary strings.

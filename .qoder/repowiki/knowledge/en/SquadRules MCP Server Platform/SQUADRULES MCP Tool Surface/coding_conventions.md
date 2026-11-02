@@ -1,5 +1,0 @@
-- Each MCP tool lives in its own file exporting an `execute` function plus sibling `<tool>_schema.ts` Zod schemas, then registers itself via `server.registerTool(...)`.
-- The canonical tool list in `tool-registry.ts` is the single source of truth for tool names, titles, descriptions, and schemas — new tools must be added there alongside their handler.
-- Descriptions resolve from embedded docs via `resolveToolDoc(toolName)` with a human-readable fallback string.
-- Input validation uses strict Zod schemas imported from dedicated `<tool>_schema.ts` files rather than inline definitions.
-- Cross-tool shared utilities (artifact paths, MIME types, squadrules URIs, next-step POH helpers) live as sibling modules under `src/tools/` and are imported directly instead of re-exported through a barrel.

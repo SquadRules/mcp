@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: http_api/shared_infrastructure
+title: HTTP Server Bootstrap & Shared Middleware
+scope:
+    - src/http/http-server.ts
+    - src/http/http-server-config.ts
+    - src/http/http-server-startup.ts
+source_files: []
+depends_on: []
+related_to: []

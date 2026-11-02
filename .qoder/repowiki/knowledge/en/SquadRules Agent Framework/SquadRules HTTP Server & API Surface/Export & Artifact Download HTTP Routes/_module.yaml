@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: http_api/export_download
+title: Export & Artifact Download HTTP Routes
+scope:
+    - src/http/http-export-artifact-download-routes.ts
+    - src/http/http-export-download-routes.ts
+    - src/http/export-skill-zip-http.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: tools/artifacts
+    - path: tools/export

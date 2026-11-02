@@ -1,0 +1,1 @@
+On first use of the fastembed path, the ONNX model weights are downloaded into `FASTEMBED_CACHE_DIR`; `probeEmbeddingDimension()` should be called at process startup before `memoryStore.init()` to resolve the vector dimension eagerly.

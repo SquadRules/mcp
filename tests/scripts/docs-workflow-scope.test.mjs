@@ -30,7 +30,12 @@ test('docs workflow triggers cover exactly the declared wiki scope', () => {
     assert.ok(!path.startsWith('.qoder/repowiki/en/'), `Generated wiki output ${path} must not be a trigger`);
   }
   assert.ok(docs.jobs['regenerate-wiki'], 'docs.yml must have regenerate-wiki job');
-  assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.uses?.startsWith('actions/create-github-app-token@')), 'docs.yml must create GitHub App token');
+  for (const job of ['regenerate-wiki', 'auto-merge']) {
+    const app = docs.jobs[job].steps.find(s => s.uses?.startsWith('actions/create-github-app-token@'));
+    assert.ok(app, `${job} must use the SquadRules GitHub App`);
+    assert.equal(app.with['permission-contents'], 'write');
+    assert.equal(app.with['permission-pull-requests'], 'write');
+  }
   assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.env?.QODER_PERSONAL_ACCESS_TOKEN), 'docs.yml must use QODER_PERSONAL_ACCESS_TOKEN');
   assert.ok(docs.jobs['regenerate-wiki'].steps.some(s => s.id === 'changes'), 'docs.yml must check for changes');
   assert.ok(docs.jobs['auto-merge'], 'docs.yml must have auto-merge job');
@@ -65,6 +70,9 @@ test('docs workflow triggers cover exactly the declared wiki scope', () => {
   const create = stepNamed(docs, 'regenerate-wiki', 'Create docs PR');
   assert.equal(create.id, 'create-pr');
   assert.match(create.run, /gh auth setup-git/, 'The App token must authenticate git push');
+  assert.match(create.run, /gh pr create/);
+  assert.doesNotMatch(create.run, /--label\b/, 'Docs PR cannot depend on optional labels');
+  assert.match(create.run, /\$\{PR_URL##\*\/\}/, 'Capture the PR actually created by the App');
   assert.match(create.run, /pr_number=\$PR_NUMBER/);
   assert.match(create.run, /pr_sha=\$PR_SHA/);
 

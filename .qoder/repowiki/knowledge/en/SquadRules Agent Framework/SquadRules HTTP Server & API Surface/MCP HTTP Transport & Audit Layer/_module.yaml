@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: http_api/mcp_handler
+title: MCP HTTP Transport & Audit Layer
+scope:
+    - src/http/http-mcp-handler.ts
+    - src/http/mcp-audit-emit.ts
+    - src/http/mcp-ui-offerings-auth-jsonrpc.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: http_api/auth_oidc
+    - path: infra_runtime

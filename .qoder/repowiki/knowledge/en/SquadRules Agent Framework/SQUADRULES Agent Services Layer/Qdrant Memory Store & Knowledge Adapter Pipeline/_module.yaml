@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: services/memory
+title: Qdrant Memory Store & Knowledge Adapter Pipeline
+scope:
+    - src/services/memory/
+source_files: []
+depends_on: []
+related_to: []

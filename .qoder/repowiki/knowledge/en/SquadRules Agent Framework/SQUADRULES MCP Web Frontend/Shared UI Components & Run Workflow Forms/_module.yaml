@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: ui/shared_components
+title: Shared UI Components & Run Workflow Forms
+scope:
+    - src/ui/components/
+source_files: []
+depends_on: []
+related_to: []

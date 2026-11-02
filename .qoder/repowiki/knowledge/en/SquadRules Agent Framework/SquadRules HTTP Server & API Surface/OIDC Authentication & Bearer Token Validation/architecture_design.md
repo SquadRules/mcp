@@ -1,0 +1,6 @@
+Three cooperating files form the HTTP auth layer:
+- `http-auth-middleware.ts` is the Express `authMiddleware` mounted on protected paths (`/api`, `/api/*`, `/mcp`, `/ui`, `/ui/`). It first checks a signed session cookie (HMAC-SHA256 payload + signature), then falls back to validating a Bearer token via `validateBearerToken`, attaching an `AuthPayload` plus `SpaceContext` onto `req`.
+- `bearer-validate.ts` implements OIDC access-token verification: issuer allowlist, audience allowlist, expiry, JWKS-backed signature validation via jose's `createRemoteJWKSet` (cached per issuer), optional userinfo-group fetch when groups are missing from the access token, and group allowlist filtering.
+- `http-auth-callback.ts` registers the browser-facing `/auth/callback` route: exchanges the authorization code for id_token/access_token, merges claims from both tokens, signs a session cookie with `SESSION_SECRET`, and handles logout/end-session flows.
+
+Dependency direction is one-way: middleware imports `validateBearerToken` from bearer-validate; callback imports helpers from `oidc-profile-claims.js` and `http-auth-oidc-redirect.js`. Cross-cutting concerns (structured logging, tenant/space context, OIDC redirect builders, state store) live outside this module. The module re-exports `AuthPayload` and `setWwwAuthenticate` so callers can type-check and set RFC 7235 headers.

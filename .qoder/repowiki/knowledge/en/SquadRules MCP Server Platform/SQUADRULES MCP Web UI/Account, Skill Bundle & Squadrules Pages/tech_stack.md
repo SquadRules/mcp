@@ -1,1 +1,0 @@
-React + TypeScript with react-router (`useParams`, `useSearchParams`, `Link`) for routing, react-i18next for translations, and Tailwind utility classes referencing CSS custom properties for theming.

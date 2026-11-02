@@ -1,0 +1,1 @@
+MCP tool helpers that discover an adapter's linked artifacts, build agent-facing download instructions, and materialize them to disk via the export tool.

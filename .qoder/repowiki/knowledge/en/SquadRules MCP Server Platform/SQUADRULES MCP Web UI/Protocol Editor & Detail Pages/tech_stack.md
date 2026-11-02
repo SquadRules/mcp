@@ -1,1 +1,0 @@
-React + TypeScript with react-router for routing, react-i18next for translations, Zod (`zod`) for markdown schema validation, Tailwind CSS utility classes, and the project's internal `RichTextEditor` / `ChallengeCard` / `StepFlowGraph` components.

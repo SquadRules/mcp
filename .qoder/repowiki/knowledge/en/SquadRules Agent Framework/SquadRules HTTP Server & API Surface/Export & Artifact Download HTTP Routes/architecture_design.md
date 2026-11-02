@@ -1,0 +1,6 @@
+Three small Express route modules mounted on the app:
+- `http-export-download-routes.ts` registers `GET /export/skill-zip/:opaque`, verifies the token via `verifyExportDownloadCapability`, then delegates streaming to `streamSkillZipHttpResponse` inside a tenant space context.
+- `http-export-artifact-download-routes.ts` registers `GET /export/artifact/:opaque`, verifies via `verifyExportArtifactDownloadCapability`, fetches the memory by UUID under the recorded space context, and returns the text body with content-type and SHA-256 headers.
+- `export-skill-zip-http.ts` is a pure streaming helper: it calls `collectSkillExportItemsForZip`, flattens paths via `flattenSkillZipToZipPaths`, pipes a Node `PassThrough` through `pipeSkillZipToWritable`, and records compressed byte telemetry via `setSkillZipDecodedBytes`.
+
+Dependency direction is one-way outward: routes depend on `services/*` for capability verification and persistence, and on `tools/export-*` for zip assembly; nothing in this module is imported by services. All responses go through `structuredLogger` and wrap payloads in `runWithSpaceContextAsync(record.space_context, ...)` so downstream storage reads are scoped to the correct tenant space.

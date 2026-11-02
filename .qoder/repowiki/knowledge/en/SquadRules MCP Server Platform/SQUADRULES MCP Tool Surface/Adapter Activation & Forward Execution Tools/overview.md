@@ -1,1 +1,0 @@
-MCP tools that detect the best adapter for a query (activate) and execute its layered workflow by advancing through proof-of-work steps (forward).

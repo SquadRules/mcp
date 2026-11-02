@@ -3,6 +3,9 @@
 ## Status
 
 Accepted — decision taken 2026-10-26 and implemented by the accompanying change.
+**Decision §6 is superseded by
+[ADR 0039](0039-artifact-materialize-emits-an-exact-command.md)** (the structured
+instruction could not deliver the artifact's bytes exactly); §1–§5 and §7 stand.
 Resolves the second revisit condition of
 [ADR 0026](0026-shell-interpreter-required.md) (requiring `interpreter` pushed
 authors towards `bash` reflexively instead of towards the script-export pattern).

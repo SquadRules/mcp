@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: ui/shared_hooks
+title: UI State & Data Hooks
+scope:
+    - src/ui/hooks/
+source_files: []
+depends_on: []
+related_to: []

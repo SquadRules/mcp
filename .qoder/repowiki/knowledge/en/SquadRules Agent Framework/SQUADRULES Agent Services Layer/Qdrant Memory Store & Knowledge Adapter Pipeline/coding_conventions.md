@@ -1,0 +1,6 @@
+- Qdrant payloads are typed defensively through `pointToMemory`, which coerces each field with runtime type guards and falls back to defaults rather than throwing on malformed points.
+- Write paths normalize input first (e.g. `normalizeMarkdownBlob`, `parseFrontmatter`, `parseMarkdownStructure`) before any persistence or similarity check.
+- Space-scoped queries consistently build filters via `buildSpaceFilter(getSearchSpaceIds(), ...)` and exclude protocol slugs (`SQUADRULES_REFINING_PROTOCOL_SLUG`, `SQUADRULES_CREATION_PROTOCOL_SLUG`) from search results.
+- Hybrid search uses Qdrant's `query` API with multiple prefetch legs (dense primary, title, activation-pattern, BM25) merged by RRF, then applies formula boosts over payload text fields.
+- Adapters are parsed as layered memories where fenced contract blocks delimit layers, H2 headings become layer labels, and an optional `## Activation Patterns` / `## Reward Signal` section augments the adapter metadata.
+- Startup initialization functions (`initializeQdrantStore`, BM25 migration, full-text index creation) are idempotent and log progress at each phase so partial failures leave the store in a recoverable state.

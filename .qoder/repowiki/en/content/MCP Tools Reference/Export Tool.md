@@ -5,16 +5,15 @@
 - [export.ts](file://src/tools/export.ts)
 - [export_schema.ts](file://src/tools/export_schema.ts)
 - [export-selection.ts](file://src/tools/export-selection.ts)
-- [export-resolve-adapter.ts](file://src/tools/export-resolve-adapter.ts)
-- [export-source.ts](file://src/tools/export-source.ts)
 - [export-skill-items.ts](file://src/tools/export-skill-items.ts)
 - [zip-bundle.ts](file://src/tools/skill-export/zip-bundle.ts)
-- [export-reward-jsonl.ts](file://src/tools/export-reward-jsonl.ts)
-- [export-download-capability.ts](file://src/services/export-download-capability.ts)
 - [http-export-download-routes.ts](file://src/http/http-export-download-routes.ts)
+- [export-skill-zip-http.ts](file://src/http/export-skill-zip-http.ts)
+- [export-download-capability.ts](file://src/services/export-download-capability.ts)
+- [export-download-capability-store.ts](file://src/services/export-download-capability-store.ts)
 - [export-download-settings.ts](file://src/config/export-download-settings.ts)
 - [export-zip-settings.ts](file://src/config/export-zip-settings.ts)
-- [export.ts](file://src/cli/commands/export.ts)
+- [export.ts (CLI)](file://src/cli/commands/export.ts)
 </cite>
 
 ## Table of Contents
@@ -25,424 +24,378 @@
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Dependency Analysis](#dependency-analysis)
 7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
+8. [Security Considerations](#security-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
+11. [Appendices](#appendices)
 
 ## Introduction
-The export tool is the portable, agent-first way to back up and move adapter definitions and training datasets out of SquadRules. It supports exporting:
-- A single adapter as flat Markdown for human-readable portability.
-- Source artifacts or an artifact list for a given adapter.
-- Training datasets in several JSONL formats derived from execution traces and rewards.
-- Skill bundles as either a JSON tree or a ZIP archive with a manifest.
+This document provides comprehensive API documentation for the SquadRules export tool. It explains how to export adapters, skills, and training data in multiple formats, including flat markdown, JSON skill trees, ZIP bundles, and JSONL training datasets. It also documents input parameters, response structures, artifact packaging, compression options, external storage integration via short-lived download links, security considerations, size limitations, rate limiting guidance, and practical examples for full system exports, selective exports, and automated workflows.
 
-The tool is exposed as an MCP tool and also has a CLI command that writes exported content to disk without printing raw bytes to stdout.
+The export tool is exposed as an MCP tool and can be invoked programmatically or through the CLI. The CLI command builds a machine-readable selection and writes artifacts to disk without printing raw content bytes to stdout.
 
 ## Project Structure
-The export feature spans several modules:
-- Input/output schemas and validation live in `export_schema.ts`.
-- Selection logic resolves URIs, slugs, spaces, and limits in `export-selection.ts`.
-- Adapter resolution maps URIs to internal adapter and layer identifiers in `export-resolve-adapter.ts`.
-- The main orchestration and format routing live in `export.ts`.
-- Source exports are handled by `export-source.ts`.
-- Skill bundle assembly uses `export-skill-items.ts` and `zip-bundle.ts`.
-- Training dataset formatting is implemented in `export-reward-jsonl.ts`.
-- Secure, short-lived download links for skill ZIPs are created by `export-download-capability.ts` and served by `http-export-download-routes.ts`.
-- Download URL signing, TTL, and base URL configuration come from `export-download-settings.ts`.
-- ZIP compression defaults and filename conventions are defined in `export-zip-settings.ts`.
-- The CLI wrapper builds input, writes files, and prints machine-friendly manifests in `src/cli/commands/export.ts`.
+The export feature spans several layers:
+- Input/output schemas define validation rules and response contracts.
+- The core exporter resolves selections, builds skill items, and produces format-specific outputs.
+- ZIP bundling streams archives efficiently.
+- HTTP routes serve short-lived, signed ZIP downloads.
+- Configuration controls download TTLs, public base URLs, and ZIP compression levels.
+- The CLI wraps the backend export call and writes artifacts to local directories or files.
 
 ```mermaid
 graph TB
-Client["Client or Agent"] --> ExportTool["Export Tool<br/>src/tools/export.ts"]
-ExportTool --> Schema["Input/Output Schema<br/>src/tools/export_schema.ts"]
-ExportTool --> Selection["Selection Resolver<br/>src/tools/export-selection.ts"]
-ExportTool --> AdapterResolver["Adapter Resolver<br/>src/tools/export-resolve-adapter.ts"]
-ExportTool --> SourceExporter["Source Exporter<br/>src/tools/export-source.ts"]
-ExportTool --> SkillItems["Skill Items Builder<br/>src/tools/export-skill-items.ts"]
-SkillItems --> ZipBundle["ZIP Bundle Builder<br/>src/tools/skill-export/zip-bundle.ts"]
-ExportTool --> JsonlFormatter["Training JSONL Formatter<br/>src/tools/export-reward-jsonl.ts"]
-ExportTool --> DownloadCap["Download Capability<br/>src/services/export-download-capability.ts"]
-DownloadCap --> HttpRoute["HTTP Download Route<br/>src/http/http-export-download-routes.ts"]
-DownloadCap --> DownloadSettings["Download Settings<br/>src/config/export-download-settings.ts"]
-ZipBundle --> ZipSettings["ZIP Settings<br/>src/config/export-zip-settings.ts"]
+Client["Client / Agent / CLI"] --> Tool["Export Tool<br/>executeExport()"]
+Tool --> Selection["resolveExportUris()<br/>Selection Resolution"]
+Tool --> SkillItems["collectSkillExportItemsForZip()<br/>Skill Item Assembly"]
+Tool --> ZipBundle["zip-bundle.ts<br/>ZIP Streaming"]
+Tool --> DownloadCap["mintExportDownloadCapability()<br/>Signed Download Link"]
+DownloadCap --> Store["ExportDownloadCapabilityStore<br/>Redis-backed KV"]
+Tool --> Output["ExportOutput Schema"]
+HttpRoute["/export/skill-zip/:opaque"] --> StreamZip["streamSkillZipHttpResponse()"]
+StreamZip --> ZipBundle
 ```
 
 **Diagram sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
-- [export_schema.ts:44-146](file://src/tools/export_schema.ts#L44-L146)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
 - [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
-- [export-resolve-adapter.ts:6-44](file://src/tools/export-resolve-adapter.ts#L6-L44)
-- [export-source.ts:94-113](file://src/tools/export-source.ts#L94-L113)
 - [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
-- [zip-bundle.ts:11-66](file://src/tools/skill-export/zip-bundle.ts#L11-L66)
-- [export-reward-jsonl.ts:92-181](file://src/tools/export-reward-jsonl.ts#L92-L181)
-- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
-- [http-export-download-routes.ts:9-47](file://src/http/http-export-download-routes.ts#L9-L47)
-- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
-- [export-zip-settings.ts:5-27](file://src/config/export-zip-settings.ts#L5-L27)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [export-download-capability.ts:63-89](file://src/services/export-download-capability.ts#L63-L89)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export-skill-zip-http.ts:11-40](file://src/http/export-skill-zip-http.ts#L11-L40)
 
 **Section sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
-- [export_schema.ts:44-146](file://src/tools/export_schema.ts#L44-L146)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
+- [export_schema.ts:44-158](file://src/tools/export_schema.ts#L44-L158)
+- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
+- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export-skill-zip-http.ts:11-40](file://src/http/export-skill-zip-http.ts#L11-L40)
+- [export-download-capability.ts:63-89](file://src/services/export-download-capability.ts#L63-L89)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
 
 ## Core Components
-- Export tool entry point: validates input, selects scope, routes to format-specific exporters, and returns structured output.
-- Input schema: enforces selection modes, supported formats, delivery options, and constraints such as maximum adapters.
-- Selection resolver: converts user-provided URIs, slugs, or space-wide selections into concrete adapter URIs.
-- Adapter resolver: maps adapter or layer URIs to internal adapter and layer IDs, supporting slug-based lookup when available.
-- Source exporter: returns a single source artifact or a JSON list of artifacts for an adapter.
-- Skill items builder: assembles SKILL.md plus artifacts and diagnostics per adapter, deduplicates slugs, and computes checksums.
-- ZIP bundle builder: streams or buffers ZIP archives with configurable zlib compression.
-- Training JSONL formatter: produces trace, reward, SFT, and preference datasets from execution traces and rewards.
-- Download capability: signs and stores short-lived capabilities for secure ZIP downloads outside the authenticated API surface.
-- HTTP download route: verifies capability tokens and streams ZIP responses.
-- Configuration: controls download secret/TTL/base URL and ZIP compression level.
+- Export tool entrypoint: validates input, resolves adapter URIs, and dispatches to format-specific exporters.
+- Selection resolver: supports single URI, explicit adapter list, or all adapters in a named space with safety limits.
+- Skill item assembler: collects SKILL.md, artifacts, diagnostics, SHA256SUMS, and deduplicates slugs.
+- ZIP bundler: streams ZIP archives using configurable zlib compression; supports both in-memory buffers and streaming to HTTP responses.
+- Download capability service: issues short-lived, HMAC-signed URLs backed by a Redis-like key-value store.
+- HTTP download route: verifies capabilities and streams ZIP bytes with metadata headers.
+- CLI export command: constructs inputs, enforces mutually exclusive flags, writes artifacts to disk, and emits a machine manifest.
+
+Key responsibilities:
+- Input validation and cross-field constraints are enforced by the schema.
+- Multi-adapter exports produce either a JSON tree or a ZIP bundle.
+- Training formats require a single adapter and return NDJSON lines.
+- Directory-based markdown export writes per-adapter files on the server side in local mode.
 
 **Section sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
-- [export_schema.ts:44-146](file://src/tools/export_schema.ts#L44-L146)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
+- [export_schema.ts:44-158](file://src/tools/export_schema.ts#L44-L158)
 - [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
-- [export-resolve-adapter.ts:6-44](file://src/tools/export-resolve-adapter.ts#L6-L44)
-- [export-source.ts:94-113](file://src/tools/export-source.ts#L94-L113)
 - [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
-- [zip-bundle.ts:11-66](file://src/tools/skill-export/zip-bundle.ts#L11-L66)
-- [export-reward-jsonl.ts:92-181](file://src/tools/export-reward-jsonl.ts#L92-L181)
-- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
-- [http-export-download-routes.ts:9-47](file://src/http/http-export-download-routes.ts#L9-L47)
-- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
-- [export-zip-settings.ts:5-27](file://src/config/export-zip-settings.ts#L5-L27)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [export-download-capability.ts:63-89](file://src/services/export-download-capability.ts#L63-L89)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export.ts (CLI):48-143](file://src/cli/commands/export.ts#L48-L143)
 
 ## Architecture Overview
-The export tool follows a layered flow:
-1. Input validation against the export schema.
-2. Scope resolution into one or more adapter URIs.
-3. Format-specific processing:
-   - Flat Markdown for a single adapter.
-   - Source export for a single artifact or adapter artifact list.
-   - Training JSONL from execution traces and rewards.
-   - Skill tree JSON or skill ZIP bundle.
-4. For skill ZIP, either inline base64 content or a signed, time-limited download link.
+The export flow supports two primary delivery modes for ZIP bundles:
+- Inline base64: ZIP bytes are encoded into the response payload.
+- Download reference: A short-lived, signed URL is returned; clients fetch the ZIP from `/export/skill-zip/:opaque`.
 
 ```mermaid
 sequenceDiagram
 participant Client as "Client"
 participant Tool as "Export Tool"
-participant Schema as "Schema Validator"
-participant Select as "Selection Resolver"
-participant Adapter as "Adapter Resolver"
-participant Format as "Format Router"
-participant Zip as "ZIP Builder"
-participant Cap as "Download Capability"
-participant Http as "HTTP Download Route"
-Client->>Tool : Call export(input)
-Tool->>Schema : Validate input
-Schema-->>Tool : Parsed input
-Tool->>Select : Resolve adapter URIs
-Select-->>Tool : adapterUris[]
-Tool->>Format : Choose format handler
-alt skill_zip + inline_base64
-Format->>Zip : Build ZIP buffer
-Zip-->>Format : ZIP bytes
-Format-->>Client : content (base64), sha256, manifest
-else skill_zip + download_ref
-Format->>Cap : Mint download capability
-Cap-->>Format : {url, expires_at}
-Format-->>Client : download_ref, manifest
-Client->>Http : GET /export/skill-zip/ : opaque
-Http-->>Client : Stream ZIP bytes
-else markdown/source/training
-Format-->>Client : Structured content
+participant Zip as "ZIP Bundler"
+participant Cap as "Download Capability Service"
+participant Store as "KV Store"
+participant Route as "HTTP Download Route"
+Client->>Tool : "export({format, selection})"
+alt "skill_zip + inline_base64"
+Tool->>Zip : "build ZIP buffer"
+Zip-->>Tool : "ZIP bytes"
+Tool-->>Client : "{content : base64, bundle_sha256}"
+else "skill_zip + download_ref"
+Tool->>Cap : "mintExportDownloadCapability()"
+Cap->>Store : "put(record, ttl)"
+Store-->>Cap : "ok"
+Cap-->>Tool : "{url, expires_at, filename}"
+Tool-->>Client : "{download_ref.url}"
+Client->>Route : "GET /export/skill-zip/ : opaque"
+Route->>Store : "verify capability"
+Store-->>Route : "record"
+Route->>Zip : "stream ZIP"
+Zip-->>Route : "streamed bytes"
+Route-->>Client : "application/zip"
 end
 ```
 
 **Diagram sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
-- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
-- [export-resolve-adapter.ts:6-44](file://src/tools/export-resolve-adapter.ts#L6-L44)
-- [zip-bundle.ts:11-66](file://src/tools/skill-export/zip-bundle.ts#L11-L66)
-- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
-- [http-export-download-routes.ts:9-47](file://src/http/http-export-download-routes.ts#L9-L47)
+- [export.ts:250-339](file://src/tools/export.ts#L250-L339)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [export-download-capability.ts:63-89](file://src/services/export-download-capability.ts#L63-L89)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
 
 ## Detailed Component Analysis
 
-### Input Schema and Validation
-The export input schema defines:
-- Selection fields: `uri`, `adapters`, `all_adapters`, `space_name`.
-- Format field: `markdown`, `trace_jsonl`, `reward_jsonl`, `sft_jsonl`, `preference_jsonl`, `source`, `skill_tree`, `skill_zip`.
-- Delivery field: `download_ref`, `inline_base64` (only valid for `skill_zip`).
-- Training flag: `include_reward` (default true).
-
-Validation rules include:
-- Exactly one selection mode must be provided.
-- `all_adapters` requires `space_name`.
-- `format: markdown` requires a single `uri`.
-- Training formats and `source` require a single `uri`.
-- Maximum number of adapters per export is enforced.
-- `delivery` is only allowed with `skill_zip`.
-
-The output schema includes:
-- `uri`, `format`, `content_type`, `content`.
-- Optional metadata: `item_count`, `adapter_name`, `adapter_version`, `space_id`, `space_name`, `space_type`.
-- Binary handling: `content_encoding` (for example base64) and `bundle_sha256`.
-- Bundle metadata: `export_adapter_count`, `skill_bundle_manifest`.
-- External access: `download_ref` with `url`, `expires_at`, optional `filename`, and `content_type`.
-
-**Section sources**
-- [export_schema.ts:22-146](file://src/tools/export_schema.ts#L22-L146)
-
-### Selection Resolution
-The selection resolver normalizes inputs:
-- Converts slugs to canonical `squadrules://adapter/{slug}` URIs.
-- Returns a single URI if `uri` is provided.
-- Returns multiple URIs if `adapters` is provided.
-- Lists all adapters in a space if `all_adapters` is true, enforcing the maximum adapter limit.
-
-It also deduplicates slugs and rehomes item files when building multi-adapter skill bundles.
-
-**Section sources**
-- [export-selection.ts:8-67](file://src/tools/export-selection.ts#L8-L67)
-
-### Adapter Resolution
-The adapter resolver maps URIs to internal identifiers:
-- For adapter URIs, it finds the first layer UUID and derives the adapter ID.
-- Slug-based lookup requires the Qdrant service; otherwise, it throws an error.
-- For layer URIs, it returns the layer ID directly.
-- For artifact URIs, it returns the artifact’s adapter context where applicable.
-
-**Section sources**
-- [export-resolve-adapter.ts:6-44](file://src/tools/export-resolve-adapter.ts#L6-L44)
-
-### Source Export
-Source export supports two modes:
-- Single artifact export: returns the artifact text with its content type and adapter metadata.
-- Adapter artifact list: returns a JSON array of artifact records including UUID URIs, labels, slugs, versions, SHA-256 hashes, names, content types, tags, and relative paths.
-
-**Section sources**
-- [export-source.ts:13-113](file://src/tools/export-source.ts#L13-L113)
-
-### Training Dataset Export
-Training formats consume execution traces and optional reward data:
-- `trace_jsonl`: emits raw instruction/response pairs.
-- `reward_jsonl`: emits enriched records with reward details and eligibility flags.
-- `sft_jsonl`: emits user/assistant message pairs suitable for supervised fine-tuning, optionally including reward metadata.
-- `preference_jsonl`: emits prompt/chosen/rejected triples grouped by layer and index, selecting best success and failure examples.
-
-All training outputs use newline-delimited JSON with `application/x-ndjson` content type.
-
-**Section sources**
-- [export.ts:119-174](file://src/tools/export.ts#L119-L174)
-- [export-reward-jsonl.ts:92-181](file://src/tools/export-reward-jsonl.ts#L92-L181)
-
-### Skill Tree and Skill ZIP Export
-Skill exports assemble one folder per adapter slug containing:
-- `SKILL.md` generated from the adapter.
-- Associated artifact files.
-- Diagnostics collected during assembly.
-- A checksum file summarizing artifact integrity.
-
-Two output modes exist:
-- `skill_tree`: returns a JSON document describing skills, files, and diagnostics.
-- `skill_zip`:
-  - With `delivery: inline_base64`, returns base64-encoded ZIP bytes, a SHA-256 digest, and a compact manifest string.
-  - With `delivery: download_ref`, returns a short-lived signed URL and manifest metadata.
-
-The ZIP builder supports streaming and configurable zlib compression levels.
-
-**Section sources**
-- [export.ts:176-266](file://src/tools/export.ts#L176-L266)
-- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
-- [zip-bundle.ts:11-66](file://src/tools/skill-export/zip-bundle.ts#L11-L66)
-- [export-zip-settings.ts:5-27](file://src/config/export-zip-settings.ts#L5-L27)
-
-### Secure Download Capability
-For large ZIP exports, the tool can mint a signed, time-limited capability:
-- The payload contains a capability ID and expiration timestamp.
-- The signature is computed using HMAC-SHA256 with a configured secret.
-- The record is stored with the same TTL as the token.
-- The public download endpoint verifies the signature, checks expiry, and streams the ZIP under the original space context.
-
-Configuration includes:
-- Secret key via environment variables.
-- TTL in seconds.
-- Public base URL derivation.
-
-**Section sources**
-- [export-download-capability.ts:14-111](file://src/services/export-download-capability.ts#L14-L111)
-- [http-export-download-routes.ts:9-47](file://src/http/http-export-download-routes.ts#L9-L47)
-- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
-
-### CLI Export Command
-The CLI command provides a machine-friendly interface for bulk exports:
-- Builds the same selection union as the MCP/HTTP export.
-- Writes content to disk instead of printing raw bytes.
-- Supports explicit ZIP output path and directory output.
-- Emits a manifest in JSON mode listing written artifacts, sizes, formats, and digests.
-
-Supported export formats include `skill_zip`, `markdown`, `skill_tree`, `source`, and all training JSONL formats.
-
-**Section sources**
-- [export.ts:45-224](file://src/cli/commands/export.ts#L45-L224)
-
-## Dependency Analysis
-The export tool composes several dependencies:
-- Memory store for adapter and artifact data.
-- Qdrant service for slug-based lookups and adapter layer enumeration.
-- Execution trace store for training pair construction.
-- Metrics and telemetry for call counting, duration, input/output size, and export observations.
-- Space context utilities for tenant isolation and display names.
-- ZIP archiver for skill bundle creation.
-- Download capability store for temporary export links.
+### Export Tool and Format Dispatch
+The export tool validates and normalizes inputs, resolves adapter URIs, and dispatches to format handlers:
+- Markdown: returns a single adapter’s layer content as text/markdown.
+- Source: returns source representation for a single adapter or artifact.
+- Training JSONL: trace_jsonl, reward_jsonl, sft_jsonl, preference_jsonl require a single adapter and return NDJSON.
+- Skill tree: returns a JSON object describing skills and files.
+- Skill ZIP: either returns base64-encoded ZIP bytes or a signed download link.
 
 ```mermaid
-graph LR
-Export["export.ts"] --> Schema["export_schema.ts"]
-Export --> Selection["export-selection.ts"]
-Export --> Adapter["export-resolve-adapter.ts"]
-Export --> Source["export-source.ts"]
-Export --> SkillItems["export-skill-items.ts"]
-SkillItems --> Zip["zip-bundle.ts"]
-Export --> Jsonl["export-reward-jsonl.ts"]
-Export --> Cap["export-download-capability.ts"]
-Cap --> Http["http-export-download-routes.ts"]
-Cap --> Dls["export-download-settings.ts"]
-Zip --> Zs["export-zip-settings.ts"]
+flowchart TD
+Start(["executeExport(input)"]) --> Normalize["Normalize URI and kind"]
+Normalize --> CheckArtifact{"artifact URI?"}
+CheckArtifact --> |Yes| SourcePath["executeExportSource()"]
+CheckArtifact --> |No| ResolveUris["resolveExportUris()"]
+ResolveUris --> DirMode{"directory set?"}
+DirMode --> |Yes| DirExport["Write <dir>/<slug>.md per adapter<br/>Return directory_manifest"]
+DirMode --> |No| FormatCheck{"format"}
+FormatCheck --> |markdown| SingleMarkdown["Single adapter markdown dump"]
+FormatCheck --> |training jsonl| Training["Build NDJSON pairs"]
+FormatCheck --> |skill_tree| Tree["Assemble JSON skill tree"]
+FormatCheck --> |skill_zip| ZipChoice{"delivery?"}
+ZipChoice --> |inline_base64| InlineZip["Stream ZIP to buffer<br/>base64 + sha256"]
+ZipChoice --> |download_ref| MintLink["mintExportDownloadCapability()"]
+InlineZip --> ReturnZip["Return ZIP payload"]
+MintLink --> ReturnRef["Return download_ref"]
+SourcePath --> End(["ExportOutput"])
+SingleMarkdown --> End
+Training --> End
+Tree --> End
+ReturnZip --> End
+ReturnRef --> End
 ```
 
 **Diagram sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
-- [export_schema.ts:44-146](file://src/tools/export_schema.ts#L44-L146)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
 - [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
-- [export-resolve-adapter.ts:6-44](file://src/tools/export-resolve-adapter.ts#L6-L44)
-- [export-source.ts:94-113](file://src/tools/export-source.ts#L94-L113)
-- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
-- [zip-bundle.ts:11-66](file://src/tools/skill-export/zip-bundle.ts#L11-L66)
-- [export-reward-jsonl.ts:92-181](file://src/tools/export-reward-jsonl.ts#L92-L181)
-- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
-- [http-export-download-routes.ts:9-47](file://src/http/http-export-download-routes.ts#L9-L47)
-- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
-- [export-zip-settings.ts:5-27](file://src/config/export-zip-settings.ts#L5-L27)
 
 **Section sources**
-- [export.ts:40-270](file://src/tools/export.ts#L40-L270)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
+
+### Input Parameters and Validation
+Supported input fields:
+- uri: Single adapter, layer, or artifact URI.
+- adapters: Array of adapter URIs or slugs (up to a maximum).
+- all_adapters: Boolean requiring space_name when true.
+- space_name: Required when exporting all adapters.
+- format: One of markdown, trace_jsonl, reward_jsonl, sft_jsonl, preference_jsonl, source, skill_tree, skill_zip.
+- delivery: Only valid with skill_zip; values are download_ref or inline_base64.
+- include_reward: Boolean defaulting to true for training formats.
+- directory: Absolute path for server-side markdown file writing (local mode only).
+
+Validation rules:
+- Exactly one selection mode must be provided.
+- all_adapters requires space_name.
+- markdown with adapters/all_adapters requires directory.
+- Training formats and source require a single uri.
+- adapters array length is bounded.
+- delivery is restricted to skill_zip.
+
+**Section sources**
+- [export_schema.ts:24-117](file://src/tools/export_schema.ts#L24-L117)
+- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
+
+### Response Structure
+Common output fields:
+- uri: Primary export target URI.
+- format: Export format.
+- content_type: MIME type.
+- content: String payload; may be base64-encoded when content_encoding is present.
+- item_count: Number of exported items where applicable.
+- adapter_name, adapter_version: Present when exporting a single adapter.
+- space_id, space_name, space_type: Present for markdown adapter exports when available.
+- content_encoding: base64 when content is encoded.
+- bundle_sha256: SHA-256 label for ZIP bundles.
+- export_adapter_count: Count of adapters in multi-adapter bundles.
+- skill_bundle_manifest: Compact JSON string describing the bundle.
+- download_ref: Short-lived capability URL for ZIP downloads.
+- directory_manifest: Per-file write results when directory export is used.
+
+**Section sources**
+- [export_schema.ts:121-158](file://src/tools/export_schema.ts#L121-L158)
+- [export.ts:144-190](file://src/tools/export.ts#L144-L190)
+- [export.ts:250-339](file://src/tools/export.ts#L250-L339)
+
+### Artifact Packaging and Compression
+- Skill ZIP bundles contain one folder per slug with SKILL.md and associated artifacts.
+- SHA256SUMS are appended to each skill item.
+- ZIP compression level is configurable via environment variable; default balances size and CPU.
+- Streaming ZIP assembly avoids buffering entire archives in memory when serving HTTP responses.
+
+Configuration:
+- SQUADRULES_EXPORT_ZIP_COMPRESSION_LEVEL: Integer 0–9; defaults to a balanced value.
+- DEFAULT_EXPORT_SKILL_ZIP_FILENAME: Default filename for HTTP ZIP downloads.
+
+**Section sources**
+- [zip-bundle.ts:11-53](file://src/tools/skill-export/zip-bundle.ts#L11-L53)
+- [export-zip-settings.ts:1-28](file://src/config/export-zip-settings.ts#L1-L28)
+- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
+
+### External Storage Integration and Download Links
+When using skill_zip with download_ref:
+- The server mints a signed capability containing an opaque token and stores it in a key-value store with a TTL.
+- Clients fetch the ZIP from a public base URL under /export/skill-zip/:opaque.
+- The route verifies the signature, expiration, and record existence before streaming the ZIP.
+
+Configuration:
+- SQUADRULES_EXPORT_DOWNLOAD_SECRET: Secret used to sign capability tokens.
+- SQUADRULES_EXPORT_DOWNLOAD_TTL_SEC: Time-to-live for download links.
+- SQUADRULES_PUBLIC_BASE_URL or AUTH_CALLBACK_BASE_URL: Public base URL fallback chain.
+
+**Section sources**
+- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
+
+### CLI Export Command
+The CLI export command:
+- Builds an ExportInput from flags and positional arguments.
+- Enforces mutually exclusive selection modes and compatibility between format and delivery/directory options.
+- Writes artifacts to disk without printing raw content bytes.
+- Emits a machine-readable manifest listing written artifacts and metadata.
+
+Key behaviors:
+- --as selects export format; defaults to skill_zip.
+- --delivery restricts to skill_zip; values are download_ref or inline_base64.
+- --directory is local-mode only for markdown per-adapter file writing.
+- --out and --to control artifact destinations; --zip-out targets ZIP files explicitly.
+
+**Section sources**
+- [export.ts (CLI):48-143](file://src/cli/commands/export.ts#L48-L143)
+- [export.ts (CLI):201-266](file://src/cli/commands/export.ts#L201-L266)
+- [export.ts (CLI):296-345](file://src/cli/commands/export.ts#L296-L345)
+
+## Dependency Analysis
+The export subsystem has clear boundaries:
+- Schema layer defines strict contracts for inputs and outputs.
+- Selection logic depends on space context and adapter enumeration utilities.
+- Skill item assembly composes SKILL.md, artifacts, diagnostics, and checksums.
+- ZIP bundling uses archiver with configurable compression.
+- Download capability service depends on crypto, configuration, and a key-value store.
+- HTTP routes depend on capability verification and streaming ZIP assembly.
+
+```mermaid
+graph LR
+Schema["export_schema.ts"] --> Tool["tools/export.ts"]
+Selection["tools/export-selection.ts"] --> Tool
+SkillItems["tools/export-skill-items.ts"] --> Tool
+Zip["tools/skill-export/zip-bundle.ts"] --> Tool
+Tool --> DownloadCap["services/export-download-capability.ts"]
+DownloadCap --> Store["services/export-download-capability-store.ts"]
+Tool --> Routes["http/http-export-download-routes.ts"]
+Routes --> StreamZip["http/export-skill-zip-http.ts"]
+StreamZip --> Zip
+```
+
+**Diagram sources**
+- [export_schema.ts:44-158](file://src/tools/export_schema.ts#L44-L158)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
+- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
+- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export-skill-zip-http.ts:11-40](file://src/http/export-skill-zip-http.ts#L11-L40)
+
+**Section sources**
+- [export_schema.ts:44-158](file://src/tools/export_schema.ts#L44-L158)
+- [export.ts:67-345](file://src/tools/export.ts#L67-L345)
+- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
+- [export-skill-items.ts:17-55](file://src/tools/export-skill-items.ts#L17-L55)
+- [zip-bundle.ts:19-53](file://src/tools/skill-export/zip-bundle.ts#L19-L53)
+- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
+- [export-download-capability-store.ts:16-29](file://src/services/export-download-capability-store.ts#L16-L29)
+- [http-export-download-routes.ts:9-46](file://src/http/http-export-download-routes.ts#L9-L46)
+- [export-skill-zip-http.ts:11-40](file://src/http/export-skill-zip-http.ts#L11-L40)
 
 ## Performance Considerations
-- ZIP streaming: Use streaming ZIP builders for large bundles to avoid buffering entire archives in memory.
-- Compression tuning: Adjust zlib compression level based on bandwidth vs CPU trade-offs.
-- Adapter limits: Enforce maximum adapter count to prevent oversized exports.
-- Base64 overhead: Inline base64 increases payload size by approximately 33%; prefer download references for large ZIPs.
-- Training dataset filtering: Prefer specific training formats (`sft_jsonl`, `preference_jsonl`) to reduce downstream processing.
+- Streaming ZIP assembly minimizes memory usage during HTTP downloads.
+- ZIP compression level is tunable; higher levels reduce size but increase CPU time.
+- Base64 encoding of large ZIP payloads increases network payload size; prefer download_ref for large bundles.
+- Directory-based markdown export writes files directly on the server in local mode, avoiding large in-memory payloads.
+- Training JSONL generation streams NDJSON lines; avoid loading entire datasets into client memory at once.
 
 [No sources needed since this section provides general guidance]
 
-## Troubleshooting Guide
-Common issues and resolutions:
-- Invalid selection: Ensure exactly one of `uri`, `adapters`, or `all_adapters` is set. When using `all_adapters`, provide `space_name`.
-- Unsupported format for selection: `markdown` requires a single `uri`; training formats and `source` also require a single `uri`.
-- Missing slug lookup: Slug-based adapter or artifact lookup requires the Qdrant service; configure it before exporting.
-- Empty export result: Verify that the selected space contains adapters and that the selection matches existing resources.
-- Expired download link: Short-lived download URLs expire after the configured TTL; mint a new capability if necessary.
-- Permission errors on download: The public download endpoint rejects invalid or expired capability tokens.
+## Security Considerations
+- Download capability tokens are HMAC-signed and time-limited; verify signatures and expiration before serving ZIP content.
+- The secret used for signing should be configured securely via environment variables.
+- Directory export is restricted to local mode; remote backends reject directory writes to prevent unintended filesystem access.
+- Adapter lists are bounded to mitigate excessive export sizes.
+- Avoid exposing sensitive data in exported markdown or artifacts; sanitize and review adapter content before distribution.
 
 **Section sources**
-- [export_schema.ts:54-113](file://src/tools/export_schema.ts#L54-L113)
-- [export-resolve-adapter.ts:13-20](file://src/tools/export-resolve-adapter.ts#L13-L20)
-- [export-selection.ts:53-66](file://src/tools/export-selection.ts#L53-L66)
-- [http-export-download-routes.ts:14-46](file://src/http/http-export-download-routes.ts#L14-L46)
+- [export-download-capability.ts:44-56](file://src/services/export-download-capability.ts#L44-L56)
 - [export-download-capability.ts:92-111](file://src/services/export-download-capability.ts#L92-L111)
+- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
+- [export.ts (CLI):189-199](file://src/cli/commands/export.ts#L189-L199)
+- [export_schema.ts:102-109](file://src/tools/export_schema.ts#L102-L109)
+
+## Troubleshooting Guide
+Common errors and resolutions:
+- Invalid selection: Ensure exactly one of uri, adapters, or all_adapters is provided; all_adapters requires space_name.
+- Markdown multi-adapter export: Use directory mode or switch to skill_tree/skill_zip.
+- Training format selection: Provide a single adapter uri; lists and all_adapters are not supported.
+- Delivery mode mismatch: delivery is only valid with skill_zip.
+- Directory export on remote backend: Use skill_zip or skill_tree with --out instead of --directory.
+- Missing download capability: Verify that the opaque token is unexpired and correctly signed; check TTL and secret configuration.
+
+**Section sources**
+- [export_schema.ts:55-117](file://src/tools/export_schema.ts#L55-L117)
+- [export.ts (CLI):48-143](file://src/cli/commands/export.ts#L48-L143)
+- [http-export-download-routes.ts:14-23](file://src/http/http-export-download-routes.ts#L14-L23)
 
 ## Conclusion
-The export tool provides a robust, portable export surface for SquadRules adapters and training datasets. It supports human-readable Markdown, structured source listings, training JSONL variants, and skill bundles with secure external downloads. By combining strict input validation, clear output contracts, and configurable delivery mechanisms, it enables reliable backups, migration workflows, and integration with external systems.
+The SquadRules export tool provides robust, validated APIs for exporting adapters and training data across multiple formats. It supports efficient ZIP bundling with streaming, secure short-lived download links, and flexible selection mechanisms. Operators can tune compression and download link lifetimes, while developers can integrate the tool programmatically or via the CLI for automated workflows. Proper use of directory mode, delivery modes, and selection constraints ensures safe and performant exports.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
-### Complete Input Schema Summary
-- `uri`: Single adapter, layer, or artifact URI.
-- `adapters`: Array of adapter URIs or slugs.
-- `all_adapters`: Boolean to export all adapters in a space.
-- `space_name`: Required when `all_adapters` is true.
-- `format`: One of `markdown`, `trace_jsonl`, `reward_jsonl`, `sft_jsonl`, `preference_jsonl`, `source`, `skill_tree`, `skill_zip`.
-- `delivery`: One of `download_ref`, `inline_base64` (only for `skill_zip`).
-- `include_reward`: Boolean controlling reward inclusion in training formats.
+### Supported Export Formats
+- markdown: Flat markdown for a single adapter layer.
+- source: Source representation for a single adapter or artifact.
+- trace_jsonl: Execution traces as NDJSON.
+- reward_jsonl: Reward-focused NDJSON dataset.
+- sft_jsonl: Supervised fine-tuning NDJSON dataset.
+- preference_jsonl: Preference NDJSON dataset.
+- skill_tree: JSON tree describing skills and files.
+- skill_zip: ZIP bundle delivered inline (base64) or via signed download link.
 
 **Section sources**
-- [export_schema.ts:44-113](file://src/tools/export_schema.ts#L44-L113)
-
-### Output Structure Summary
-- `uri`: Primary reference URI.
-- `format`: Export format used.
-- `content_type`: MIME type of the content.
-- `content`: String content; may be base64-encoded when `content_encoding` is present.
-- `item_count`: Number of items included.
-- `adapter_name`, `adapter_version`: Adapter identity when applicable.
-- `space_id`, `space_name`, `space_type`: Space context for Markdown exports.
-- `content_encoding`: Encoding such as `base64`.
-- `bundle_sha256`: SHA-256 of decoded binary content.
-- `export_adapter_count`: Number of adapters in a multi-adapter bundle.
-- `skill_bundle_manifest`: Compact manifest JSON string for skill bundles.
-- `download_ref`: External download capability with `url`, `expires_at`, optional `filename`, and `content_type`.
-
-**Section sources**
-- [export_schema.ts:117-146](file://src/tools/export_schema.ts#L117-L146)
+- [export_schema.ts:24-33](file://src/tools/export_schema.ts#L24-L33)
+- [export.ts:158-339](file://src/tools/export.ts#L158-L339)
 
 ### Example Workflows
 
-#### Single Adapter Markdown Export
-- Purpose: Portable, human-readable backup of one adapter.
-- Input: `format: markdown`, `uri` pointing to an adapter or layer.
-- Output: Markdown content, adapter metadata, and optional space fields.
+- Full system export (all adapters in a space):
+  - Select all adapters by space name.
+  - Choose skill_zip with download_ref for large bundles.
+  - Retrieve the signed URL and stream the ZIP.
 
-**Section sources**
-- [export.ts:84-117](file://src/tools/export.ts#L84-L117)
-- [export_schema.ts:44-113](file://src/tools/export_schema.ts#L44-L113)
+- Selective data export (specific adapters):
+  - Provide a list of adapter URIs or slugs.
+  - For markdown, use directory mode to write per-adapter files.
+  - For training datasets, select a single adapter and choose the appropriate JSONL format.
 
-#### Selective Multi-Adapter Skill ZIP Export
-- Purpose: Backup multiple adapters as a ZIP bundle.
-- Input: `format: skill_zip`, `adapters` list, `delivery: download_ref`.
-- Output: Manifest, adapter counts, and a signed download URL.
+- Automated export workflow:
+  - Build ExportInput programmatically with validation.
+  - Execute export and handle response based on format.
+  - For skill_zip with download_ref, poll the signed URL until expiry.
+  - Record bundle_sha256 and skill_bundle_manifest for integrity checks.
 
-**Section sources**
-- [export.ts:176-266](file://src/tools/export.ts#L176-L266)
-- [export-selection.ts:38-67](file://src/tools/export-selection.ts#L38-L67)
-- [export-download-capability.ts:63-111](file://src/services/export-download-capability.ts#L63-L111)
-
-#### Automated Backup Workflow
-- Schedule regular exports using the CLI command.
-- Use `--as skill_zip` and `--out <dir>` to write ZIP files.
-- In JSON output mode, parse the manifest to track filenames, sizes, and digests.
-- Rotate old backups and retain the latest manifest for verification.
-
-**Section sources**
-- [export.ts:185-224](file://src/cli/commands/export.ts#L185-L224)
-
-### Authentication and Security Notes
-- MCP tool calls are subject to the server’s authentication and authorization model.
-- External ZIP downloads use signed, time-limited capability tokens.
-- The download secret and TTL are configurable via environment variables.
-- The public base URL determines the downloadable endpoint prefix.
-
-**Section sources**
-- [export-download-settings.ts:17-30](file://src/config/export-download-settings.ts#L17-L30)
-- [export-download-capability.ts:44-111](file://src/services/export-download-capability.ts#L44-L111)
-- [http-export-download-routes.ts:14-46](file://src/http/http-export-download-routes.ts#L14-L46)
-
-### Size Limitations and Constraints
-- Maximum adapters per export: enforced by schema and selection logic.
-- Training formats require a single adapter URI.
-- Markdown export requires a single URI.
-- Inline base64 increases payload size; prefer download references for large bundles.
-
-**Section sources**
-- [export_schema.ts:22-113](file://src/tools/export_schema.ts#L22-L113)
-- [export-selection.ts:53-66](file://src/tools/export-selection.ts#L53-L66)
-
-### Best Practices for Data Portability
-- Prefer `skill_zip` with `download_ref` for large or multi-adapter exports.
-- Preserve `skill_bundle_manifest` alongside downloaded ZIPs for integrity checks.
-- Use `bundle_sha256` to verify downloaded content.
-- Keep training datasets separate from adapter assets to simplify downstream pipelines.
-- Compress and version export artifacts in external storage systems.
-
-[No sources needed since this section provides general guidance]
+[No sources needed since this section provides conceptual examples]

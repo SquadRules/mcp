@@ -1,0 +1,1 @@
+Express.js route registration; Node `stream.PassThrough` + `stream/promises.finished` for zero-copy zip streaming; capability tokens verified against an external store (qdrant/memory) before any payload is produced.

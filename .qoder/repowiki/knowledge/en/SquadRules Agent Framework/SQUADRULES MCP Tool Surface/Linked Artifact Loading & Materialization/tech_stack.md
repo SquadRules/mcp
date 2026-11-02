@@ -1,0 +1,1 @@
+TypeScript with Qdrant vector store as the artifact metadata backing store; agents consume artifacts through the MCP `export` tool rather than direct HTTP or CLI calls.

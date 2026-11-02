@@ -1,0 +1,5 @@
+- Child components receive `t: TFunction` as a prop rather than calling `useTranslation()` directly, keeping translation out of component internals.
+- Form mutations go through typed updater functions (`setFormField`, `setStep`) that produce immutable copies instead of mutating state fields in place.
+- Challenge-type-specific fields are conditionally rendered based on `step.type` using explicit string literals (`shell`, `forward`, `user_input`, `comment`) rather than dynamic key access.
+- Reusable input/button styling is centralized in locally scoped class-name strings (e.g. `inputClass`, `elevatedInputClass`, `labelInputClass`) instead of inline style objects.
+- Markdown content is round-tripped through `parseProtocolMarkdownToForm` / `buildMarkdownFromForm` and validated with the shared `markdownSchema` before any API call.

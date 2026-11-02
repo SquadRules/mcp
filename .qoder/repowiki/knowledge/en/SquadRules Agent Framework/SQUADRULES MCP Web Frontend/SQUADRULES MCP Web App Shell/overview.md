@@ -1,0 +1,1 @@
+React entry point and shell for the SQUADRULES MCP web UI, wiring routing, theme, i18n, and React Query around lazy-loaded page modules.

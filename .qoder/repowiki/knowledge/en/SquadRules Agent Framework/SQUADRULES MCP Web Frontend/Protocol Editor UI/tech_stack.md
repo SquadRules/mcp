@@ -1,0 +1,1 @@
+React + TypeScript with react-router for routing, react-i18next for internationalization, Zod for markdown schema validation, and Tailwind CSS with CSS custom property tokens for theming.

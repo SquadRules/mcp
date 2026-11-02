@@ -1,6 +1,0 @@
-Two distinct concerns co-located under src/tools/:
-
-- `reward.ts` + `reward_schema.ts` implement the `reward` MCP tool. `registerRewardTool` mounts the tool on an MCP server with Zod schemas (`rewardInputSchema`, `rewardOutputSchema`) wrapped via `mcpLooseToolInput`. The handler validates input, calls `evaluateReward` from `services/reward-evals.js` to compute normalized/scored labels and SFT/preference eligibility, then persists via `applyRewardMetrics` (Qdrant) and `executionTraceStore.setReward` (per-execution trace). Errors are surfaced as `SquadrulesError` with code `REWARD_FAILED` / `INVALID_URI`.
-- `review-evidence-check.ts` is a pure utility exporting `assertReviewEvidencePassed`, which asserts that a critic-loop's `ReviewEvidence` (verdict file, exit code, stdout) proves a PASS verdict; failures throw `TrainError` so the train error pipeline formats agent-facing guidance.
-
-Dependency direction: this module depends outward on `services/qdrant`, `services/reward-metrics`, `services/reward-evals`, `services/execution-trace-store`, and `types/index`; it does not depend on other tools, keeping it a leaf in the tools layer.

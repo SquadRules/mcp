@@ -1,6 +1,0 @@
-- Public entry points expose a single `MemoryQdrantStore` class whose constructor lazily resolves `QDRANT_URL` and collection alias, keeping import-time side effects minimal.
-- Markdown adapter parsing is split into a structural validator (`validate-protocol-structure.ts`) and a builder (`adapter-builder.ts`) that both consume `findAllLayerContractBlocks` from `adapter-contract-blocks.ts`.
-- Search ranking stays in Qdrant: queries use prefetch legs (dense, title, activation-pattern, BM25) combined with RRF rather than post-processing scores in Node.
-- Read paths check `redisCacheService` first and write-through on miss; fresh reads bypass cache via an explicit `getMemoryFresh` method.
-- Space-scoped access control is applied uniformly by wrapping filters with `buildSpaceFilter(getSearchSpaceIds(), ...)` and rejecting points outside `allowedSpaceIds`.
-- Lifecycle mutations (collection creation, vector migration, BM25 index setup, full-text index creation, activation-vector backfill) are centralized in `store-init.ts` and invoked once via `init()`.

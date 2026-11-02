@@ -11,7 +11,7 @@
  *
  * Auth (when the dev server has Keycloak / AUTH_ENABLED): same bearer as Jest integration tests —
  * either `.test-auth-env.dev.json` in the repo root (written by globalSetup when you run
- * AUTH_ENABLED=true npm run dev:test after deploy), or override with env SQUADRULES_INTEGRATION_BEARER
+ * AUTH_ENABLED=true npm test after deploy), or override with env SQUADRULES_INTEGRATION_BEARER
  * (raw JWT string, no Bearer prefix).
  */
 
@@ -326,7 +326,7 @@ async function main() {
     console.log(`Auth: Bearer from ${src}`);
   } else {
     console.warn(
-      'Auth: no bearer token. With AUTH_ENABLED, use .test-auth-env.dev.json (e.g. AUTH_ENABLED=true npm run dev:test after deploy) or set SQUADRULES_INTEGRATION_BEARER.'
+      'Auth: no bearer token. With AUTH_ENABLED, use .test-auth-env.dev.json (e.g. AUTH_ENABLED=true npm test after deploy) or set SQUADRULES_INTEGRATION_BEARER.'
     );
   }
   const examples = listAdapterExampleFiles();

@@ -1,4 +1,0 @@
-- Each architecture decision lives in its own numbered file under `adr/` (e.g. `0001-two-layer-adapter-write-caching.md`) and follows the context/decision/consequences/evidence structure described in `adr/README.md`.
-- Superseded ADRs are never rewritten; instead a new record is added and the old file's Status line is updated to point to the replacement.
-- Every ADR names a concrete issue number that can reopen the decision, so expired decisions have a tracked home.
-- Code-derivable documentation (API, architecture internals, testing, UI) is kept out of `docs/` and linked from the generated Wiki instead, per the `documentation-authority` rule.

@@ -1,0 +1,1 @@
+npm run test runs the full unit + integration suite (tests/unit/, tests/integration/) using testcontainers for Redis/Qdrant; npm run build produces the bundled HTTP server and CLI; npm run dev starts the Vite dev server for the UI.

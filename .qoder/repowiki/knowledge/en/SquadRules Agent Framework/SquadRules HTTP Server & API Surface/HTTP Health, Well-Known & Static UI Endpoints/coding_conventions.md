@@ -1,0 +1,3 @@
+- Route groups are exported as `setupXxx(app, ...)` functions that register Express routes on the passed app instance rather than mounting routers, enabling modular composition by the HTTP server.
+- CORS is applied inline in every well-known handler by reading `req.headers.origin` and setting `Access-Control-Allow-Origin` plus `Vary: Origin`, with matching `OPTIONS` handlers returning 204 and listing `Content-Type, Authorization, MCP-Protocol-Version` as allowed headers.
+- Optional upstream services are probed defensively: failures are caught and surfaced as `{ healthy: false, message }` objects so the overall `/health` status remains responsive even when a dependency times out or throws.

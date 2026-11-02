@@ -1,0 +1,1 @@
+Backend-neutral ports and LanceDB adapters for persisting memory records, adapter/artifact layers, semantic search results, and execution traces with MVCC-safe concurrent writes.

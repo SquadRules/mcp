@@ -1,0 +1,1 @@
+OpenAI Embeddings API, optional TEI (Text Embeddings Inference) server, and local fastembed FlagEmbedding with ONNX runtime; retries use exponential backoff with full jitter honoring `Retry-After` headers against a wall-clock budget.

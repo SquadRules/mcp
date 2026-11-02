@@ -5,13 +5,14 @@
 - [tune.ts](file://src/tools/tune.ts)
 - [tune_schema.ts](file://src/tools/tune_schema.ts)
 - [tune-execute.ts](file://src/tools/tune-execute.ts)
-- [tune-messages.ts](file://src/tools/tune-messages.ts)
 - [tune-verify.ts](file://src/tools/tune-verify.ts)
+- [tune-messages.ts](file://src/tools/tune-messages.ts)
 - [tune-cache-invalidation.ts](file://src/tools/tune-cache-invalidation.ts)
 - [update.ts](file://src/tools/update.ts)
 - [review-evidence-check.ts](file://src/tools/review-evidence-check.ts)
 - [protected-space-write-guard.ts](file://src/utils/protected-space-write-guard.ts)
 - [validate-adapter-markdown-size.ts](file://src/services/memory/validate-adapter-markdown-size.ts)
+- [embedded-mcp-resources.ts](file://src/resources/embedded-mcp-resources.ts)
 </cite>
 
 ## Table of Contents
@@ -24,379 +25,388 @@
 7. [Performance Considerations](#performance-considerations)
 8. [Troubleshooting Guide](#troubleshooting-guide)
 9. [Conclusion](#conclusion)
-10. [Appendices](#appendices)
 
 ## Introduction
-The tune MCP tool updates adapter layer content and model optimization metadata without rebuilding entire adapters. It is designed for incremental, auditable changes to the adapter layer stored in Qdrant, with optional space reassignment and cache invalidation so subsequent reads see fresh data.
+The SquadRules `tune` tool updates existing adapter content and configuration without replacing the adapter identity. It is designed for agent-first workflows: an AI agent performs or delegates a critic-loop review, then calls `tune` to persist approved changes. The tool supports three primary mutation modes:
 
-Key responsibilities:
-- Accept one or more adapter or layer URIs.
-- Update adapter markdown in place when an adapter URI and full markdown are provided.
-- Apply field-level updates through a shared update path.
-- Optionally move all layers of each target adapter to a permitted space.
-- Validate input size, structure, review evidence, and write persistence.
-- Return per-target results, totals, and human-readable messages.
+- **In-place adapter content update**: pass an adapter URI and full markdown body; the server re-parses it and updates each stored layer while preserving adapter identity and layer count.
+- **Layer-level field update**: pass one or more layer URIs with either a new text body or an advanced field map.
+- **Space move**: pass only `space` to reassign all layers of targeted adapters (or a single layer when using a layer URI).
 
-This tool complements the activate → forward → reward chain by allowing agents to repair or refine adapters after training or review.
+The response includes per-target status, human-readable messages, and aggregate counts. After successful writes, the tool invalidates caches so subsequent reads see fresh data.
+
+This documentation focuses on the API surface, validation rules, safety mechanisms, versioning behavior, verification, and deployment strategies.
 
 ## Project Structure
-The tune feature is implemented as a registered MCP tool that delegates to a focused execution pipeline:
+The tune tool is implemented as an MCP tool registration plus a focused execution pipeline:
 
 ```mermaid
 graph TB
-Client["MCP Client"] --> Register["registerTuneTool<br/>src/tools/tune.ts"]
-Register --> Schema["tuneInputSchema / tuneOutputSchema<br/>src/tools/tune_schema.ts"]
-Register --> Execute["executeTune<br/>src/tools/tune-execute.ts"]
-Execute --> Normalize["normalizeTuneUri / collectLayerMemoryUuidsForTune"]
-Execute --> Update["executeUpdate<br/>src/tools/update.ts"]
-Execute --> Verify["verifyTuneLayerPersistence<br/>src/tools/tune-verify.ts"]
-Execute --> Messages["buildTuneResultMessage<br/>src/tools/tune-messages.ts"]
-Execute --> SpaceGuard["isProtectedWriteSpace<br/>src/utils/protected-space-write-guard.ts"]
-Execute --> SizeCheck["validateAdapterMarkdownSize<br/>src/services/memory/validate-adapter-markdown-size.ts"]
-Register --> Cache["invalidateTuneCache<br/>src/tools/tune-cache-invalidation.ts"]
+Client["Client / Agent"] --> RegisterTune["registerTuneTool<br/>src/tools/tune.ts"]
+RegisterTune --> ExecuteTune["executeTune<br/>src/tools/tune-execute.ts"]
+ExecuteTune --> Update["executeUpdate<br/>src/tools/update.ts"]
+ExecuteTune --> Verify["verifyTuneLayerPersistence<br/>src/tools/tune-verify.ts"]
+ExecuteTune --> Messages["buildTuneResultMessage<br/>src/tools/tune-messages.ts"]
+ExecuteTune --> CacheInvalidation["invalidateTuneCache<br/>src/tools/tune-cache-invalidation.ts"]
+ExecuteTune --> ReviewEvidence["assertReviewEvidencePassed<br/>src/tools/review-evidence-check.ts"]
+ExecuteTune --> ProtectedSpace["isProtectedWriteSpace<br/>src/utils/protected-space-write-guard.ts"]
+ExecuteTune --> SizeValidation["validateAdapterMarkdownSize<br/>src/services/memory/validate-adapter-markdown-size.ts"]
 ```
 
 **Diagram sources**
-- [tune.ts:19-68](file://src/tools/tune.ts#L19-L68)
-- [tune_schema.ts:14-67](file://src/tools/tune_schema.ts#L14-L67)
-- [tune-execute.ts:88-349](file://src/tools/tune-execute.ts#L88-L349)
-- [update.ts:8-72](file://src/tools/update.ts#L8-L72)
-- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
-- [tune-messages.ts:7-22](file://src/tools/tune-messages.ts#L7-L22)
-- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
-- [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
-- [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
-
-**Section sources**
-- [tune.ts:19-68](file://src/tools/tune.ts#L19-L68)
-- [tune_schema.ts:14-67](file://src/tools/tune_schema.ts#L14-L67)
-
-## Core Components
-- Tool registration and lifecycle: registers the `tune` tool, parses and validates input, measures metrics, executes tuning, invalidates caches, and returns structured output.
-- Input schema: defines URIs, content, updates, space, and critic-loop review evidence requirements.
-- Execution engine: resolves targets, selects writable layers, applies in-place markdown updates or field updates, moves layers to a target space, and verifies persistence.
-- Message formatting: normalizes result messages and canonicalizes layer URIs.
-- Persistence verification: re-reads updated layers to detect stale-cache or silent no-op writes.
-- Cache invalidation: clears Redis-backed caches after successful updates.
-
-**Section sources**
-- [tune.ts:19-68](file://src/tools/tune.ts#L19-L68)
-- [tune_schema.ts:14-67](file://src/tools/tune_schema.ts#L14-L67)
-- [tune-execute.ts:116-349](file://src/tools/tune-execute.ts#L116-L349)
-- [tune-messages.ts:7-22](file://src/tools/tune-messages.ts#L7-L22)
-- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
-- [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
-
-## Architecture Overview
-The tune flow integrates validation, storage, and caching:
-
-```mermaid
-sequenceDiagram
-participant Client as "MCP Client"
-participant Tool as "registerTuneTool"
-participant Exec as "executeTune"
-participant Store as "QdrantService"
-participant Upd as "executeUpdate"
-participant Ver as "verifyTuneLayerPersistence"
-participant Msg as "buildTuneResultMessage"
-participant Cache as "invalidateTuneCache"
-Client->>Tool : Call tune(input)
-Tool->>Tool : Parse and validate input
-Tool->>Exec : executeTune(qdrantService, input)
-Exec->>Store : Resolve adapter/layer URIs
-alt Adapter markdown in-place
-Exec->>Store : Read existing layers
-Exec->>Exec : Validate size and frontmatter
-Exec->>Store : Update each layer in place
-Exec->>Ver : Verify persisted text matches expected
-else Field updates or layer body
-Exec->>Upd : executeUpdate(normalizedUri, content|updates)
-Upd->>Store : updateMemory(...)
-end
-Exec->>Msg : Build normalized result message
-Exec-->>Tool : TuneOutput
-Tool->>Cache : invalidateTuneCache(result)
-Tool-->>Client : {structuredContent, content}
-```
-
-**Diagram sources**
-- [tune.ts:30-66](file://src/tools/tune.ts#L30-L66)
-- [tune-execute.ts:127-349](file://src/tools/tune-execute.ts#L127-L349)
+- [tune.ts:19-69](file://src/tools/tune.ts#L19-L69)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
 - [update.ts:8-72](file://src/tools/update.ts#L8-L72)
 - [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
 - [tune-messages.ts:13-22](file://src/tools/tune-messages.ts#L13-L22)
+- [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
+- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
+- [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
+
+**Section sources**
+- [tune.ts:19-69](file://src/tools/tune.ts#L19-L69)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
+
+## Core Components
+The tune tool is composed of several cooperating modules:
+
+| Component | Responsibility | Key Behavior |
+|---|---|---|
+| `registerTuneTool` | Registers the MCP tool, parses input, measures metrics, invokes execution, invalidates cache | Uses loose input schema wrapper, returns both text and structured content |
+| `tuneInputSchema` / `tuneOutputSchema` | Validates inputs and defines output shape | Enforces URI formats, content length parity, space options, and review evidence requirements |
+| `executeTune` | Main tuning workflow | Resolves targets, validates permissions, applies content or field updates, optionally moves layers to a target space |
+| `executeUpdate` | Shared layer update logic | Updates layer text or arbitrary fields through Qdrant |
+| `verifyTuneLayerPersistence` | Post-write verification | Re-reads updated layers and compares persisted text |
+| `buildTuneResultMessage` | Canonicalizes result messages | Rewrites generic messages into adapter-layer-aware messages |
+| `invalidateTuneCache` | Cache invalidation | Invalidates Redis-backed caches after successful updates |
+| `assertReviewEvidencePassed` | Critic-loop proof gate | Requires PASS verdict evidence for content updates |
+| `isProtectedWriteSpace` | Write protection | Blocks writes to system/app spaces |
+| `validateAdapterMarkdownSize` | Markdown safety | Rejects oversized, too-long-line, or too-many-lines documents |
+
+**Section sources**
+- [tune.ts:19-69](file://src/tools/tune.ts#L19-L69)
+- [tune_schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [tune-execute.ts:18-349](file://src/tools/tune-execute.ts#L18-L349)
+- [update.ts:8-72](file://src/tools/update.ts#L8-L72)
+- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
+- [tune-messages.ts:1-22](file://src/tools/tune-messages.ts#L1-L22)
+- [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
+- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
+- [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
+
+## Architecture Overview
+The tune tool follows a layered request-to-store flow with explicit validation, safety checks, and post-write verification.
+
+```mermaid
+sequenceDiagram
+participant Client as "Client"
+participant Tool as "registerTuneTool"
+participant Executor as "executeTune"
+participant Updater as "executeUpdate"
+participant Verifier as "verifyTuneLayerPersistence"
+participant Cache as "invalidateTuneCache"
+Client->>Tool : "tune(params)"
+Tool->>Tool : "parse & validate input"
+Tool->>Executor : "executeTune(qdrantService, params)"
+Executor->>Executor : "resolve URIs, spaces, permissions"
+alt Content update via adapter URI
+Executor->>Executor : "tuneAdapterMarkdownInPlace"
+Executor->>Verifier : "verify persistence"
+else Layer update via layer URI
+Executor->>Updater : "executeUpdate"
+end
+opt Space move requested
+Executor->>Executor : "reassignAdapterLayersToSpace"
+end
+Executor-->>Tool : "TuneOutput"
+Tool->>Cache : "invalidateTuneCache(result)"
+Tool-->>Client : "structuredContent + text"
+```
+
+**Diagram sources**
+- [tune.ts:30-69](file://src/tools/tune.ts#L30-L69)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
+- [update.ts:8-72](file://src/tools/update.ts#L8-L72)
+- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
 - [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
 
 ## Detailed Component Analysis
 
-### Input Schema
-The tune input supports:
-- `uris`: non-empty array of adapter URIs (`squadrules://adapter/{slug}`) or layer URIs (`squadrules://layer/{uuid}[?execution_id={uuid}]`).
-- `content`: optional array of strings, one per URI, used for full adapter markdown updates or layer body updates.
-- `updates`: optional record of field updates applied via the shared update path.
-- `space`: optional target space identifier; moves all layers of each target adapter to this space after updates.
-- `review_evidence`: required when any content update is provided; proves a passing critic-loop review.
+### Input Schema and Parameters
+The tune tool accepts a structured object validated by Zod.
 
-Validation rules include:
-- Content length must match URIs length.
+| Parameter | Type | Required | Description |
+|---|---|---:|---|
+| `uris` | Array of strings | Yes | Non-empty list of `squadrules://adapter/{uuid}` and/or `squadrules://layer/{uuid}` targets |
+| `content` | Array of strings | No | Parallel array of full markdown bodies; must match `uris` length when provided |
+| `updates` | Record<string, any> | No | Advanced field map applied to layer memory; prefer `content` for ordinary edits |
+| `space` | String | No | Target space name or ID; `"personal"` or a group path; moves all layers for adapter URIs or the single layer for layer URIs |
+| `review_evidence` | Object | Conditional | Required when `content` contains non-empty markdown; proves critic-loop PASS |
+
+#### Review Evidence Shape
+| Field | Type | Requirement |
+|---|---|---|
+| `verdict_file` | String | Absolute path to critic-loop verdict file |
+| `exit_code` | Number | Must be `0` |
+| `stdout` | String | First line must be `PASS` |
+
+#### Validation Rules
+- `content.length` must equal `uris.length` when `content` is provided.
 - At least one of `content`, `updates`, or `space` must be present.
-- When content is provided, `review_evidence` must exist and pass checks.
+- When any non-empty content entry exists, `review_evidence` is required.
+- Adapter URIs resolve to head layers; layer URIs are normalized to stored layer rows.
+- Space resolution validates allowed spaces before writing.
 
 **Section sources**
-- [tune_schema.ts:4-57](file://src/tools/tune_schema.ts#L4-L57)
+- [tune_schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
 
-### Output Schema
-The tune output includes:
-- `results`: per-URI entries with `uri`, `status`, and `message`.
-- `total_updated`: count of successfully updated targets.
-- `total_failed`: count of failed targets.
-
-Status values:
-- `updated`: target was modified successfully.
-- `error`: target failed; message explains the failure.
-
-**Section sources**
-- [tune_schema.ts:59-67](file://src/tools/tune_schema.ts#L59-L67)
-
-### Target Resolution and Layer Selection
-- Adapter URIs are resolved to a canonical adapter ID using slug lookup.
-- For adapter targets, the tool selects the appropriate layer set based on preferred space context and sorts by layer index.
-- Protected spaces (system/app) are rejected for writes.
-- Layer URIs are accepted directly.
+### Tuning Workflow
+The tuning workflow branches based on input:
 
 ```mermaid
 flowchart TD
-Start(["Start tune"]) --> Parse["Parse URI"]
-Parse --> Kind{"Adapter or Layer?"}
-Kind --> |Layer| Direct["Use layer UUID"]
-Kind --> |Adapter| Resolve["Resolve adapter ID from slug"]
-Resolve --> Layers["Fetch adapter layers"]
-Layers --> Select["Select layers by preferred space"]
-Select --> Guard["Reject protected spaces"]
-Guard --> Head["Pick head layer for updates"]
-Direct --> UpdatePath["Apply update path"]
-Head --> UpdatePath
-UpdatePath --> End(["Return per-target result"])
+Start(["tune call"]) --> Validate["Validate input schema"]
+Validate --> HasPayload{"Has content or updates?"}
+HasPayload --> |No| SpaceOnly{"Space-only move?"}
+SpaceOnly --> |Yes| MoveLayers["Reassign layers to target space"]
+SpaceOnly --> |No| ErrorNoPayload["Throw error: provide content, updates, or space"]
+HasPayload --> |Yes| CheckEvidence{"Content requires review evidence?"}
+CheckEvidence --> |Yes| ValidateEvidence["Validate critic-loop PASS"]
+CheckEvidence --> |No| ResolveTargets["Resolve URIs and layers"]
+ValidateEvidence --> ResolveTargets
+ResolveTargets --> AdapterContent{"Adapter URI + content?"}
+AdapterContent --> |Yes| InPlaceUpdate["Parse markdown, preserve identity, update layers"]
+AdapterContent --> |No| LayerUpdate["Normalize layer URI and apply updates"]
+InPlaceUpdate --> Verify["Post-write verification"]
+LayerUpdate --> ResultAggregation["Aggregate results"]
+Verify --> ResultAggregation
+ResultAggregation --> OptionalMove{"Target space also requested?"}
+OptionalMove --> |Yes| FinalMove["Reassign updated adapters to target space"]
+OptionalMove --> |No| Return["Return TuneOutput"]
+FinalMove --> Return
 ```
 
 **Diagram sources**
-- [tune-execute.ts:72-114](file://src/tools/tune-execute.ts#L72-L114)
-- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
 
 **Section sources**
-- [tune-execute.ts:72-114](file://src/tools/tune-execute.ts#L72-L114)
-- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
 
-### In-Place Adapter Markdown Updates
-When an adapter URI and full markdown are provided:
-- The tool resolves the adapter ID and loads existing layers.
-- Validates total size, line length, and line count limits.
-- Parses frontmatter and reconstructs layers via the header memory adapter builder.
-- Enforces that the H1 title maps to the same adapter ID.
-- Requires the same number of layers; structural changes require `train(force_update=true)`.
-- Applies protocol version if present in frontmatter.
-- Updates label, text, tags, adapter metadata, and inference contract fields.
-- Verifies persistence by re-reading each layer and comparing text.
+### Version Control and Identity Preservation
+The tune tool does not create new adapter UUIDs when updating adapter content. Instead, it preserves adapter identity and layer structure:
+
+- Adapter title determines expected adapter ID; changing the H1 title to a different value fails because the resolved adapter ID would no longer match the tune target.
+- Layer count must remain unchanged; structural changes require `train` with `force_update: true`.
+- Frontmatter `version` is propagated to `adapter.protocol_version` when present.
+- Layer indices and counts are preserved during in-place updates.
+
+This means `tune` is for content and configuration refinement, not for structural replacement.
+
+**Section sources**
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
+
+### Change Validation and Safety Mechanisms
+The tune tool enforces multiple safety gates:
+
+| Gate | Purpose | Failure Behavior |
+|---|---|---|
+| Input schema validation | Ensures URIs, arrays, and optional fields are well-formed | Returns structured validation error |
+| Review evidence check | Prevents unreviewed content mutations | Throws train-style error requiring delegated critic-loop |
+| Protected space guard | Blocks writes to system/app spaces | Throws protected-space write error |
+| Markdown size validation | Rejects pathological documents | Throws size-limit error with code and details |
+| Adapter identity check | Preserves adapter slug/UUID mapping | Throws mismatch error when H1-derived ID differs |
+| Layer count check | Prevents structural changes via tune | Throws mismatch error directing to `train(force_update=true)` |
+| Post-write verification | Confirms persistence after update | Throws verification failure if read-back mismatches |
 
 ```mermaid
 flowchart TD
-A["Adapter URI + markdown"] --> B["Resolve adapter ID"]
-B --> C["Load existing layers"]
-C --> D["Validate markdown size"]
-D --> E["Parse frontmatter and rebuild layers"]
-E --> F{"H1 maps to same adapter ID?"}
-F --> |No| ErrorA["Reject: adapter ID mismatch"]
-F --> |Yes| G{"Same layer count?"}
-G --> |No| ErrorB["Reject: use train(force_update=true)"]
-G --> |Yes| H["Apply protocol_version if present"]
-H --> I["Update each layer in place"]
-I --> J["Verify persistence"]
-J --> K["Return updated layer URI"]
+Input["Input received"] --> Schema["Zod schema validation"]
+Schema --> Evidence{"Content present?"}
+Evidence --> |Yes| ReviewGate["Critic-loop evidence gate"]
+Evidence --> |No| SpaceCheck["Space permission check"]
+ReviewGate --> SizeLimit["Markdown size validation"]
+SpaceCheck --> SizeLimit
+SizeLimit --> Identity["Adapter identity preservation"]
+Identity --> Layers["Layer count preservation"]
+Layers --> Persist["Store update"]
+Persist --> Verify["Post-write verification"]
+Verify --> Success["Success"]
+Verify --> Fail["Failure"]
 ```
 
 **Diagram sources**
-- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
+- [tune_schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
+- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
 - [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
 - [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
 
 **Section sources**
-- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
+- [tune_schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
+- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
 - [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
 - [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
 
-### Field Updates and Layer Body Updates
-For layer URIs or adapter URIs where only partial updates are needed:
-- The tool normalizes the URI to a concrete layer URI.
-- Delegates to the shared update executor.
-- Supports direct content updates or arbitrary field updates.
-- Validates markdown bodies when present.
-- Returns per-URI results with normalized messages.
+### Dry-Run and Preview Capabilities
+The current implementation does not expose a dedicated dry-run mode. However, preview can be achieved through the surrounding workflow:
+
+- Use `export` to retrieve flat markdown before editing.
+- Run critic-loop against the edited draft.
+- If the critic passes, call `tune` to persist.
+- After `tune`, call `export` again to verify the stored state.
+
+This pattern provides a safe edit-review-verify cycle without requiring a server-side dry-run flag.
 
 **Section sources**
-- [tune-execute.ts:277-321](file://src/tools/tune-execute.ts#L277-L321)
-- [update.ts:8-72](file://src/tools/update.ts#L8-L72)
+- [embedded-mcp-resources.ts:18-23](file://src/resources/embedded-mcp-resources.ts#L18-L23)
+
+### Response Structure
+The tune tool returns a structured result:
+
+| Field | Type | Description |
+|---|---|---|
+| `results` | Array | Per-target result with `uri`, `status`, and `message` |
+| `total_updated` | Number | Count of successfully updated targets |
+| `total_failed` | Number | Count of failed targets |
+
+Each result entry uses:
+
+| Field | Values | Meaning |
+|---|---|---|
+| `uri` | Layer URI string | Normalized layer URI associated with the update |
+| `status` | `updated` or `error` | Whether the operation succeeded |
+| `message` | String | Human-readable message; rewritten to reference adapter layers |
+
+After successful tuning, the tool invalidates caches so subsequent operations such as export, forward, or activate see fresh data.
+
+**Section sources**
+- [tune_schema.ts:59-70](file://src/tools/tune_schema.ts#L59-L70)
 - [tune-messages.ts:13-22](file://src/tools/tune-messages.ts#L13-L22)
-
-### Space Reassignment
-If a target space is provided:
-- The tool resolves and validates the space against allowed spaces.
-- Moves all layers of each target adapter to the target space.
-- If content updates succeed but space reassignment fails, the row is marked as error and counts adjusted accordingly.
-
-**Section sources**
-- [tune-execute.ts:219-239](file://src/tools/tune-execute.ts#L219-L239)
-- [tune-execute.ts:323-342](file://src/tools/tune-execute.ts#L323-L342)
-
-### Review Evidence Gate
-When content updates are provided:
-- The tool requires `review_evidence` with a zero exit code and a first-line verdict of PASS.
-- Failures raise a structured error indicating the review gate did not pass.
-
-**Section sources**
-- [tune_schema.ts:23-30](file://src/tools/tune_schema.ts#L23-L30)
-- [review-evidence-check.ts:18-41](file://src/tools/review-evidence-check.ts#L18-L41)
-
-### Cache Invalidation
-After successful tuning:
-- The tool invalidates Redis-backed caches so subsequent reads reflect fresh writes.
-- No-op when no updates were applied.
-
-**Section sources**
-- [tune.ts:51-52](file://src/tools/tune.ts#L51-L52)
 - [tune-cache-invalidation.ts:9-12](file://src/tools/tune-cache-invalidation.ts#L9-L12)
 
+### Deployment Strategies for Tuned Adapters
+Recommended deployment patterns:
+
+1. **Single-adapter tuning**: Export the adapter, edit flat markdown, run critic-loop, call `tune` with the adapter URI and content, then re-export to verify.
+2. **Multi-adapter tuning**: Batch export adapters, apply conservative transformations, delegate critic-loop over the transformed set, then call `tune` per adapter.
+3. **Space migration**: Call `tune` with only `space` to move adapters between personal and group spaces without changing content.
+4. **Field-only tuning**: Use `updates` to adjust metadata or contract fields without rewriting full markdown.
+5. **Verification loop**: After tuning, always re-export or re-activate the adapter to confirm runtime behavior.
+
+**Section sources**
+- [embedded-mcp-resources.ts:18-23](file://src/resources/embedded-mcp-resources.ts#L18-L23)
+- [tune-execute.ts:219-349](file://src/tools/tune-execute.ts#L219-L349)
+
 ## Dependency Analysis
-The tune tool depends on several subsystems:
+The tune tool depends on several internal services and utilities:
 
 ```mermaid
 graph LR
 Tune["tune.ts"] --> Schema["tune_schema.ts"]
-Tune --> Exec["tune-execute.ts"]
-Exec --> Update["update.ts"]
-Exec --> Verify["tune-verify.ts"]
-Exec --> Messages["tune-messages.ts"]
-Exec --> Guard["protected-space-write-guard.ts"]
-Exec --> Size["validate-adapter-markdown-size.ts"]
-Tune --> Cache["tune-cache-invalidation.ts"]
+Tune --> Execute["tune-execute.ts"]
+Execute --> Update["update.ts"]
+Execute --> Verify["tune-verify.ts"]
+Execute --> Messages["tune-messages.ts"]
+Execute --> Evidence["review-evidence-check.ts"]
+Execute --> Guard["protected-space-write-guard.ts"]
+Execute --> Size["validate-adapter-markdown-size.ts"]
+Execute --> Cache["tune-cache-invalidation.ts"]
 ```
 
 **Diagram sources**
 - [tune.ts:1-12](file://src/tools/tune.ts#L1-L12)
 - [tune-execute.ts:1-15](file://src/tools/tune-execute.ts#L1-L15)
-- [update.ts:1-6](file://src/tools/update.ts#L1-L6)
-- [tune-verify.ts:1-4](file://src/tools/tune-verify.ts#L1-L4)
-- [tune-messages.ts:1-5](file://src/tools/tune-messages.ts#L1-L5)
-- [protected-space-write-guard.ts:1-3](file://src/utils/protected-space-write-guard.ts#L1-L3)
-- [validate-adapter-markdown-size.ts:1-7](file://src/services/memory/validate-adapter-markdown-size.ts#L1-L7)
-- [tune-cache-invalidation.ts:1-3](file://src/tools/tune-cache-invalidation.ts#L1-L3)
+
+Key dependency characteristics:
+
+- **Low coupling within tools**: Each module has a focused responsibility.
+- **Shared update logic**: `executeUpdate` is reused by tune and HTTP routes.
+- **External storage dependency**: All writes go through `QdrantService`.
+- **Cache invalidation boundary**: Redis cache invalidation is triggered only after successful updates.
+- **Safety boundaries**: Protected spaces and markdown size limits are enforced before store writes.
 
 **Section sources**
 - [tune.ts:1-12](file://src/tools/tune.ts#L1-L12)
 - [tune-execute.ts:1-15](file://src/tools/tune-execute.ts#L1-L15)
+- [update.ts:1-5](file://src/tools/update.ts#L1-L5)
+- [tune-cache-invalidation.ts:1-12](file://src/tools/tune-cache-invalidation.ts#L1-L12)
 
 ## Performance Considerations
-- Input/output metrics: the tool records call duration, input size, output size, and error counts per tenant.
-- Validation cost: markdown size checks scan content once and enforce byte/line limits to prevent pathological payloads.
-- Storage operations: tune performs multiple read/write calls per target; batch URIs to reduce round-trips.
-- Cache invalidation: triggered only when updates occur, avoiding unnecessary cache churn.
-- Space moves: performed after successful updates; failures revert counts to maintain accurate totals.
-
-Best practices:
-- Prefer layer URIs for targeted edits to minimize work.
-- Avoid changing adapter titles during tune; structural changes should use `train(force_update=true)`.
-- Keep markdown within configured size limits to avoid validation failures.
-- Group related updates into a single tune call to reduce overhead.
+- **Single-pass markdown validation**: Markdown size validation scans content once, checking total bytes, line length, and line count efficiently.
+- **Per-target iteration**: Tune processes URIs sequentially; large batches may take time proportional to the number of targets.
+- **Post-write verification cost**: Verification re-reads each updated layer from Qdrant, adding latency but preventing silent failures.
+- **Cache invalidation**: A single Redis invalidation call is performed after tuning completes successfully.
+- **Avoid unnecessary full-document rewrites**: Prefer `updates` for small field changes when possible.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common issues and resolutions:
 
-- Missing or invalid review evidence:
-  - Symptom: error indicating review evidence is required or review gate failed.
-  - Cause: content updates provided without passing critic-loop evidence.
-  - Resolution: run the critic-loop review and provide a valid `review_evidence` object.
+### Common Errors and Remediation
 
-- Adapter title mismatch:
-  - Symptom: error stating the H1 title resolves to a different adapter ID.
-  - Cause: changing the adapter title while tuning by adapter URI.
-  - Resolution: keep the H1 unchanged or use `train(force_update=true)` for structural changes.
-
-- Layer count mismatch:
-  - Symptom: error stating layer count differs between existing and new markdown.
-  - Cause: adding/removing layers via tune instead of train.
-  - Resolution: use `train(force_update=true)` for structural changes.
-
-- Protected space write:
-  - Symptom: error indicating protected app/system spaces cannot be overwritten.
-  - Cause: attempting to modify adapters in system or application spaces.
-  - Resolution: fork to a personal or group space before tuning.
-
-- Stale cache or silent write:
-  - Symptom: post-write verification fails due to text mismatch.
-  - Cause: underlying store did not persist the change.
-  - Resolution: retry the operation and ensure cache invalidation occurs; inspect storage backend health.
-
-- Space move failure:
-  - Symptom: content updated but space reassignment failed.
-  - Cause: target space not allowed or permission issue.
-  - Resolution: verify the target space is allowed and accessible; adjust permissions.
+| Symptom | Likely Cause | Recommended Action |
+|---|---|---|
+| `REVIEW_EVIDENCE_REQUIRED` | Content update without critic-loop proof | Delegate critic-loop, capture verdict file, retry with `review_evidence` |
+| `REVIEW_GATE_FAILED` | Critic-loop exit code non-zero or first line not `PASS` | Fix findings, rerun critic-loop, supply valid evidence |
+| `Adapter not found` | Invalid adapter URI or slug | Verify adapter exists; use `spaces` or `export` to inspect |
+| `Adapter title resolves to different ID` | H1 title changed to a different adapter identity | Keep H1 unchanged when tuning by adapter URI, or use `train(force_update=true)` |
+| `Layer count mismatch` | Structural change attempted via tune | Use `train` with `force_update: true` instead of `tune` |
+| `Cannot overwrite adapters in protected app/system spaces` | Writing to system/app space | Fork to personal or group space |
+| `Adapter markdown exceeds maximum size` | Too many lines, too long line, or too many bytes | Split adapter, shorten lines, or reduce document size |
+| `Post-write verification failed` | Store did not persist expected text | Investigate store/backend; retry after confirming persistence |
+| `Content array length must match uris array length` | Mismatched `content` and `uris` arrays | Ensure one content entry per URI |
 
 **Section sources**
-- [review-evidence-check.ts:18-41](file://src/tools/review-evidence-check.ts#L18-L41)
-- [tune-execute.ts:156-171](file://src/tools/tune-execute.ts#L156-L171)
+- [review-evidence-check.ts:20-43](file://src/tools/review-evidence-check.ts#L20-L43)
+- [tune-execute.ts:72-99](file://src/tools/tune-execute.ts#L72-L99)
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
 - [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
+- [validate-adapter-markdown-size.ts:31-106](file://src/services/memory/validate-adapter-markdown-size.ts#L31-L106)
 - [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
-- [tune-execute.ts:323-342](file://src/tools/tune-execute.ts#L323-L342)
+- [update.ts:8-72](file://src/tools/update.ts#L8-L72)
+
+### Verification System
+The verification system combines pre-write and post-write checks:
+
+- **Pre-write**: schema validation, review evidence, protected space guard, markdown size validation, adapter identity and layer count checks.
+- **Post-write**: persistence verification re-reads updated layers and compares text.
+- **Operational verification**: re-export or re-activate tuned adapters to confirm runtime behavior.
+
+```mermaid
+flowchart TD
+Pre["Pre-write validation"] --> Store["Store update"]
+Store --> Post["Post-write verification"]
+Post --> Operational["Operational verification"]
+Operational --> Deploy["Deploy or continue workflow"]
+```
+
+**Diagram sources**
+- [tune-schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
+- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
+
+**Section sources**
+- [tune_schema.ts:14-70](file://src/tools/tune_schema.ts#L14-L70)
+- [tune-execute.ts:127-217](file://src/tools/tune-execute.ts#L127-L217)
+- [tune-verify.ts:11-24](file://src/tools/tune-verify.ts#L11-L24)
+
+### Testing Integration
+Testing tuned adapters should follow the same lifecycle used by agents:
+
+1. Export the adapter before and after tuning.
+2. Compare exported markdown or skill tree to confirm intended changes.
+3. Activate the adapter and run representative flows.
+4. Reward runs to record outcomes.
+5. For batch tuning, generate a per-adapter change report and verify that only expected adapters were modified.
+
+**Section sources**
+- [embedded-mcp-resources.ts:18-23](file://src/resources/embedded-mcp-resources.ts#L18-L23)
 
 ## Conclusion
-The tune tool provides a safe, validated pathway for updating adapter layer content and metadata. It enforces review gates, protects system spaces, validates markdown sizes, and verifies persistence. Use it for incremental improvements and field tweaks; reserve structural changes for `train(force_update=true)`. Always pair content updates with passing critic-loop evidence and consider space reassignment for organizational clarity.
-
-[No sources needed since this section summarizes without analyzing specific files]
-
-## Appendices
-
-### Authentication and Authorization
-- Authentication: JWT tokens validate both human and agent requests.
-- Authorization: tune respects space context and allowed spaces; protected spaces are blocked for writes.
-- Tenant isolation: metrics and operations are scoped by tenant ID.
-
-**Section sources**
-- [tune.ts:31-33](file://src/tools/tune.ts#L31-L33)
-- [tune-execute.ts:219-239](file://src/tools/tune-execute.ts#L219-L239)
-- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
-
-### Conflict Resolution
-- Adapter title conflicts: tune rejects changes that alter the adapter ID derived from the H1 title.
-- Structural conflicts: tune rejects layer count mismatches; use `train(force_update=true)` for structural changes.
-- Space conflicts: tune rejects writes to protected spaces and requires target space membership.
-
-**Section sources**
-- [tune-execute.ts:156-171](file://src/tools/tune-execute.ts#L156-L171)
-- [protected-space-write-guard.ts:5-16](file://src/utils/protected-space-write-guard.ts#L5-L16)
-
-### Examples
-
-- Incremental update of a single layer:
-  - Provide a layer URI and either `content` for the layer body or `updates` for field changes.
-  - The tool normalizes the URI, applies the update, and returns a success result.
-
-- Bulk modifications across multiple adapters:
-  - Provide multiple adapter URIs with corresponding content arrays or shared `updates`.
-  - Each target is processed independently; results include per-target status and messages.
-
-- Rollback scenario:
-  - If content updates succeed but space reassignment fails, the row is marked as error and counts adjusted.
-  - To fully rollback, re-run tune with original layer URIs and restore previous content or fields.
-
-[No sources needed since these examples describe usage patterns rather than specific code lines]
-
-### Best Practices
-- Run critic-loop review before providing content updates.
-- Keep adapter titles stable when tuning by adapter URI.
-- Use layer URIs for precise edits; prefer `updates` for small metadata changes.
-- Batch related updates to reduce API calls.
-- Monitor `total_updated` and `total_failed` to detect partial failures.
-- Ensure target spaces are allowed and not protected.
-
-[No sources needed since this section provides general guidance]
+The SquadRules `tune` tool provides a controlled, verifiable mechanism for updating adapter content and configuration. It emphasizes safety through critic-loop evidence, protected-space guards, markdown size limits, identity preservation, and post-write verification. While it does not include a dry-run mode, the surrounding `export` → `critic-loop` → `tune` → `export` workflow offers a robust preview-and-verify process suitable for both single-adapter and mass-tuning operations. For structural changes, `train` with `force_update: true` remains the correct path; `tune` is best reserved for content refinement, field updates, and space migrations.

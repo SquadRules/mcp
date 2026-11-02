@@ -1,0 +1,1 @@
+`SQUADRULES_LOGIN_CALLBACK_PORT` pins the ephemeral callback server port (used by tests); `SQUADRULES_NO_BROWSER=1` suppresses automatic browser launch in login; `--timeout` / `SQUADRULES_TIMEOUT_MS` controls both the `/api/me` validation fetch and the token-exchange POST.

@@ -286,15 +286,24 @@ test('ci gate is always-on, classifies the revision and fails closed', () => {
   assert.match(classify, /scripts\/ci-change-class\.mjs/);
   assert.match(classify, /git merge-base/);
   assert.match(classify, /git diff --name-only/);
+  assert.match(classify, /git diff --name-only -z/, 'Preserve raw Unicode and unusual Git paths');
+  assert.match(classify, /ci-change-class\.mjs --null/, 'The classifier must consume NUL-delimited paths');
   assert.match(classify, /--empty-diff/, 'An empty revision must fail rather than wait');
   assert.match(classify, /unclassified/, 'A failed classification must expect every lane');
 
   const docs = stepNamed(gate, 'gate', 'Documentation lane');
   assert.equal(docs.if, "steps.classify.outputs.docs == 'true'");
-  assert.match(docs.run, /npm run lint:markdown/);
-  assert.match(docs.run, /lint-docs-links\.mjs --strict/);
-  assert.match(docs.run, /npm run lint:skills/);
   assert.match(docs.run, /npm ci/);
+  assert.match(docs.run, /lint-docs-links\.mjs --strict/);
+  // ADR 0038: the docs lane runs the canonical aggregate, so ESLint (the only
+  // checker of forbidden wording in Markdown) runs for every change class. It must
+  // not be replaced by a hand-picked subset of lint:* scripts.
+  assert.match(docs.run, /npm run lint\b/, 'Documentation lane must run npm run lint');
+  assert.doesNotMatch(
+    docs.run,
+    /npm run lint:(markdown|skills)\b/,
+    'Documentation lane must not downgrade the aggregate to individual lints'
+  );
 
   const evidence = stepNamed(gate, 'gate', 'Require integration and security evidence');
   assert.equal(evidence.if, "steps.classify.outputs.app == 'true'");

@@ -1,1 +1,0 @@
-Shared utilities for listing adapter artifacts from the in-memory Qdrant store, validating skill-root-relative artifact paths, and canonicalizing artifact MIME types against an allowlist.

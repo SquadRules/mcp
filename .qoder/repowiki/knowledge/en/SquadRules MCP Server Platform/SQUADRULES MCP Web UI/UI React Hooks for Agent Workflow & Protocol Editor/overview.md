@@ -1,1 +1,0 @@
-React hooks that bind the UI to the server's activate/forward/reward workflow, protocol editor markdown I/O, spaces listing, auth, and theme preference.

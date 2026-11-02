@@ -1,5 +1,0 @@
-- Every Qdrant operation is wrapped in `conn.executeWithReconnect(async () => { ... })` so retry, health-check, and error-logging logic lives in one place rather than being duplicated per feature.
-- Feature modules are stateless functions that take a `QdrantConnection` as their first argument instead of reading it from a global, making them easy to compose behind the `QdrantService` facade.
-- The `QdrantService` class acts as a pure pass-through facade: each method forwards its arguments to the corresponding function in a sibling feature module without adding business logic.
-- Payloads written to Qdrant include a `space_id` tenant field plus structured `quality_metrics` / `ai` / `protocol` sub-objects, and index definitions in `initialization.ts` mirror these payload fields for keyword/text search.
-- Boolean configuration flags are parsed uniformly via the local `parseBooleanEnv` helper (e.g. `QDRANT_RESCORE`, `QDRANT_CREATE_ALIAS`) rather than ad-hoc `process.env` coercion.

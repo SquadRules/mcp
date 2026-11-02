@@ -1,0 +1,1 @@
+Resolves the stdio-vs-http runtime mode, boots the local vector-store/embedding pipeline, and exposes the stdio MCP transport entry point plus built-in search metadata.

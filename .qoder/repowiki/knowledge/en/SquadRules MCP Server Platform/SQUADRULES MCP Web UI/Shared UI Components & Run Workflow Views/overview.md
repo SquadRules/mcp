@@ -1,1 +1,0 @@
-Reusable React components and the run-step workflow views (challenge cards, rich text editor, layout shell, step flow graph) used across the Squadrules MCP frontend.

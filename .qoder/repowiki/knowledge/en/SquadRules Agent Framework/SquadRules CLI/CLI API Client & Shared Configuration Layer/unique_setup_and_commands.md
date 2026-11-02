@@ -1,0 +1,1 @@
+The native keyring binding may fail to load or hang (macOS Keychain lock); the module auto-degrades after a 10-second timeout and warns once that the user should run `squadrules login` to re-authenticate.

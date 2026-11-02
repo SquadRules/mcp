@@ -1,0 +1,1 @@
+React + TypeScript components styled with Tailwind CSS and CSS custom properties; routing via `react-router` (`Outlet`, `NavLink`, `useLocation`); i18n via `react-i18next`.

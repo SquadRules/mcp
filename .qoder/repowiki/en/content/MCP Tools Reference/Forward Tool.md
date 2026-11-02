@@ -2,18 +2,14 @@
 
 <cite>
 **Referenced Files in This Document**
+- [forward-register.ts](file://src/tools/forward-register.ts)
 - [forward.ts](file://src/tools/forward.ts)
 - [forward_schema.ts](file://src/tools/forward_schema.ts)
-- [forward-register.ts](file://src/tools/forward-register.ts)
-- [forward-view.ts](file://src/tools/forward-view.ts)
-- [forward-trace.ts](file://src/tools/forward-trace.ts)
+- [forward-contract-match.ts](file://src/tools/forward-contract-match.ts)
 - [forward-helpers.ts](file://src/tools/forward-helpers.ts)
+- [forward-trace.ts](file://src/tools/forward-trace.ts)
+- [forward-view.ts](file://src/tools/forward-view.ts)
 - [forward-tool-error.ts](file://src/tools/forward-tool-error.ts)
-- [activate.ts](file://src/tools/activate.ts)
-- [reward.ts](file://src/tools/reward.ts)
-- [next.ts](file://src/tools/next.ts)
-- [http-mcp-cors.ts](file://src/http/http-mcp-cors.ts)
-- [mcp-client-utils.ts](file://tests/utils/mcp-client-utils.ts)
 </cite>
 
 ## Table of Contents
@@ -26,408 +22,374 @@
 7. [Performance Considerations](#performance-considerations)
 8. [Troubleshooting Guide](#troubleshooting-guide)
 9. [Conclusion](#conclusion)
+10. [Appendices](#appendices)
 
 ## Introduction
-The forward MCP tool runs the first or next step of a SquadRules adapter workflow. It is the execution engine for adapter layers: it loads the current layer, returns its contract, accepts a typed solution, validates proof-of-work and previous-layer requirements, records execution traces, and guides the caller to the next action.
+The SquadRules forward tool executes workflow steps for adapters and layers. It implements a deterministic, auditable execution model where agents call the tool to:
+- Start an adapter run by loading its first layer contract.
+- Continue a run by submitting solutions that match the current step’s contract.
+- Advance through linear or branching workflows until completion, then finalize with reward.
 
-In the canonical agent flow, `activate` selects an adapter, `forward` executes one or more adapter steps, and `reward` finalizes the run with outcome and feedback. The forward tool supports multiple continuation patterns:
-- Linear workflows where each layer has a contract.
-- Proof-based workflows where nonce and proof hash must be echoed.
-- Tensor workflows that validate typed tensor inputs and outputs.
-- Conditional branching through tensor conditions.
-- Recovery paths when a previous layer’s proof is missing.
-- Integration with user input, shell commands, MCP tools, and verification comments.
+The tool enforces input validation, contract matching, proof-of-work challenges, state persistence across phases, and structured audit traces.
 
 ## Project Structure
-The forward tool is implemented as a registered MCP tool whose lifecycle spans schema validation, execution logic, view construction, tracing, and error formatting.
+The forward tool is implemented as a registered MCP tool whose handler validates inputs, delegates execution logic, and returns structured results. The core files are:
+- Registration and MCP wiring
+- Execution engine
+- Input/output schemas and normalization
+- Contract matching helpers
+- View builders and UI summaries
+- Audit trace recording
+- Error formatting
 
 ```mermaid
 graph TB
-Client["MCP Client"] --> Register["registerForwardTool<br/>Input/output schemas + metrics"]
-Register --> Execute["executeForward<br/>Adapter resolution, session, contract handling"]
-Execute --> View["buildForwardView / mapLayerPayloadToForwardView"]
-Execute --> Trace["appendExecutionTrace / handleTensorForward"]
-Execute --> Helpers["mapProofSolution / buildEvidenceHint"]
-View --> Output["ForwardOutput<br/>current_layer, contract, next_action, next_call"]
-Trace --> Output
-Helpers --> Output
+Client["Client / Agent"] --> Register["registerForwardTool<br/>MCP registration"]
+Register --> Handler["Handler<br/>validate + execute"]
+Handler --> Execute["executeForward<br/>workflow engine"]
+Execute --> View["buildForwardView<br/>response builder"]
+Execute --> Trace["appendExecutionTrace<br/>audit log"]
+Execute --> Match["validateForwardSubmissionAgainstContract<br/>forward target check"]
+View --> Output["ForwardOutput"]
 ```
 
 **Diagram sources**
 - [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
-- [forward-view.ts:242-290](file://src/tools/forward-view.ts#L242-L290)
-- [forward-trace.ts:94-117](file://src/tools/forward-trace.ts#L94-L117)
-- [forward-helpers.ts:3-28](file://src/tools/forward-helpers.ts#L3-L28)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [forward-view.ts:210-274](file://src/tools/forward-view.ts#L210-L274)
+- [forward-trace.ts:64-87](file://src/tools/forward-trace.ts#L64-L87)
+- [forward-contract-match.ts:17-53](file://src/tools/forward-contract-match.ts#L17-L53)
 
 **Section sources**
 - [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
-- [forward-schema.ts:244-343](file://src/tools/forward_schema.ts#L244-L343)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
 
 ## Core Components
-- **Registration and transport**: Registers the `forward` tool, validates input against the MCP wire schema, measures duration/input/output size, and returns structured content.
-- **Execution engine**: Resolves adapter or layer URIs, starts or continues an execution session, handles tensor vs non-tensor contracts, applies solutions to previous steps when appropriate, enforces proof-of-work, and navigates to the next layer.
-- **View builder**: Produces the human-readable current layer, contract summary, UI metadata, and the recommended `next_call`.
-- **Tracing**: Records raw solutions, tensor inputs/outputs, activation query context, and optional reasoning traces.
-- **Helpers**: Normalizes legacy and v2 solution formats, builds evidence hints, and maps proof submissions into internal submission shapes.
+- MCP registration and metrics: registers the tool, validates input, measures duration and sizes, and formats errors.
+- Execution engine: resolves adapter/layer URIs, manages execution state, applies solutions, handles missing proofs, and advances to next steps.
+- Schema system: defines input/output contracts, normalizes legacy and v2 solution shapes, and enforces required fields.
+- Contract matching: validates forward submissions against expected targets.
+- View builder: constructs user-facing responses, guidance, and next-call instructions.
+- Audit tracing: records raw solutions, tensor values, activation queries, and layer metadata.
+- Error formatter: converts internal errors into consistent error payloads.
 
 **Section sources**
 - [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
-- [forward-view.ts:242-290](file://src/tools/forward-view.ts#L242-L290)
-- [forward-trace.ts:38-117](file://src/tools/forward-trace.ts#L38-L117)
-- [forward-helpers.ts:3-28](file://src/tools/forward-helpers.ts#L3-L28)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [forward_schema.ts:16-314](file://src/tools/forward_schema.ts#L16-L314)
+- [forward-contract-match.ts:17-53](file://src/tools/forward-contract-match.ts#L17-L53)
+- [forward-view.ts:210-309](file://src/tools/forward-view.ts#L210-L309)
+- [forward-trace.ts:17-87](file://src/tools/forward-trace.ts#L17-L87)
+- [forward-tool-error.ts:3-10](file://src/tools/forward-tool-error.ts#L3-L10)
 
 ## Architecture Overview
-The forward tool participates in the activate → forward → reward chain. It can also bridge older HTTP-style payloads into the same output shape used by the MCP tool.
+The forward tool follows a strict two-phase flow per call:
+1. Load phase: resolve URI, load memory, establish or continue execution context, return contract and next_action if no solution provided.
+2. Submission phase: normalize and validate solution, apply to previous step when applicable, handle proof-of-work challenges, persist audit traces, and advance to next layer or finalization.
 
 ```mermaid
 sequenceDiagram
-participant Agent as "Agent"
-participant MCP as "MCP Server"
+participant Client as "Client"
 participant Reg as "registerForwardTool"
 participant Exec as "executeForward"
 participant View as "buildForwardView"
 participant Trace as "appendExecutionTrace"
-participant Reward as "reward"
-Agent->>MCP : callTool("forward", { uri })
-MCP->>Reg : parse + measure input
-Reg->>Exec : executeForward(input)
-Exec->>Exec : resolve adapter/layer<br/>start or reuse execution_id
-Exec->>View : load contract and current layer
-View-->>Exec : ForwardOutput (first step)
-Exec-->>Agent : current_layer + contract + next_call
-Agent->>MCP : callTool("forward", { uri with execution_id, solution })
-MCP->>Reg : parse + measure input
-Reg->>Exec : executeForward(solution)
-Exec->>Exec : normalize solution<br/>apply to previous step if needed<br/>validate proof-of-work
-Exec->>Trace : appendExecutionTrace()
-Exec->>View : buildPostSubmissionView()
-View-->>Agent : next layer or final comment
-Agent->>Reward : call reward with layer URI and outcome
+Client->>Reg : Call forward(uri, solution?)
+Reg->>Reg : Validate input schema
+Reg->>Exec : Execute with validated input
+alt No solution (start or load)
+Exec-->>Reg : ForwardOutput with contract and next_call
+Reg-->>Client : Result
+else Solution provided
+Exec->>Exec : Normalize solution, elicit user input if needed
+Exec->>Exec : Apply to previous step when possible
+Exec->>Exec : Handle proof submission and missing proofs
+Exec->>Trace : Append execution trace
+Exec->>View : Build response for next step or final
+View-->>Reg : ForwardOutput
+Reg-->>Client : Result
+end
 ```
 
 **Diagram sources**
 - [forward-register.ts:31-63](file://src/tools/forward-register.ts#L31-L63)
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
-- [forward-view.ts:242-290](file://src/tools/forward-view.ts#L242-L290)
-- [forward-trace.ts:94-117](file://src/tools/forward-trace.ts#L94-L117)
-- [reward.ts:27-109](file://src/tools/reward.ts#L27-L109)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [forward-view.ts:210-274](file://src/tools/forward-view.ts#L210-L274)
+- [forward-trace.ts:64-87](file://src/tools/forward-trace.ts#L64-L87)
 
 ## Detailed Component Analysis
 
-### Input Schema
-The forward tool accepts two related schemas:
-- **MCP wire input**: Used by the MCP server wrapper. Both `uri` and `solution` are optional at the wire level; validation rules enforce whether `solution` is allowed.
-- **Strict input schema**: Enforces start vs continuation behavior.
+### MCP Registration and Handler
+Responsibilities:
+- Register the tool with title, description, input/output schemas, and UI metadata.
+- Observe input size and duration metrics.
+- Parse and validate input using the MCP wire schema.
+- Delegate to executeForward and wrap successful outputs in MCP content structures.
+- Convert SquadrulesError instances into structured error responses.
 
-Key input rules:
-- Start a run with:
-  - `squadrules://adapter/{slug}`
-  - `squadrules://layer/{uuid}` without `?execution_id=...`
-- Continue a run with:
-  - `squadrules://layer/{uuid}?execution_id={uuid}` plus a valid `solution`.
-- On start calls, `solution` must be omitted.
-- On continuation calls, `solution` must include `type`, matching the contract, plus the appropriate payload under `evidence` or legacy fields.
-
-Recommended v2 solution envelope:
-- `type`: matches the contract type.
-- `outcome`: `success`, `failure`, or `skipped`.
-- `evidence`: type-specific proof payload.
-- Optional `nonce` and `proof_hash` when required by the contract.
-- Optional `trace` for reasoning stored with execution trace.
-
-Legacy compatibility:
-- Legacy top-level fields like `tensor`, `shell`, `mcp`, `user_input`, and `comment` are still accepted but normalized into the v2 envelope.
-- For MCP solutions, a top-level `result` is moved into `evidence.response`.
+Key behaviors:
+- Validation failures return teaching-friendly error results.
+- Successful calls record output size and status metrics.
+- Errors bubble up unless they are known SquadrulesError types.
 
 **Section sources**
-- [forward_schema.ts:4-12](file://src/tools/forward_schema.ts#L4-L12)
-- [forward_schema.ts:54-95](file://src/tools/forward_schema.ts#L54-L95)
-- [forward_schema.ts:121-186](file://src/tools/forward_schema.ts#L121-L186)
-- [forward_schema.ts:188-226](file://src/tools/forward_schema.ts#L188-L226)
-- [forward_schema.ts:228-267](file://src/tools/forward_schema.ts#L228-L267)
-- [forward_schema.ts:269-318](file://src/tools/forward_schema.ts#L269-L318)
+- [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
 
-### Execution Flow
-The execution function performs these major responsibilities:
-1. Parse and validate the URI.
-2. Resolve the memory layer from adapter slug, adapter UUID, or layer UUID.
-3. Start or continue an execution session using `execution_id`.
-4. Return the initial contract when no solution is provided.
-5. Handle tensor contracts separately with typed validation and conditional branching.
-6. Normalize and elicit user input when required.
-7. Apply submitted solutions to previous pending steps when appropriate.
-8. Validate proof-of-work and previous-layer completion.
-9. Record execution traces.
-10. Navigate to the next layer or mark the run as complete.
+### Execution Engine: executeForward
+Responsibilities:
+- Parse and validate URIs (adapter or layer).
+- Resolve memory and determine whether this is a new run or continuation.
+- Enforce authoring context consistency for author-adapter runs.
+- Initialize execution metadata and pin layer manifests on first call.
+- If no solution is provided, return the current layer view and contract.
+- Normalize and map solutions to proof-of-work submissions.
+- Attempt to apply submitted solution to previous pending step when appropriate.
+- Handle proof-of-work challenges and missing proofs.
+- Persist execution traces and update step quality metrics.
+- Advance to next layer or mark finalization.
 
-```mermaid
-flowchart TD
-Start(["executeForward"]) --> ParseUri["Parse URI<br/>adapter or layer"]
-ParseUri --> LoadMemory["Load memory layer"]
-LoadMemory --> Session{"Has execution_id?"}
-Session --> |No| StartSession["Start execution session"]
-Session --> |Yes| ContinueSession["Reuse execution session"]
-StartSession --> NoSolution{"solution provided?"}
-ContinueSession --> NoSolution
-NoSolution --> |No| ReturnContract["Return current layer + contract"]
-NoSolution --> |Yes| ContractType{"contract.type"}
-ContractType --> |tensor| HandleTensor["handleTensorForward"]
-ContractType --> |other| Normalize["Normalize solution<br/>mapProofSolution"]
-Normalize --> Elicit{"User input required?"}
-Elicit --> |Yes| ReturnElicit["Return elicitation payload"]
-Elicit --> |No| PreviousApply["Try apply to previous step"]
-PreviousApply --> ProofCheck["Validate proof-of-work"]
-ProofCheck --> MissingPrev{"Previous proof missing?"}
-MissingPrev --> |Yes| ReturnMissing["Return missing-proof guidance"]
-MissingPrev --> |No| RecordTrace["Record execution trace"]
-RecordTrace --> NextStep["Resolve next layer"]
-NextStep --> Final{"No next layer?"}
-Final --> |Yes| ReturnFinal["Return final comment + next_call=reward"]
-Final --> |No| ReturnNext["Return next layer + next_call=forward"]
-```
+State management highlights:
+- execution_id is derived from layer URI query parameter or generated for new runs.
+- forwardRuntimeStore tracks execution metadata including authoring context and merge depth.
+- proofOfWorkStore participates in challenge reuse and hash verification.
+- executionTraceStore records raw solutions and tensorized outputs.
 
-**Diagram sources**
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
-- [forward-trace.ts:133-229](file://src/tools/forward-trace.ts#L133-L229)
-- [forward-view.ts:242-290](file://src/tools/forward-view.ts#L242-L290)
+Error handling patterns:
+- NOT_FOUND for missing layers/adapters.
+- AUTHORING_CONTEXT_MISMATCH when continuing with mismatched authoring context.
+- INVALID_AUTHORING_WORKFLOW when authoring is used on non-author-adapter URIs.
+- Missing proof flows return retry guidance and error codes.
 
 **Section sources**
-- [forward.ts:93-317](file://src/tools/forward.ts#L93-L317)
+- [forward.ts:43-339](file://src/tools/forward.ts#L43-L339)
 
-### Output Structure
-The forward tool returns a strict `ForwardOutput` object. Important fields:
+### Input and Output Schemas
+Input:
+- uri: Adapter slug or layer UUID; layer may include execution_id for continuation.
+- solution: Optional on start; required on continuation. Supports both legacy type-specific fields and normalized v2 envelope with outcome and evidence.
+- authoring: Optional authoring context fixed for the execution.
 
-| Field | Meaning |
-|---|---|
-| `must_obey` | Indicates whether the caller should follow the returned guidance. |
-| `current_layer` | Markdown content of the current adapter layer, including its layer URI. |
-| `contract` | Required contract describing what the caller must provide next. |
-| `tensor_in` | Available tensor inputs for tensor workflows. |
-| `next_action` | Human-readable instruction describing the next MCP call. |
-| `proof_hash` | Echoed or computed proof hash when applicable. |
-| `execution_id` | Stable identifier for the current adapter run. |
-| `message` | Optional status or recovery message. |
-| `error_code` | Optional error code for recovery flows. |
-| `retry_count` | Optional retry guidance for missing-proof scenarios. |
-| `slug_disambiguation_note` | Explains which adapter was chosen when slug resolution matched multiple adapters. |
-| `next_call` | Structured guidance: either `forward` with a layer URI and solution template, or `reward` with a layer URI and success outcome template. |
-| `activation_space_name` | Display name of the activation space when available. |
-| `context_adapter_name` | Adapter label shown in UI summaries. |
-| `current_layer_label` | Layer label when present. |
-| `adapter_layer_index` | Current layer index within the adapter. |
-| `adapter_layer_count` | Total number of layers in the adapter. |
-| `squadrules_local_artifact_dir` | Local artifact directory configuration fields. |
+Normalization rules:
+- Legacy flat comment text is normalized into canonical evidence structure.
+- Flat type-specific fields are wrapped into evidence envelope.
+- Default outcome is success when not provided in v2 format.
+- Strict validation ensures only one type-specific payload field matches solution.type.
 
-When the adapter completes, `next_call.kind` becomes `reward`, and `next_action` instructs calling `reward` with the layer URI and outcome.
+Output:
+- must_obey: Indicates whether the client should obey the guidance.
+- current_layer: Markdown instructions for the active step.
+- contract: Step contract describing required action type and optional nonce/proof_hash.
+- next_action: Human-readable guidance for the next call.
+- next_call: Structured instruction for calling forward or reward with required arguments.
+- execution_id: Server-issued identifier for the run.
+- proof_hash: Echoed when present in chain.
+- error_code and retry_count: Present during missing-proof or blocked-payload scenarios.
+- UI summary fields: activation_space_name, context_adapter_name, current_layer_label, adapter_layer_index, adapter_layer_count.
 
-**Section sources**
-- [forward_schema.ts:320-343](file://src/tools/forward_schema.ts#L320-L343)
-- [forward-view.ts:242-290](file://src/tools/forward-view.ts#L242-L290)
-
-### Multi-Step Workflow Example
-A typical multi-step linear workflow looks like this:
-
-1. Call `forward` with an adapter URI to start.
-2. Read `contract.type` and `current_layer.uri`.
-3. Call `forward` again with the layer URI including `execution_id` and a solution matching the contract.
-4. Repeat until `next_call.kind` is `reward`.
-5. Call `reward` with the final layer URI and outcome.
-
-Example progression:
-- First call: `{ uri: "squadrules://adapter/refine-search" }`
-- Second call: `{ uri: "<current_layer.uri>", solution: { type: "shell", outcome: "success", evidence: { exit_code: 0, stdout: "..." }, nonce, proof_hash } }`
-- Third call: `{ uri: "<next_layer.uri>", solution: { type: "mcp", outcome: "success", evidence: { tool_name, arguments, response } } }`
-- Final call: `reward` with `{ uri: "<final_layer.uri>", outcome: "success", feedback: "..." }`
+Validation constraints:
+- Starting a run forbids providing solution.
+- Continuing a run requires solution.
+- Subagent solutions require evidence.
 
 **Section sources**
-- [forward.ts:112-139](file://src/tools/forward.ts#L112-L139)
-- [forward-view.ts:256-272](file://src/tools/forward-view.ts#L256-L272)
-- [reward.ts:27-109](file://src/tools/reward.ts#L27-L109)
+- [forward_schema.ts:16-314](file://src/tools/forward_schema.ts#L16-L314)
 
-### Conditional Branching
-Tensor contracts support a `condition` field. When the condition evaluates to false, forward does not store the tensor and instead moves to the next eligible layer. When there is no next layer, the run ends with a final message.
+### Contract Matching System
+Purpose:
+- Ensure forward submissions target the exact adapter URI specified by the contract.
 
-This enables workflows such as:
-- If a search result contains a specific keyword, process it directly.
-- Otherwise, skip to a fallback branch.
+Matching rules:
+- Only enforced when contract type is forward and a target is defined.
+- Rejects absent target, invalid scheme, or mismatched slug.
+- Returns a single error code covering all mismatch cases.
 
-**Section sources**
-- [forward-trace.ts:119-174](file://src/tools/forward-trace.ts#L119-L174)
-
-### Error Recovery Patterns
-Forward includes several recovery mechanisms:
-
-- **Missing previous proof**: If a previous layer’s proof is incomplete, forward returns a payload with `error_code`, `retry_count`, `current_step`, `challenge`, and `next_action`. The caller should follow the guidance and retry up to the indicated limit.
-- **Blocked payload**: Some validations produce a blocked payload rather than throwing immediately, allowing the caller to display actionable guidance.
-- **Quality updates**: Successful or failed steps update Qdrant quality metrics when the service is available; failures are logged but do not break normal request flow.
-- **Trace persistence failures**: Tracing uses fire-and-forget persistence so transient storage errors do not fail the forward call.
+Integration points:
+- Used by proof-of-work submission handling to block incorrect forwards.
 
 **Section sources**
-- [forward.ts:152-221](file://src/tools/forward.ts#L152-L221)
-- [forward.ts:266-294](file://src/tools/forward.ts#L266-L294)
-- [forward.ts:37-43](file://src/tools/forward.ts#L37-L43)
-- [next.ts:85-129](file://src/tools/next.ts#L85-L129)
+- [forward-contract-match.ts:17-53](file://src/tools/forward-contract-match.ts#L17-L53)
 
-### Authentication Requirements
-Authentication is handled at the transport layer, not inside the forward tool itself. Tests show that MCP clients attach a Bearer token when the server requires authentication. CORS routes expose `WWW-Authenticate` headers for browser-based MCP usage.
+### Helpers and Templates
+Evidence hints:
+- Provide concise guidance for each contract type (shell, forward, user_input, comment, subagent).
 
-Operational implications:
-- Include `Authorization: Bearer <token>` when calling MCP over HTTP.
-- Refresh tokens when the server responds with authentication errors.
-- Use the configured MCP URL and base URL from environment variables in tests.
+Empty solution templates:
+- Generate a minimal v2 solution template pre-filled with type-appropriate evidence placeholders.
+- Include placeholder markers to detect template-only submissions.
 
 **Section sources**
-- [mcp-client-utils.ts:35-48](file://tests/utils/mcp-client-utils.ts#L35-L48)
-- [http-mcp-cors.ts:3-28](file://src/http/http-mcp-cors.ts#L3-L28)
+- [forward-helpers.ts:11-38](file://src/tools/forward-helpers.ts#L11-L38)
 
-### Session Management
-Sessions are represented by `execution_id`:
-- A new execution ID is generated when starting from an adapter URI or a layer URI without `execution_id`.
-- Continuation calls must include the same `execution_id` in the layer URI.
-- The runtime store tracks adapter ID, adapter URI, merge depth, creation time, and optional slug disambiguation notes.
-- Tensor workflows use the runtime store to require and set named tensor values across steps.
+### Response Builder and Views
+Responsibilities:
+- Construct current layer view with markdown content and MIME type.
+- Build contract response, falling back to challenge generation when no stored contract exists.
+- Compose next_call with either forward or reward based on finalization state.
+- Pre-fill chain tokens (nonce/proof_hash) in solution_template when available.
+- Attach local artifact directory fields and UI summary metadata.
 
-Best practices:
-- Always use the `current_layer.uri` returned by forward for continuation calls.
-- Do not fabricate `execution_id`; reuse the value returned by the first call.
-- Treat `execution_id` as the boundary of one logical adapter run.
-
-**Section sources**
-- [forward.ts:112-130](file://src/tools/forward.ts#L112-L130)
-- [forward-view.ts:198-211](file://src/tools/forward-view.ts#L198-L211)
-
-### Integration with Activate and Reward Tools
-- `activate` returns ranked adapter choices and often includes a `next_action` that tells the agent to call `forward` with the selected adapter URI and no solution.
-- `forward` returns `next_call.kind === "reward"` when the adapter is complete.
-- `reward` records outcome, score, feedback, and evaluation metadata, and writes reward information to the execution trace store.
-
-```mermaid
-sequenceDiagram
-participant Agent as "Agent"
-participant Activate as "activate"
-participant Forward as "forward"
-participant Reward as "reward"
-Agent->>Activate : search query
-Activate-->>Agent : choices + next_action
-Agent->>Forward : start adapter
-Forward-->>Agent : contract + next_call.forward
-Agent->>Forward : submit solution(s)
-Forward-->>Agent : next layer or final comment
-Agent->>Reward : finalize with outcome
-Reward-->>Agent : results + total_rated
-```
-
-**Diagram sources**
-- [activate.ts:209-235](file://src/tools/activate.ts#L209-L235)
-- [forward-view.ts:256-272](file://src/tools/forward-view.ts#L256-L272)
-- [reward.ts:27-109](file://src/tools/reward.ts#L27-L109)
+Finalization behavior:
+- Final steps return a comment-type contract instructing reward invocation.
+- Reward outcome template reflects prior failed proof status to ensure honest verification.
 
 **Section sources**
-- [activate.ts:209-235](file://src/tools/activate.ts#L209-L235)
-- [reward.ts:27-109](file://src/tools/reward.ts#L27-L109)
+- [forward-view.ts:21-47](file://src/tools/forward-view.ts#L21-L47)
+- [forward-view.ts:156-195](file://src/tools/forward-view.ts#L156-L195)
+- [forward-view.ts:210-309](file://src/tools/forward-view.ts#L210-L309)
 
-### Debugging Techniques
-Use these techniques when debugging complex workflows:
+### Audit Tracing
+Responsibilities:
+- Convert solutions into tensor values for storage.
+- Append execution traces including adapter URI, layer URI, layer index, activation query, layer instructions, tensor inputs/outputs, raw solution, and optional reasoning trace.
 
-1. **Inspect `current_layer.uri`**: Ensure continuation calls use the exact URI returned by the previous forward call.
-2. **Echo `nonce` and `proof_hash`**: Many contracts require echoing these values in the solution.
-3. **Use v2 solution format**: Prefer `type`, `outcome`, and `evidence` over legacy top-level fields.
-4. **Read `next_action`**: It describes the expected next MCP call.
-5. **Check `next_call.kind`**: When it is `reward`, stop calling forward and call reward instead.
-6. **Review `error_code` and `retry_count`**: Missing-proof responses include retry guidance.
-7. **Enable execution traces**: The forward tool records raw solutions, tensor inputs/outputs, and optional reasoning traces.
-8. **Validate tensor contracts**: For tensor workflows, ensure the tensor name and value match the contract’s output specification.
-9. **Monitor metrics**: The registration wrapper measures tool calls, durations, input sizes, and output sizes.
+Persistence strategy:
+- Fire-and-forget persistence to avoid blocking main execution paths.
 
 **Section sources**
-- [forward_schema.ts:244-267](file://src/tools/forward_schema.ts#L244-L267)
-- [forward.ts:202-211](file://src/tools/forward.ts#L202-L211)
-- [forward-trace.ts:94-117](file://src/tools/forward-trace.ts#L94-L117)
-- [forward-register.ts:31-53](file://src/tools/forward-register.ts#L31-L53)
-
-## Dependency Analysis
-The forward tool depends on several subsystems:
-
-```mermaid
-graph LR
-Forward["forward.ts"] --> Schema["forward_schema.ts"]
-Forward --> View["forward-view.ts"]
-Forward --> Trace["forward-trace.ts"]
-Forward --> Helpers["forward-helpers.ts"]
-Forward --> Memory["memory-accessors"]
-Forward --> Navigation["adapter-navigation"]
-Forward --> RuntimeStore["forward-runtime-store"]
-Forward --> TraceStore["execution-trace-store"]
-Forward --> POW["proof-of-work-store"]
-Forward --> Tenant["tenant-context"]
-Register["forward-register.ts"] --> Forward
-Register --> Metrics["mcp-metrics"]
-View --> RuntimeStore
-View --> POW
-Trace --> RuntimeStore
-Trace --> TraceStore
-Trace --> POW
-```
-
-**Diagram sources**
-- [forward.ts:1-35](file://src/tools/forward.ts#L1-L35)
-- [forward-register.ts:1-11](file://src/tools/forward-register.ts#L1-L11)
-- [forward-view.ts:1-15](file://src/tools/forward-view.ts#L1-L15)
-- [forward-trace.ts:1-14](file://src/tools/forward-trace.ts#L1-L14)
-
-**Section sources**
-- [forward.ts:1-35](file://src/tools/forward.ts#L1-L35)
-- [forward-register.ts:1-11](file://src/tools/forward-register.ts#L1-L11)
-- [forward-view.ts:1-15](file://src/tools/forward-view.ts#L1-L15)
-- [forward-trace.ts:1-14](file://src/tools/forward-trace.ts#L1-L14)
-
-## Performance Considerations
-- **Input/output metrics**: Each MCP tool call records call count, duration, input size, and output size.
-- **Fire-and-forget tracing**: Execution trace persistence failures are logged but do not fail the forward call.
-- **Qdrant quality updates**: Quality metric updates are wrapped in try/catch and logged on failure.
-- **Caching in related components**: The `next` tool uses Redis-backed memory caching; while forward does not directly use that cache, it shares similar infrastructure patterns.
-- **Avoid unnecessary re-resolution**: Reuse `execution_id` and the exact `current_layer.uri` to prevent repeated adapter resolution.
-
-Recommendations:
-- Keep solutions compact and avoid large evidence payloads unless required.
-- Batch reasoning traces only when useful for debugging.
-- Monitor MCP tool metrics to detect slow or oversized forward calls.
-- Ensure Qdrant and storage services are healthy to avoid degraded quality updates and trace persistence.
-
-**Section sources**
-- [forward-register.ts:31-53](file://src/tools/forward-register.ts#L31-L53)
-- [forward.ts:37-43](file://src/tools/forward.ts#L37-L43)
-- [next.ts:24-34](file://src/tools/next.ts#L24-L34)
-- [next.ts:85-129](file://src/tools/next.ts#L85-L129)
-
-## Troubleshooting Guide
-
-### Common Errors and Fixes
-| Symptom | Likely Cause | Fix |
-|---|---|---|
-| Validation error about `solution` on start call | Sent `solution` when starting with adapter URI or layer URI without `execution_id` | Omit `solution` on the first call. |
-| Validation error requiring `solution` on continuation call | Called forward with layer URI containing `execution_id` but no `solution` | Include a valid `solution` matching the contract. |
-| `MISSING_PROOF` or missing previous step guidance | Previous layer proof not completed | Follow `next_action`, supply missing proof, and retry up to `retry_count`. |
-| Tensor name mismatch | Submitted tensor name differs from contract output name | Use the exact tensor name defined in the contract. |
-| Tensor type or length validation error | Tensor value does not match contract constraints | Adjust value type, string length, or array item count. |
-| `next_call.kind` remains `forward` after completing work | Did not reach final layer or did not satisfy final contract | Continue submitting solutions until the adapter reports completion. |
-| Authentication error over HTTP | Missing or expired Bearer token | Attach `Authorization: Bearer <token>` and refresh when needed. |
-
-**Section sources**
-- [forward_schema.ts:244-267](file://src/tools/forward_schema.ts#L244-L267)
-- [forward.ts:152-221](file://src/tools/forward.ts#L152-L221)
-- [forward.ts:266-294](file://src/tools/forward.ts#L266-L294)
-- [forward-trace.ts:176-196](file://src/tools/forward-trace.ts#L176-L196)
-- [mcp-client-utils.ts:35-48](file://tests/utils/mcp-client-utils.ts#L35-L48)
+- [forward-trace.ts:17-87](file://src/tools/forward-trace.ts#L17-L87)
 
 ### Error Formatting
-Structured errors from the forward tool are formatted into a consistent record containing `error`, `error_code`, `message`, and optional details. This makes it easier for agents and callers to distinguish recoverable guidance from fatal failures.
+Responsibilities:
+- Convert SquadrulesError into a standardized error object with error, error_code, message, and optional details.
+
+Usage:
+- MCP handler wraps known errors into isError responses with formatted text.
 
 **Section sources**
 - [forward-tool-error.ts:3-10](file://src/tools/forward-tool-error.ts#L3-L10)
 
+## Dependency Analysis
+The forward tool integrates with several services and utilities:
+- Memory store for adapter/layer retrieval.
+- Qdrant service for adapter resolution and layer navigation.
+- Forward runtime store for execution metadata.
+- Proof-of-work store for challenges, nonces, hashes, and results.
+- Execution trace store for audit logs.
+- Metrics middleware for tool performance tracking.
+
+```mermaid
+graph LR
+Reg["forward-register.ts"] --> Exec["forward.ts"]
+Exec --> View["forward-view.ts"]
+Exec --> Trace["forward-trace.ts"]
+Exec --> Match["forward-contract-match.ts"]
+Exec --> Schema["forward_schema.ts"]
+Exec --> Helpers["forward-helpers.ts"]
+Reg --> ErrorFmt["forward-tool-error.ts"]
+```
+
+**Diagram sources**
+- [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [forward-view.ts:210-309](file://src/tools/forward-view.ts#L210-L309)
+- [forward-trace.ts:64-87](file://src/tools/forward-trace.ts#L64-L87)
+- [forward-contract-match.ts:17-53](file://src/tools/forward-contract-match.ts#L17-L53)
+- [forward_schema.ts:16-314](file://src/tools/forward_schema.ts#L16-L314)
+- [forward-helpers.ts:11-38](file://src/tools/forward-helpers.ts#L11-L38)
+- [forward-tool-error.ts:3-10](file://src/tools/forward-tool-error.ts#L3-L10)
+
+**Section sources**
+- [forward-register.ts:18-65](file://src/tools/forward-register.ts#L18-L65)
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+
+## Performance Considerations
+- Input/output size metrics are recorded per tool call.
+- Duration timers capture latency for success and error paths.
+- Persistence operations for traces use fire-and-forget patterns to minimize blocking.
+- Layer manifest pinning occurs once per execution to prevent UUID churn.
+- Step quality updates are conditional on Qdrant availability and already-recorded status.
+
+[No sources needed since this section provides general guidance]
+
+## Troubleshooting Guide
+Common issues and resolutions:
+- Missing layer or adapter:
+  - Symptom: NOT_FOUND error.
+  - Resolution: Verify adapter slug or layer UUID; ensure the adapter exists and is indexed.
+- Authoring context mismatch:
+  - Symptom: AUTHORING_CONTEXT_MISMATCH when continuing a run.
+  - Resolution: Use the exact execution_id returned by the server and do not alter authoring parameters mid-run.
+- Invalid authoring workflow:
+  - Symptom: INVALID_AUTHORING_WORKFLOW when authoring is used on non-author-adapter URIs.
+  - Resolution: Restrict authoring to the author-adapter slug.
+- Missing proof or blocked payload:
+  - Symptom: error_code indicates MISSING_PROOF or similar; retry_count provided.
+  - Resolution: Follow next_action guidance, provide required proof fields, and respect must_obey constraints.
+- Forward target mismatch:
+  - Symptom: FORWARD_TARGET_MISMATCH error.
+  - Resolution: Submit evidence.target exactly matching the contracted adapter URI.
+
+Error response shape:
+- error: Error code string.
+- error_code: Duplicate of error for compatibility.
+- message: Human-readable explanation.
+- details: Optional additional context.
+
+**Section sources**
+- [forward.ts:104-129](file://src/tools/forward.ts#L104-L129)
+- [forward.ts:180-214](file://src/tools/forward.ts#L180-L214)
+- [forward.ts:281-315](file://src/tools/forward.ts#L281-L315)
+- [forward-contract-match.ts:31-50](file://src/tools/forward-contract-match.ts#L31-L50)
+- [forward-tool-error.ts:3-10](file://src/tools/forward-tool-error.ts#L3-L10)
+
 ## Conclusion
-The forward tool is the central execution point for SquadRules adapter workflows. It transforms adapter definitions into interactive, auditable, and provable step-by-step runs. By following the contract, echoing proof values, reusing `execution_id`, and honoring `next_call`, agents can reliably navigate linear, conditional, and multi-step workflows. Integration with `activate` and `reward` completes the lifecycle, while tracing, metrics, and error guidance make complex workflows debuggable and production-ready.
+The SquadRules forward tool provides a robust, auditable mechanism for executing adapter workflows. It enforces strict input validation, supports flexible solution formats, and guides clients through multi-step processes with clear next-action instructions. Its integration with proof-of-work challenges, runtime state stores, and audit traces ensures deterministic and verifiable execution across linear and branching workflows.
+
+[No sources needed since this section summarizes without analyzing specific files]
+
+## Appendices
+
+### API Definition: forward Tool
+
+Inputs:
+- uri: Adapter slug or layer UUID; include execution_id for continuation.
+- solution: Omit on start; include on continuation with type, outcome, and evidence.
+- authoring: Optional authoring context for author-adapter workflows.
+
+Outputs:
+- must_obey: Boolean indicating obedience requirement.
+- current_layer: Object with uri, content, mimeType.
+- contract: Step contract with type and optional nonce/proof_hash.
+- next_action: Guidance string.
+- next_call: Structured instruction for forward or reward.
+- execution_id: Run identifier.
+- proof_hash: Chain token echo.
+- error_code: Error classification when applicable.
+- retry_count: Retry allowance when applicable.
+- UI metadata: activation_space_name, context_adapter_name, current_layer_label, adapter_layer_index, adapter_layer_count.
+
+**Section sources**
+- [forward_schema.ts:234-314](file://src/tools/forward_schema.ts#L234-L314)
+
+### Execution Flow Algorithm
+
+```mermaid
+flowchart TD
+Start(["Call forward"]) --> ParseURI["Parse and validate URI"]
+ParseURI --> LoadMemory["Load memory and resolve adapter/layer"]
+LoadMemory --> CheckContinuation{"Continuation?"}
+CheckContinuation --> |No| InitExecution["Initialize execution metadata"]
+CheckContinuation --> |Yes| ValidateAuthoring["Validate authoring context"]
+InitExecution --> HasSolution{"Has solution?"}
+ValidateAuthoring --> HasSolution
+HasSolution --> |No| ReturnContract["Return contract and next_action"]
+HasSolution --> |Yes| NormalizeSolution["Normalize and map solution"]
+NormalizeSolution --> ElicitUserInput["Elicit user input if required"]
+ElicitUserInput --> ApplyPrevious{"Apply to previous step?"}
+ApplyPrevious --> |Yes| RecordQuality["Update step quality"]
+ApplyPrevious --> |No| HandleProof["Handle proof submission"]
+RecordQuality --> HandleProof
+HandleProof --> MissingProof{"Missing proof?"}
+MissingProof --> |Yes| ReturnRetry["Return retry guidance and error_code"]
+MissingProof --> |No| AppendTrace["Append execution trace"]
+AppendTrace --> Advance["Advance to next layer or final"]
+Advance --> ReturnNext["Return next_call and guidance"]
+ReturnContract --> End(["End"])
+ReturnRetry --> End
+ReturnNext --> End
+```
+
+**Diagram sources**
+- [forward.ts:91-339](file://src/tools/forward.ts#L91-L339)
+- [forward-view.ts:210-309](file://src/tools/forward-view.ts#L210-L309)
+- [forward-trace.ts:64-87](file://src/tools/forward-trace.ts#L64-L87)

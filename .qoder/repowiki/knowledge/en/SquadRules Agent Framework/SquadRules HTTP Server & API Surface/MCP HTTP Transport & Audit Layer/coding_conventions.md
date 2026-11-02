@@ -1,0 +1,5 @@
+- Audit events are emitted through dedicated functions in `mcp-audit-emit.ts` (`emitRequestStart`, `emitRequestEnd`, `emitToolCallAudit`) rather than calling `writeAuditLine` directly, keeping the handler free of audit payload construction.
+- Structured logging uses `structuredLogger` with a `{ event, ... }` bindings object and a short string message, distinguishing `info` for normal flow and `warn`/`error` for timeouts, cancellations, and failures.
+- Errors surfaced to MCP clients go through `mcpErrorToHelp`, which maps internal `SquadrulesError` details into a safe `{ message, error_code, retry_hint, details? }` envelope and never leaks raw stack traces.
+- Per-request MCP servers are created inside the route handler (one `createServer` + `StreamableHTTPServerTransport` per invocation) so many concurrent requests can be served without sharing transports.
+- JSON-RPC auth-required responses use the shared `buildListOfferingsUnauthorizedJsonRpc` builder with the implementation-defined code `-32001` instead of ad-hoc error objects.

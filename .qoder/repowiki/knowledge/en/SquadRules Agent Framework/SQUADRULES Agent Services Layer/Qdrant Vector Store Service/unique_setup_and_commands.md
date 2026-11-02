@@ -1,0 +1,1 @@
+Requires `QDRANT_URL`, `QDRANT_API_KEY`, and `QDRANT_COLLECTION` environment variables; optional `QDRANT_CA_CERT_PATH` for TLS with a custom CA and `QDRANT_RESCORE` boolean flag. Tests use testcontainers to spin up a real Qdrant instance.

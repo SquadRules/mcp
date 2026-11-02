@@ -1,0 +1,3 @@
+- Feature areas are organized as page directories under `pages/` with colocated sub-components, while truly reusable pieces live in `components/`.
+- Server data access is funneled through the centralized API client in `lib/api.ts` rather than ad-hoc fetch calls.
+- Cross-cutting UI state (auth, spaces, runs, protocol edit, theme preference) is exposed as React hooks in `hooks/` instead of inline logic.

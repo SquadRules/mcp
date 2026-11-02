@@ -1,0 +1,1 @@
+Zod schemas (`*_schema.ts`) are the canonical contract for every tool's input/output and are referenced both by the registry and by tests; MCP transport is abstracted through `forward.ts` which delegates to the HTTP API.

@@ -1,0 +1,1 @@
+TypeScript/Node.js with Zod schema validation across tools/services; Express for HTTP; Vite + React for the SPA; MCP protocol for agent transport; Redis + Qdrant/LanceDB as optional backends configured via environment variables.

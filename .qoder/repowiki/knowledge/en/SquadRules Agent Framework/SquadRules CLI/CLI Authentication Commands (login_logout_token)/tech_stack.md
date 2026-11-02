@@ -1,0 +1,1 @@
+Node.js built-ins only (`http`, `crypto`, `process`); Commander.js for CLI parsing; PKCE authorization_code flow against an OpenID Connect / OAuth 2.1 server (Keycloak-compatible) using SHA-256 code challenge; optional OS keychain integration via `../keyring.js`.

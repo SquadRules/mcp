@@ -1,0 +1,1 @@
+Express.js route modules; OAuth discovery against Keycloak (RFC 9728 Protected Resource Metadata + RFC 8414 Authorization Server Metadata); Vite-built SPA served via `express.static`.

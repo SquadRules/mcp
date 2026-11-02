@@ -1,6 +1,0 @@
-- Every widget is registered twice under two URI schemes (`ui://squadrules/*` and `ui://open-ai/squadrules/*`) with matching MIME types, ensuring parallel support for MCP Apps and Skybridge hosts.
-- Widget HTML is assembled at resource-read time by importing the CSS and script string exports from sibling files and interpolating them into a template literal passed through `minifyInlineWidgetHtml`.
-- The inline script is always wrapped in an IIFE and communicates with the host exclusively via `window.parent.postMessage` using JSON-RPC 2.0 messages (`ui/initialize`, `ui/notifications/tool-result`, `ui/notifications/size-changed`).
-- Host theme data is consumed by listening for `ui/notifications/host-context-changed` and applying values to `:root` CSS variables and `data-theme` attributes rather than hard-coded colors.
-- After every DOM render path, widgets call `notifySize()` (wrapping `document.documentElement.scrollHeight` in `requestAnimationFrame`) and send `ui/notifications/size-changed` so the host resizes the iframe instead of showing internal scrollbars.
-- UI metadata objects in `squadrules-ui-constants.ts` include both the nested `ui.resourceUri` shape and a flat `ui/resourceUri` key so they work with both strict MCP SDK normalization and hosts expecting the flattened form.

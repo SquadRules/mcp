@@ -50,6 +50,8 @@ jobs:
           app-id: ${{ vars.AUTO_APP_ID }}
           private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -191,10 +193,10 @@ jobs:
           gh auth setup-git
           git push origin "$BRANCH"
           PR_SHA="$(git rev-parse HEAD)"
+          # No labels are needed: exact PR identity is passed to the merge job.
           PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" \
             --base main --head "$BRANCH" --title "docs: regenerate Qoder wiki" \
-            --body "Automated, validated Qoder wiki generation for main. Resolves #205." \
-            --label "documentation,automerge")"
+            --body "Automated, validated Qoder wiki generation for main. Resolves #205.")"
           PR_NUMBER="${PR_URL##*/}"
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "Invalid PR URL: $PR_URL" >&2; exit 1; }
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
@@ -216,6 +218,8 @@ jobs:
           app-id: ${{ vars.AUTO_APP_ID }}
           private-key: ${{ secrets.AUTO_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Auto-merge the docs PR
         env:

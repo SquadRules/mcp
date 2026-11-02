@@ -1,1 +1,0 @@
-Backend-neutral persistence layer exposing memory/adapter/artifact vector records and execution traces, with an embedded LanceDB adapter that mirrors the Qdrant contract.

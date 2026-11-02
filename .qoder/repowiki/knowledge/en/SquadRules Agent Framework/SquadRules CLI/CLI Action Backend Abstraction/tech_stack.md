@@ -1,0 +1,1 @@
+TypeScript with dynamic `import()` for lazy-loading the local backend's embedded runtime; relies on `commander` for program option access and Zod schemas (`*_schema.js`) for input validation.

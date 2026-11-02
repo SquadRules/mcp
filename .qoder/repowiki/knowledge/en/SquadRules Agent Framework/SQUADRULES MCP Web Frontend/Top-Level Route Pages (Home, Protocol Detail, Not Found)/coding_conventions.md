@@ -1,0 +1,5 @@
+- User-visible text goes through `useTranslation()` and is referenced by dot-namespaced keys (e.g. `home.title`, `protocol.steps`) rather than inline literals.
+- Navigation between pages uses react-router's `<Link>` component with explicit `to` paths instead of programmatic navigation, except for dynamic search submission which uses `useNavigate`.
+- Cards and content blocks are wrapped in the shared `SurfaceCard` component from `@/components/SurfaceCard` to enforce consistent surface styling.
+- External links open in new tabs with `target="_blank" rel="noopener noreferrer"` for security.
+- Buttons and interactive elements follow a uniform size/accessibility pattern: `min-h-[44px] min-w-[44px]`, focus-visible outline ring, and rounded corners via `rounded-[var(--radius-md)]`.

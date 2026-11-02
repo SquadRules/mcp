@@ -1,0 +1,5 @@
+- Session cookies use a custom `payloadBase64.signature` format where the signature is HMAC-SHA256 over the base64url-encoded JSON payload, verified before any parsing.
+- OIDC group membership is always normalized through `applyOidcGroupsAllowlist` against `OIDC_GROUPS_ALLOWLIST` after extraction from either access tokens, nested id_tokens, or userinfo responses.
+- Keycloak host resolution prefers `KEYCLOAK_INTERNAL_URL` over `KEYCLOAK_URL` when the token issuer matches the public URL, enabling Docker-to-Keycloak connectivity without changing token issuers.
+- Trace-level diagnostic logs are gated behind `process.env['AUTH_TRACE'] === 'true' || process.env['LOG_LEVEL'] === 'trace'` rather than being unconditional.
+- Unauthenticated API responses return structured JSON with `error`/`message` fields and a `login_url` derived from `safeCreateOidcLoginUrlForApiResponse`, while also setting `WWW-Authenticate` via `setWwwAuthenticate` for MCP clients.

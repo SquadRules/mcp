@@ -199,8 +199,9 @@ squadrules export [uri] [--adapters <uri-or-slug>...] [--all-adapters --space <n
 - `--to <file>` — write the payload of a single `<uri>` selection to this exact
   file path, creating parent directories. Requires a non-`skill_zip` `--as`
   format and cannot be combined with `--out` or `--zip-out`. Use it to place an
-  artifact at the path a shell contract expects (the `materialize` command in an
-  `activate` response uses it on stdio transport).
+  artifact at the path a shell contract expects. The `materialize.cmd` line in an
+  `activate` response is the transport-matched route; this flag is the CLI
+  equivalent.
 - `--zip-out <file>` — write `skill_zip` bytes to this explicit file path.
 
 ```bash
@@ -213,7 +214,7 @@ squadrules export squadrules://adapter/my-adapter --as markdown --out ./out
 # every adapter in a space as slug-named markdown files (local mode)
 squadrules export --all-adapters --space personal --as markdown --directory ./backup
 
-# one artifact's source at an exact path (stdio materialize)
+# one artifact's source at an exact path
 squadrules export squadrules://artifact/my-gate --as source \
   --to "$SQUADRULES_LOCAL_ARTIFACT_DIR/artifacts/my-gate.py"
 ```

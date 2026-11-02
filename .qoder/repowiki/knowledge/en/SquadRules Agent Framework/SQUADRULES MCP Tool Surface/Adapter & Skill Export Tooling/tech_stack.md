@@ -1,0 +1,1 @@
+Node.js with `archiver` for ZIP streaming; schema validation via zod-backed `exportInputSchema`/`exportOutputSchema`; SHA-256 digests computed in-process; optional `simpleModeDirectoryAccess` gate for CLI LocalBackend bypassing the directory transport security check.

@@ -1,4 +1,0 @@
-- Each adapter or tool doc declares its identity in YAML frontmatter using `slug` and `version` fields, which the server uses for deterministic resolution.
-- Cross-adapter chaining is expressed via `forward` + slug URIs (`squadrules://adapter/<slug>`) rather than direct file paths, with `chain_root` frontmatter used on mid-chain adapters to collapse `activate` routing.
-- Retired slugs are preserved as thin redirect tombstones pointing to their replacement, so stored adapters keep resolving instead of dangling.
-- Tool docs follow a fixed narrative: when-to-call → happy-path flow with example JSON → Input/Output specs → Roles table → Rules bullet list.

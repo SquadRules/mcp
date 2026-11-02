@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: cli
+title: SquadRules CLI
+scope:
+    - src/cli/
+source_files: []
+depends_on: []
+related_to: []

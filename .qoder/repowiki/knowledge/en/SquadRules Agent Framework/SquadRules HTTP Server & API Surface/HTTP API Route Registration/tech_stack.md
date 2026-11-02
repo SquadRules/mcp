@@ -1,0 +1,1 @@
+Express.js for routing; Zod for request-body schema validation; structured logging via `utils/structured-logger.js`.

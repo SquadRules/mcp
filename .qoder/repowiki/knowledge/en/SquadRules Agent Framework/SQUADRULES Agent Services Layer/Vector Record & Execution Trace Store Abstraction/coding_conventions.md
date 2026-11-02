@@ -1,0 +1,6 @@
+- All mutating operations go through `withCommitRetry`, which retries only errors matching commit/version/CAS conflict patterns and otherwise rethrows immediately.
+- LanceDB connections are opened lazily via a private `connectionPromise` field so cold reads never touch disk or load native bindings.
+- Table access follows an open-or-create pattern: `openTableIfPresent` returns null for absent tables (reads treat absence as empty), while `ensureTableForWrite` creates the table on first write.
+- Domain types in `types.ts` are imported as `type` by every adapter and never import backend client libraries, keeping ports backend-neutral.
+- The record store delegates each public method to a focused layer class (`reader`, `mutator`, `search`, `writer`) rather than implementing logic inline.
+- Legacy `qdrantService` compatibility methods on `LanceVectorRecordStore` are implemented as thin delegations or no-ops so migration of existing callers is behavior-preserving.

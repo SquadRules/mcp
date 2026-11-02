@@ -1,0 +1,4 @@
+- Route-level pages are loaded lazily via `React.lazy(() => import("./pages/...").then(m => ({ default: m.PageName })))` and wrapped in `<Suspense fallback={<RouteFallback />}>` to keep the initial bundle small.
+- Global providers are composed in `main.tsx` in a fixed order: StrictMode → QueryClientProvider → ThemeProvider → App, so all routes inherit query caching and theme context.
+- Design tokens live exclusively in `./theme/tokens.css` and are re-exposed to Tailwind through `@theme inline` variable mappings in `index.css`, making tokens the single source of truth.
+- Accessibility helpers (skip-link, screen-reader-only text, reduced-motion) are provided as global CSS classes in `index.css` rather than per-component styles.

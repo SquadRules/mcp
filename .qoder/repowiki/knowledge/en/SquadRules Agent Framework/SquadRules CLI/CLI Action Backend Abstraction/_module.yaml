@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: cli/http_backends
+title: CLI Action Backend Abstraction
+scope:
+    - src/cli/backend/
+source_files: []
+depends_on: []
+related_to: []

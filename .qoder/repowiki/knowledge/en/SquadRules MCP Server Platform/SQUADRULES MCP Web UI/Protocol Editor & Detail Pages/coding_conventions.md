@@ -1,5 +1,0 @@
-- Form mutations go through typed helpers (`setFormField`, `setStep(index, update)`) rather than direct `setState` calls, so the parent component stays the single owner of `ProtocolFormState`.
-- Step type variants (shell / mcp / user_input / comment) are handled by branching on `step.type` inside the card, with each branch re-spreading the full variant object to preserve defaults.
-- User-facing strings are routed through `t('protocolEdit.*')` keys; no hard-coded labels appear in JSX.
-- Markdown content is round-tripped via `parseProtocolMarkdownToForm` / `buildMarkdownFromForm` and validated with the shared `markdownSchema` before any API call.
-- Error and validation feedback is surfaced through dedicated `error` / `validationError` state variables rendered as `role="alert"` blocks, keeping loading/saving/error states separate.

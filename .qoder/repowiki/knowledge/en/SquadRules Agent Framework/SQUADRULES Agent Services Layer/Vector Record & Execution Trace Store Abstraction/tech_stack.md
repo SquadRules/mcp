@@ -1,0 +1,1 @@
+LanceDB embedded via `@lancedb/lancedb` with MVCC commit semantics; vector search uses JavaScript cosine similarity (no server-side index); schema width is persisted in a metadata file alongside the LanceDB directory.

@@ -1,0 +1,4 @@
+- Each backend implementation exposes a `readonly kind` literal property (`'http'` / `'local'`) typed as `as const`, enabling transport-aware gating at call sites.
+- Input parameters are validated through their corresponding Zod schema from `src/tools/*_schema.js` before being passed to the underlying `execute*` core function.
+- Local backend methods wrap execution in `runWithSpaceContextAsync(defaultSpaceContext(), ...)` to enforce single-tenant space isolation, mirroring the HTTP route's tenant model.
+- Optional options objects are spread into the parsed input only when truthy (e.g. `...(sp ? { space: sp } : {})`), keeping payloads minimal across both transports.

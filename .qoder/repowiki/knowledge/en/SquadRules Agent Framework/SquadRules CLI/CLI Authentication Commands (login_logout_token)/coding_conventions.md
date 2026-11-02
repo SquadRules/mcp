@@ -1,0 +1,6 @@
+- Each command registers itself by calling a `XxxCommand(program: Command)` function that attaches a `program.command(...)` definition — `loginCommand`, `logoutCommand`, `tokenCommand` follow this pattern.
+- Commands resolve their API base URL through the shared `getBaseUrl()` helper rather than reading env/config directly, ensuring consistent localhost fallback behavior.
+- When the resolved target is local, commands call `isLocalAuthTarget()` and emit `writeLocalAuthFallbackHint(baseUrl)` before proceeding, documenting the localhost fallback path.
+- User-facing messages go through `writeStdout` / `writeStderr` / `writeError` from `../output.js` instead of direct `console.log`/`process.stderr.write`.
+- Errors are caught in try/catch blocks, normalized via `error instanceof Error ? error.message : String(error)`, written with `writeError`, and the process exits with status 1.
+- HTTP calls to the Squadrules server use the shared `fetchWithTimeout` wrapper (AbortController-based) so all auth requests honor the unified `--timeout` / `SQUADRULES_TIMEOUT_MS` setting.

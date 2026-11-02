@@ -1,0 +1,1 @@
+Commander.js for CLI parsing; TypeScript modules importing shared CLI infrastructure under `src/cli/`.

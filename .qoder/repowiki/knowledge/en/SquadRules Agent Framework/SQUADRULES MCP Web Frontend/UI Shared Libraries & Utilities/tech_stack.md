@@ -1,0 +1,1 @@
+TypeScript with path alias `@/lib/api`; TipTap editor extensions (`@tiptap/core`, `starter-kit`, `extension-link`, `extension-table`, `markdown`) for rich-text configuration.

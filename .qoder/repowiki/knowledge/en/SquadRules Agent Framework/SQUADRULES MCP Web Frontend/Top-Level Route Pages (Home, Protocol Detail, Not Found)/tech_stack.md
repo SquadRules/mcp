@@ -1,0 +1,1 @@
+React 18 function components with TypeScript, react-router v6 (`Link`, `useNavigate`, `useParams`), react-i18next for all user-facing strings, Tailwind CSS with design-token CSS variables.

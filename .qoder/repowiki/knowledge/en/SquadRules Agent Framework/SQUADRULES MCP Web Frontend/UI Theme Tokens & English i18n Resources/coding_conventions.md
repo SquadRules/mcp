@@ -1,0 +1,2 @@
+- Theme variables are split into shared base tokens and per-theme overrides, aggregated through a single tokens.css entry via @import.
+- i18n keys follow a dot-namespaced convention scoped by feature area (e.g. home.*, protocolEdit.*, run.*), with plural forms declared alongside singular keys.

@@ -1,0 +1,1 @@
+MCP tool that exports adapters as markdown, training JSONL datasets, or skill bundles (JSON tree / ZIP) with artifact sanitization and streaming compression.

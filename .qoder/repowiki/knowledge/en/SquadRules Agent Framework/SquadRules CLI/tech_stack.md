@@ -1,0 +1,1 @@
+Node.js CLI built on Commander; authentication uses PKCE browser flow with refresh-token persistence backed by the OS keyring (with file fallback).

@@ -1,0 +1,5 @@
+- Each route validates its `:opaque` parameter through a dedicated `verifyExport*Capability` function and responds with a 403 `{ error: 'EXPORT_*_DOWNLOAD_FORBIDDEN', message }` when the token is invalid or expired.
+- Payload delivery is wrapped in `runWithSpaceContextAsync(record.space_context, ...)` so all downstream memory/qdrant calls execute under the tenant space associated with the download record.
+- Error handling follows a uniform try/catch that logs via `structuredLogger.error`, checks `res.headersSent` before replying, and returns a 500 JSON `{ error: 'EXPORT_*_DOWNLOAD_FAILED', message }`.
+- Response headers use dual naming (`X-SQUADRULES-*` and `X-SquadRules-*`) to support both new and legacy SquadRules clients during migration.
+- Streaming endpoints set `Content-Disposition: attachment` with a filename derived from the capability record or a default constant, and mark binary exports with `X-SQUADRULES-Export-Binary: 1`.

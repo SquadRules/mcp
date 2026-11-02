@@ -1,0 +1,4 @@
+Two independent, side-effect-free resource directories under src/ui/:
+- theme/: a CSS-only design system. tokens.css is the single entry point that @imports tokens-shared.css (base variables), tokens-theme-light.css, and tokens-theme-dark.css; new themes are added by creating another tokens-theme-*.css and importing it in tokens.css.
+- i18n/: a minimal i18next bootstrap. index.ts initializes i18next with initReactI18next, sets lng/fallbackLng to "en", namespace "translation", and loads en.json as the sole resource map. No runtime language switching — only English is bundled.
+Dependency direction: both directories are consumed by higher-level UI components; they expose no TypeScript APIs beyond the i18n initialization call.

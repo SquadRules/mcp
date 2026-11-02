@@ -1,0 +1,1 @@
+Local single-user mode is selected by setting either `SQUADRULES_MCP_STDIO=1` (via the `squadrules-mcp` bin) or `SQUADRULES_CLI_SERVE=1` (via `squadrules serve`); override with `TRANSPORT_TYPE=http`. Structural-repair re-seeding of shipped adapters is triggered via `MEM_BOOT_FORCE_INJECT=true`. External Qdrant requires `QDRANT_URL` and is incompatible with `TRANSPORT_TYPE=stdio`.
