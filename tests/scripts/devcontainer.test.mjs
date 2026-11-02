@@ -21,6 +21,7 @@ test('devcontainer brings the infra up with the env file Compose actually interp
   // Same project name as CI and the compose/docs examples: container and volume names derive from it.
   assert.match(initializeCommand, /-p squadrules-mcp/);
   assert.match(initializeCommand, /--profile fullstack/);
+  assert.match(initializeCommand, /--profile dev/);
   // Without --env-file, Compose interpolates from compose/.env (the compose file's directory)
   // and qdrant's `${QDRANT_API_KEY:?...}` aborts the whole `up`.
   assert.match(initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.devcontainer\/env/);

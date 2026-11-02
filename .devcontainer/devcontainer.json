@@ -13,7 +13,8 @@
   // Runs on the host before anything else. Uses .devcontainer/env (tracked in git, static dev
   // credentials) directly via --env-file. CI uses scripts/deploy-generate-dev-secrets.py for
   // dynamic secrets. Compose interpolates variables from the --env-file flag, so no symlink needed.
-  "initializeCommand": "docker compose -p squadrules-mcp --env-file ${localWorkspaceFolder}/.devcontainer/env -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack up -d",
+  // Activates both fullstack and dev profiles to start all infra services plus the dev container.
+  "initializeCommand": "docker compose -p squadrules-mcp --env-file ${localWorkspaceFolder}/.devcontainer/env -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack --profile dev up -d",
   "postCreateCommand": "npm ci",
   // The dev service in compose/infra.yaml now runs the app with hot reload (tsc --watch +
   // node --watch) in HTTP transport mode. No postStartCommand needed - the service starts
