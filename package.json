@@ -42,6 +42,7 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --forceExit --testTimeout=30000",
     "start": "node dist/cli/index.js",
     "dev:node": "./scripts/dev-node-use.sh",
+    "dev:cluster": "node scripts/deploy-devcontainer-cluster.mjs",
     "dev:test-embedding-key": "node scripts/test-embedding-key.mjs",
     "build": "npm run ui:build && tsc && chmod +x dist/cli/index.js",
     "ui:build": "vite build",

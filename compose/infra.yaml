@@ -9,6 +9,17 @@
 # Fullstack: add Valkey, Postgres, Keycloak (use with fullstack .env).
 #   docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack up -d
 # Optional UI (only with fullstack): docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack --profile infra-ui up -d
+#
+# Variable interpolation reads compose/.env (this file's directory), NOT the repo-root .env, so
+# qdrant's `${QDRANT_API_KEY:?...}` guard fails unless you either pass `--env-file .env` from the
+# repo root (as every documented invocation above does) or create the gitignored symlink
+# `compose/.env -> ../.env` (`.devcontainer/devcontainer.json` initializeCommand does this, because
+# the Dev Containers CLI runs compose without `--env-file`).
+
+# Explicit so that invocations without `-p` (including the Dev Containers CLI's own compose calls)
+# reuse this one stack instead of creating a second project named after the `compose/` directory,
+# which would collide on the published ports below and split the network.
+name: squadrules-mcp
 
 services:
   valkey:
@@ -140,16 +151,24 @@ services:
       - squadrules-network
     restart: unless-stopped
 
-  # Minimal dev tooling container for devcontainer.json `service` target.
-  # Provides Docker CLI + socket access so the devcontainer can manage
-  # the infrastructure services above. The Node app runs via npm inside
-  # this container (workspace mounted at /workspace).
+  # Dev tooling container for devcontainer.json `service` target. The Node app runs via npm
+  # inside this container (workspace mounted at /workspace) and is started by the devcontainer
+  # postStartCommand (scripts/deploy-devcontainer-cluster.mjs) - there is still no app *service*
+  # here; app images are built in SquadRules/containers.
+  #
+  # Debian/glibc base, not Alpine: server boot awaits an embedding-dimension probe
+  # (src/runtime/boot-local-runtime.ts -> ensureEmbeddingDimension), and the zero-key local
+  # provider (fastembed) loads onnxruntime-node, whose published linux binaries are glibc-only.
+  # On musl the require fails with "ld-linux-aarch64.so.1: No such file or directory", so the app
+  # cannot boot. node/npm/git/python3/curl/jq come from this image, so the devcontainer needs no
+  # node feature. Infra lifecycle stays host-side (devcontainer initializeCommand), so this
+  # service mounts no Docker socket: root + a Docker socket is host root.
   dev:
-    image: docker:cli
+    image: mcr.microsoft.com/devcontainers/typescript-node:26@sha256:2c3598b6879cab98033bcad0952c7192f217265e2f7bdfa47a738acbde3e8355
     pull_policy: missing
-    command: ["sh", "-c", "while ! docker inspect squadrules-mcp-qdrant-1 >/dev/null 2>&1; do sleep 5; done && echo 'infra ready' && sleep infinity"]
+    # Wait until Qdrant answers in-network (same probe as scripts/ci-wait-for-infra.sh), then idle.
+    command: ["bash", "-c", "until curl -sf http://qdrant:6333/healthz >/dev/null 2>&1; do sleep 5; done; echo 'infra ready'; exec sleep infinity"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../.env:/workspace/.env:ro
       - ..:/workspace
     working_dir: /workspace

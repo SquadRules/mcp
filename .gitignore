@@ -246,3 +246,6 @@ snapshots/
 # npm pack and semantic-release artifacts
 /artifacts/
 /*.tgz
+
+# Dev Containers CLI writes generated compose overrides next to devcontainer.json
+.devcontainer/docker-compose/
