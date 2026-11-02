@@ -48,6 +48,7 @@ Paths are relative to the repo root (`scripts/…`). **Used from** lists primary
 | Script | What it does | Used from |
 |--------|----------------|-----------|
 | `scripts/deploy-dev-cli-ready.sh` | Waits for local MCP readiness; may run Keycloak realm configure when admin password is set | *manual* (its former `npm run dev:cli-ready` target was retired) |
+| `scripts/deploy-devcontainer-cluster.mjs` | Starts the app in CLUSTER mode inside the devcontainer: exports the in-network infra topology (`qdrant`/`valkey`/`keycloak` by compose service name) over the host-oriented `.env`, runs `serve --transport http` detached into `.local/var/devcontainer/app.log`, then waits for `GET /health` 200 | `npm run dev:cluster`, `.devcontainer/devcontainer.json` `postStartCommand` |
 | `scripts/deploy-copy-env-from-main.sh` | In a git worktree, copies `.env` from the main worktree when missing | *manual* standalone helper (formerly invoked by the retired `deploy-run-env.sh`) |
 | `scripts/env/create-env.sh` | Thin wrapper: creates `.env` via secrets generator when you use this entrypoint | Invokes `deploy-generate-dev-secrets.py` |
 | `scripts/ci-wait-for-infra.sh` | Polls Redis, Qdrant, Postgres, and Keycloak in Docker Compose (CI) | `.github/workflows/integration.yml` |
