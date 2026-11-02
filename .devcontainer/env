@@ -1,0 +1,52 @@
+# Dev-container-only: static, predictable credentials for local development.
+# Tracked in git. CI uses scripts/deploy-generate-dev-secrets.py for dynamic secrets.
+# If you change a value here, restart the dev container to pick it up.
+
+# --- Infra secrets (static for dev) ---
+QDRANT_API_KEY=dev-key-change-me
+KEY_VALUE_STORE_PASSWORD=dev-redis-password
+KEYCLOAK_ADMIN_PASSWORD=dev-keycloak-admin
+KEYCLOAK_DB_PASSWORD=dev-keycloak-db
+SESSION_SECRET=dev-session-secret-change-me
+
+# --- App config ---
+SERVER_PORT=3300
+METRICS_PORT=9390
+NODE_ENV=development
+LOG_LEVEL=info
+LOG_FORMAT=json
+MAX_CONCURRENT_MCP_REQUESTS=10000
+MCP_RATE_LIMIT_MAX=10000
+MCP_RATE_LIMIT_WINDOW_MS=60000
+
+# --- Vector store (Qdrant) ---
+QDRANT_URL=http://127.0.0.1:6333
+QDRANT_COLLECTION=squadrules_dev
+QDRANT_RESCORE=true
+QDRANT_SNAPSHOT_DIR=.local/var/snapshots
+SQUADRULES_KEY_VALUE_PREFIX=squadrules:dev:
+
+# --- Key-value store (Valkey/Redis) ---
+KEY_VALUE_STORE_URL=redis://:dev-redis-password@127.0.0.1:6379
+
+# --- Embedding backend ---
+# fastembed is the dev container default (local, free, no API key). To use OpenAI embeddings,
+# uncomment OPENAI_API_KEY below and set EMBEDDING_PROVIDER=openai (or override in compose/infra.yaml).
+# OPENAI_API_KEY=your-openai-key-here
+# OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+# --- Auth (Keycloak OIDC) ---
+AUTH_ENABLED=true
+AUTH_MODE=oidc_bearer
+KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_REALM=squadrules-dev
+KEYCLOAK_CLIENT_ID=squadrules-mcp
+KEYCLOAK_CLI_CLIENT_ID=squadrules-cli
+AUTH_CALLBACK_BASE_URL=http://localhost:3300
+AUTH_TRUSTED_ISSUERS=http://localhost:8080/realms/squadrules-dev
+AUTH_ALLOWED_AUDIENCES=squadrules-mcp,squadrules-cli
+SESSION_MAX_AGE_SEC=25200
+
+# --- Transport ---
+# Set by deploy-devcontainer-cluster.mjs at app startup; ignored on host.
+# TRANSPORT_TYPE=http

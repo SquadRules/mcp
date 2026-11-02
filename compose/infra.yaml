@@ -10,11 +10,10 @@
 #   docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack up -d
 # Optional UI (only with fullstack): docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack --profile infra-ui up -d
 #
-# Variable interpolation reads compose/.env (this file's directory), NOT the repo-root .env, so
-# qdrant's `${QDRANT_API_KEY:?...}` guard fails unless you either pass `--env-file .env` from the
-# repo root (as every documented invocation above does) or create the gitignored symlink
-# `compose/.env -> ../.env` (`.devcontainer/devcontainer.json` initializeCommand does this, because
-# the Dev Containers CLI runs compose without `--env-file`).
+# Variable interpolation requires `--env-file` flag. Services use `environment` directives with
+# interpolation (e.g. `${QDRANT_API_KEY:?...}`), not `env_file` directives, so the same compose
+# file works for both CI (dynamic secrets from `scripts/deploy-generate-dev-secrets.py`) and dev
+# containers (static secrets from `.devcontainer/env`). No symlinks needed.
 
 # Explicit so that invocations without `-p` (including the Dev Containers CLI's own compose calls)
 # reuse this one stack instead of creating a second project named after the `compose/` directory,
@@ -72,8 +71,6 @@ services:
       - "6344:6344"
     volumes:
       - qdrant-data:/qdrant/storage
-    env_file:
-      - ../.env
     environment:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6534
@@ -99,8 +96,6 @@ services:
     profiles:
       - fullstack
     image: postgres:18.3-alpine3.22@sha256:af27ebd3413839ccfdcdf88e91ca76ad82117e52192067b76de9bb5be7ea6e04
-    env_file:
-      - ../.env
     environment:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
@@ -123,8 +118,6 @@ services:
   keycloak:
     profiles:
       - fullstack
-    env_file:
-      - ../.env
     image: quay.io/keycloak/keycloak:26.5.4@sha256:ae8efb0d218d8921334b03a2dbee7069a0b868240691c50a3ffc9f42fabba8b4
     depends_on:
       postgres:
@@ -152,9 +145,8 @@ services:
     restart: unless-stopped
 
   # Dev tooling container for devcontainer.json `service` target. The Node app runs via npm
-  # inside this container (workspace mounted at /workspace) and is started by the devcontainer
-  # postStartCommand (scripts/deploy-devcontainer-cluster.mjs) - there is still no app *service*
-  # here; app images are built in SquadRules/containers.
+  # inside this container (workspace mounted at /workspace) in HTTP mode with hot reload.
+  # There is still no app *service* here; app images are built in SquadRules/containers.
   #
   # Debian/glibc base, not Alpine: server boot awaits an embedding-dimension probe
   # (src/runtime/boot-local-runtime.ts -> ensureEmbeddingDimension), and the zero-key local
@@ -163,17 +155,59 @@ services:
   # cannot boot. node/npm/git/python3/curl/jq come from this image, so the devcontainer needs no
   # node feature. Infra lifecycle stays host-side (devcontainer initializeCommand), so this
   # service mounts no Docker socket: root + a Docker socket is host root.
+  #
+  # Environment: loads all variables from ../.devcontainer/env (static dev credentials,
+  # tracked in git), then overrides URLs to use in-network service hostnames (cluster mode).
+  # TRANSPORT_TYPE=http makes the app serve on SERVER_PORT (default 3300) for MCP/HTTP clients.
+  # CI uses scripts/deploy-generate-dev-secrets.py for dynamic secrets; dev containers use
+  # predictable static credentials from .devcontainer/env.
+  #
+  # Hot reload: uses `node --watch` to monitor dist/ and restart the server on changes.
+  # A separate `tsc --watch` process rebuilds TypeScript when src/ changes, triggering the
+  # node --watch restart. Edit code → auto-rebuild → auto-restart → MCP client sees new code.
   dev:
     image: mcr.microsoft.com/devcontainers/typescript-node:26@sha256:2c3598b6879cab98033bcad0952c7192f217265e2f7bdfa47a738acbde3e8355
     pull_policy: missing
-    # Wait until Qdrant answers in-network (same probe as scripts/ci-wait-for-infra.sh), then idle.
-    command: ["bash", "-c", "until curl -sf http://qdrant:6333/healthz >/dev/null 2>&1; do sleep 5; done; echo 'infra ready'; exec sleep infinity"]
+    profiles:
+      - dev
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    env_file:
+      - ../.devcontainer/env
+    environment:
+      # Cluster mode overrides (in-network service hostnames)
+      TRANSPORT_TYPE: http
+      QDRANT_URL: http://qdrant:6333
+      KEY_VALUE_STORE_URL: redis://valkey:6379
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      EMBEDDING_PROVIDER: fastembed
     volumes:
-      - ../.env:/workspace/.env:ro
+      - ../.devcontainer/env:/workspace/.env:ro
       - ..:/workspace
     working_dir: /workspace
+    # Wait for infra, install deps, then run with hot reload. The npm run dev:watch script
+    # builds the project and starts tsc --watch + node --watch for automatic rebuild/restart.
+    # Edit code in src/ → auto-rebuild to dist/ → auto-restart server → MCP client sees changes.
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        echo 'Waiting for Qdrant...'
+        until curl -sf http://qdrant:6333/healthz >/dev/null 2>&1; do sleep 2; done
+        echo 'Infra ready. Installing deps...'
+        npm ci --silent
+        echo 'Starting with hot reload (npm run dev:watch)...'
+        exec npm run dev:watch
     networks:
-      - squadrules-network
+      - squadrules-network    
 
 networks:
   squadrules-network:

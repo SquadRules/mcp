@@ -1,6 +1,6 @@
 {
   "name": "@squadrules/mcp",
-  "version": "5.15.1",
+  "version": "5.15.0",
   "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
@@ -43,6 +43,7 @@
     "start": "node dist/cli/index.js",
     "dev:node": "./scripts/dev-node-use.sh",
     "dev:cluster": "node scripts/deploy-devcontainer-cluster.mjs",
+    "dev:watch": "npm run build && concurrently --names tsc,node --prefix name 'tsc --watch --preserveWatchOutput' 'node --watch dist/cli/index.js'",
     "dev:test-embedding-key": "node scripts/test-embedding-key.mjs",
     "build": "npm run ui:build && tsc && chmod +x dist/cli/index.js",
     "ui:build": "vite build",

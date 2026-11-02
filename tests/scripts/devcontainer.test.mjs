@@ -21,24 +21,26 @@ test('devcontainer brings the infra up with the env file Compose actually interp
   // Same project name as CI and the compose/docs examples: container and volume names derive from it.
   assert.match(initializeCommand, /-p squadrules-mcp/);
   assert.match(initializeCommand, /--profile fullstack/);
+  assert.match(initializeCommand, /--profile dev/);
   // Without --env-file, Compose interpolates from compose/.env (the compose file's directory)
   // and qdrant's `${QDRANT_API_KEY:?...}` aborts the whole `up`.
-  assert.match(initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.env/);
+  assert.match(initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.devcontainer\/env/);
 });
 
-test('devcontainer starts the app after building it', () => {
-  const { postStartCommand, forwardPorts } = readDevcontainer();
+test('devcontainer dev service runs with hot reload, no postStartCommand needed', () => {
+  const devcontainer = readDevcontainer();
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
-  assert.match(postStartCommand, /npm run build/);
-  assert.match(postStartCommand, /npm run dev:cluster/);
+  // The dev service in compose/infra.yaml runs the app with hot reload (tsc --watch + node --watch).
+  // No postStartCommand is needed - the service starts automatically with the container.
+  assert.equal(devcontainer.postStartCommand, undefined, 'postStartCommand should not be set (hot reload is in the dev service)');
   assert.equal(pkg.scripts['dev:cluster'], `node ${CLUSTER_HELPER}`);
 
   // The app listens on SERVER_PORT (3300 in scripts/env/.env.template); it must be forwarded.
   const template = readFileSync('scripts/env/.env.template', 'utf8');
   const serverPort = Number(/^SERVER_PORT=(\d+)$/m.exec(template)?.[1]);
   assert.ok(Number.isInteger(serverPort) && serverPort > 0, 'template SERVER_PORT');
-  assert.ok(forwardPorts.includes(serverPort), `forwardPorts must include ${serverPort}`);
+  assert.ok(devcontainer.forwardPorts.includes(serverPort), `forwardPorts must include ${serverPort}`);
 });
 
 test('cluster helper reaches infra by compose service name, never by localhost', () => {
@@ -91,10 +93,9 @@ test('the Dev Containers CLI reuses the infra Compose project instead of startin
   assert.equal(compose.name, 'squadrules-mcp');
 
   // The CLI's own `docker compose -f <abs>/compose/infra.yaml config` passes neither --env-file nor
-  // -p, and Compose interpolates from the compose file's directory. initializeCommand therefore
-  // links compose/.env -> ../.env; the root `.env` gitignore pattern matches at any depth, so the
-  // link (and every secret behind it) stays untracked.
-  assert.match(devcontainer.initializeCommand, /ln -sfn \.\.\/\.env \$\{localWorkspaceFolder\}\/compose\/\.env/);
+  // -p. initializeCommand uses --env-file to point directly at .devcontainer/env (tracked in git
+  // with static dev credentials), so no symlink or root .env is needed for dev containers.
+  assert.match(devcontainer.initializeCommand, /--env-file \$\{localWorkspaceFolder\}\/\.devcontainer\/env/);
   assert.match(readFileSync('.gitignore', 'utf8'), /^\.env$/m);
 
   // The symlink is why the required-variable guard survives: it must never be softened to `:-`

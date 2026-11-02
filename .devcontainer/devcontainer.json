@@ -10,33 +10,25 @@
   "runServices": ["dev", "qdrant", "valkey", "postgres", "keycloak"],
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-  // Runs on the host before anything else. Requires <workspace>/.env (gitignored) - create it
-  // once with: python3 scripts/deploy-generate-dev-secrets.py
-  // The `test -f` guard stops here instead of bringing up a half-configured stack.
-  // Compose interpolates variables from the compose file's own directory (compose/.env), not the
-  // repo root, so qdrant's `${QDRANT_API_KEY:?...}` guard needs help from two directions:
-  //   1. `--env-file` covers this invocation (same form as CI and the docs).
-  //   2. the gitignored compose/.env -> ../.env symlink covers the compose calls the Dev
-  //      Containers CLI makes itself (`docker compose -f <abs>/compose/infra.yaml config|up`),
-  //      which pass neither `--env-file` nor `-p`. Without it `devcontainer up` dies with
-  //      "required variable QDRANT_API_KEY is missing a value" before the container is built.
-  // The symlink keeps the `:?` guard loud (no silent unauthenticated qdrant). It is POSIX `ln`;
-  // on a Windows host create the equivalent link once by hand (mklink compose\.env ..\.env).
-  "initializeCommand": "test -f ${localWorkspaceFolder}/.env && ln -sfn ../.env ${localWorkspaceFolder}/compose/.env && docker compose -p squadrules-mcp --env-file ${localWorkspaceFolder}/.env -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack up -d",
+  // Runs on the host before anything else. Uses .devcontainer/env (tracked in git, static dev
+  // credentials) directly via --env-file. CI uses scripts/deploy-generate-dev-secrets.py for
+  // dynamic secrets. Compose interpolates variables from the --env-file flag, so no symlink needed.
+  // Activates both fullstack and dev profiles to start all infra services plus the dev container.
+  "initializeCommand": "docker compose -p squadrules-mcp --env-file ${localWorkspaceFolder}/.devcontainer/env -f ${localWorkspaceFolder}/compose/infra.yaml --profile fullstack --profile dev up -d",
   "postCreateCommand": "npm ci",
-  // Build, then start the app against that infra (issue #182): the retired dev_simple profile
-  // runner used to do this. scripts/deploy-devcontainer-cluster.mjs exports the in-network
-  // topology (qdrant/valkey/keycloak by compose service name) over the host-oriented .env, runs
-  // `serve --transport http` detached into .local/var/devcontainer/app.log, and waits for
-  // GET /health to return 200. Browser-facing KEYCLOAK_URL / AUTH_CALLBACK_BASE_URL stay
-  // localhost because forwardPorts publishes them; AUTH_ENABLED is left to .env (http mode
-  // defaults to true).
+  // The dev service in compose/infra.yaml now runs the app with hot reload (tsc --watch +
+  // node --watch) in HTTP transport mode. No postStartCommand needed - the service starts
+  // automatically with the container and watches for code changes.
+  //
   // Keycloak realm provisioning is deliberately not a lifecycle step: boot and /health do not
   // need the realm, and authenticated /mcp and /api stay fail-closed (401 + login_url) until it
   // exists. It is idempotent and may run before or after the app starts - JWKS is fetched per
   // request - so run it once from the host or from this container:
   // python3 scripts/deploy-configure-keycloak-realms.py
-  "postStartCommand": "npm run build && npm run dev:cluster",
+  //
+  // To connect an MCP client: point it at http://localhost:3300/mcp (forwarded from the dev
+  // container). Edit code in src/ → tsc --watch rebuilds to dist/ → node --watch restarts the
+  // server → MCP client sees the new code automatically.
   // 3300 app (SERVER_PORT), 9390 metrics (METRICS_PORT in scripts/env/.env.template), 6333/6344
   // qdrant, 8080 keycloak; 9090 is the metrics default when no .env is present.
   "forwardPorts": [3300, 6333, 6344, 8080, 9090, 9390],
