@@ -16,6 +16,7 @@
  * quotas, and error types live in `artifact-local-cache-support.ts`.
  */
 import { randomBytes } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -48,6 +49,14 @@ import {
 
 export { ArtifactCacheDigestError, ArtifactCacheError, ArtifactCacheQuotaError };
 export type { ArtifactLocalCacheOptions, CacheArtifactInput, CachedArtifact };
+
+/**
+ * Read-only open flags that refuse to follow a trailing symlink where the
+ * platform exposes `O_NOFOLLOW` (POSIX): a symlink then fails the open with
+ * `ELOOP` instead of resolving to its target. On a platform without the flag the
+ * bitwise OR degrades to a plain read-only open.
+ */
+const READ_NOFOLLOW: number = fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW;
 
 export class ArtifactLocalCache {
   private readonly rootDir: string;
@@ -208,19 +217,29 @@ export class ArtifactLocalCache {
     return { url: pathToFileURL(finalPath).href, path: finalPath, bytes: item.bytes };
   }
 
-  /** True only when the file exists as a regular file whose bytes match the digest. */
+  /**
+   * True only when `finalPath` is an existing regular file whose bytes match the
+   * digest. The path is resolved exactly once: it is opened read-only with
+   * `O_NOFOLLOW` (so a symlink fails the open with `ELOOP` instead of being
+   * followed), and both the type check and the read run through that single
+   * descriptor. Operating on the opened fd instead of re-resolving the path after
+   * a stat removes the check-then-read race on `finalPath`.
+   */
   private async matchesDigest(finalPath: string, sha256: string): Promise<boolean> {
-    let stat;
+    const handle = await fsp.open(finalPath, READ_NOFOLLOW).catch((err: NodeJS.ErrnoException) => {
+      if (err.code === 'ELOOP') {
+        throw new ArtifactCacheError('a cache entry is a symlink; refusing to reuse or overwrite it');
+      }
+      return null;
+    });
+    if (handle === null) return false;
     try {
-      stat = await fsp.lstat(finalPath);
-    } catch {
-      return false;
+      const stat = await handle.stat();
+      if (!stat.isFile()) return false;
+      return sha256Hex(await handle.readFile()) === sha256;
+    } finally {
+      await handle.close();
     }
-    if (stat.isSymbolicLink()) {
-      throw new ArtifactCacheError('a cache entry is a symlink; refusing to reuse or overwrite it');
-    }
-    if (!stat.isFile()) return false;
-    return sha256Hex(await fsp.readFile(finalPath)) === sha256;
   }
 
   private async ensureNamespace(): Promise<string> {
