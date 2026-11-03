@@ -64,6 +64,22 @@ Use an app that supports both MCP and skills. If you are unsure where to add
 the configuration or run the command, ask your AI assistant to help you set up
 SquadRules for your app.
 
+## Local data
+
+On first startup, SquadRules stores its configuration, installed skills and
+embedded LanceDB data under `~/.squadrules/` (including `config.json`).
+If `~/.squadrules` does not exist, an existing
+`~/.config/squadrules` directory is **moved** there automatically.
+The previous platform-specific directory is used on Windows
+(`%APPDATA%\\squadrules`); an explicit `XDG_CONFIG_HOME` is also respected
+as the *source* of a move on Unix.
+
+If both directories exist, SquadRules leaves them untouched and uses
+`~/.squadrules`; it never merges or overwrites the destination.
+Set `SQUADRULES_HOME` to an absolute path to use another directory (automatic
+migration is skipped for this explicit override). Embedding model downloads
+remain in the shared XDG cache, separately from SquadRules data.
+
 ## Try it
 
 > Let's build our first SquadRules flow together. Ask me what I do often,
