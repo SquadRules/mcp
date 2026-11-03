@@ -88,6 +88,18 @@ describe('squadrules-user-dirs', () => {
     expect(readFileSync(join(home, '.squadrules', 'config.json'), 'utf8')).toBe('old config');
   });
 
+  it('finds ~/.config/squadrules even when a custom XDG home is empty', () => {
+    const env = testEnv();
+    if (platform() === 'win32') return;
+    const source = join(home, '.config', 'squadrules');
+    mkdirSync(source, { recursive: true });
+    writeFileSync(join(source, 'config.json'), 'default old config');
+
+    migrateOldSquadrulesConfigDir(env);
+    expect(existsSync(source)).toBe(false);
+    expect(readFileSync(join(home, '.squadrules', 'config.json'), 'utf8')).toBe('default old config');
+  });
+
   it('never overwrites or merges when ~/.squadrules already exists', () => {
     const env = testEnv();
     const source = previousDir(env);
