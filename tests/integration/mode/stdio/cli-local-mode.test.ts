@@ -32,7 +32,7 @@ const _d = isHttpTransport() ? describe.skip : describe;
 
 /**
  * Env for a local-mode CLI child: stdio/simple-mode (auth off, embedded store), key-free
- * fastembed so the embedded model is used, and boot logs kept off stdout. `XDG_CONFIG_HOME`
+ * fastembed so the embedded model is used, and boot logs kept off stdout. `SQUADRULES_HOME`
  * and `FASTEMBED_CACHE_DIR` are inherited from the lane so the child shares the one embedded
  * store (seeded once) and the cached model weights (ADR 0004/0007).
  */
