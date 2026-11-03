@@ -7,7 +7,7 @@
  */
 import { homedir, platform } from 'node:os';
 import { isAbsolute, join } from 'node:path';
-import { existsSync, lstatSync, mkdirSync, renameSync } from 'node:fs';
+import { lstatSync, mkdirSync, renameSync } from 'node:fs';
 
 function userHome(env: NodeJS.ProcessEnv): string {
   return (platform() === 'win32'
@@ -23,6 +23,16 @@ export function getSquadRulesConfigDirPath(env: NodeJS.ProcessEnv = process.env)
     return override;
   }
   return join(userHome(env), '.squadrules');
+}
+
+function pathExists(path: string): boolean {
+  try {
+    lstatSync(path);
+    return true; // A dangling symlink still occupies the destination.
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 function getPreviousSquadrulesConfigDirs(env: NodeJS.ProcessEnv): string[] {
@@ -47,9 +57,9 @@ export function migrateOldSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.e
   if (env['SQUADRULES_HOME']) return;
 
   const target = getSquadRulesConfigDirPath(env);
-  if (existsSync(target)) return;
+  if (pathExists(target)) return;
   const source = getPreviousSquadrulesConfigDirs(env)
-    .find((candidate) => candidate !== target && existsSync(candidate));
+    .find((candidate) => candidate !== target && pathExists(candidate));
   if (!source) return;
 
   try {
@@ -59,7 +69,7 @@ export function migrateOldSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.e
     renameSync(source, target);
   } catch (error) {
     // A second process may have completed the move between the existence check and rename.
-    if (existsSync(target)) return;
+    if (pathExists(target)) return;
     throw new Error(
       `Could not move SquadRules data from "${source}" to "${target}". Resolve the filesystem issue or move it manually before restarting.`,
       { cause: error }
