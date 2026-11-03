@@ -197,7 +197,7 @@ to avoid collisions between parallel sessions.
 | Scheme | Resolution | Example |
 |--------|-----------|--------|
 | `project://<rel>` | `<IDE project root>/<rel>` | `project://.local/squadrules/work` |
-| `user://<rel>` | `<$XDG_CONFIG_HOME or $HOME>/<rel>` | `user://.config/squadrules/work` |
+| `user://<rel>` | `<$HOME>/<rel>` | `user://.squadrules/work` |
 
 When your session spans multiple projects, prefer `user://` to avoid ambiguity.
 
