@@ -129,7 +129,7 @@ error, and plan the minimal change.
 The gates below read files that only exist if you created them. Resolve one hint
 from the `squadrules_local_artifact_dir` field of the latest `activate` or
 `forward` response (`project://<rel>` → this project root, `user://<rel>` → your
-home or `$XDG_CONFIG_HOME`), export the absolute result as
+home), export the absolute result as
 `SQUADRULES_LOCAL_ARTIFACT_DIR`, then allocate collision-free paths for the
 target slug:
 
