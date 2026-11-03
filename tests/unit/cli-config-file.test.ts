@@ -47,7 +47,8 @@ let readConfig: (baseUrl?: string) => Promise<{ apiUrl?: string; bearerToken?: s
 let getConfigPath: () => string;
 
 describe('cli config keychain sentinel behavior', () => {
-  let xdgDir: string;
+  let configHome: string;
+  const initialHome = process.env['SQUADRULES_HOME'];
   const baseUrl = 'http://localhost:3300/';
   const normalizedUrl = normalizeApiUrl(baseUrl);
 
@@ -59,16 +60,17 @@ describe('cli config keychain sentinel behavior', () => {
   });
 
   beforeEach(() => {
-    xdgDir = mkdtempSync(join(tmpdir(), 'squadrules-cli-config-test-'));
-    process.env['XDG_CONFIG_HOME'] = xdgDir;
+    configHome = mkdtempSync(join(tmpdir(), 'squadrules-cli-config-test-'));
+    process.env['SQUADRULES_HOME'] = configHome;
     keyringState.available = true;
     keyringState.tokens.clear();
     keyringState.refreshTokens.clear();
   });
 
   afterEach(() => {
-    rmSync(xdgDir, { recursive: true, force: true });
-    delete process.env['XDG_CONFIG_HOME'];
+    rmSync(configHome, { recursive: true, force: true });
+    if (initialHome === undefined) delete process.env['SQUADRULES_HOME'];
+    else process.env['SQUADRULES_HOME'] = initialHome;
     keyringState.tokens.clear();
     keyringState.refreshTokens.clear();
   });
