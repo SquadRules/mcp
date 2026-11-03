@@ -13,21 +13,14 @@ import { join } from 'node:path';
 if (process.env.QDRANT_URL === undefined) process.env.QDRANT_URL = '';
 if (process.env.TRANSPORT_TYPE === undefined) process.env.TRANSPORT_TYPE = 'stdio';
 
-// Restore the per-run config isolation that the retired profile runner used to provide
-// (`export XDG_CONFIG_HOME=$CLI_CONFIG_DIR`; "CLI uses XDG_CONFIG_HOME, tests must not set it").
-// With the ENV-less `npm test` there is no external runner, so the harness self-isolates: point
-// XDG_CONFIG_HOME at ONE temp dir for the whole run. This keeps the embedded LanceDB store and CLI
-// config off the developer's ~/.config, and because the dir is stable across test files (cached in
-// a sentinel var that survives per-file module resets and cli-config-file.test.ts deleting
-// XDG_CONFIG_HOME), the child server's boot-time adapter injection is paid once and reused instead
-// of re-training into a fresh dir per file — and a stale embedded-LanceDB schema from a previous
-// run (different embedding dim) can no longer clash. Guarded by `=== undefined` so a CI step-level
-// or explicit XDG_CONFIG_HOME override still wins.
-if (process.env.XDG_CONFIG_HOME === undefined) {
-  if (!process.env.SQUADRULES_TEST_XDG_DIR) {
-    process.env.SQUADRULES_TEST_XDG_DIR = mkdtempSync(join(tmpdir(), 'squadrules-test-xdg-'));
+// Isolate CLI config, installed skills and embedded LanceDB from the developer's
+// ~/.squadrules. A stable directory is shared by the Jest process and stdio children,
+// so a child reconnect does not retrain into a fresh store. Explicit overrides win.
+if (process.env.SQUADRULES_HOME === undefined) {
+  if (!process.env.SQUADRULES_TEST_HOME) {
+    process.env.SQUADRULES_TEST_HOME = mkdtempSync(join(tmpdir(), 'squadrules-test-home-'));
   }
-  process.env.XDG_CONFIG_HOME = process.env.SQUADRULES_TEST_XDG_DIR;
+  process.env.SQUADRULES_HOME = process.env.SQUADRULES_TEST_HOME;
 }
 
 // Optional: debug what env the test process sees (DEBUG_TEST_ENV=1 npm run dev:test)
@@ -40,7 +33,7 @@ if (process.env.DEBUG_TEST_ENV === '1') {
 }
 
 // When AUTH_ENABLED=true, globalSetup writes .test-auth-env.dev.json. Refresh token so it stays valid.
-// CLI uses XDG_CONFIG_HOME (set by test runner); integration tests run "cli login --token" then run commands.
+// CLI uses the isolated SQUADRULES_HOME; integration tests run "cli login --token" then run commands.
 import { refreshTestAuthToken } from './utils/auth-headers.js';
 
 beforeAll(async () => {
