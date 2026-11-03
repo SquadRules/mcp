@@ -14,6 +14,7 @@ import { MemoryQdrantStore } from '../services/memory/store.js';
 import { qdrantService } from '../services/qdrant/index.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getEmbeddedRecordStore } from '../services/vector-store/embedded-store-singleton.js';
+import { migrateOldSquadrulesConfigDir } from '../utils/squadrules-user-dirs.js';
 import { resolveLanceDbDir } from '../services/vector-store/lancedb-connection.js';
 import { ensureEmbeddingDimension } from '../services/embedding/lazy-probe.js';
 import { getSuccessfulProvider } from '../services/embedding/provider-resolver.js';
@@ -101,6 +102,7 @@ async function waitForQdrant(memoryStore: MemoryQdrantStore, maxRetries = 30, in
  * (the same embedded instance on the LanceDB path) for callers to execute tools against.
  */
 export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Promise<BootedLocalRuntime> {
+  migrateOldSquadrulesConfigDir();
   const seedAdapters = opts.seedAdapters ?? 'always';
   const loadEmbeddings = opts.loadEmbeddings ?? true;
   const healthProbe = opts.healthProbe ?? true;
