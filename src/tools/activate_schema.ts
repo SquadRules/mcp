@@ -125,7 +125,7 @@ export const activateOutputSchema = z.object({
   ),
   /**
    * Ordered URI hints (preferred first) for the run's local handoff dir. Resolve **on the client**:
-   * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home or $XDG_CONFIG_HOME>/<rel>`.
+   * `project://<rel>` → `<client project root>/<rel>`; `user://<rel>` → `<client home>/<rel>`.
    * Use `project://` when you have exactly one project context; fall through to `user://` when your session
    * spans multiple projects. Export the resolved absolute path as `SQUADRULES_LOCAL_ARTIFACT_DIR` for shell
    * challenges. The server never resolves these to a path on its own filesystem.

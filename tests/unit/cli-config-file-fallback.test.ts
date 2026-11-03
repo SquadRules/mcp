@@ -64,7 +64,8 @@ let getConfigPath: () => string;
 describe('cli config-file fallback (keyring unavailable)', () => {
   const baseUrl = 'http://localhost:3300/';
   const normalizedUrl = normalizeApiUrl(baseUrl);
-  let xdgDir: string;
+  let configHome: string;
+  const initialHome = process.env['SQUADRULES_HOME'];
 
   beforeEach(async () => {
     jest.resetModules();
@@ -73,8 +74,8 @@ describe('cli config-file fallback (keyring unavailable)', () => {
     readConfig = mod.readConfig;
     getConfigPath = mod.getConfigPath;
 
-    xdgDir = mkdtempSync(join(tmpdir(), 'squadrules-cli-fallback-test-'));
-    process.env['XDG_CONFIG_HOME'] = xdgDir;
+    configHome = mkdtempSync(join(tmpdir(), 'squadrules-cli-fallback-test-'));
+    process.env['SQUADRULES_HOME'] = configHome;
     keyringState.available = true;
     keyringState.tokens.clear();
     keyringState.refreshTokens.clear();
@@ -82,8 +83,9 @@ describe('cli config-file fallback (keyring unavailable)', () => {
   });
 
   afterEach(() => {
-    rmSync(xdgDir, { recursive: true, force: true });
-    delete process.env['XDG_CONFIG_HOME'];
+    rmSync(configHome, { recursive: true, force: true });
+    if (initialHome === undefined) delete process.env['SQUADRULES_HOME'];
+    else process.env['SQUADRULES_HOME'] = initialHome;
   });
 
   it('writeConfig stores RAW tokens in file (not the sentinel) when keyring is unavailable', async () => {

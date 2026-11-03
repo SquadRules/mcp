@@ -3,15 +3,15 @@ import { parseLocalArtifactDirHints } from '../../src/config.js';
 
 describe('parseLocalArtifactDirHints', () => {
   it('parses the canonical default to the ordered hint pair', () => {
-    expect(parseLocalArtifactDirHints('project://.local/squadrules/work,user://.config/squadrules/work')).toEqual([
+    expect(parseLocalArtifactDirHints('project://.local/squadrules/work,user://.squadrules/work')).toEqual([
       'project://.local/squadrules/work',
-      'user://.config/squadrules/work'
+      'user://.squadrules/work'
     ]);
   });
 
   it('preserves order (preferred first)', () => {
-    expect(parseLocalArtifactDirHints('user://.config/squadrules/work,project://.local/squadrules/work')).toEqual([
-      'user://.config/squadrules/work',
+    expect(parseLocalArtifactDirHints('user://.squadrules/work,project://.local/squadrules/work')).toEqual([
+      'user://.squadrules/work',
       'project://.local/squadrules/work'
     ]);
   });

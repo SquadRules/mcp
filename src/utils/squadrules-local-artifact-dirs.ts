@@ -8,7 +8,7 @@
  * (`SQUADRULES_LOCAL_ARTIFACT_DIRS`) is unchanged.
  */
 export const SQUADRULES_LOCAL_ARTIFACT_DIRS_DEFAULT =
-  'project://.local/squadrules/work,user://.config/squadrules/work';
+  'project://.local/squadrules/work,user://.squadrules/work';
 
 export function parseLocalArtifactDirHints(raw: string): readonly string[] {
   const items = raw

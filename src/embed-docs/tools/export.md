@@ -33,7 +33,7 @@ whose command names a script path, and before shipping an adapter that ships one
 
 **Use with `tune`:** Edit **flat** exported Markdown, then **`tune`** with matching `uris` / `content`. Obtain flat Markdown via **`format: markdown`** (single adapter or layer **`uri`**).
 
-**Local install (agents):** **`export`** is also used to **mirror** stored content for execution (scripts under **`artifacts/`**, **`SHA256SUMS`** checks). For a **full** tree, use **`skill_zip`** and unzip; a **canonical** install root on the same machine as the CLI config is **`$XDG_CONFIG_HOME/squadrules/skills/<slug>/`** (Unix; see `getSquadrulesSkillInstallDirForSlug` in server sources / the Artifact Management topic in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki)). For **only** the adapter document, **`format: markdown`** and write **`content`** to your chosen path under that tree or the workspace.
+**Local install (agents):** **`export`** is also used to **mirror** stored content for execution (scripts under **`artifacts/`**, **`SHA256SUMS`** checks). For a **full** tree, use **`skill_zip`** and unzip; a **canonical** install root on the same machine as the CLI config is **`~/.squadrules/skills/<slug>/`** (or `$SQUADRULES_HOME/skills/<slug>/` when set; see `getSquadrulesSkillInstallDirForSlug` in server sources / the Artifact Management topic in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki)). For **only** the adapter document, **`format: markdown`** and write **`content`** to your chosen path under that tree or the workspace.
 
 **Missing script:** If a `shell` contract names a script you cannot find, export
 that adapter and look for it — **`format: skill_tree`** returns a JSON file list

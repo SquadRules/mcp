@@ -1,27 +1,21 @@
 /**
  * Shared utilities for CLI command tests.
- * CLI uses config under XDG_CONFIG_HOME (set by test runner). Tests run "cli login --token" then run commands; no env overrides.
+ * CLI uses config under SQUADRULES_HOME (set by test runner). Tests run "cli login --token" then run commands; no env overrides.
  */
 
 import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { homedir, platform } from 'os';
+import { getSquadRulesConfigDirPath } from '../../src/utils/squadrules-user-dirs.js';
 import { getMcpTestBearerToken, getTestAuthBaseUrl } from '../utils/auth-headers.js';
 import { MOCK_REVIEW_EVIDENCE } from '../utils/mock-review-evidence.js';
 
-const CONFIG_DIR_NAME = 'squadrules';
 const CONFIG_FILE_NAME = 'config.json';
 
-/** Same logic as src/cli/config-file.ts so we don't pull in keyring under Jest. */
+/** Shared path resolver has no keyring dependency. */
 function getConfigDir(): string {
-  if (platform() === 'win32') {
-    const appData = process.env['APPDATA'] || join(homedir(), 'AppData', 'Roaming');
-    return join(appData, CONFIG_DIR_NAME);
-  }
-  const base = process.env['XDG_CONFIG_HOME'] || join(homedir(), '.config');
-  return join(base, CONFIG_DIR_NAME);
+  return getSquadRulesConfigDirPath();
 }
 
 function getConfigPath(): string {
@@ -35,7 +29,7 @@ export const TEST_FILE = join(process.cwd(), 'tests/test-data/cli-minimal-test.m
 const execPromise = promisify(exec);
 const execFilePromise = promisify(execFile);
 
-/** Run "cli login --token" so config is written to XDG_CONFIG_HOME (set by runner). Returns true if login ran, false if no token. */
+/** Run "cli login --token" so config is written to SQUADRULES_HOME (set by runner). Returns true if login ran, false if no token. */
 export async function setupCliConfigWithLogin(): Promise<boolean> {
   // In simple profile auth is disabled, so CLI commands are expected to work without login.
   if (process.env.AUTH_ENABLED !== 'true') return true;
@@ -46,7 +40,7 @@ export async function setupCliConfigWithLogin(): Promise<boolean> {
   return true;
 }
 
-/** Run a CLI command. Uses real env (XDG_CONFIG_HOME from runner). */
+/** Run a CLI command. Uses real env (SQUADRULES_HOME from runner). */
 export async function execAsync(
   command: string,
   options?: { timeout?: number }
@@ -72,7 +66,7 @@ export async function execAsyncNoAuth(
   }
 }
 
-/** Write config to the path CLI uses (XDG_CONFIG_HOME from runner), then run command. Clears token first (logout) so keyring does not override the written config. */
+/** Write config to the path CLI uses (SQUADRULES_HOME from runner), then run command. Clears token first (logout) so keyring does not override the written config. */
 export async function execAsyncWithConfig(
   command: string,
   config: { SQUADRULES_API_URL?: string; bearerToken?: string },

@@ -1,71 +1,109 @@
 /**
- * Cross-OS SquadRules user directory layout (shared by CLI config and runtime defaults).
+ * Shared SquadRules user directory layout for CLI config, skills and embedded storage.
  *
- * The config directory is `squadrules` under the platform-appropriate base
- * (`$XDG_CONFIG_HOME` / `~/.config`, or `%APPDATA%` on Windows).
+ * Default: ~/.squadrules on all platforms. SQUADRULES_HOME can override the
+ * complete path (primarily for isolated installations and tests).
+ * The former XDG/APPDATA directory is moved on first startup if the target is absent.
  */
-import { homedir, platform } from 'os';
-import { join } from 'path';
-import { mkdirSync } from 'fs';
+import { homedir, platform } from 'node:os';
+import { isAbsolute, join } from 'node:path';
+import { lstatSync, mkdirSync, renameSync } from 'node:fs';
 
-/** Config directory name. */
-const CONFIG_DIR_NAME = 'squadrules';
-
-// ---------------------------------------------------------------------------
-// Path resolution helpers
-// ---------------------------------------------------------------------------
-
-function configBase(env: NodeJS.ProcessEnv): string {
-  if (platform() === 'win32') {
-    return env['APPDATA'] || join(homedir(), 'AppData', 'Roaming');
-  }
-  return env['XDG_CONFIG_HOME'] || join(homedir(), '.config');
+function userHome(env: NodeJS.ProcessEnv): string {
+  return (platform() === 'win32'
+    ? env['USERPROFILE'] || env['HOME']
+    : env['HOME'] || env['USERPROFILE']) || homedir();
 }
 
-/** Absolute path to the config directory. */
+/** Absolute path to the shared SquadRules directory. Does not touch the filesystem. */
 export function getSquadRulesConfigDirPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(configBase(env), CONFIG_DIR_NAME);
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/**
- * Directory for SquadRules CLI/MCP JSON config (`config.json`).
- * - Windows: `%APPDATA%\squadrules`
- * - Unix: `$XDG_CONFIG_HOME/squadrules` or `~/.config/squadrules`
- */
-export function getSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.env): string {
-  const path = getSquadRulesConfigDirPath(env);
-  try {
-    mkdirSync(path, { recursive: true });
-  } catch {
-    // If creation fails, still return the path (callers handle errors)
+  const override = env['SQUADRULES_HOME'];
+  if (override) {
+    if (!isAbsolute(override)) throw new Error('SQUADRULES_HOME must be an absolute path.');
+    return override;
   }
-  return path;
+  return join(userHome(env), '.squadrules');
+}
+
+function pathExists(path: string): boolean {
+  try {
+    lstatSync(path);
+    return true; // A dangling symlink still occupies the destination.
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+function getPreviousSquadrulesConfigDirs(env: NodeJS.ProcessEnv): string[] {
+  const home = userHome(env);
+  if (platform() === 'win32') {
+    return [join(env['APPDATA'] || join(home, 'AppData', 'Roaming'), 'squadrules')];
+  }
+  const defaultPath = join(home, '.config', 'squadrules');
+  const configuredPath = env['XDG_CONFIG_HOME']
+    ? join(env['XDG_CONFIG_HOME'], 'squadrules')
+    : defaultPath;
+  return configuredPath === defaultPath ? [defaultPath] : [configuredPath, defaultPath];
 }
 
 /**
- * Base directory for locally installed skill mirrors (flat Markdown or unzipped bundles),
- * under the same tree as CLI config (`config.json`). Not created automatically.
+ * Move the previous config tree, including config.json, skills and embedded data.
+ * Do not merge or overwrite when the new directory already exists. An explicit
+ * SQUADRULES_HOME is managed by the caller and is not migrated automatically.
+ * A failed move must be visible rather than silently starting with empty data.
  */
+export function migrateOldSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.env): void {
+  if (env['SQUADRULES_HOME']) return;
+
+  const target = getSquadRulesConfigDirPath(env);
+  if (pathExists(target)) return;
+  const source = getPreviousSquadrulesConfigDirs(env)
+    .find((candidate) => candidate !== target && pathExists(candidate));
+  if (!source) return;
+
+  try {
+    if (!lstatSync(source).isDirectory()) {
+      throw new Error('Source is not a directory (or is a symbolic link).');
+    }
+    renameSync(source, target);
+  } catch (error) {
+    // A second process may have completed the move between the existence check and rename.
+    if (pathExists(target)) return;
+    throw new Error(
+      `Could not move SquadRules data from "${source}" to "${target}". Resolve the filesystem issue or move it manually before restarting.`,
+      { cause: error }
+    );
+  }
+}
+
+/** Create the config directory only after attempting the one-time move. */
+export function getSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.env): string {
+  migrateOldSquadrulesConfigDir(env);
+  const dir = getSquadRulesConfigDirPath(env);
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch {
+    // If creation fails, still return the path (callers handle errors).
+  }
+  return dir;
+}
+
+/** Base directory for installed skill mirrors, under the same tree as config.json. */
 export function getSquadrulesSkillsInstallBaseDir(env: NodeJS.ProcessEnv = process.env): string {
   return join(getSquadrulesConfigDir(env), 'skills');
 }
 
-/** Suggested install path for one skill slug (e.g. after `export` + unzip). */
+/** Suggested install path for one skill slug (e.g. after export + unzip). */
 export function getSquadrulesSkillInstallDirForSlug(slug: string, env: NodeJS.ProcessEnv = process.env): string {
   const safe = slug.replace(/[/\\]/g, '_');
   return join(getSquadrulesSkillsInstallBaseDir(env), safe);
 }
 
 /**
- * User-shared cache directory for embedding model weights (XDG cache style).
- * Shared across all embedding libraries (fastembed, transformers.js, etc.) to
- * avoid duplicate downloads. Download once, reuse everywhere.
- * - Windows: `%LOCALAPPDATA%\embedding-models` or `~\AppData\Local\embedding-models`
- * - Unix: `$XDG_CACHE_HOME/embedding-models` or `~/.cache/embedding-models`
+ * User-shared embedding model weights cache: intentionally separate from ~/.squadrules.
+ * - Windows: %LOCALAPPDATA%\\embedding-models or ~\\AppData\\Local\\embedding-models
+ * - Unix: $XDG_CACHE_HOME/embedding-models or ~/.cache/embedding-models
  */
 export function getEmbeddingModelsCacheDir(env: NodeJS.ProcessEnv = process.env): string {
   const base = platform() === 'win32'

@@ -265,7 +265,7 @@ jobs:
   # SINGLE lane: zero-config (no .env, no infra, no env overrides). Proves the npm package boots
   # and runs the full test suite on the embedded defaults: stdio transport, LanceDB vector store,
   # key-free fastembed embeddings, no auth, no Redis. The setup.ts test harness supplies hermetic
-  # XDG_CONFIG_HOME isolation so the lane is clean even on a runner with stale state.
+  # SQUADRULES_HOME isolation so the lane is clean even on a runner with stale state.
   verify-integration-single:
     name: Single (zero-config, stdio + LanceDB + fastembed, Node 24)
     needs: [build]

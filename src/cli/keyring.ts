@@ -1,8 +1,8 @@
 /**
  * CLI keyring: OS-native credential storage for bearer tokens.
  * Uses @napi-rs/keyring (keytar-compatible API). When keyring is unavailable or
- * fails at runtime, the CLI falls back to the config file at XDG_CONFIG_HOME/squadrules
- * (or ~/.config/squadrules on Unix, %APPDATA%\\squadrules on Windows) for all users.
+ * fails at runtime, the CLI falls back to ~/.squadrules/config.json
+ * (or SQUADRULES_HOME/config.json when explicitly configured).
  */
 
 import { createRequire } from 'module';
