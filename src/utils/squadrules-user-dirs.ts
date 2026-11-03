@@ -25,11 +25,16 @@ export function getSquadRulesConfigDirPath(env: NodeJS.ProcessEnv = process.env)
   return join(userHome(env), '.squadrules');
 }
 
-function getPreviousSquadrulesConfigDirPath(env: NodeJS.ProcessEnv): string {
+function getPreviousSquadrulesConfigDirs(env: NodeJS.ProcessEnv): string[] {
   const home = userHome(env);
-  return platform() === 'win32'
-    ? join(env['APPDATA'] || join(home, 'AppData', 'Roaming'), 'squadrules')
-    : join(env['XDG_CONFIG_HOME'] || join(home, '.config'), 'squadrules');
+  if (platform() === 'win32') {
+    return [join(env['APPDATA'] || join(home, 'AppData', 'Roaming'), 'squadrules')];
+  }
+  const defaultPath = join(home, '.config', 'squadrules');
+  const configuredPath = env['XDG_CONFIG_HOME']
+    ? join(env['XDG_CONFIG_HOME'], 'squadrules')
+    : defaultPath;
+  return configuredPath === defaultPath ? [defaultPath] : [configuredPath, defaultPath];
 }
 
 /**
@@ -42,8 +47,10 @@ export function migrateOldSquadrulesConfigDir(env: NodeJS.ProcessEnv = process.e
   if (env['SQUADRULES_HOME']) return;
 
   const target = getSquadRulesConfigDirPath(env);
-  const source = getPreviousSquadrulesConfigDirPath(env);
-  if (source === target || existsSync(target) || !existsSync(source)) return;
+  if (existsSync(target)) return;
+  const source = getPreviousSquadrulesConfigDirs(env)
+    .find((candidate) => candidate !== target && existsSync(candidate));
+  if (!source) return;
 
   try {
     if (!lstatSync(source).isDirectory()) {
