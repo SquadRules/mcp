@@ -6,11 +6,12 @@
 // Must be first: routes all CLI logs to stderr (stdout is the payload channel) before the
 // module graph eagerly creates the shared logger. See ./log-sink-prelude.ts.
 import './log-sink-prelude.js';
-import { createProgram } from './program.js';
 import { migrateOldSquadrulesConfigDir } from '../utils/squadrules-user-dirs.js';
 
 // Move existing user data before handling any CLI command (including serve).
 migrateOldSquadrulesConfigDir();
+// Load the CLI command graph only after the data directory has been moved.
+const { createProgram } = await import('./program.js');
 
 // Bare invocation defaults to `serve` → stdio transport when stdin is NOT a TTY
 // (i.e. an MCP host spawned this process with piped stdin). When a human runs
