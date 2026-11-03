@@ -3,7 +3,7 @@
 /**
  * Disallow specific env keys and removed MCP tool names anywhere in source
  * (case-insensitive: identifiers, strings, comments, etc.). Bearer token must
- * come from the shared config file ($XDG_CONFIG_HOME/squadrules/config.json), not
+ * come from the shared config file (~/.squadrules/config.json), not
  * SQUADRULES_BEARER_TOKEN in source.
  */
 // Banned wording: drop obsolete code/shims; rephrase comments (older format, transitional, compat)—never strip useful docs just to silence a hit.
