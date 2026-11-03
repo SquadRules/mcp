@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.17.1](https://github.com/SquadRules/mcp/compare/v5.17.0...v5.17.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **ci:** tolerate delayed npm audit cron runs ([#263](https://github.com/SquadRules/mcp/issues/263)) ([c0fb6ed](https://github.com/SquadRules/mcp/commit/c0fb6edd877bacada1811930202b9f4c7f984321))
+* **config:** move user data to ~/.squadrules on startup ([#264](https://github.com/SquadRules/mcp/issues/264)) ([029f955](https://github.com/SquadRules/mcp/commit/029f955f60a1c5f9566eb6965f5e4308f2e7d79d))
+
 ## [5.17.0](https://github.com/SquadRules/mcp/compare/v5.16.0...v5.17.0) (2026-11-02)
 
 
