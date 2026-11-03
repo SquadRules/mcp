@@ -75,6 +75,19 @@ describe('squadrules-user-dirs', () => {
     expect(() => migrateOldSquadrulesConfigDir(env)).not.toThrow();
   });
 
+  it('moves ~/.config/squadrules when XDG_CONFIG_HOME is not set', () => {
+    const env = testEnv({ XDG_CONFIG_HOME: undefined });
+    const source = platform() === 'win32'
+      ? join(env['APPDATA']!, 'squadrules')
+      : join(home, '.config', 'squadrules');
+    mkdirSync(source, { recursive: true });
+    writeFileSync(join(source, 'config.json'), 'old config');
+
+    migrateOldSquadrulesConfigDir(env);
+    expect(existsSync(source)).toBe(false);
+    expect(readFileSync(join(home, '.squadrules', 'config.json'), 'utf8')).toBe('old config');
+  });
+
   it('never overwrites or merges when ~/.squadrules already exists', () => {
     const env = testEnv();
     const source = previousDir(env);
