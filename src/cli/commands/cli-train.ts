@@ -75,7 +75,6 @@ export function trainCliCommand(program: Command): void {
         }
       ) => {
         try {
-          const backend = await createBackendFromProgram(program);
           const format = resolveOutputFormat(program);
           const trainView = { pretty: renderTrainPretty, text: renderTrainText };
           const src = typeof options.sourceAdapterUri === 'string' ? options.sourceAdapterUri.trim() : '';
@@ -92,6 +91,7 @@ export function trainCliCommand(program: Command): void {
               return;
             }
             const spaceOpt = typeof options.space === 'string' ? options.space.trim() : '';
+            const backend = await createBackendFromProgram(program);
             const response = await backend.trainJson({
               llm_model_id: model,
               force_update: Boolean(options.force),
@@ -108,6 +108,7 @@ export function trainCliCommand(program: Command): void {
             return;
           }
 
+          const backend = await createBackendFromProgram(program);
           const abs = resolve(target);
           const st = statSync(abs, { throwIfNoEntry: false });
           if (!st) {
