@@ -24,6 +24,14 @@ protected `main` directly.
 | [Wiki sync](sync-qoder-repowiki-to-github-wiki.yml) | Sync generated repository wiki |
 | [Verify OpenAI key](verify-openai-key.yml) | Manual test-credential verification |
 
+GitHub scheduled events are best-effort and can be delayed or dropped. Although
+the npm audit remediation workflow requests hourly execution, Automation health
+allows up to **12 hours** since its most recent completed scheduled run before
+reporting a missing/stale producer. A failed or cancelled audit run still
+creates an immediate incident; release failures remain blocking. This grace
+period prevents ordinary scheduler delays from being reported as CI failures
+without disabling monitoring.
+
 ## Required checks and runtime support
 
 `main` is protected by the `main merge gate` ruleset. It requires `Automation policy passed` and
