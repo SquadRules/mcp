@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { TRANSPORT_TYPE, AUTH_ENABLED } from '../config/runtime-mode.js';
 import { structuredLogger } from './structured-logger.js';
+import { getSquadRulesConfigDirPath } from './squadrules-user-dirs.js';
 
 /** Maximum directory depth for batch operations. */
 export const MAX_DIRECTORY_DEPTH = 8;
@@ -172,14 +173,7 @@ export function scanMarkdownFiles(
 }
 
 function getDefaultAllowedPrefixes(): string[] {
-  const prefixes: string[] = [];
-  const xdgConfig = process.env['XDG_CONFIG_HOME'] || path.join(process.env['HOME'] || '', '.config');
-  if (xdgConfig) {
-    prefixes.push(path.join(xdgConfig, 'squadrules'));
-  }
-  // Allow CWD project tree
-  prefixes.push(process.cwd());
-  return prefixes;
+  return [getSquadRulesConfigDirPath(), process.cwd()];
 }
 
 function safeRealpath(p: string): string | null {
