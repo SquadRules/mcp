@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { platform, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -112,6 +112,18 @@ describe('squadrules-user-dirs', () => {
     migrateOldSquadrulesConfigDir(env);
     expect(readFileSync(join(source, 'config.json'), 'utf8')).toBe('previous');
     expect(readFileSync(join(target, 'config.json'), 'utf8')).toBe('current');
+  });
+
+  it('does not replace an existing dangling destination symlink', () => {
+    if (platform() === 'win32') return; // Windows symlink creation needs privileges.
+    const env = testEnv();
+    const source = previousDir(env);
+    mkdirSync(source, { recursive: true });
+    writeFileSync(join(source, 'config.json'), 'old config');
+    symlinkSync(join(root, 'missing-target'), join(home, '.squadrules'));
+
+    migrateOldSquadrulesConfigDir(env);
+    expect(readFileSync(join(source, 'config.json'), 'utf8')).toBe('old config');
   });
 
   it('creates a fresh directory when there is nothing to move', () => {
