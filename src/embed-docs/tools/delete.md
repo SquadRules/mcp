@@ -10,7 +10,7 @@ Remove adapters or individual layers by URI.
 - **Adapter URI** — deletes **all** layers belonging to that adapter.
 - **Layer URI** — deletes that layer memory only.
 
-**Output:** Per-URI `status` (`deleted` | `error`), `message`, and aggregate counts. Response contains the deletion results and any errors encountered.
+**Output:** Per-URI `status` (`deleted` | `error`), `message`, and aggregate counts. Response contains the deletion results and any errors encountered. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
 
 **On success:** The resource is removed and subsequent activate calls will not find it.
 

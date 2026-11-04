@@ -18,7 +18,7 @@ Omitting either produces `sft_blockers: ["missing_rubric_version"]` / `preferenc
 **Output:** Per-layer result rows with `rated_at`, normalized grading
 metadata (`grader_kind`, `evaluation_label`), export eligibility
 flags plus blocker lists for `sft_jsonl` and `preference_jsonl`, and
-`next_call: null` as the explicit terminal marker. Response contains the evaluation result and export eligibility status.
+`next_call: null` as the explicit terminal marker. Response contains the evaluation result and export eligibility status. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
 
 **Rules:** Use only layer URIs returned by **`forward`**. Do not substitute adapter URIs here unless the tool schema explicitly allows it (this tool expects a layer URI).
 

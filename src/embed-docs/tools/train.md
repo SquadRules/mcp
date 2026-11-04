@@ -53,7 +53,7 @@ when no slug was persisted; the same stable **slug** appears in **`activate`**'s
 
 **Size limits (safety):** Before structure checks, the server rejects oversized Markdown and artifact bodies (max logical lines, max UTF-8 bytes per line, and a total-byte ceiling from env — default line cap **350**, default per-line bytes **8192**, safety factor **1.15**). See the Train workflow in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki).
 
-**Output:** `status: stored` and `items` with `layer_uuid`, `adapter_uri`, `layer` URIs, labels, tags.
+**Output:** `status: stored` and `items` with `layer_uuid`, `adapter_uri`, `layer` URIs, labels, tags. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
 
 **After train:** Use **`activate`** / **`forward`** to execute; use **`tune`**
 for in-place adapter/layer edits (non-structural); use **`train`** with
