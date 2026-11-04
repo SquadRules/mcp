@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.20.0](https://github.com/SquadRules/mcp/compare/v5.19.0...v5.20.0) (2026-11-04)
+
+
+### Features
+
+* **tools:** add 2026-07-28 annotations, icons, and honest descriptions ([#284](https://github.com/SquadRules/mcp/issues/284)) ([902e1fe](https://github.com/SquadRules/mcp/commit/902e1fec913e32408589a654d674fe4fef998b98))
+
 ## [5.19.0](https://github.com/SquadRules/mcp/compare/v5.18.1...v5.19.0) (2026-11-04)
 
 
