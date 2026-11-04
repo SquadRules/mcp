@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import express from 'express';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node/streamableHttp';
 import { structuredLogger } from '../utils/structured-logger.js';
 import {
   LOG_LEVEL,
@@ -23,7 +23,7 @@ const MAX_CONCURRENT = resolveMaxConcurrentRequests(MAX_CONCURRENT_MCP_REQUESTS_
 
 export interface McpRequestContext {
   req: express.Request;
-  transport: StreamableHTTPServerTransport;
+  transport: NodeStreamableHTTPServerTransport;
 }
 
 export const mcpRequestStore = new AsyncLocalStorage<McpRequestContext>();
@@ -193,7 +193,7 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
 
         try {
             const server = createServer(memoryStore);
-            const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
+            const transport = new NodeStreamableHTTPServerTransport({ enableJsonResponse: true });
             if (auditLevel >= 3) responseCapture = installResponseCapture(transport);
 
             // Track request timeout - log at 25s (before typical 30s client timeout)

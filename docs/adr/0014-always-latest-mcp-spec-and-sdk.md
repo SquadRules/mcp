@@ -9,16 +9,18 @@ Accepted
 ## Context
 
 SquadRules is a Model Context Protocol (MCP) server: it speaks the MCP wire
-protocol over stdio and HTTP, and it depends on `@modelcontextprotocol/sdk` for
-the transport, the server object, and the negotiated protocol revisions.
+protocol over stdio and HTTP, and it depends on the `@modelcontextprotocol/*` v2
+SDK packages for the transport, the server object, and the negotiated protocol
+revisions.
 
 The MCP specification advances by dated revisions, and each revision can add
 required or optional surfaces. The published spec has moved through
 `2025-06-18`, `2025-11-25`, and most recently `2026-07-28` (which adds
-`server/discover` for capability discovery). The SDK shipped in this repo is
-`@modelcontextprotocol/sdk@^1.32.1`; its `LATEST_PROTOCOL_VERSION` is
-`2025-11-25`, one revision behind the published spec, and its
-`SUPPORTED_PROTOCOL_VERSIONS` list stops there too.
+`server/discover` for capability discovery). The v1 SDK
+(`@modelcontextprotocol/sdk@^1.32.1`) only supports up to `2025-11-25`. The v2
+SDK packages (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`,
+`@modelcontextprotocol/core`, `@modelcontextprotocol/node` at `^2.4.0`) support
+protocol revision `2026-07-28`.
 
 Pinning to a conservative SDK floor lets that gap widen silently: new hosts that
 negotiate a later revision fall back to an older one, and newly added capabilities
@@ -30,9 +32,11 @@ product concern, not a routine dependency chore.
 Track the latest published MCP spec revision and the latest SDK that implements
 it. Concretely:
 
-1. Hold `@modelcontextprotocol/sdk` at the newest release rather than a stale
-   caret floor; treat an available major/minor as a scheduled task, not an
-   optional upgrade.
+1. Hold the `@modelcontextprotocol/*` v2 packages (`@modelcontextprotocol/server`,
+   `@modelcontextprotocol/client`, `@modelcontextprotocol/core`,
+   `@modelcontextprotocol/node`) at the newest release rather than a stale caret
+   floor; treat an available major/minor as a scheduled task, not an optional
+   upgrade.
 2. When a newer SDK raises `LATEST_PROTOCOL_VERSION`, adopt it and align every
    spec-revision reference in the code and comments — for example the
    authorization-metadata note in `src/http/http-well-known.ts` that cites spec
@@ -82,10 +86,10 @@ runtime.
 
 ## Evidence
 
-- `package.json`: `"@modelcontextprotocol/sdk": "^1.32.1"`.
-- Installed SDK `dist/esm/types.js`: `LATEST_PROTOCOL_VERSION = '2025-11-25'`;
-  `SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26',
-  '2024-11-05', '2024-10-07']`.
+- `package.json`: `"@modelcontextprotocol/server": "^2.4.0"`,
+  `"@modelcontextprotocol/client": "^2.4.0"`, `"@modelcontextprotocol/core": "^2.4.0"`,
+  `"@modelcontextprotocol/node": "^2.4.0"`.
+- Installed v2 SDK packages support protocol revision `2026-07-28`.
 - `src/http/http-well-known.ts`: authorization-metadata comment citing spec
   `2025-11-25`.
 - `src/stdio/stdio-server.ts` and `src/server.ts`: the server is created and

@@ -10,18 +10,18 @@ import { writeAuditLine } from '../utils/structured-logger.js';
 import { AUDIT_LOG_LEVEL } from '../config.js';
 import { getBuildVersion } from '../utils/build-version.js';
 import { summarizeRequestArgs, summarizeResponse, extractErrorCode } from '../utils/audit-mcp-summary.js';
-import type { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
+import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node/streamableHttp';
+import type { JSONRPCMessage } from '@modelcontextprotocol/server';
 
 export { AUDIT_LOG_LEVEL };
 
 /**
  * Capture JSON-RPC response for audit level 3.
  *
- * The MCP SDK's StreamableHTTPServerTransport sends responses via transport.send(),
+ * The MCP SDK's NodeStreamableHTTPServerTransport sends responses via transport.send(),
  * NOT through Express res.json()/res.end(). We intercept at the transport level.
  */
-export function installResponseCapture(transport: StreamableHTTPServerTransport): { getResponse: () => unknown } {
+export function installResponseCapture(transport: NodeStreamableHTTPServerTransport): { getResponse: () => unknown } {
   let captured: unknown = null;
   const originalSend = transport.send.bind(transport);
 

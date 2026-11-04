@@ -3,7 +3,7 @@
  * validation / tool errors throw with the server text for `rejects.toThrow(...)`.
  */
 
-import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import type { Client } from '@modelcontextprotocol/client';
 import { parseMcpJson } from '../../../utils/expect-with-raw.js';
 
 export async function callToolJson(

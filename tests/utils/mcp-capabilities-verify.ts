@@ -6,7 +6,7 @@
  * Used by both stdio and HTTP integration tests to ensure transport parity.
  */
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { Client } from '@modelcontextprotocol/client';
 import { withRawOnFail } from './expect-with-raw.js';
 
 /** Validate caching hints (ttlMs, cacheScope) per 2026-07-28 spec if present. */
