@@ -55,7 +55,7 @@ export const RESOURCE_DESCRIPTIONS: Record<string, Record<string, ResourceDescri
   mem: {
     'adapter-migration': {
       title: 'Adapter Migration Guide',
-      description: 'Procedures for migrating adapters between versions or systems. Covers data format changes and backward compatibility.'
+      description: 'Procedures for migrating adapters between versions or systems. Covers data format changes and version continuity.'
     },
     'author-adapter': {
       title: 'Authoring Adapters',
