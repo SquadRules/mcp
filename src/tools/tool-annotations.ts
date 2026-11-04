@@ -12,14 +12,27 @@
  * Defaults per spec: readOnlyHint=false, destructiveHint=true, idempotentHint=false, openWorldHint=true
  */
 
-import type { SquadrulesToolName } from './tool-registry.js';
-
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
   destructiveHint?: boolean;
   idempotentHint?: boolean;
   openWorldHint?: boolean;
 }
+
+/**
+ * Tool names for SquadRules MCP tools.
+ * Defined here to avoid circular dependency with tool-registry.ts.
+ * The canonical SquadrulesToolName type in tool-registry.ts derives from this list.
+ */
+export type SquadrulesToolNameLiteral =
+  | 'activate'
+  | 'forward'
+  | 'train'
+  | 'reward'
+  | 'tune'
+  | 'delete'
+  | 'export'
+  | 'spaces';
 
 /**
  * Annotations for each tool, derived from handler behavior analysis:
@@ -66,7 +79,7 @@ export interface ToolAnnotations {
  *   - readOnlyHint: true (only reads, never modifies)
  *   - openWorldHint: false (local storage only)
  */
-export const TOOL_ANNOTATIONS: Record<SquadrulesToolName, ToolAnnotations> = {
+export const TOOL_ANNOTATIONS: Record<SquadrulesToolNameLiteral, ToolAnnotations> = {
   activate: {
     readOnlyHint: true,
     openWorldHint: false

@@ -12,7 +12,7 @@ import {
   SQUADRULES_FORWARD_TOOL_UI_META,
   SQUADRULES_SPACES_TOOL_UI_META
 } from '../mcp-apps/squadrules-ui-constants.js';
-import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ANNOTATIONS, type SquadrulesToolNameLiteral } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 
 /**
@@ -124,7 +124,7 @@ export const SQUADRULES_TOOL_REGISTRY = [
 ] as const;
 
 /** Union of the canonical MCP tool names. */
-export type SquadrulesToolName = (typeof SQUADRULES_TOOL_REGISTRY)[number]['name'];
+export type SquadrulesToolName = SquadrulesToolNameLiteral;
 
 /** Canonical MCP tool names in registration order. */
 export const SQUADRULES_TOOL_NAMES: readonly SquadrulesToolName[] = SQUADRULES_TOOL_REGISTRY.map(
