@@ -49,6 +49,11 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
             version: getBuildVersion()
         },
         {
+            // Deliberately omit listChanged and subscribe capabilities: tools,
+            // resources, and prompts are static per build (registered once at
+            // startup from SQUADRULES_TOOL_REGISTRY and embedded docs). We do
+            // not emit notifications/<primitive>/list_changed events, so hosts
+            // must not wait for them. See issue #272.
             capabilities: {
                 tools: {},
                 resources: {},
