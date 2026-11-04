@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.19.0](https://github.com/SquadRules/mcp/compare/v5.18.1...v5.19.0) (2026-11-04)
+
+
+### Features
+
+* **mcp-wire:** adopt 2026-07-28 resultType, error codes, and per-request _meta ([#282](https://github.com/SquadRules/mcp/issues/282)) ([7731ad3](https://github.com/SquadRules/mcp/commit/7731ad3f63f16be26ea39866b1d79e746ef6cf09))
+
 ## [5.18.1](https://github.com/SquadRules/mcp/compare/v5.18.0...v5.18.1) (2026-11-04)
 
 
