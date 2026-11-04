@@ -1,5 +1,5 @@
 ---
-version: "5.21.0"
+version: "5.22.0"
 slug: protocol-linking-guide
 title: Adapter Linking Guide
 ---
