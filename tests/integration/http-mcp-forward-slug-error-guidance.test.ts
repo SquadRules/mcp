@@ -13,6 +13,29 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Parse MCP response which may be JSON or SSE format.
+ * SSE format: "event: <type>\ndata: <json>\n\n"
+ */
+async function parseMcpResponse(response: Response): Promise<unknown> {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+  
+  // If SSE, extract the first data line
+  if (contentType.includes('text/event-stream') || text.startsWith('event:')) {
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        return JSON.parse(line.substring(6));
+      }
+    }
+    throw new Error(`No data line found in SSE response: ${text.substring(0, 100)}`);
+  }
+  
+  // Otherwise parse as JSON
+  return JSON.parse(text);
+}
+
 async function fetchWithRateLimitRetry(url: string, init: RequestInit = {}, attempts = 3): Promise<Response> {
   let lastResponse: Response | null = null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -39,7 +62,7 @@ function postMcp(body: object): Promise<Response> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: 'application/json, text/event-stream',
       ...getAuthHeaders()
     },
     body: JSON.stringify(body)
@@ -121,7 +144,7 @@ _d('MCP forward slug error guidance', () => {
       }
     });
 
-    const body = await response.json() as {
+    const body = await parseMcpResponse(response) as {
       jsonrpc?: string;
       result?: {
         isError?: boolean;

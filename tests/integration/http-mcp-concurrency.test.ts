@@ -9,12 +9,35 @@ const BASE_URL = getTestAuthBaseUrl();
 const PARALLEL = 25;
 const _d = isHttpTransport() ? describe : describe.skip;
 
+/**
+ * Parse MCP response which may be JSON or SSE format.
+ * SSE format: "event: <type>\ndata: <json>\n\n"
+ */
+async function parseMcpResponse(response: Response): Promise<unknown> {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+  
+  // If SSE, extract the first data line
+  if (contentType.includes('text/event-stream') || text.startsWith('event:')) {
+    const lines = text.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        return JSON.parse(line.substring(6));
+      }
+    }
+    throw new Error(`No data line found in SSE response: ${text.substring(0, 100)}`);
+  }
+  
+  // Otherwise parse as JSON
+  return JSON.parse(text);
+}
+
 function postMcp(body: object) {
   return fetch(`${BASE_URL}/mcp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: 'application/json, text/event-stream',
       ...getAuthHeaders()
     },
     body: JSON.stringify(body)
@@ -40,7 +63,7 @@ _d('MCP concurrent requests', () => {
     }
 
     const bodies = (await Promise.all(
-      responses.map((res) => res.json())
+      responses.map((res) => parseMcpResponse(res))
     )) as Array<{
       jsonrpc?: string;
       result?: { tools?: unknown[] };
