@@ -26,6 +26,8 @@ import {
 import { resolveAndValidateDirectory } from '../utils/directory-access.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 interface RegisterExportOptions {
   toolName?: string;
@@ -352,9 +354,11 @@ export function registerExportTool(server: any, memoryStore: MemoryQdrantStore, 
     toolName,
     {
       title: 'Export adapter or training data',
-      description: resolveToolDoc('export') || 'Export adapter markdown or training datasets.',
+      description: resolveToolDoc('export') || 'Export adapter markdown or training datasets. Response contains export format (JSON, markdown, or zip), download URLs or inline content, and item counts. On success, use the provided URLs or content to import elsewhere. On failure (no data found), verify the export selection or train adapters first.',
       inputSchema: mcpLooseToolInput(exportInputSchema),
-      outputSchema: exportOutputSchema
+      outputSchema: exportOutputSchema,
+      annotations: TOOL_ANNOTATIONS.export,
+      icons: TOOL_ICONS.export
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

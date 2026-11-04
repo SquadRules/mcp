@@ -9,6 +9,8 @@ import { executeForward } from './forward.js';
 import { formatForwardToolError } from './forward-tool-error.js';
 import { SquadrulesError } from '../types/index.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 export interface RegisterForwardOptions {
   toolName?: string;
@@ -23,10 +25,12 @@ export function registerForwardTool(server: any, memoryStore: MemoryQdrantStore,
     toolName,
     {
       title: 'Load adapter instructions and advance workflow state',
-      description: resolveToolDoc('forward') || 'Run the first or next adapter layer. Omit `solution` on the first call in a run.',
+      description: resolveToolDoc('forward') || 'Load adapter instructions and advance workflow state. Response contains current layer content, execution ID, and next layer URI or completion status. On success, execute the layer and call reward with the outcome. On failure (missing proof), submit the required proof and retry forward.',
       inputSchema: forwardMcpWireInputSchema,
       outputSchema: forwardOutputSchema,
-      _meta: SQUADRULES_FORWARD_TOOL_UI_META
+      _meta: SQUADRULES_FORWARD_TOOL_UI_META,
+      annotations: TOOL_ANNOTATIONS.forward,
+      icons: TOOL_ICONS.forward
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

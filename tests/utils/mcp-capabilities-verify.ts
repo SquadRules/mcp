@@ -78,6 +78,24 @@ export async function verifyMcpServerCapabilities(client: Client): Promise<void>
       if (tool.description !== undefined) {
         expect(typeof tool.description).toBe('string');
       }
+      // MCP 2026-07-28: annotations and icons should be present
+      if (tool.annotations !== undefined) {
+        expect(typeof tool.annotations).toBe('object');
+        // Validate annotation hint types if present
+        const ann = tool.annotations as Record<string, unknown>;
+        if (ann.readOnlyHint !== undefined) expect(typeof ann.readOnlyHint).toBe('boolean');
+        if (ann.destructiveHint !== undefined) expect(typeof ann.destructiveHint).toBe('boolean');
+        if (ann.idempotentHint !== undefined) expect(typeof ann.idempotentHint).toBe('boolean');
+        if (ann.openWorldHint !== undefined) expect(typeof ann.openWorldHint).toBe('boolean');
+      }
+      if (tool.icons !== undefined) {
+        expect(Array.isArray(tool.icons)).toBe(true);
+        for (const icon of tool.icons as Array<Record<string, unknown>>) {
+          expect(typeof icon.src).toBe('string');
+          expect(typeof icon.mimeType).toBe('string');
+          expect(Array.isArray(icon.sizes)).toBe(true);
+        }
+      }
     }
 
     assertCachingHints(toolsResult as Record<string, unknown>);

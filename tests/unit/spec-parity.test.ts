@@ -23,6 +23,8 @@ import {
   SQUADRULES_TOOL_NAMES,
   type SquadrulesToolName
 } from '../../src/tools/tool-registry.js';
+import { TOOL_ANNOTATIONS, type ToolAnnotations } from '../../src/tools/tool-annotations.js';
+import { TOOL_ICONS } from '../../src/tools/tool-icons.js';
 import { createProgram } from '../../src/cli/program.js';
 
 import { activateInputSchema, activateOutputSchema } from '../../src/tools/activate_schema.js';
@@ -157,4 +159,115 @@ describe('spec parity: embedded tool docs align with the tool set', () => {
       .sort();
     expect(docNames).toEqual([...EXPECTED_TOOL_NAMES].sort());
   });
+});
+
+describe('spec parity: MCP 2026-07-28 tool annotations', () => {
+  test('every tool has annotations', () => {
+    for (const tool of SQUADRULES_TOOL_REGISTRY) {
+      expect(tool.annotations).toBeDefined();
+      expect(typeof tool.annotations).toBe('object');
+    }
+  });
+
+  test('annotations match the canonical TOOL_ANNOTATIONS map', () => {
+    for (const tool of SQUADRULES_TOOL_REGISTRY) {
+      const expected = TOOL_ANNOTATIONS[tool.name as SquadrulesToolName];
+      expect(expected).toBeDefined();
+      expect(tool.annotations).toEqual(expected);
+    }
+  });
+
+  test.each(EXPECTED_TOOL_NAMES)(
+    '"%s" annotations have valid hint types',
+    (name) => {
+      const tool = SQUADRULES_TOOL_REGISTRY.find((t) => t.name === name);
+      expect(tool).toBeDefined();
+      const annotations = tool!.annotations as ToolAnnotations;
+
+      // Each hint must be boolean if present
+      if (annotations.readOnlyHint !== undefined) {
+        expect(typeof annotations.readOnlyHint).toBe('boolean');
+      }
+      if (annotations.destructiveHint !== undefined) {
+        expect(typeof annotations.destructiveHint).toBe('boolean');
+      }
+      if (annotations.idempotentHint !== undefined) {
+        expect(typeof annotations.idempotentHint).toBe('boolean');
+      }
+      if (annotations.openWorldHint !== undefined) {
+        expect(typeof annotations.openWorldHint).toBe('boolean');
+      }
+
+      // destructiveHint and idempotentHint are only meaningful when not read-only
+      if (annotations.readOnlyHint === true) {
+        // Read-only tools should not set destructiveHint or idempotentHint
+        // (they default to false per spec, which is correct for read-only)
+        expect(annotations.destructiveHint).toBeUndefined();
+        expect(annotations.idempotentHint).toBeUndefined();
+      }
+    }
+  );
+});
+
+describe('spec parity: MCP 2026-07-28 tool icons', () => {
+  test('every tool has icons', () => {
+    for (const tool of SQUADRULES_TOOL_REGISTRY) {
+      expect(tool.icons).toBeDefined();
+      expect(Array.isArray(tool.icons)).toBe(true);
+      expect(tool.icons.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('icons match the canonical TOOL_ICONS map', () => {
+    for (const tool of SQUADRULES_TOOL_REGISTRY) {
+      const expected = TOOL_ICONS[tool.name as SquadrulesToolName];
+      expect(expected).toBeDefined();
+      expect(tool.icons).toEqual(expected);
+    }
+  });
+
+  test.each(EXPECTED_TOOL_NAMES)(
+    '"%s" icons have required fields (src, mimeType, sizes)',
+    (name) => {
+      const tool = SQUADRULES_TOOL_REGISTRY.find((t) => t.name === name);
+      expect(tool).toBeDefined();
+      const icons = tool!.icons;
+      expect(Array.isArray(icons)).toBe(true);
+
+      for (const icon of icons) {
+        expect(typeof icon.src).toBe('string');
+        expect(icon.src.length).toBeGreaterThan(0);
+        expect(typeof icon.mimeType).toBe('string');
+        expect(icon.mimeType.length).toBeGreaterThan(0);
+        expect(Array.isArray(icon.sizes)).toBe(true);
+        expect(icon.sizes.length).toBeGreaterThan(0);
+        // Each size should be in WxH format
+        for (const size of icon.sizes) {
+          expect(size).toMatch(/^\d+x\d+$/);
+        }
+      }
+    }
+  );
+});
+
+describe('spec parity: tool descriptions meet format requirements', () => {
+  test.each(EXPECTED_TOOL_NAMES)(
+    '"%s" description names response content, next action, and failure recovery',
+    (name) => {
+      const tool = SQUADRULES_TOOL_REGISTRY.find((t) => t.name === name);
+      expect(tool).toBeDefined();
+      const description = tool!.description;
+      expect(typeof description).toBe('string');
+      expect(description.length).toBeGreaterThan(20);
+
+      // Description should mention what the response contains
+      expect(description.toLowerCase()).toMatch(/response contains|returns|provides/);
+
+      // Description should mention next action on success
+      expect(description.toLowerCase()).toMatch(/on success|next|then|call|use/);
+
+      // Description should mention recovery on failure
+      expect(description.toLowerCase()).toMatch(/on failure|if.*fail|error|retry|fix/);
+    }
+  );
 });
