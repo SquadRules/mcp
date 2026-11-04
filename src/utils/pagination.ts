@@ -103,34 +103,6 @@ export function buildAdapterContentCacheMetadata(): {
 }
 
 /**
- * Build a paginated list response with cache metadata
- * Conforms to 2026-07-28 spec response format
- */
-export function buildPaginatedListResponse<T>(
-  items: T[],
-  cursor: string | undefined,
-  cacheMetadata: { ttlMs: number; cacheScope: 'public' | 'private' },
-  pageSize: number = DEFAULT_PAGE_SIZE
-): {
-  resultType: 'complete';
-  [key: string]: unknown;
-  nextCursor?: string;
-  ttlMs: number;
-  cacheScope: 'public' | 'private';
-} & Record<string, unknown> {
-  const { page, nextCursor } = paginateItems(items, cursor, pageSize);
-  
-  return {
-    resultType: 'complete',
-    ...(nextCursor !== undefined && { nextCursor }),
-    ttlMs: cacheMetadata.ttlMs,
-    cacheScope: cacheMetadata.cacheScope,
-    // The actual data field will be added by the caller
-    ...{ items: page }
-  };
-}
-
-/**
  * Build cache metadata for server info (included in _meta)
  */
 export function buildServerInfoMeta(): Record<string, unknown> {

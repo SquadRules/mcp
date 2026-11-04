@@ -10,7 +10,7 @@ import {
   EMBEDDED_DOCS_CACHE_SCOPE,
   ADAPTER_CONTENT_CACHE_SCOPE,
   DEFAULT_PAGE_SIZE
-} from '../../../src/utils/pagination.js';
+} from '../../src/utils/pagination.js';
 
 describe('Pagination Utilities', () => {
   describe('encodeCursor / decodeCursor', () => {
