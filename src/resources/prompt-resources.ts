@@ -3,6 +3,7 @@ import { getPrompts, getPrompt } from './embedded-mcp-resources.js';
 import { logger } from '../utils/structured-logger.js';
 import { getPromptIcons } from './prompt-icons.js';
 import { getPromptMetadata } from './prompt-metadata.js';
+import { buildEmbeddedDocsCacheMetadata, buildServerInfoMeta } from '../utils/pagination.js';
 
 type PromptOverride = {
   title?: string;
@@ -79,7 +80,9 @@ export function registerPromptResources(server: any) {
       },
       async (): Promise<GetPromptResult> => {
         const promptText = getPrompt(prompt.name) ?? prompt.text;
+        const cacheMetadata = buildEmbeddedDocsCacheMetadata();
         const result: GetPromptResult = {
+          resultType: 'complete',
           description: prompt.resultDescription,
           messages: [
             {
@@ -89,8 +92,11 @@ export function registerPromptResources(server: any) {
                 text: promptText
               }
             }
-          ]
-        };
+          ],
+          ttlMs: cacheMetadata.ttlMs,
+          cacheScope: cacheMetadata.cacheScope,
+          _meta: buildServerInfoMeta()
+        } as any;
 
         return result;
       }
