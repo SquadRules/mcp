@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import type { ServerCapabilities } from '@modelcontextprotocol/server';
-import { ListToolsRequestSchema } from '@modelcontextprotocol/core';
 import { structuredLogger } from './utils/structured-logger.js';
 import { registerDocsResources } from './resources/docs-resources.js';
 import { registerPromptResources } from './resources/prompt-resources.js';
