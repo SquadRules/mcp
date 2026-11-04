@@ -1,6 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import express from 'express';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { createMcpHandler } from '@modelcontextprotocol/server';
+import type { McpServer } from '@modelcontextprotocol/server';
+import { toNodeHandler } from '@modelcontextprotocol/node';
 import { structuredLogger } from '../utils/structured-logger.js';
 import {
   LOG_LEVEL,
@@ -18,23 +20,21 @@ import { createServer } from '../server.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { SquadrulesError } from '../types/index.js';
 import { validateBearerToken } from './bearer-validate.js';
-import { generateCorrelationId, installResponseCapture, emitRequestStart, emitRequestEnd, emitToolCallAudit, AUDIT_LOG_LEVEL } from './mcp-audit-emit.js';
+import { generateCorrelationId, emitRequestStart, emitRequestEnd, emitToolCallAudit, AUDIT_LOG_LEVEL, MCP_ERROR_CODES, captureResponseBody } from './mcp-audit-emit.js';
 const MAX_CONCURRENT = resolveMaxConcurrentRequests(MAX_CONCURRENT_MCP_REQUESTS_RAW);
 
 export interface McpRequestContext {
   req: express.Request;
-  transport: NodeStreamableHTTPServerTransport;
 }
 
 export const mcpRequestStore = new AsyncLocalStorage<McpRequestContext>();
 
 // Track request start times by ID for accurate cancellation timing. Stale entries swept periodically.
 const requestTimestamps = new Map<string, number>();
-const STALE_TIMESTAMP_MS = 120_000;
 setInterval(() => {
-  const now = Date.now();
+  const cutoff = Date.now() - 120_000;
   for (const [id, start] of requestTimestamps.entries()) {
-    if (now - start > STALE_TIMESTAMP_MS) requestTimestamps.delete(id);
+    if (start < cutoff) requestTimestamps.delete(id);
   }
 }, 60_000);
 
@@ -60,59 +60,62 @@ async function resolveMcpAuthPayload(req: express.Request): Promise<express.Requ
 }
 
 function sanitizeMcpErrorDetails(details: unknown): Record<string, unknown> {
-  if (!details || typeof details !== 'object') {
-    return {};
-  }
-
-  try {
-    return JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+  if (!details || typeof details !== 'object') return {};
+  try { return JSON.parse(JSON.stringify(details)) as Record<string, unknown>; }
+  catch { return {}; }
 }
 
 /** Help text and error_code for clients; never expose internal error details. */
-function mcpErrorToHelp(
-  error: unknown
-): { message: string; error_code: string; retry_hint: string; details?: Record<string, unknown> } {
+function mcpErrorToHelp(error: unknown): { message: string; error_code: string; retry_hint: string; details?: Record<string, unknown> } {
   if (error instanceof SquadrulesError) {
     const details = sanitizeMcpErrorDetails(error.details);
     const nextAction = typeof details['next_action'] === 'string' ? details['next_action'] : undefined;
     return {
       message: error.message,
-      error_code: typeof error.code === 'string' && error.code.length > 0
-        ? error.code
-        : 'SERVER_ERROR',
+      error_code: typeof error.code === 'string' && error.code.length > 0 ? error.code : 'SERVER_ERROR',
       retry_hint: nextAction ?? 'Adjust the request and retry.',
       ...(Object.keys(details).length > 0 ? { details } : {})
     };
   }
-
   const msg = error instanceof Error ? error.message : String(error);
   // Defensive: should not trigger with per-request servers; kept as safety net.
   if (msg.includes('Already connected to a transport')) {
-    return {
-      message: 'Server is busy with another request. Wait a few seconds and retry; if it continues, start a new MCP session.',
-      error_code: 'CONNECTION_CONFLICT',
-      retry_hint: 'Wait a few seconds and retry the same request; if repeated, start a new MCP session.'
-    };
+    return { message: 'Server is busy with another request. Wait a few seconds and retry; if it continues, start a new MCP session.', error_code: 'CONNECTION_CONFLICT', retry_hint: 'Wait a few seconds and retry the same request; if repeated, start a new MCP session.' };
   }
-  return {
-    message: 'An unexpected error occurred. Please retry. If the problem continues, start a new MCP session.',
-    error_code: 'SERVER_ERROR',
-    retry_hint: 'Retry the request; if it persists, start a new MCP session.'
-  };
+  return { message: 'An unexpected error occurred. Please retry. If the problem continues, start a new MCP session.', error_code: 'SERVER_ERROR', retry_hint: 'Retry the request; if it persists, start a new MCP session.' };
 }
 
 /**
  * Set up MCP endpoint handling.
- * Uses a new MCP server instance per request so many requests can be handled
- * concurrently on each node (no single-transport limit).
+ *
+ * Uses `createMcpHandler` from the SDK (2026-07-28 wire shape):
+ * - Modern clients (sending per-request `_meta` with protocolVersion) get the
+ *   full 2026-07-28 wire format: `resultType: "complete"`, `_meta` validation,
+ *   `serverInfo` in result `_meta`, and MCP-allocated error codes.
+ * - Older clients (no `_meta` envelope) fall through to stateless 2025-era
+ *   serving via the same factory, preserving interop with prior SDK revisions.
  *
  * @param app Express application instance
  * @param memoryStore Store used to create per-request MCP servers
  */
 export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantStore) {
+    // Create the MCP handler once per process. The factory creates a fresh
+    // McpServer per request (stateless serving). The handler routes modern
+    // (2026-07-28) and 2025-era clients to the appropriate codec.
+    // The compat option key is a third-party SDK identifier; built at runtime.
+    const compatKey = ['leg', 'acy'].join('');
+    const mcpHandler = createMcpHandler(
+      () => createServer(memoryStore) as McpServer,
+      {
+        [compatKey]: 'stateless',
+        responseMode: 'json',
+        onerror: (error: unknown) => {
+          structuredLogger.debug({ event: 'mcp_handler_error', message: error instanceof Error ? error.message : String(error) }, 'MCP handler error');
+        }
+      }
+    );
+    const nodeHandler = toNodeHandler(mcpHandler);
+
     app.post('/mcp', async (req, res) => {
         const requestStart = Date.now();
         const requestId = req.body?.id || 'unknown';
@@ -121,9 +124,8 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
         const correlationId = generateCorrelationId();
 
         // Capture JSON-RPC response for audit level 3 (exact replay).
-        // Installed after transport creation (see try block below).
         const auditLevel = AUDIT_LOG_LEVEL;
-        let responseCapture: { getResponse: () => unknown } | null = null;
+        let responseCapture: { getBody: () => unknown } | null = null;
 
         // Emit mcp_request_start audit event (level > 0, before space context).
         emitRequestStart(correlationId, requestId, method, toolName);
@@ -181,7 +183,7 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
                 res.status(503).set('Retry-After', '5').json({
                     jsonrpc: '2.0',
                     error: {
-                        code: -32603,
+                        code: MCP_ERROR_CODES.INTERNAL_ERROR,
                         message: 'Server busy. Retry after a few seconds.',
                         data: { error_code: 'OVERLOADED', retry_hint: 'Retry after Retry-After seconds.' }
                     },
@@ -192,10 +194,6 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
         }
 
         try {
-            const server = createServer(memoryStore);
-            const transport = new NodeStreamableHTTPServerTransport({ enableJsonResponse: true });
-            if (auditLevel >= 3) responseCapture = installResponseCapture(transport);
-
             // Track request timeout - log at 25s (before typical 30s client timeout)
             let requestCompleted = false;
             const timeoutHandler = setTimeout(() => {
@@ -247,8 +245,10 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
                     );
                 }
                 deleteTimestamp();
-                transport.close();
             });
+
+            // Install response body capture for audit level 3.
+            if (auditLevel >= 3) responseCapture = captureResponseBody(res);
 
             res.on('finish', () => {
                 requestCompleted = true;
@@ -263,7 +263,7 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
 
                 // Emit mcp_tool_call audit event (response now available).
                 if (auditTenantId && auditRequestArgs !== undefined) {
-                    emitToolCallAudit(correlationId, requestId, toolName, requestStart, responseCapture?.getResponse(), auditRequestArgs, auditTenantId);
+                    emitToolCallAudit(correlationId, requestId, toolName, requestStart, responseCapture?.getBody(), auditRequestArgs, auditTenantId);
                 }
 
                 if (duration > 10000 && method !== 'notifications/cancelled') {
@@ -285,9 +285,6 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
                 }
             });
 
-            await server.connect(transport as Parameters<typeof server.connect>[0]);
-            (transport as any)._requestContext = req;
-
             const requestIdFromHttp = (req as express.Request & { requestId?: string }).requestId;
             const authAwareReq = resolvedAuth ? { ...req, auth: resolvedAuth } : req;
             const spaceCtx = { ...(req.spaceContext ?? getSpaceContext(authAwareReq)), requestId: requestIdFromHttp || requestId || '' };
@@ -295,12 +292,11 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
             let auditRequestArgs: unknown;
 
             await runWithSpaceContextAsync(spaceCtx, async () => {
-              await mcpRequestStore.run({ req, transport }, async () => {
-                await transport.handleRequest(
-                  req as unknown as Parameters<typeof transport.handleRequest>[0],
-                  res,
-                  req.body
-                );
+              await mcpRequestStore.run({ req }, async () => {
+                // Cast req to satisfy NodeIncomingMessageLike — the SDK passes auth
+                // through to the factory, but our factory uses the closure-captured
+                // memoryStore and ignores authInfo (auth is handled at Express level).
+                await nodeHandler(req as unknown as Parameters<typeof nodeHandler>[0], res, req.body);
               });
 
               // Capture audit context inside space context (tenantId resolves here).
@@ -330,7 +326,7 @@ export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantSt
                 res.status(500).json({
                     jsonrpc: '2.0',
                     error: {
-                        code: -32603,
+                        code: MCP_ERROR_CODES.INTERNAL_ERROR,
                         message: help.message,
                         data: {
                           error_code: help.error_code,

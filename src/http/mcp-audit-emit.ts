@@ -1,39 +1,62 @@
 /**
- * MCP audit event emission.
+ * MCP audit event emission and response utilities.
  *
  * Isolated from http-mcp-handler.ts to keep that file under the max-lines lint
  * limit. Called from the MCP HTTP handler after tool execution completes.
  */
 
 import { randomUUID } from 'node:crypto';
+import type express from 'express';
 import { writeAuditLine } from '../utils/structured-logger.js';
 import { AUDIT_LOG_LEVEL } from '../config.js';
 import { getBuildVersion } from '../utils/build-version.js';
 import { summarizeRequestArgs, summarizeResponse, extractErrorCode } from '../utils/audit-mcp-summary.js';
-import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
-import type { JSONRPCMessage } from '@modelcontextprotocol/server';
 
 export { AUDIT_LOG_LEVEL };
 
 /**
- * Capture JSON-RPC response for audit level 3.
- *
- * The MCP SDK's NodeStreamableHTTPServerTransport sends responses via transport.send(),
- * NOT through Express res.json()/res.end(). We intercept at the transport level.
+ * MCP-allocated protocol error codes (2026-07-28 spec).
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/basic
  */
-export function installResponseCapture(transport: NodeStreamableHTTPServerTransport): { getResponse: () => unknown } {
-  let captured: unknown = null;
-  const originalSend = transport.send.bind(transport);
+export const MCP_ERROR_CODES = {
+  HEADER_MISMATCH: -32020,
+  MISSING_REQUIRED_CLIENT_CAPABILITY: -32021,
+  UNSUPPORTED_PROTOCOL_VERSION: -32022,
+  INVALID_PARAMS: -32602,
+  INTERNAL_ERROR: -32603
+} as const;
 
-  transport.send = async function (message: JSONRPCMessage, options?: Parameters<typeof originalSend>[1]): Promise<void> {
-    // Capture JSON-RPC responses (have 'result' or 'error' and an 'id')
-    if (message && typeof message === 'object' && ('result' in message || 'error' in message)) {
-      captured = message;
+/**
+ * Capture the JSON response body written by `toNodeHandler` for audit level 3.
+ * In `responseMode: "json"`, the handler writes the full JSON-RPC response
+ * via `res.end(body)` in a single call.
+ */
+export function captureResponseBody(res: express.Response): { getBody: () => unknown } {
+  let capturedBody: unknown = null;
+  const originalEnd = res.end.bind(res);
+  const originalWrite = res.write.bind(res);
+
+  (res as any).write = function (chunk: unknown, ...args: unknown[]): boolean {
+    if (chunk) {
+      try {
+        const text = typeof chunk === 'string' ? chunk : chunk instanceof Uint8Array ? new TextDecoder().decode(chunk) : String(chunk);
+        capturedBody = JSON.parse(text);
+      } catch { /* non-JSON chunk, skip */ }
     }
-    return originalSend(message, options);
+    return originalWrite(chunk, ...args as [any]);
   };
 
-  return { getResponse: () => captured };
+  res.end = function (chunk?: unknown, ...args: unknown[]): express.Response {
+    if (chunk && !capturedBody) {
+      try {
+        const text = typeof chunk === 'string' ? chunk : chunk instanceof Uint8Array ? new TextDecoder().decode(chunk) : String(chunk);
+        capturedBody = JSON.parse(text);
+      } catch { /* non-JSON chunk, skip */ }
+    }
+    return originalEnd(chunk, ...args as [any]) as express.Response;
+  };
+
+  return { getBody: () => capturedBody };
 }
 
 /** Generate a correlation ID for grouping related MCP requests. */
