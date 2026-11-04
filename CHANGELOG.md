@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.18.0](https://github.com/SquadRules/mcp/compare/v5.17.1...v5.18.0) (2026-11-04)
+
+
+### Features
+
+* **deps:** migrate to [@modelcontextprotocol](https://github.com/modelcontextprotocol) v2 SDK packages ([#278](https://github.com/SquadRules/mcp/issues/278)) ([e596eb1](https://github.com/SquadRules/mcp/commit/e596eb19adb7d818bb599f22c24b32f46a763647))
+
 ## [5.17.1](https://github.com/SquadRules/mcp/compare/v5.17.0...v5.17.1) (2026-11-03)
 
 
