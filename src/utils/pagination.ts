@@ -70,7 +70,7 @@ export function paginateItems<T>(
   
   return {
     page,
-    nextCursor: hasMore ? encodeCursor(offset + pageSize) : undefined
+    ...(hasMore && { nextCursor: encodeCursor(offset + pageSize) })
   };
 }
 
@@ -122,7 +122,7 @@ export function buildPaginatedListResponse<T>(
   
   return {
     resultType: 'complete',
-    nextCursor,
+    ...(nextCursor !== undefined && { nextCursor }),
     ttlMs: cacheMetadata.ttlMs,
     cacheScope: cacheMetadata.cacheScope,
     // The actual data field will be added by the caller
