@@ -3,10 +3,16 @@ import { logger } from '../utils/structured-logger.js';
 import { getResourceAnnotations } from './resource-annotations.js';
 import { getResourceIcons } from './resource-icons.js';
 import { getResourceDescription } from './resource-descriptions.js';
+import { buildEmbeddedDocsCacheMetadata, buildServerInfoMeta } from '../utils/pagination.js';
 
 function mdOrFallback(uri: any, text?: string, notFound: string = 'Document not found') {
+  const cacheMetadata = buildEmbeddedDocsCacheMetadata();
   return {
-    contents: [{ uri: uri.href, mimeType: 'text/markdown', text: text || `# ${notFound}` }]
+    resultType: 'complete',
+    contents: [{ uri: uri.href, mimeType: 'text/markdown', text: text || `# ${notFound}` }],
+    ttlMs: cacheMetadata.ttlMs,
+    cacheScope: cacheMetadata.cacheScope,
+    _meta: buildServerInfoMeta()
   };
 }
 

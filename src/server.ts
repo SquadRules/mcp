@@ -24,11 +24,20 @@ import { registerTuneTool } from './tools/tune.js';
 import { registerExportTool } from './tools/export.js';
 import { zodToInputJsonSchema, zodToOutputJsonSchema } from './utils/zod-to-jsonschema.js';
 import { SQUADRULES_TOOL_REGISTRY } from './tools/tool-registry.js';
+import {
+  paginateItems,
+  buildEmbeddedDocsCacheMetadata,
+  buildServerInfoMeta,
+  DEFAULT_PAGE_SIZE
+} from './utils/pagination.js';
+import { getResources, getTemplates } from './resources/embedded-mcp-resources.js';
+import { listPromptOfferings } from './resources/prompt-resources.js';
 
 function installStrictToolsListHandler(server: McpServer): void {
   server.server.removeRequestHandler('tools/list');
-  server.server.setRequestHandler('tools/list', async () => ({
-    tools: SQUADRULES_TOOL_REGISTRY.map((tool) => ({
+  server.server.setRequestHandler('tools/list', async (request: any) => {
+    const cursor = request?.params?.cursor;
+    const allTools = SQUADRULES_TOOL_REGISTRY.map((tool) => ({
       name: tool.name,
       title: tool.title,
       description: tool.description,
@@ -37,8 +46,143 @@ function installStrictToolsListHandler(server: McpServer): void {
       ...('uiMeta' in tool && tool.uiMeta ? { _meta: tool.uiMeta } : {}),
       ...('annotations' in tool && tool.annotations ? { annotations: tool.annotations } : {}),
       ...('icons' in tool && tool.icons ? { icons: tool.icons } : {})
-    })) as any
-  }));
+    }));
+    
+    const { page, nextCursor } = paginateItems(allTools, cursor, DEFAULT_PAGE_SIZE);
+    const cacheMetadata = buildEmbeddedDocsCacheMetadata();
+    
+    return {
+      resultType: 'complete',
+      tools: page,
+      nextCursor,
+      ttlMs: cacheMetadata.ttlMs,
+      cacheScope: cacheMetadata.cacheScope,
+      _meta: buildServerInfoMeta()
+    } as any;
+  });
+}
+
+function installPaginatedResourcesListHandler(server: McpServer): void {
+  server.server.removeRequestHandler('resources/list');
+  server.server.setRequestHandler('resources/list', async (request: any) => {
+    const cursor = request?.params?.cursor;
+    const resourcesObj = getResources();
+    
+    // Flatten resources into an array
+    const allResources: any[] = [];
+    for (const [key, value] of Object.entries(resourcesObj)) {
+      if (typeof value === 'string') {
+        // Flat resource
+        const subdir = 'doc';
+        const prefix = `squadrules://${subdir}`;
+        const uri = `${prefix}/${key}`;
+        const name = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+        allResources.push({
+          uri,
+          name,
+          description: `Document: ${name}`,
+          mimeType: 'text/markdown'
+        });
+      } else if (typeof value === 'object' && value !== null) {
+        // Nested resources
+        const subdir = key;
+        const prefix = `squadrules://${subdir}`;
+        for (const [filename, content] of Object.entries(value as Record<string, unknown>)) {
+          if (typeof content === 'string') {
+            const uri = `${prefix}/${filename}`;
+            const name = filename.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+            allResources.push({
+              uri,
+              name,
+              description: `${subdir.toUpperCase()}: ${name}`,
+              mimeType: 'text/markdown'
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort for deterministic order
+    allResources.sort((a, b) => a.uri.localeCompare(b.uri));
+    
+    const { page, nextCursor } = paginateItems(allResources, cursor, DEFAULT_PAGE_SIZE);
+    const cacheMetadata = buildEmbeddedDocsCacheMetadata();
+    
+    return {
+      resultType: 'complete',
+      resources: page,
+      nextCursor,
+      ttlMs: cacheMetadata.ttlMs,
+      cacheScope: cacheMetadata.cacheScope,
+      _meta: buildServerInfoMeta()
+    } as any;
+  });
+}
+
+function installPaginatedResourceTemplatesListHandler(server: McpServer): void {
+  server.server.removeRequestHandler('resources/templates/list');
+  server.server.setRequestHandler('resources/templates/list', async (request: any) => {
+    const cursor = request?.params?.cursor;
+    const templatesObj = getTemplates();
+    
+    // Flatten templates into an array
+    const allTemplates: any[] = [];
+    for (const [key, value] of Object.entries(templatesObj)) {
+      if (typeof value === 'object' && value !== null) {
+        const subdir = key;
+        for (const [filename, content] of Object.entries(value as Record<string, unknown>)) {
+          if (typeof content === 'string') {
+            const uriTemplate = `squadrules://${subdir}/${filename}`;
+            const name = filename.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+            allTemplates.push({
+              uriTemplate,
+              name,
+              description: `Template: ${name}`,
+              mimeType: 'text/markdown'
+            });
+          }
+        }
+      }
+    }
+    
+    // Sort for deterministic order
+    allTemplates.sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate));
+    
+    const { page, nextCursor } = paginateItems(allTemplates, cursor, DEFAULT_PAGE_SIZE);
+    const cacheMetadata = buildEmbeddedDocsCacheMetadata();
+    
+    return {
+      resultType: 'complete',
+      resourceTemplates: page,
+      nextCursor,
+      ttlMs: cacheMetadata.ttlMs,
+      cacheScope: cacheMetadata.cacheScope,
+      _meta: buildServerInfoMeta()
+    } as any;
+  });
+}
+
+function installPaginatedPromptsListHandler(server: McpServer): void {
+  server.server.removeRequestHandler('prompts/list');
+  server.server.setRequestHandler('prompts/list', async (request: any) => {
+    const cursor = request?.params?.cursor;
+    const allPrompts = listPromptOfferings();
+    
+    // Sort for deterministic order
+    allPrompts.sort((a, b) => a.name.localeCompare(b.name));
+    
+    const { page, nextCursor } = paginateItems(allPrompts, cursor, DEFAULT_PAGE_SIZE);
+    const cacheMetadata = buildEmbeddedDocsCacheMetadata();
+    
+    return {
+      resultType: 'complete',
+      prompts: page,
+      nextCursor,
+      ttlMs: cacheMetadata.ttlMs,
+      cacheScope: cacheMetadata.cacheScope,
+      _meta: buildServerInfoMeta()
+    } as any;
+  });
 }
 
 // Create and configure the MCP server
@@ -73,6 +217,9 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
     registerExportTool(server, memoryStore, { qdrantService });
     registerSpacesTool(server, memoryStore, { toolName: 'spaces' });
     installStrictToolsListHandler(server);
+    installPaginatedResourcesListHandler(server);
+    installPaginatedResourceTemplatesListHandler(server);
+    installPaginatedPromptsListHandler(server);
     registerSpacesUiResources(server);
     registerForwardUiResources(server);
     registerActivateUiResources(server);

@@ -23,6 +23,7 @@ import { resolveExportAdapter } from './export-resolve-adapter.js';
 import { activateRefinementStore } from '../services/activate-refinement-store.js';
 import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
+import { buildAdapterContentCacheMetadata } from '../utils/pagination.js';
 
 interface RegisterActivateOptions {
   toolName?: string;
@@ -267,9 +268,12 @@ export function registerActivateTool(server: any, memoryStore: MemoryQdrantStore
         mcpToolCalls.inc({ tool: toolName, status: 'success', tenant_id: tenantId });
         mcpToolOutputSize.observe({ tool: toolName, tenant_id: tenantId }, JSON.stringify(output).length);
         timer({ tool: toolName, status: 'success', tenant_id: tenantId });
+        const cacheMetadata = buildAdapterContentCacheMetadata();
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-          structuredContent: output
+          structuredContent: output,
+          ttlMs: cacheMetadata.ttlMs,
+          cacheScope: cacheMetadata.cacheScope
         };
       } catch (error) {
         mcpToolCalls.inc({ tool: toolName, status: 'error', tenant_id: tenantId });
