@@ -1,6 +1,8 @@
 import type { GetPromptResult, Prompt } from '@modelcontextprotocol/server';
 import { getPrompts, getPrompt } from './embedded-mcp-resources.js';
 import { logger } from '../utils/structured-logger.js';
+import { getPromptIcons } from './prompt-icons.js';
+import { getPromptMetadata } from './prompt-metadata.js';
 
 type PromptOverride = {
   title?: string;
@@ -13,6 +15,7 @@ const promptOverrides: Record<string, PromptOverride> = {};
 type RegisteredPrompt = Prompt & {
   resultDescription: string;
   text: string;
+  icons?: Array<{ src: string; mimeType: string; sizes: string[] }>;
 };
 
 function formatPromptTitle(key: string): string {
@@ -22,14 +25,19 @@ function formatPromptTitle(key: string): string {
 function buildRegisteredPrompt(key: string, text: string): RegisteredPrompt {
   const override = promptOverrides[key] ?? {};
   const title = override.title ?? formatPromptTitle(key);
-  const description = override.description ?? `Prompt: ${title}`;
+  const fallbackDescription = `Prompt: ${title}`;
+  const metadata = getPromptMetadata(key, fallbackDescription);
+  const description = override.description ?? metadata.description;
+  const icons = getPromptIcons(key);
 
   return {
     name: key,
     title,
     description,
     resultDescription: override.resultDescription ?? description,
-    text
+    text,
+    icons,
+    ...(metadata.arguments && metadata.arguments.length > 0 ? { arguments: metadata.arguments } : {})
   };
 }
 
@@ -37,8 +45,14 @@ function buildRegisteredPrompt(key: string, text: string): RegisteredPrompt {
 export function listPromptOfferings(): Prompt[] {
   const prompts = getPrompts() as Record<string, string>;
   return Object.entries(prompts).map(([key, text]) => {
-    const { name, title, description } = buildRegisteredPrompt(key, text);
-    return { name, title, description };
+    const { name, title, description, icons, arguments: args } = buildRegisteredPrompt(key, text);
+    return {
+      name,
+      title,
+      description,
+      ...(icons ? { icons } : {}),
+      ...(args && args.length > 0 ? { arguments: args } : {})
+    };
   });
 }
 
@@ -60,7 +74,8 @@ export function registerPromptResources(server: any) {
       prompt.name,
       {
         title: prompt.title,
-        description: prompt.description
+        description: prompt.description,
+        ...(prompt.icons ? { icons: prompt.icons } : {})
       },
       async (): Promise<GetPromptResult> => {
         const promptText = getPrompt(prompt.name) ?? prompt.text;
