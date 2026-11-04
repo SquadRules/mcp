@@ -37,7 +37,7 @@ function installStrictToolsListHandler(server: McpServer): void {
       ...('uiMeta' in tool && tool.uiMeta ? { _meta: tool.uiMeta } : {}),
       ...('annotations' in tool && tool.annotations ? { annotations: tool.annotations } : {}),
       ...('icons' in tool && tool.icons ? { icons: tool.icons } : {})
-    }))
+    })) as any
   }));
 }
 
