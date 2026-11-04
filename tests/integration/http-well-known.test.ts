@@ -1,7 +1,7 @@
 /**
  * Integration tests for OAuth 2.0 Protected Resource Metadata (RFC 9728).
  * Validates well-known endpoints and 401 WWW-Authenticate headers per the
- * MCP Authorization specification (2025-11-25).
+ * MCP Authorization specification (2026-07-28).
  *
  * These tests run against the live dev server and do NOT require auth —
  * well-known discovery must be reachable without credentials.

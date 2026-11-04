@@ -10,11 +10,11 @@
  *
  *   Proxies Keycloak's realm OpenID configuration. registration_endpoint is preserved so
  *   MCP hosts that require Dynamic Client Registration (e.g. Cursor streamable HTTP) work.
- *   Adds client_id_metadata_document_supported: true (MCP spec 2025-11-25) so clients that
+ *   Adds client_id_metadata_document_supported: true (MCP spec 2026-07-28) so clients that
  *   support Client ID Metadata Documents can prefer them over DCR when applicable.
  *   Operators should constrain DCR in Keycloak realm settings if client sprawl is a concern.
  *
- * See: https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
+ * See: https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
  */
 import type { Express, Request, Response } from 'express';
 import {
