@@ -10,6 +10,10 @@ Remove adapters or individual layers by URI.
 - **Adapter URI** — deletes **all** layers belonging to that adapter.
 - **Layer URI** — deletes that layer memory only.
 
-**Output:** Per-URI `status` (`deleted` | `error`), `message`, and aggregate counts.
+**Output:** Per-URI `status` (`deleted` | `error`), `message`, and aggregate counts. Response contains the deletion results and any errors encountered.
+
+**On success:** The resource is removed and subsequent activate calls will not find it.
 
 **Warning:** Deletion is destructive. Prefer **`export`** before removing production adapters.
+
+**On failure:** If delete returns an error status, verify the URI is correct and the resource exists. If the error is "resource not found", check if it was already deleted or verify the URI format.

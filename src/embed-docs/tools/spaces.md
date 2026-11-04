@@ -9,7 +9,7 @@ adapters each contains.
   second tool content part with an HTML table (type badges, expandable adapter
   lists) for hosts that render HTML.
 
-**Output:** `spaces` array with `name`, `space_id`, `type` (`personal` | `group` | `app` | `other`), `adapter_count`, and optionally `adapters` (`adapter_id`, `title`, `layer_count`).
+**Output:** `spaces` array with `name`, `space_id`, `type` (`personal` | `group` | `app` | `other`), `adapter_count`, and optionally `adapters` (`adapter_id`, `title`, `layer_count`). Response contains the list of available spaces and their adapter counts.
 
 When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a writable **Personal** space and the read-only **Squadrules app** space.
 
@@ -22,3 +22,5 @@ When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a wri
 5. **Visibility** — `activate` **match** choices include **`space_name`** so you can see whether a hit is personal, group, or app-level.
 
 **SQUADRULES tool order** for runs: **`activate`** → **`forward`** (per layer until `next_action` → **`reward`**) → **`reward`**. Use this tool first when you need valid **`space`** values or an inventory before activation.
+
+**On failure:** If spaces returns no spaces, check agent configuration and ensure at least one space exists. If the response is empty, verify the server is running and accessible.

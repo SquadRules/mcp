@@ -7,6 +7,8 @@ import { deleteInputSchema, deleteOutputSchema, type DeleteInput, type DeleteOut
 import { assertWireAdapterUri, parseSquadrulesUri } from './squadrules-uri.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 /** Shared execute: delete memories by URIs. Used by MCP tool and HTTP route. */
 export async function executeDelete(
@@ -76,9 +78,11 @@ export function registerDeleteTool(server: any, toolName = 'delete') {
     toolName,
     {
       title: 'Delete SQUADRULES adapter resource',
-      description: resolveToolDoc('delete'),
+      description: resolveToolDoc('delete') || 'Delete an adapter or layer by URI. Response contains deletion results per URI with status and message. On success, the resource is removed and subsequent activate calls will not find it. On failure (resource not found), verify the URI or check if already deleted.',
       inputSchema: mcpLooseToolInput(deleteInputSchema),
-      outputSchema: deleteOutputSchema
+      outputSchema: deleteOutputSchema,
+      annotations: TOOL_ANNOTATIONS.delete,
+      icons: TOOL_ICONS.delete
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

@@ -21,6 +21,8 @@ import { normalizeAuthorSlug } from '../utils/protocol-slug.js';
 import { loadLinkedArtifacts } from './activate-artifacts.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
 import { activateRefinementStore } from '../services/activate-refinement-store.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 interface RegisterActivateOptions {
   toolName?: string;
@@ -239,10 +241,12 @@ export function registerActivateTool(server: any, memoryStore: MemoryQdrantStore
     toolName,
     {
       title: 'Activate the best adapter',
-      description: resolveToolDoc('activate') || 'Find the best adapter for the current input and return ranked activation choices.',
+      description: resolveToolDoc('activate') || 'Find the best adapter for the current input and return ranked activation choices. Response contains adapter URIs, similarity scores, and ranked options. On success, call forward with the chosen adapter URI. On failure (no matches), refine your input or train a new adapter.',
       inputSchema: mcpLooseToolInput(activateInputSchema),
       outputSchema: activateOutputSchema,
-      _meta: SQUADRULES_ACTIVATE_TOOL_UI_META
+      _meta: SQUADRULES_ACTIVATE_TOOL_UI_META,
+      annotations: TOOL_ANNOTATIONS.activate,
+      icons: TOOL_ICONS.activate
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

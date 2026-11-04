@@ -8,6 +8,8 @@ import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { executeTune } from './tune-execute.js';
 import { invalidateTuneCache } from './tune-cache-invalidation.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 export { executeTune } from './tune-execute.js';
 
@@ -23,9 +25,11 @@ export function registerTuneTool(server: any, memoryStore: MemoryQdrantStore, op
     toolName,
     {
       title: 'Update adapter content',
-      description: resolveToolDoc('tune') || 'Update adapter layer content.',
+      description: resolveToolDoc('tune') || 'Update adapter layer content. Response contains the updated layer URI, new content hash, and modification timestamp. On success, call forward with the updated adapter to see changes. On failure (layer not found), verify the URI and train a new adapter if needed.',
       inputSchema: mcpLooseToolInput(tuneInputSchema),
-      outputSchema: tuneOutputSchema
+      outputSchema: tuneOutputSchema,
+      annotations: TOOL_ANNOTATIONS.tune,
+      icons: TOOL_ICONS.tune
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

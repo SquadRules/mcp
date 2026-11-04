@@ -26,6 +26,8 @@ import { resolveCanonicalAdapterUriForArtifact } from './train-artifact-adapter-
 import { assertReviewEvidencePassed } from './review-evidence-check.js';
 import { resolveAndValidateDirectory, scanMarkdownFiles } from '../utils/directory-access.js';
 import fs from 'node:fs';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 interface RegisterTrainOptions {
   toolName?: string;
   qdrantService?: QdrantService;
@@ -251,9 +253,11 @@ export function registerTrainTool(server: any, memoryStore: MemoryQdrantStore, o
     toolName,
     {
       title: 'Register a new adapter',
-      description: resolveToolDoc('train') || 'Store a new adapter from markdown.',
+      description: resolveToolDoc('train') || 'Store a new adapter from markdown content. Response contains the adapter URI, layer count, and creation status. On success, call activate to find and use the new adapter. On failure (duplicate or similar adapter), inspect the match and either use force_update: true or choose a different title.',
       inputSchema: mcpLooseToolInput(trainInputSchema),
-      outputSchema: trainOutputSchema
+      outputSchema: trainOutputSchema,
+      annotations: TOOL_ANNOTATIONS.train,
+      icons: TOOL_ICONS.train
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

@@ -49,7 +49,7 @@ adapter`.
 
 The response lists `squadrules://artifact/{slug}` items — the stored id only
 when no slug was persisted; the same stable **slug** appears in **`activate`**'s
-`linked_artifacts[]`.
+`linked_artifacts[]`. Response contains `status: stored` and `items` with `layer_uuid`, `adapter_uri`, `layer` URIs, labels, tags.
 
 **Size limits (safety):** Before structure checks, the server rejects oversized Markdown and artifact bodies (max logical lines, max UTF-8 bytes per line, and a total-byte ceiling from env — default line cap **350**, default per-line bytes **8192**, safety factor **1.15**). See the Train workflow in the [project Wiki](https://github.com/jakub-plichcinski/squadrules-mcp/wiki).
 
@@ -63,3 +63,5 @@ dump markdown or datasets.
 For contract shapes and examples, call **`forward`** with
 `squadrules://adapter/author-adapter` and omit `solution` on the first call of
 the run (then follow `next_action`).
+
+**On failure:** If train fails with a duplicate adapter error, inspect the match and either use `force_update: true` to replace it or choose a different title. If structure validation fails, fix the markdown to include the required H1 title, Activation Patterns section, Reward Signal section, and at least one fenced JSON block with a contract object.

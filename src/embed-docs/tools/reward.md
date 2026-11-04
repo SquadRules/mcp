@@ -18,6 +18,8 @@ Omitting either produces `sft_blockers: ["missing_rubric_version"]` / `preferenc
 **Output:** Per-layer result rows with `rated_at`, normalized grading
 metadata (`grader_kind`, `evaluation_label`), export eligibility
 flags plus blocker lists for `sft_jsonl` and `preference_jsonl`, and
-`next_call: null` as the explicit terminal marker.
+`next_call: null` as the explicit terminal marker. Response contains the evaluation result and export eligibility status.
 
 **Rules:** Use only layer URIs returned by **`forward`**. Do not substitute adapter URIs here unless the tool schema explicitly allows it (this tool expects a layer URI).
+
+**On failure:** If reward fails with a proof conflict, fix the failed step and run it again before retrying reward. Check that the layer URI and execution_id match the forward call.

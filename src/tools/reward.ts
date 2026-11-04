@@ -11,6 +11,8 @@ import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { SquadrulesError } from '../types/index.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 interface RegisterRewardOptions {
   toolName?: string;
@@ -135,9 +137,11 @@ export function registerRewardTool(server: any, qdrantService: QdrantService, op
     toolName,
     {
       title: 'Record adapter reward',
-      description: resolveToolDoc('reward') || 'Attach a reward signal after adapter execution completes.',
+      description: resolveToolDoc('reward') || 'Attach a reward signal after adapter execution completes. Response contains the evaluation score, quality bonus, and storage confirmation. On success, the reward is recorded and the adapter is updated. On failure (proof conflict), fix the failed step and run it again before retrying reward.',
       inputSchema: mcpLooseToolInput(rewardInputSchema),
-      outputSchema: rewardOutputSchema
+      outputSchema: rewardOutputSchema,
+      annotations: TOOL_ANNOTATIONS.reward,
+      icons: TOOL_ICONS.reward
     },
     async (params: unknown) => {
       const tenantId = getTenantId();

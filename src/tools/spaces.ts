@@ -18,6 +18,8 @@ import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { renderSpacesWidgetHtml } from '../mcp-apps/spaces-widget-html.js';
 import { isAllowedArtifactMime } from './artifact-mime.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
+import { TOOL_ICONS } from './tool-icons.js';
 
 const DEFAULT_TOOL_NAME = 'spaces';
 const SCROLL_LIMIT = 2000;
@@ -199,10 +201,12 @@ export function registerSpacesTool(server: any, memoryStore: MemoryQdrantStore, 
     toolName,
     {
       title: 'List spaces and adapter counts',
-      description: resolveToolDoc('spaces') ?? 'List the agent\'s available spaces with human-readable names and adapter counts. Optionally include adapter titles and layer counts per space.',
+      description: resolveToolDoc('spaces') ?? "List the agent's available spaces with human-readable names and adapter counts. Response contains space IDs, display names, adapter counts, and optionally adapter titles and layer counts per space. On success, use space IDs to scope subsequent train or activate calls. On failure (no spaces), check agent configuration.",
       inputSchema: mcpLooseToolInput(spacesInputSchema),
       outputSchema: spacesOutputSchema,
-      _meta: SQUADRULES_SPACES_TOOL_UI_META
+      _meta: SQUADRULES_SPACES_TOOL_UI_META,
+      annotations: TOOL_ANNOTATIONS.spaces,
+      icons: TOOL_ICONS.spaces
     },
     async (params: unknown) => {
       const tenantId = getTenantId();
