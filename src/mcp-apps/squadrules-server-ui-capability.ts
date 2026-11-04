@@ -7,7 +7,7 @@ import { MCP_APP_HTML_MIME_TYPE, MCP_UI_EXTENSION_ID, SKYBRIDGE_HTML_MIME_TYPE }
 export const squadrulesServerUiCapabilityBlock = {
   extensions: {
     [MCP_UI_EXTENSION_ID]: {
-      mimeTypes: [MCP_APP_HTML_MIME_TYPE, SKYBRIDGE_HTML_MIME_TYPE]
+      mimeTypes: [MCP_APP_HTML_MIME_TYPE, SKYBRIDGE_HTML_MIME_TYPE] as string[]
     }
   }
-} as const;
+};

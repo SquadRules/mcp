@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import express from 'express';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node/streamableHttp';
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { structuredLogger } from '../utils/structured-logger.js';
 import {
   LOG_LEVEL,

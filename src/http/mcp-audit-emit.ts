@@ -10,7 +10,7 @@ import { writeAuditLine } from '../utils/structured-logger.js';
 import { AUDIT_LOG_LEVEL } from '../config.js';
 import { getBuildVersion } from '../utils/build-version.js';
 import { summarizeRequestArgs, summarizeResponse, extractErrorCode } from '../utils/audit-mcp-summary.js';
-import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node/streamableHttp';
+import type { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import type { JSONRPCMessage } from '@modelcontextprotocol/server';
 
 export { AUDIT_LOG_LEVEL };
