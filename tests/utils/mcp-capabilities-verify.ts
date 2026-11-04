@@ -24,8 +24,8 @@ function assertCachingHints(result: Record<string, unknown>): void {
  * Checks server capabilities, version, tools, resources, resource read,
  * resource templates, and prompts — with caching hint validation on each.
  *
- * Note: server/discover (2026-07-28 spec) is not yet available in the
- * current SDK (protocol 2025-11-25); will add when the SDK upgrades.
+ * Note: server/discover (2026-07-28 spec) is not yet exposed by the
+ * current SDK; will add when the SDK surfaces it.
  */
 export async function verifyMcpServerCapabilities(client: Client): Promise<void> {
   // ── 1. Server capabilities (initialize response) ──────────────
