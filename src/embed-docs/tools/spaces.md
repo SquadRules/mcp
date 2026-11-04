@@ -9,7 +9,7 @@ adapters each contains.
   second tool content part with an HTML table (type badges, expandable adapter
   lists) for hosts that render HTML.
 
-**Output:** `spaces` array with `name`, `space_id`, `type` (`personal` | `group` | `app` | `other`), `adapter_count`, and optionally `adapters` (`adapter_id`, `title`, `layer_count`).
+**Output:** `spaces` array with `name`, `space_id`, `type` (`personal` | `group` | `app` | `other`), `adapter_count`, and optionally `adapters` (`adapter_id`, `title`, `layer_count`). Response contains the list of available spaces and their adapter counts.
 
 When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a writable **Personal** space and the read-only **Squadrules app** space.
 
