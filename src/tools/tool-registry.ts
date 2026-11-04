@@ -12,7 +12,7 @@ import {
   SQUADRULES_FORWARD_TOOL_UI_META,
   SQUADRULES_SPACES_TOOL_UI_META
 } from '../mcp-apps/squadrules-ui-constants.js';
-import { TOOL_ANNOTATIONS, type ToolAnnotations } from './tool-annotations.js';
+import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 
 /**
