@@ -1,13 +1,9 @@
-// v2 migration: zod-compat utilities removed, using direct zod JSON schema conversion
-import type { z } from 'zod';
-
-// JSON Schema property type - must match v2 SDK expectations
-type JsonSchemaPropertyType = string | number | boolean | null | JsonSchemaPropertyType[] | { [key: string]: JsonSchemaPropertyType };
+import { z, toJSONSchema } from 'zod';
 
 // JSON Schema type for tool input/output - must have type: "object" for v2 SDK
 export interface ToolJsonSchema {
-  type: 'object';
-  properties?: { [key: string]: JsonSchemaPropertyType };
+  type?: 'object' | string;
+  properties?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -16,20 +12,16 @@ const EMPTY_OBJECT_JSON_SCHEMA: ToolJsonSchema = {
   properties: {}
 };
 
-// TODO: v2 migration - these utilities need replacement
-// For now, return empty schema as placeholder
 export function zodToInputJsonSchema(schema: z.ZodTypeAny): ToolJsonSchema {
-  // In v2, use standard JSON schema conversion or SDK utilities
   try {
-    // Try to use zod's built-in JSON schema if available
-    if ('jsonSchema' in schema && typeof schema.jsonSchema === 'function') {
-      const result = schema.jsonSchema() as ToolJsonSchema;
-      // Ensure type is preserved
-      if (!result.type) {
-        result.type = 'object';
-      }
-      return result;
+    const jsonSchema = toJSONSchema(schema, {
+      io: 'input'
+    }) as ToolJsonSchema;
+    // Ensure type is preserved
+    if (!jsonSchema.type) {
+      jsonSchema.type = 'object';
     }
+    return jsonSchema;
   } catch {
     // Fallback to empty schema
   }
@@ -38,14 +30,14 @@ export function zodToInputJsonSchema(schema: z.ZodTypeAny): ToolJsonSchema {
 
 export function zodToOutputJsonSchema(schema: z.ZodTypeAny): ToolJsonSchema {
   try {
-    if ('jsonSchema' in schema && typeof schema.jsonSchema === 'function') {
-      const result = schema.jsonSchema() as ToolJsonSchema;
-      // Ensure type is preserved
-      if (!result.type) {
-        result.type = 'object';
-      }
-      return result;
+    const jsonSchema = toJSONSchema(schema, {
+      io: 'output'
+    }) as ToolJsonSchema;
+    // Ensure type is preserved
+    if (!jsonSchema.type) {
+      jsonSchema.type = 'object';
     }
+    return jsonSchema;
   } catch {
     // Fallback to empty schema
   }

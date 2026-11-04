@@ -45,10 +45,11 @@ Next call:
   prefix), or your raw `space_id` (same forms as **`train`** / **`tune`** `space`).
 - `max_choices` (optional) — cap on match rows returned.
 
-**Output:** Always `must_obey: true`. Includes `choices` (each with slug-form
-`uri`, `label`, `adapter_name`, `activation_score`, `role`, `tags`,
-`next_action`, optional `adapter_version`, optional `activation_patterns`,
-optional `linked_artifacts`, `space_name`, `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
+**Output:** Always `must_obey: true`. Includes `choices` (each with slug-only
+`uri` in the form `squadrules://adapter/<slug>`, `label`, `adapter_name`,
+`activation_score`, `role`, `tags`, `next_action`, optional `adapter_version`,
+optional `activation_patterns`, optional `linked_artifacts`, `space_name`,
+`slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
 
 `forward_first_call` is required on `match` and `refine`, and `null` on
 `create`.

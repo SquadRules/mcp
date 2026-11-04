@@ -2,8 +2,7 @@
  * Ensure host/dynamic OAuth clients receive group claims and can access group spaces via MCP.
  */
 
-import { Client } from '@modelcontextprotocol/client';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/client/streamableHttp';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { decodeJwtPayloadSegment, extractGroupsFromPayload } from '../../../../src/http/oidc-profile-claims.js';
 import { parseMcpJson, withRawOnFail } from '../../../utils/expect-with-raw.js';
 import {

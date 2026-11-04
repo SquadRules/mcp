@@ -32,8 +32,8 @@ function installStrictToolsListHandler(server: McpServer): void {
       name: tool.name,
       title: tool.title,
       description: tool.description,
-      inputSchema: zodToInputJsonSchema(tool.strictInputSchema),
-      outputSchema: zodToOutputJsonSchema(tool.outputSchema),
+      inputSchema: zodToInputJsonSchema(tool.strictInputSchema) as any,
+      outputSchema: zodToOutputJsonSchema(tool.outputSchema) as any,
       ...('uiMeta' in tool && tool.uiMeta ? { _meta: tool.uiMeta } : {})
     }))
   }));
