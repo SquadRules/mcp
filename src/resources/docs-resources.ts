@@ -1,5 +1,8 @@
 import { getResource, getResources } from './embedded-mcp-resources.js';
 import { logger } from '../utils/structured-logger.js';
+import { getResourceAnnotations } from './resource-annotations.js';
+import { getResourceIcons } from './resource-icons.js';
+import { getResourceDescription } from './resource-descriptions.js';
 
 function mdOrFallback(uri: any, text?: string, notFound: string = 'Document not found') {
   return {
@@ -22,12 +25,22 @@ export function registerDocsResources(server: any) {
       const prefix = `squadrules://${subdir}`;
       const uri = `${prefix}/${filename}`;
       const name = toTitle(filename);
-      const description = `Documentation for ${name}`;
+      const resourceDesc = getResourceDescription(subdir, filename, name);
+      const description = resourceDesc.description;
+      const annotations = getResourceAnnotations(subdir, filename);
+      const icons = getResourceIcons(subdir);
 
       server.registerResource(
         `${subdir}-${filename}`,
         uri,
-        { name, description, mimeType: 'text/markdown' },
+        {
+          name,
+          title: resourceDesc.title || name,
+          description,
+          mimeType: 'text/markdown',
+          annotations,
+          icons
+        },
         (uriObj: any) => {
           const resourceContent = getResource(filename);
           return mdOrFallback(uriObj, resourceContent);
@@ -43,12 +56,22 @@ export function registerDocsResources(server: any) {
         if (typeof content === 'string') {
           const uri = `${prefix}/${filename}`;
           const name = toTitle(filename);
-          const description = `Documentation for ${name}`;
+          const resourceDesc = getResourceDescription(subdir, filename, name);
+          const description = resourceDesc.description;
+          const annotations = getResourceAnnotations(subdir, filename);
+          const icons = getResourceIcons(subdir);
 
           server.registerResource(
             `${subdir}-${filename}`,
             uri,
-            { name, description, mimeType: 'text/markdown' },
+            {
+              name,
+              title: resourceDesc.title || name,
+              description,
+              mimeType: 'text/markdown',
+              annotations,
+              icons
+            },
             (uriObj: any) => {
               const resourceContent = getResource(`${subdir}.${filename}`);
               return mdOrFallback(uriObj, resourceContent);
