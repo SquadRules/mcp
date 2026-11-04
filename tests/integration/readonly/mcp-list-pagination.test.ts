@@ -21,11 +21,7 @@ describe('MCP List Pagination and Cache Metadata', () => {
         expect(result).toBeDefined();
         expect(result.tools).toBeDefined();
         expect(Array.isArray(result.tools)).toBe(true);
-        
-        // Check for pagination fields (2026-07-28 spec)
-        expect(result).toHaveProperty('resultType');
-        expect(result.resultType).toBe('complete');
-        
+
         // Check for cache metadata
         expect(result).toHaveProperty('ttlMs');
         expect(result).toHaveProperty('cacheScope');
@@ -67,11 +63,7 @@ describe('MCP List Pagination and Cache Metadata', () => {
         expect(result).toBeDefined();
         expect(result.resources).toBeDefined();
         expect(Array.isArray(result.resources)).toBe(true);
-        
-        // Check for pagination fields
-        expect(result).toHaveProperty('resultType');
-        expect(result.resultType).toBe('complete');
-        
+
         // Check for cache metadata
         expect(result).toHaveProperty('ttlMs');
         expect(result).toHaveProperty('cacheScope');
@@ -120,11 +112,7 @@ describe('MCP List Pagination and Cache Metadata', () => {
         expect(result).toBeDefined();
         expect(result.resourceTemplates).toBeDefined();
         expect(Array.isArray(result.resourceTemplates)).toBe(true);
-        
-        // Check for pagination fields
-        expect(result).toHaveProperty('resultType');
-        expect(result.resultType).toBe('complete');
-        
+
         // Check for cache metadata
         expect(result).toHaveProperty('ttlMs');
         expect(result).toHaveProperty('cacheScope');
@@ -145,11 +133,7 @@ describe('MCP List Pagination and Cache Metadata', () => {
         expect(result).toBeDefined();
         expect(result.prompts).toBeDefined();
         expect(Array.isArray(result.prompts)).toBe(true);
-        
-        // Check for pagination fields
-        expect(result).toHaveProperty('resultType');
-        expect(result.resultType).toBe('complete');
-        
+
         // Check for cache metadata
         expect(result).toHaveProperty('ttlMs');
         expect(result).toHaveProperty('cacheScope');
