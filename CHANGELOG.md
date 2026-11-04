@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.22.0](https://github.com/SquadRules/mcp/compare/v5.21.0...v5.22.0) (2026-11-04)
+
+
+### Features
+
+* **mcp-list:** adopt cursor pagination and cache metadata ([#289](https://github.com/SquadRules/mcp/issues/289)) ([ec20604](https://github.com/SquadRules/mcp/commit/ec206042df23225428ae33cc60715321b7f40d5c))
+
 ## [5.21.0](https://github.com/SquadRules/mcp/compare/v5.20.0...v5.21.0) (2026-11-04)
 
 
