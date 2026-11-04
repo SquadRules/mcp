@@ -6,8 +6,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseDotenv } from 'dotenv';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { SCENARIOS } from './scenario.js';
 import type { TestHarness } from './types.js';
 import { callToolJson } from './helpers/mcp-call-normalize.js';

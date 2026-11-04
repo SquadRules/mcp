@@ -3,7 +3,7 @@
  * widget-capable tools and UI resources. Shapes mirror tools/list and UIResource
  * listings (SEP-1865 / MCP Apps).
  */
-import type { Prompt } from '@modelcontextprotocol/sdk/types.js';
+import type { Prompt } from '@modelcontextprotocol/server';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
 import { zodToInputJsonSchema, zodToOutputJsonSchema } from '../utils/zod-to-jsonschema.js';
 import { listPromptOfferings } from '../resources/prompt-resources.js';

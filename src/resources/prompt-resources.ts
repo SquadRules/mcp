@@ -1,4 +1,4 @@
-import type { GetPromptResult, Prompt } from '@modelcontextprotocol/sdk/types.js';
+import type { GetPromptResult, Prompt } from '@modelcontextprotocol/server';
 import { getPrompts, getPrompt } from './embedded-mcp-resources.js';
 import { logger } from '../utils/structured-logger.js';
 

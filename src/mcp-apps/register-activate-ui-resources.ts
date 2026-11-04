@@ -1,4 +1,4 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import {
   SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,
   SQUADRULES_ACTIVATE_UI_URI,

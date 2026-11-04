@@ -1,6 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { ServerCapabilities } from '@modelcontextprotocol/sdk/types.js';
-import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/server';
+import type { ServerCapabilities } from '@modelcontextprotocol/server';
 import { structuredLogger } from './utils/structured-logger.js';
 import { registerDocsResources } from './resources/docs-resources.js';
 import { registerPromptResources } from './resources/prompt-resources.js';
@@ -28,13 +27,13 @@ import { SQUADRULES_TOOL_REGISTRY } from './tools/tool-registry.js';
 
 function installStrictToolsListHandler(server: McpServer): void {
   server.server.removeRequestHandler('tools/list');
-  server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  server.server.setRequestHandler('tools/list', async () => ({
     tools: SQUADRULES_TOOL_REGISTRY.map((tool) => ({
       name: tool.name,
       title: tool.title,
       description: tool.description,
-      inputSchema: zodToInputJsonSchema(tool.strictInputSchema),
-      outputSchema: zodToOutputJsonSchema(tool.outputSchema),
+      inputSchema: zodToInputJsonSchema(tool.strictInputSchema) as any,
+      outputSchema: zodToOutputJsonSchema(tool.outputSchema) as any,
       ...('uiMeta' in tool && tool.uiMeta ? { _meta: tool.uiMeta } : {})
     }))
   }));

@@ -1,7 +1,7 @@
 /**
  * MCP Apps: resources/read for ui://squadrules/spaces-result returns HTML profile mcp-app.
  */
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { Client } from '@modelcontextprotocol/client';
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import {
   SQUADRULES_ACTIVATE_UI_SKYBRIDGE_URI,

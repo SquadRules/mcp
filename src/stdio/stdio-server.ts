@@ -1,4 +1,4 @@
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { createServer } from '../server.js';
 import { structuredLogger } from '../utils/structured-logger.js';
