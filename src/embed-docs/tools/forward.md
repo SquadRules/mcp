@@ -64,6 +64,8 @@ Output always includes:
 - `next_action` prose guidance
 - `next_call` (authoritative machine-readable next call)
 
+Response envelope includes `ttlMs` and `cacheScope` cache metadata.
+
 `next_call.kind` is:
 
 - `forward` on non-terminal layers

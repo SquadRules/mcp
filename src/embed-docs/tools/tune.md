@@ -8,7 +8,7 @@ Update existing **adapter** content in place.
 - `space` (optional) — `"personal"` or a full group path such as `"{{SQUADRULES_GROUP_SPACE_PATH_EXAMPLE}}"`: reassign **all layers** of each targeted adapter to that space. You can use **`space` alone** (move only) or combine with `content` / `updates` (edit then move). Adapter URI moves every layer; layer URI moves that layer only.
 - `review_evidence` (required when `content` is provided) — critic-loop verdict proof. Delegate a subagent to run critic-loop before **`tune`** with content; do not review your own edit on the caller's thread. Provide the verdict file as proof. Object with `verdict_file` (absolute path), `exit_code` (must be 0), and `stdout` (line 1 must be PASS). One PASS covers all URIs in the tune call. Not required for space-only moves or updates-only (no content) tunes.
 
-**Output:** `results` with per-URI `status` (`updated` | `error`) and `message`, plus totals. Response contains the update results and any errors encountered.
+**Output:** `results` with per-URI `status` (`updated` | `error`) and `message`, plus totals. Response contains the update results and any errors encountered. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
 
 **Rules:**
 

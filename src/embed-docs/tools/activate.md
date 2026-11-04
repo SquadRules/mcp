@@ -50,6 +50,7 @@ Next call:
 `activation_score`, `role`, `tags`, `next_action`, optional `adapter_version`,
 optional `activation_patterns`, optional `linked_artifacts`, `space_name`,
 `slug`, and `forward_first_call`) plus `execution_id` (echo it back when refining).
+Response envelope includes `ttlMs` and `cacheScope` cache metadata.
 
 `forward_first_call` is required on `match` and `refine`, and `null` on
 `create`.
