@@ -1,10 +1,13 @@
 // v2 migration: zod-compat utilities removed, using direct zod JSON schema conversion
 import type { z } from 'zod';
 
+// JSON Schema property type - must match v2 SDK expectations
+type JsonSchemaPropertyType = string | number | boolean | null | JsonSchemaPropertyType[] | { [key: string]: JsonSchemaPropertyType };
+
 // JSON Schema type for tool input/output - must have type: "object" for v2 SDK
 export interface ToolJsonSchema {
   type: 'object';
-  properties?: Record<string, unknown>;
+  properties?: { [key: string]: JsonSchemaPropertyType };
   [key: string]: unknown;
 }
 
