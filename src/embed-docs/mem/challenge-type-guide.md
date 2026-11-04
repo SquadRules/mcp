@@ -1,5 +1,5 @@
 ---
-version: "5.18.0"
+version: "5.18.1"
 slug: challenge-type-guide
 title: Challenge Type Selection Guide
 ---

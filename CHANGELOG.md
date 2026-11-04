@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.18.1](https://github.com/SquadRules/mcp/compare/v5.18.0...v5.18.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **spec-version:** sync 2026-07-28 citations across the tree ([#280](https://github.com/SquadRules/mcp/issues/280)) ([bd8ebef](https://github.com/SquadRules/mcp/commit/bd8ebef308421ac30255166774f77dbc36d6b93d))
+
 ## [5.18.0](https://github.com/SquadRules/mcp/compare/v5.17.1...v5.18.0) (2026-11-04)
 
 
