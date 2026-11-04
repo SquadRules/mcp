@@ -21,3 +21,5 @@ flags plus blocker lists for `sft_jsonl` and `preference_jsonl`, and
 `next_call: null` as the explicit terminal marker.
 
 **Rules:** Use only layer URIs returned by **`forward`**. Do not substitute adapter URIs here unless the tool schema explicitly allows it (this tool expects a layer URI).
+
+**On failure:** If reward fails with a proof conflict, fix the failed step and run it again before retrying reward. Check that the layer URI and execution_id match the forward call.

@@ -13,3 +13,5 @@ Remove adapters or individual layers by URI.
 **Output:** Per-URI `status` (`deleted` | `error`), `message`, and aggregate counts.
 
 **Warning:** Deletion is destructive. Prefer **`export`** before removing production adapters.
+
+**On failure:** If delete returns an error status, verify the URI is correct and the resource exists. If the error is "resource not found", check if it was already deleted or verify the URI format.

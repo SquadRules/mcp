@@ -21,3 +21,5 @@ Update existing **adapter** content in place.
   memories.
 - Refresh execution context after large **`tune`** edits (new **`forward`**
   from the adapter URI).
+
+**On failure:** If tune returns an error status, verify the URI exists and check the message for details. If the error is "layer not found", verify the URI or train a new adapter if needed. If review_evidence validation fails, ensure the critic-loop verdict file is provided with exit_code 0 and PASS on stdout line 1.

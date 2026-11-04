@@ -22,3 +22,5 @@ When running in simple mode (`AUTH_ENABLED=false`), `spaces` includes both a wri
 5. **Visibility** — `activate` **match** choices include **`space_name`** so you can see whether a hit is personal, group, or app-level.
 
 **SQUADRULES tool order** for runs: **`activate`** → **`forward`** (per layer until `next_action` → **`reward`**) → **`reward`**. Use this tool first when you need valid **`space`** values or an inventory before activation.
+
+**On failure:** If spaces returns no spaces, check agent configuration and ensure at least one space exists. If the response is empty, verify the server is running and accessible.

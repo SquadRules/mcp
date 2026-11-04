@@ -43,3 +43,5 @@ script belongs under **`artifacts/`** at the path the contract invokes.
 **`artifact_stored_sha_mismatch`** (the stored digest disagrees with the exported
 bytes) and **`artifact_relative_path_invalid`** (the artifact path was ignored and
 replaced by a default) as a **broken artifact**, not a pass.
+
+**On failure:** If export returns no data found, verify the export selection or train adapters first. If the URI is invalid, check the format and ensure the resource exists. If download_ref URL fetch fails, retry the export to get a fresh URL.

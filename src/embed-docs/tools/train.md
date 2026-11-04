@@ -63,3 +63,5 @@ dump markdown or datasets.
 For contract shapes and examples, call **`forward`** with
 `squadrules://adapter/author-adapter` and omit `solution` on the first call of
 the run (then follow `next_action`).
+
+**On failure:** If train fails with a duplicate adapter error, inspect the match and either use `force_update: true` to replace it or choose a different title. If structure validation fails, fix the markdown to include the required H1 title, Activation Patterns section, Reward Signal section, and at least one fenced JSON block with a contract object.
