@@ -39,6 +39,7 @@ function postMcp(body: object): Promise<Response> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Accept: 'application/json',
       ...getAuthHeaders()
     },
     body: JSON.stringify(body)
