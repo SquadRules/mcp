@@ -15,9 +15,17 @@ This document evaluates graph database options for SquadRules 6's ontological kn
 - **Open-source licensing** — no proprietary dependencies
 - **Ontological operations** — inheritance resolution, anomaly detection, backpropagation, versioning
 
-**Recommendation:** 
-- **Embedded mode:** Kuzu (primary) or FalkorDB Lite (alternative)
-- **Shared mode:** Neo4j Community (primary) or ArangoDB (alternative)
+**Recommendation (updated after license validation):** 
+- **Embedded mode:** LadybugDB (MIT license, Kuzu fork) — **changed from Kuzu (archived Oct 2025)**
+- **Shared mode:** ArangoDB ≤v3.11 (Apache 2.0) — **changed from Neo4j (GPL v3 incompatible with MIT)**
+
+**License compatibility findings:**
+- ✅ LadybugDB (MIT) — Fully compatible with SquadRules MIT license
+- ✅ ArangoDB ≤v3.11 (Apache 2.0) — Compatible (must pin version to avoid BSL 1.1 in v3.12+)
+- ❌ Neo4j Community (GPL v3) — Incompatible for embedded deployment with MIT
+- ❌ FalkorDB (SSPL v1) — Incompatible (SaaS copyleft)
+
+See `docs/specs/license-compatibility-matrix.md` for full analysis.
 
 ---
 
@@ -55,15 +63,15 @@ This document evaluates graph database options for SquadRules 6's ontological kn
 
 ## Embedded Mode Evaluation
 
-### Candidate 1: Kuzu
+### Candidate 1: LadybugDB (Kuzu fork)
 
-**Overview:** Embedded property graph database built for query speed and scalability. Optimized for complex analytical workloads on very large graphs.
+**Overview:** Embedded property graph database built for query speed and scalability. Active fork of archived Kuzu (Oct 2025). Optimized for complex analytical workloads on very large graphs.
 
 **Key Features:**
 - ✅ Native graph database (property graph model)
 - ✅ Embedded (in-process, zero external dependencies)
 - ✅ File-based persistence
-- ✅ Open-source (MIT license)
+- ✅ Open-source (MIT license) — **Fully compatible with SquadRules MIT**
 - ✅ Cypher-like query language
 - ✅ Vector search built-in (as of 2025-2026)
 - ✅ Full-text search built-in
@@ -71,23 +79,26 @@ This document evaluates graph database options for SquadRules 6's ontological kn
 - ✅ Multi-process safety (via file locking)
 
 **Strengths:**
+- **License compatibility:** MIT license, same as SquadRules — zero restrictions
 - **Performance:** Optimized for analytical workloads, very fast traversal
 - **Simplicity:** Embedded, zero-config, file-based
 - **Features:** Vector search + full-text search integrated (reduces need for separate databases)
-- **License:** MIT (permissive, no restrictions)
+- **Active development:** Fork of archived Kuzu, continued maintenance
 
 **Weaknesses:**
-- **Maturity:** Relatively new (2023-2026), smaller community than Neo4j
+- **Maturity:** Relatively new (2025-2026 as LadybugDB, 2023-2025 as Kuzu), smaller community than Neo4j
 - **Documentation:** Less extensive than Neo4j
 - **Ecosystem:** Fewer tools, integrations, and third-party libraries
+- **Kuzu archival:** Original Kuzu archived Oct 2025 — LadybugDB is the continuation
 
 **Fit for SquadRules 6:**
 - ✅ Meets all must-have functional requirements
 - ✅ Meets all must-have non-functional requirements for embedded mode
 - ✅ Vector search integration reduces multi-database complexity
+- ✅ **MIT license ensures full compatibility with SquadRules**
 - ⚠️ Maturity risk — mitigate by abstracting graph layer (swap if needed)
 
-**Verdict:** **PRIMARY CHOICE for embedded mode**
+**Verdict:** **PRIMARY CHOICE for embedded mode** (updated from Kuzu due to archival and license compatibility)
 
 ---
 
@@ -154,62 +165,64 @@ This document evaluates graph database options for SquadRules 6's ontological kn
 
 ### Embedded Mode Comparison Matrix
 
-| Criterion | Kuzu | FalkorDB Lite | DuckDB + Extensions |
-|-----------|------|---------------|---------------------|
+| Criterion | LadybugDB | FalkorDB Lite | DuckDB + Extensions |
+|-----------|-----------|---------------|---------------------|
 | Graph-native | ✅ Yes | ✅ Yes | ❌ No (relational + plugin) |
 | Embedded | ✅ Yes | ✅ Yes | ✅ Yes |
 | Zero dependencies | ✅ Yes | ✅ Yes | ✅ Yes |
 | File persistence | ✅ Yes | ⚠️ Configurable | ✅ Yes |
 | Multi-process safe | ✅ Yes | ⚠️ Unix sockets | ✅ Yes |
-| Open-source license | ✅ MIT | ⚠️ AGPL v3 | ✅ MIT |
+| Open-source license | ✅ MIT (compatible) | ⚠️ AGPL v3 (incompatible) | ✅ MIT (compatible) |
 | Cypher query language | ✅ Yes (Cypher-like) | ✅ Yes (full Cypher) | ❌ No (SQL) |
 | Vector search | ✅ Built-in | ❌ No | ❌ No |
 | Full-text search | ✅ Built-in | ❌ No | ✅ Yes (SQL) |
 | Performance (traversal) | ✅ Very fast | ✅ Very fast (in-memory) | ⚠️ Moderate (joins) |
 | Memory footprint | ✅ <100 MB | ⚠️ >100 MB (in-memory) | ✅ <100 MB |
-| Maturity | ⚠️ New (2023-2026) | ⚠️ New (2025-2026) | ✅ Mature (DuckDB) |
+| Maturity | ⚠️ New (2025-2026) | ⚠️ New (2025-2026) | ✅ Mature (DuckDB) |
 | Community size | ⚠️ Small | ⚠️ Small | ✅ Medium |
-| **Overall fit** | ✅ **PRIMARY** | ⚠️ **ALTERNATIVE** | ❌ **REJECTED** |
+| **Overall fit** | ✅ **PRIMARY** | ❌ **REJECTED (license)** | ❌ **REJECTED (not graph-native)** |
 
 ---
 
 ## Shared Mode Evaluation
 
-### Candidate 1: Neo4j Community Edition
+### Candidate 1: ArangoDB ≤v3.11
 
-**Overview:** Most popular graph database. Native graph storage, Cypher query language, ACID-compliant.
+**Overview:** Multi-model database (document + graph + vector). Native graph support with AQL query language. Version ≤v3.11 uses Apache 2.0 license (compatible with MIT).
 
 **Key Features:**
 - ✅ Native graph database (property graph model)
-- ✅ Distributed cluster support (enterprise feature)
-- ✅ Open-source (GPL v3 for Community, commercial for Enterprise)
-- ✅ Cypher query language (industry standard)
-- ✅ Vector search (Neo4j 5.x+)
+- ✅ Multi-model (document + graph + vector in one database)
+- ✅ Open-source (Apache 2.0 license for ≤v3.11) — **Compatible with SquadRules MIT**
+- ✅ AQL query language (SQL-like for graphs)
+- ✅ Vector search (ArangoDB 3.10+)
 - ✅ Full-text search
 - ✅ ACID transactions
-- ✅ High availability (enterprise clustering)
+- ✅ Distributed cluster support (open-source, ≤v3.11)
 
 **Strengths:**
-- **Maturity:** Most mature graph database (2007-present)
-- **Community:** Largest ecosystem, tools, integrations, documentation
-- **Query language:** Cypher is de facto standard for graph queries
-- **Features:** Vector search + full-text search integrated
-- **Performance:** Handles graphs larger than RAM (disk-based)
+- **License compatibility:** Apache 2.0 (≤v3.11), permissive, no copyleft restrictions
+- **Multi-model:** Document + graph + vector in one database (reduces multi-DB complexity)
+- **Clustering:** Distributed cluster support in open-source version (no commercial license needed for ≤v3.11)
+- **Query language:** AQL is SQL-like, easier for teams with SQL background
+- **Performance:** Scales writes and multi-hop traversals natively
 
 **Weaknesses:**
-- **License:** GPL v3 for Community (copyleft), commercial for Enterprise
-- **JVM overhead:** Java-based, higher memory footprint
-- **Clustering:** Enterprise-only (commercial license required for HA)
-- **Complexity:** More complex to deploy and manage than embedded options
+- **Version pinning required:** Must pin to ≤v3.11 to avoid BSL 1.1 license change in v3.12+
+- **Maturity:** Less mature than Neo4j for pure graph workloads
+- **Community:** Smaller graph-specific community than Neo4j
+- **Complexity:** Multi-model adds complexity (more features to learn)
+- **License risk:** ArangoDB changed license in v3.12+ to BSL 1.1 (restricts commercial use)
 
 **Fit for SquadRules 6:**
 - ✅ Meets all functional requirements
-- ✅ Meets most non-functional requirements
-- ⚠️ GPL v3 license (copyleft, may restrict commercial use)
-- ⚠️ Clustering requires enterprise license (commercial)
-- ⚠️ JVM overhead (higher memory footprint)
+- ✅ Meets all non-functional requirements
+- ✅ Apache 2.0 license (≤v3.11) is permissive, compatible with MIT
+- ✅ Clustering in open-source version (no commercial license needed)
+- ⚠️ Must pin version to ≤v3.11 to avoid BSL 1.1 license
+- ⚠️ Less mature than Neo4j for pure graph workloads
 
-**Verdict:** **PRIMARY CHOICE for shared mode** (if GPL acceptable)
+**Verdict:** **PRIMARY CHOICE for shared mode** (updated from Neo4j due to GPL v3 incompatibility with MIT)
 
 ---
 
@@ -285,64 +298,94 @@ This document evaluates graph database options for SquadRules 6's ontological kn
 
 ### Shared Mode Comparison Matrix
 
-| Criterion | Neo4j Community | ArangoDB | FalkorDB |
-|-----------|-----------------|----------|----------|
+| Criterion | ArangoDB ≤v3.11 | Neo4j Community | FalkorDB |
+|-----------|-----------------|-----------------|----------|
 | Graph-native | ✅ Yes | ✅ Yes | ✅ Yes |
-| Distributed cluster | ⚠️ Enterprise only | ✅ Open-source | ⚠️ Redis cluster |
-| Open-source license | ⚠️ GPL v3 (Community) | ✅ Apache 2.0 | ⚠️ AGPL v3 |
-| Cypher/AQL query language | ✅ Cypher | ✅ AQL (SQL-like) | ✅ Cypher |
-| Vector search | ✅ Yes (5.x+) | ✅ Yes (3.10+) | ✅ Yes |
+| Distributed cluster | ✅ Open-source (≤v3.11) | ⚠️ Enterprise only | ⚠️ Redis cluster |
+| Open-source license | ✅ Apache 2.0 (compatible) | ⚠️ GPL v3 (incompatible) | ⚠️ SSPL v1 (incompatible) |
+| Cypher/AQL query language | ✅ AQL (SQL-like) | ✅ Cypher | ✅ Cypher |
+| Vector search | ✅ Yes (3.10+) | ✅ Yes (5.x+) | ✅ Yes |
 | Full-text search | ✅ Yes | ✅ Yes | ⚠️ Limited |
 | ACID transactions | ✅ Yes | ✅ Yes | ⚠️ Redis persistence |
-| High availability | ⚠️ Enterprise only | ✅ Open-source | ⚠️ Redis cluster |
-| Multi-model | ❌ Graph only | ✅ Document + graph + vector | ❌ Graph only |
+| High availability | ✅ Open-source (≤v3.11) | ⚠️ Enterprise only | ⚠️ Redis cluster |
+| Multi-model | ✅ Document + graph + vector | ❌ Graph only | ❌ Graph only |
 | Performance (traversal) | ✅ Fast (disk-based) | ✅ Fast (disk-based) | ✅ Very fast (in-memory) |
-| Memory footprint | ⚠️ JVM overhead | ⚠️ Moderate | ⚠️ In-memory (large) |
+| Memory footprint | ⚠️ Moderate | ⚠️ JVM overhead | ⚠️ In-memory (large) |
 | Handles graphs > RAM | ✅ Yes | ✅ Yes | ❌ No (in-memory) |
-| Maturity | ✅ Very mature (2007-) | ✅ Mature (2012-) | ⚠️ Newer (2022-) |
-| Community size | ✅ Largest | ✅ Medium | ⚠️ Small |
-| **Overall fit** | ✅ **PRIMARY** | ✅ **ALTERNATIVE** | ❌ **NOT RECOMMENDED** |
+| Maturity | ✅ Mature (2012-) | ✅ Very mature (2007-) | ⚠️ Newer (2022-) |
+| Community size | ✅ Medium | ✅ Largest | ⚠️ Small |
+| **Overall fit** | ✅ **PRIMARY** | ❌ **REJECTED (license)** | ❌ **REJECTED (license)** |
 
 ---
 
-## Recommendation
+## Recommendation (Updated After License Validation)
 
-### Embedded Mode: **Kuzu**
+### Embedded Mode: **LadybugDB** (MIT license)
 
 **Rationale:**
 1. **Graph-native** — meets core architectural requirement
-2. **MIT license** — permissive, no restrictions
+2. **MIT license** — fully compatible with SquadRules MIT license, zero restrictions
 3. **Zero dependencies** — embedded, file-based, multi-process safe
 4. **Vector search built-in** — reduces multi-database complexity
 5. **Performance** — optimized for analytical workloads, fast traversal
 6. **Lightweight** — <100 MB memory footprint
+7. **Active development** — fork of archived Kuzu (Oct 2025), continued maintenance
 
 **Risk mitigation:**
-- Abstract graph layer (swap Kuzu if maturity becomes issue)
+- Abstract graph layer (swap LadybugDB if maturity becomes issue)
 - Monitor community growth and development activity
+- Verify LadybugDB feature parity with Kuzu
 
-### Shared Mode: **Neo4j Community** (primary) or **ArangoDB** (alternative)
+**Previous recommendation:** Kuzu (archived Oct 2025, replaced with LadybugDB fork)
 
-**Rationale for Neo4j:**
-1. **Most mature** — largest ecosystem, tools, documentation
-2. **Cypher standard** — industry-standard graph query language
-3. **Handles large graphs** — disk-based, scales beyond RAM
-4. **Vector search** — integrated semantic + graph queries
+### Shared Mode: **ArangoDB ≤v3.11** (Apache 2.0 license)
 
-**Risk mitigation for Neo4j:**
-- GPL v3 license — verify compatibility with SquadRules licensing
-- Enterprise clustering requires commercial license — use open-source single-node for now
-
-**Rationale for ArangoDB (alternative):**
-1. **Apache 2.0 license** — permissive, no copyleft
-2. **Multi-model** — document + graph + vector in one database
-3. **Open-source clustering** — HA without commercial license
+**Rationale:**
+1. **Apache 2.0 license (≤v3.11)** — compatible with SquadRules MIT license, permissive
+2. **Multi-model** — document + graph + vector in one database (reduces database count)
+3. **Open-source clustering** — HA without commercial license (for ≤v3.11)
 4. **AQL** — SQL-like, easier for teams with SQL background
+5. **Mature** — Active development since 2012, good community
 
-**When to choose ArangoDB over Neo4j:**
-- GPL v3 license is unacceptable
-- Multi-model appeal (reduce database count)
-- Need open-source clustering (HA without commercial license)
+**Critical constraint:**
+- **Must pin to version ≤v3.11** — v3.12+ uses BSL 1.1 license (restricts commercial use)
+- Monitor ArangoDB releases for license changes
+- Have migration plan ready (to LadybugDB or other) if needed
+
+**Previous recommendation:** Neo4j Community (GPL v3 incompatible with MIT for embedded deployment)
+
+**When Neo4j might still be viable:**
+- If deployed as separate network service (not embedded) — GPL "SaaS loophole"
+- If commercial license obtained (Neo4j Enterprise)
+- Consult legal counsel before relying on SaaS loophole
+
+### Alternative: **LadybugDB for Both Modes**
+
+**Rationale:**
+1. **Single database** — simplifies deployment, maintenance, documentation
+2. **MIT license** — zero restrictions for any deployment model
+3. **Embedded + shared** — verify if LadybugDB supports distributed clustering
+
+**Implementation:**
+- Use LadybugDB for both embedded and shared deployments
+- If LadybugDB lacks clustering, use ArangoDB ≤v3.11 for shared mode
+
+### Rejected Options
+
+**Neo4j Community (GPL v3):**
+- ❌ Incompatible with MIT for embedded deployment
+- ❌ Copyleft requires derivative works to be GPL
+- ⚠️ May be viable as separate service (SaaS loophole) — consult legal
+
+**FalkorDB (SSPL v1):**
+- ❌ Incompatible with any deployment model (SaaS copyleft)
+- ❌ Requires open-sourcing entire service stack if offered as service
+- ❌ Not OSI-approved, high enterprise adoption barrier
+
+**ArangoDB ≥v3.12 (BSL 1.1):**
+- ❌ Restricts commercial use
+- ❌ Source-available, not open-source (OSI-approved)
+- ✅ Use ≤v3.11 (Apache 2.0) instead
 
 ---
 
