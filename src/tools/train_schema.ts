@@ -192,7 +192,10 @@ export const trainOutputSchema = z.object({
     status: z.enum(['ok', 'failed']),
     uri: z.string().optional(),
     error: z.string().optional()
-  })).optional()
+  })).optional(),
+  // Inheritance warnings bubbled up from trainStoreOutputSchema so agents can see
+  // `parent_missing` (and act on it). Flattened to `[code] message` strings.
+  warnings: z.array(z.string()).optional()
 }).strict();
 
 export type TrainInput = z.infer<typeof trainInputSchema>;
