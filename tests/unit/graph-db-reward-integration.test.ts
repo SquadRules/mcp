@@ -1,0 +1,278 @@
+/**
+ * Unit tests for Touchpoint 4: reward writes an Anomaly node on proof failure.
+ *
+ * Covers:
+ *   - anomaly written on failure (with parent inheritance -> routes_to parent)
+ *   - routes_to falls back to the failing adapter when no inheritance
+ *   - discovered_by falls back to the layer identity when resolution fails
+ *   - no anomaly on success
+ *   - graph-db-unavailable still allows reward bookkeeping to succeed (no throw)
+ *   - createAnomaly failure is swallowed + warned (graceful degradation)
+ *   - PROPOSAL-ONLY: no Adapter-rewrite method is ever called
+ *
+ * Mocking strategy: `jest.resetModules()` + both `jest.doMock()` and
+ * `jest.unstable_mockModule()` per the established pattern (commit 11293c62).
+ */
+import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
+
+const mockWarn = jest.fn();
+const mockDebug = jest.fn();
+const mockInfo = jest.fn();
+const mockError = jest.fn();
+
+/** Track whether the graph singleton returns null (unavailable). */
+let graphDbAvailable = false;
+
+const mockCreateAnomaly = jest.fn<any>();
+const mockGetAdapter = jest.fn<any>();
+// Adapter-rewrite methods: MUST never be called on the reward anomaly path.
+const mockCreateAdapterNode = jest.fn<any>();
+const mockUpsertAdapterNode = jest.fn<any>();
+const mockWriteAdapterFromFrontmatter = jest.fn<any>();
+
+const mockGetResult = jest.fn<any>();
+
+function graphDbSingletonFactory() {
+  return {
+    getGraphDbService: () => {
+      if (!graphDbAvailable) return null;
+      return {
+        isInitialized: () => true,
+        createAnomaly: mockCreateAnomaly,
+        getAdapter: mockGetAdapter,
+        createAdapterNode: mockCreateAdapterNode,
+        upsertAdapterNode: mockUpsertAdapterNode,
+        writeAdapterFromFrontmatter: mockWriteAdapterFromFrontmatter
+      };
+    },
+    initGraphDb: jest.fn<any>(),
+    closeGraphDb: jest.fn<any>()
+  };
+}
+
+function loggerFactory() {
+  return {
+    structuredLogger: {
+      debug: mockDebug,
+      info: mockInfo,
+      warn: mockWarn,
+      error: mockError
+    },
+    logger: {
+      debug: mockDebug,
+      info: mockInfo,
+      warn: mockWarn,
+      error: mockError
+    }
+  };
+}
+
+function proofStoreFactory() {
+  return {
+    MAX_RETRIES: 3,
+    proofOfWorkStore: {
+      getResult: mockGetResult
+    }
+  };
+}
+
+function registerMocks(): void {
+  jest.unstable_mockModule('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.unstable_mockModule('../../src/utils/structured-logger.js', loggerFactory);
+  jest.unstable_mockModule('../../src/services/proof-of-work-store.js', proofStoreFactory);
+  jest.doMock('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.doMock('../../src/utils/structured-logger.js', loggerFactory);
+  jest.doMock('../../src/services/proof-of-work-store.js', proofStoreFactory);
+}
+
+function makeQdrant(memory: unknown): any {
+  return { getMemoryByUUID: jest.fn<any>().mockResolvedValue(memory) };
+}
+
+const LAYER_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+const URI = `squadrules://layer/${LAYER_UUID}`;
+
+describe('reward anomaly integration (Touchpoint 4)', () => {
+  beforeEach(() => {
+    graphDbAvailable = false;
+    mockCreateAnomaly.mockReset();
+    mockGetAdapter.mockReset();
+    mockCreateAdapterNode.mockReset();
+    mockUpsertAdapterNode.mockReset();
+    mockWriteAdapterFromFrontmatter.mockReset();
+    mockGetResult.mockReset();
+    mockWarn.mockClear();
+    mockDebug.mockClear();
+    mockInfo.mockClear();
+    mockError.mockClear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('writes an anomaly on failure and routes_to the parent when inheritance is involved', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+    mockCreateAnomaly.mockResolvedValue(undefined);
+    mockGetAdapter.mockResolvedValue({ frontmatter: { inherits: 'parent-adapter' } });
+    mockGetResult.mockResolvedValue({ status: 'failed', shell: { exit_code: 2 } });
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+
+    await recordRewardAnomaly(qdrant, {
+      uri: URI,
+      layerUuid: LAYER_UUID,
+      outcome: 'failure',
+      feedback: 'gate did not pass'
+    });
+
+    expect(mockCreateAnomaly).toHaveBeenCalledTimes(1);
+    const node = mockCreateAnomaly.mock.calls[0]![0] as Record<string, any>;
+    expect(node.type).toBe('Anomaly');
+    expect(node.discovered_by).toBe('failing-adapter');
+    expect(node.routes_to).toBe('parent-adapter');
+    expect(node.anomaly_type).toBe('failure');
+    expect(node.status).toBe('open');
+    expect(node.severity).toBe('high');
+    expect(node.key).toMatch(/^anomaly:/);
+    expect(typeof node.created_at).toBe('string');
+    expect(node.description).toContain('gate did not pass');
+    expect(node.description).toContain('exit_code 2');
+    // Read-only parent lookup only.
+    expect(mockGetAdapter).toHaveBeenCalledWith('adapter:failing-adapter');
+  });
+
+  test('routes_to falls back to the failing adapter when there is no inheritance', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+    mockCreateAnomaly.mockResolvedValue(undefined);
+    mockGetAdapter.mockResolvedValue({ frontmatter: {} });
+    mockGetResult.mockResolvedValue(null);
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ adapter: { name: 'lonely-adapter' } });
+
+    await recordRewardAnomaly(qdrant, {
+      uri: URI,
+      layerUuid: LAYER_UUID,
+      outcome: 'failure'
+    });
+
+    expect(mockCreateAnomaly).toHaveBeenCalledTimes(1);
+    const node = mockCreateAnomaly.mock.calls[0]![0] as Record<string, any>;
+    expect(node.discovered_by).toBe('lonely-adapter');
+    expect(node.routes_to).toBe('lonely-adapter');
+    expect(node.severity).toBe('medium');
+  });
+
+  test('discovered_by falls back to the layer identity when resolution fails', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+    mockCreateAnomaly.mockResolvedValue(undefined);
+    mockGetAdapter.mockResolvedValue(null);
+    mockGetResult.mockResolvedValue(null);
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = { getMemoryByUUID: jest.fn<any>().mockRejectedValue(new Error('qdrant down')) };
+
+    await recordRewardAnomaly(qdrant as any, {
+      uri: URI,
+      layerUuid: LAYER_UUID,
+      outcome: 'failure'
+    });
+
+    expect(mockCreateAnomaly).toHaveBeenCalledTimes(1);
+    const node = mockCreateAnomaly.mock.calls[0]![0] as Record<string, any>;
+    expect(node.discovered_by).toBe(`layer:${LAYER_UUID}`);
+    expect(node.routes_to).toBe(`layer:${LAYER_UUID}`);
+  });
+
+  test('does NOT write an anomaly on success', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+
+    await recordRewardAnomaly(qdrant, {
+      uri: URI,
+      layerUuid: LAYER_UUID,
+      outcome: 'success'
+    });
+
+    expect(mockCreateAnomaly).not.toHaveBeenCalled();
+    expect(qdrant.getMemoryByUUID).not.toHaveBeenCalled();
+  });
+
+  test('graph-db unavailable: reward anomaly bookkeeping is a silent no-op (no throw)', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = false;
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+
+    await expect(
+      recordRewardAnomaly(qdrant, {
+        uri: URI,
+        layerUuid: LAYER_UUID,
+        outcome: 'failure',
+        feedback: 'boom'
+      })
+    ).resolves.toBeUndefined();
+
+    expect(mockCreateAnomaly).not.toHaveBeenCalled();
+    expect(mockWarn).not.toHaveBeenCalled();
+  });
+
+  test('createAnomaly failure is swallowed and warned (graceful degradation)', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+    mockCreateAnomaly.mockRejectedValue(new Error('LadybugDB: disk full'));
+    mockGetAdapter.mockResolvedValue(null);
+    mockGetResult.mockResolvedValue(null);
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+
+    await expect(
+      recordRewardAnomaly(qdrant, {
+        uri: URI,
+        layerUuid: LAYER_UUID,
+        outcome: 'failure'
+      })
+    ).resolves.toBeUndefined();
+
+    expect(mockWarn).toHaveBeenCalledWith(expect.stringContaining('createAnomaly failed'));
+  });
+
+  test('PROPOSAL-ONLY: never rewrites an Adapter node', async () => {
+    jest.resetModules();
+    registerMocks();
+    graphDbAvailable = true;
+    mockCreateAnomaly.mockResolvedValue(undefined);
+    mockGetAdapter.mockResolvedValue({ frontmatter: { inherits: 'parent-adapter' } });
+    mockGetResult.mockResolvedValue({ status: 'failed', shell: { exit_code: 1 } });
+
+    const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
+    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+
+    await recordRewardAnomaly(qdrant, {
+      uri: URI,
+      layerUuid: LAYER_UUID,
+      outcome: 'failure'
+    });
+
+    expect(mockCreateAnomaly).toHaveBeenCalledTimes(1);
+    expect(mockCreateAdapterNode).not.toHaveBeenCalled();
+    expect(mockUpsertAdapterNode).not.toHaveBeenCalled();
+    expect(mockWriteAdapterFromFrontmatter).not.toHaveBeenCalled();
+  });
+});

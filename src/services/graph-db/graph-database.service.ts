@@ -56,6 +56,30 @@ export interface ConceptNode {
   metadata?: Record<string, any>;
 }
 
+export interface AnomalyNode {
+  key: string;
+  /** Node type discriminator. Kept as the literal 'Anomaly' per Touchpoint 4. */
+  type: 'Anomaly';
+  /** Adapter (or agent) slug that discovered the anomaly — the adapter that failed. */
+  discovered_by: string;
+  /**
+   * Where the anomaly routes for triage: the parent adapter slug when inheritance
+   * is involved, otherwise the failing adapter slug itself.
+   */
+  routes_to: string;
+  /** Human-readable failure summary. */
+  description: string;
+  /** ISO 8601 timestamp. */
+  created_at: string;
+  /** Severity derived from the proof failure class when available. */
+  severity?: string;
+  /** Classification per graph-schema.md (failure/contradiction/ambiguity/regression). */
+  anomaly_type?: string;
+  /** Resolution state per graph-schema.md (open/investigating/resolved/wontfix). */
+  status?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface InheritanceEdge {
   from: string;
   to: string;
@@ -196,6 +220,23 @@ export class GraphDatabaseService {
         metadata STRING
       )
     `);
+
+    // Create anomaly node table (Touchpoint 4: reward failure bookkeeping).
+    // Proposal-only: anomalies never rewrite an Adapter node — see createAnomaly.
+    await this.connection.query(`
+      CREATE NODE TABLE IF NOT EXISTS Anomaly(
+        key STRING PRIMARY KEY,
+        type STRING,
+        discovered_by STRING,
+        routes_to STRING,
+        description STRING,
+        created_at STRING,
+        severity STRING,
+        anomaly_type STRING,
+        status STRING,
+        metadata STRING
+      )
+    `);
   }
 
   /**
@@ -239,6 +280,51 @@ export class GraphDatabaseService {
       space: adapter.space || 'personal',
       tags: JSON.stringify(adapter.tags || []),
       metadata: JSON.stringify(adapter.metadata || {})
+    });
+  }
+
+  /**
+   * Create an anomaly node (Touchpoint 4: reward failure bookkeeping).
+   *
+   * PROPOSAL-ONLY INVARIANT: this method writes an `Anomaly` node and nothing
+   * else. It MUST NOT rewrite, upsert, or otherwise mutate any `Adapter` node —
+   * the anomaly is a proposal for later triage, not an applied parent update.
+   * Ownership of the anomaly -> parent-update write is deferred until an ADR
+   * assigns it (see docs/specs/ontological-knowledge-system.md, "Back-Propagation"
+   * and the deferred anomaly-backpropagation ADR).
+   */
+  async createAnomaly(anomaly: AnomalyNode): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const query = `
+      CREATE (n:Anomaly {
+        key: $key,
+        type: $type,
+        discovered_by: $discovered_by,
+        routes_to: $routes_to,
+        description: $description,
+        created_at: $created_at,
+        severity: $severity,
+        anomaly_type: $anomaly_type,
+        status: $status,
+        metadata: $metadata
+      })
+    `;
+
+    const preparedStatement = await this.connection.prepare(query);
+    await this.connection.execute(preparedStatement, {
+      key: anomaly.key,
+      type: anomaly.type,
+      discovered_by: anomaly.discovered_by,
+      routes_to: anomaly.routes_to,
+      description: anomaly.description,
+      created_at: anomaly.created_at,
+      severity: anomaly.severity || 'medium',
+      anomaly_type: anomaly.anomaly_type || 'failure',
+      status: anomaly.status || 'open',
+      metadata: JSON.stringify(anomaly.metadata || {})
     });
   }
 
