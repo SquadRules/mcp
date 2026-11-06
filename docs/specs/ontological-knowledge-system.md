@@ -136,6 +136,8 @@ This perspective allows system to build organic, evolving worldview where knowle
 - Same API surface (activate, train, query)
 - Only storage backend differs (embedded file vs distributed cluster)
 
+Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Retrieval* below) surfaced to agents through `activate` — not query-language or storage-layer access exposed to agents; it does not imply a new agent-facing tool.
+
 **Data format (ideal):**
 ```json
 {

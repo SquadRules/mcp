@@ -1,6 +1,6 @@
 ---
 slug: example-specialized-reviewer
-version: 1.0.0
+version: "5.22.0"
 inherits: critic-loop
 title: Example Specialized Reviewer (Inheritance Demo)
 ---
@@ -33,9 +33,15 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 ```json
 {
-  "contract": "shell",
-  "interpreter": "bash",
-  "command": "echo 'Verifying specialized reviewer artifacts exist' && ls -la work/*.md 2>/dev/null | wc -l"
+  "contract": {
+    "type": "shell",
+    "shell": {
+      "interpreter": "bash",
+      "cmd": "test -s work/*.md && grep -q 'adapter' work/*.md",
+      "timeout_seconds": 5
+    },
+    "required": true
+  }
 }
 ```
 
@@ -45,21 +51,21 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 **Inherited from parent:** Work arrives with `kind`, `items`, `root` structure.
 
-```json
-{
-  "work": {
-    "kind": "adapter-review",
-    "items": [
-      {
-        "path": "python-implementation.md",
-        "type": "adapter",
-        "claims": ["shell contracts are empirical", "verdict is structural"]
-      }
-    ],
-    "root": "/path/to/work/dir"
+  ```json
+  {
+    "work": {
+      "kind": "adapter-review",
+      "items": [
+        {
+          "path": "python-implementation.md",
+          "type": "adapter",
+          "claims": ["shell contracts are empirical", "verdict is structural"]
+        }
+      ],
+      "root": "/path/to/work/dir"
+    }
   }
-}
-```
+  ```
 
 ### Step 2: Domain-Specific Audit (OVERRIDE — adds to parent)
 
@@ -69,7 +75,7 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 1. **Principles compliance** — does adapter follow three principles (autonomy, help-not-puzzles, honest verification)?
 2. **Contract type correctness** — shell contracts have empirical commands, comment contracts are last resort, forward contracts link only.
 3. **Interpreter matching** — shell command interpreter matches code type (python3 for Python, bash for shell).
-4. **Inline code vs artifacts** — code snippets are extracted to artifacts, not inline.
+4. **Inline code vs artifacts** — code snippets are to artifacts, not inline.
 5. **Redundancy check** — no duplicate rules, no verbose restatement.
 
 **For each item in work.items:**
@@ -85,13 +91,12 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 ```json
 {
-  "contract": "subagent",
-  "task": "Audit adapter for principles compliance",
-  "context": {
-    "work_item": "<current item from Step 1>",
-    "audit_dimensions": "<5 checks from Step 2>",
-    "evidence_required": "shell output, file paths, line numbers",
-    "judgment_criteria": "Evaluate adapter against three principles (autonomy, help-not-puzzles, honest verification) and five audit dimensions"
+  "contract": {
+    "type": "subagent",
+    "subagent": {
+      "context": "Audit adapter for principles compliance. Evaluate the work item against three principles (autonomy, help-not-puzzles, honest verification) and five audit dimensions (principles compliance, contract type correctness, interpreter matching, inline code vs artifacts, redundancy check). Return findings with severity levels (critical/high/medium/low) and evidence (shell output, file paths, line numbers)."
+    },
+    "required": true
   }
 }
 ```
@@ -107,30 +112,30 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 - **Low:** Redundancy, style issues
 
 **Synthesis output:**
-```json
-{
-  "findings": [
-    {
-      "dimension": "principles-compliance",
-      "severity": "critical",
-      "issue": "Adapter uses comment contract for verification that should be shell",
-      "evidence": "Line 42: comment contract 'verify syntax' — should be shell with python3 -c"
-    },
-    {
-      "dimension": "interpreter-matching",
-      "severity": "medium",
-      "issue": "Shell command is Python code but interpreter is bash",
-      "evidence": "Line 15: interpreter=bash, command=python3 -c '...'"
+  ```json
+  {
+    "findings": [
+      {
+        "dimension": "principles-compliance",
+        "severity": "critical",
+        "issue": "Adapter uses comment contract for verification that should be shell",
+        "evidence": "Line 42: comment contract 'verify syntax' — should be shell with python3 -c"
+      },
+      {
+        "dimension": "interpreter-matching",
+        "severity": "medium",
+        "issue": "Shell command is Python code but interpreter is bash",
+        "evidence": "Line 15: interpreter=bash, command=python3 -c '...'"
+      }
+    ],
+    "summary": {
+      "critical": 1,
+      "high": 0,
+      "medium": 1,
+      "low": 0
     }
-  ],
-  "summary": {
-    "critical": 1,
-    "high": 0,
-    "medium": 1,
-    "low": 0
   }
-}
-```
+  ```
 
 ### Step 5: Produce Verdict (INHERITED from parent)
 
@@ -138,9 +143,15 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 ```json
 {
-  "contract": "shell",
-  "interpreter": "bash",
-  "command": "echo 'PASS' > verdict.txt && echo 'High' >> verdict.txt"
+  "contract": {
+    "type": "shell",
+    "shell": {
+      "interpreter": "bash",
+      "cmd": "echo 'PASS' > verdict.txt && echo 'High' >> verdict.txt && test -s verdict.txt && head -1 verdict.txt | grep -qi '^PASS$'",
+      "timeout_seconds": 5
+    },
+    "required": true
+  }
 }
 ```
 
@@ -157,21 +168,21 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 **Inherited from parent:** Reward signal communicates outcome to invoking agent.
 
-```json
-{
-  "reward": {
-    "outcome": "pass" | "fail",
-    "severity": "critical" | "high" | "medium" | "low",
-    "evidence": "verdict.txt content",
-    "findings_count": {
-      "critical": 0,
-      "high": 0,
-      "medium": 0,
-      "low": 0
+  ```json
+  {
+    "reward": {
+      "outcome": "pass" | "fail",
+      "severity": "critical" | "high" | "medium" | "low",
+      "evidence": "verdict.txt content",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
     }
   }
-}
-```
+  ```
 
 ## Override Summary
 
@@ -197,8 +208,13 @@ This adapter demonstrates the **inheritance mechanism** — it inherits from `cr
 
 ```json
 {
-  "contract": "forward",
-  "target": "squadrules://adapter/example-next-adapter"
+  "contract": {
+    "type": "forward",
+    "forward": {
+      "target": "squadrules://adapter/example-next-adapter"
+    },
+    "required": true
+  }
 }
 ```
 

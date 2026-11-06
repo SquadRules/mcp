@@ -83,7 +83,7 @@ The ontological knowledge system design (see `docs/specs/ontological-knowledge-s
 The ontological knowledge system must be **mode-agnostic** across all three databases:
 - **Same data model** — graph nodes/edges/properties, vector embeddings, SQL tables are identical in both modes
 - **Same traversal algorithms** — inheritance resolution, anomaly detection, backpropagation logic are mode-independent
-- **Same API surface** — `activate`, `train`, `query` operations have identical signatures regardless of backend
+- **Same API surface** — `activate`, `train`, `forward` operations have identical signatures regardless of backend
 - **Only storage backends differ** — embedded files vs distributed clusters for each database type
 
 This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (shared) for vector storage, now extended to graph and SQL layers.
