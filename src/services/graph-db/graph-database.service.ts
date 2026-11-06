@@ -94,8 +94,9 @@ export class GraphDatabaseService {
       fs.mkdirSync(this.dbPath, { recursive: true });
     }
 
-    // Create database instance (embedded mode)
-    this.db = new Database(this.dbPath);
+    // Create database instance (embedded mode) - use file path, not directory
+    const dbFilePath = path.join(this.dbPath, 'squadrules-graph.lbug');
+    this.db = new Database(dbFilePath);
     await this.db.init();
 
     // Create connection
