@@ -103,19 +103,6 @@ export interface ResolvedInheritance {
 }
 
 /**
- * Returns true when a resolved-property value should be overwritten by a parent's
- * value during inheritance merge.  Treats undefined, null, 0, and empty arrays as
- * "not explicitly set" — these are the sentinel defaults `createAdapterNode` stores
- * when the caller omits the field.
- */
-function isInheritable(value: unknown): boolean {
-  if (value === undefined || value === null) return true;
-  if (value === 0) return true;
-  if (Array.isArray(value) && value.length === 0) return true;
-  return false;
-}
-
-/**
  * Graph Database Service using LadybugDB (embedded mode)
  */
 export class GraphDatabaseService {
@@ -442,6 +429,16 @@ export class GraphDatabaseService {
 
   /**
    * Resolve inheritance: materialize full adapter content (parent + delta)
+   *
+   * Merge semantics (per docs/specs/graph-schema.md § 5.4):
+   *   - Fields listed in the child's `frontmatter.override` come from the child.
+   *   - All other mergeable fields come from the parent chain (nearest ancestor wins
+   *     when multiple levels exist).
+   *   - Identity fields (key, type, slug, created_at, updated_at, frontmatter) always
+   *     come from the child adapter regardless of override declarations.
+   *
+   * Multi-level chains are resolved bottom-up: start with the root ancestor's
+   * properties, then apply each descendant's override fields walking toward the child.
    */
   async resolveInheritance(adapterKey: string): Promise<ResolvedInheritance | null> {
     if (!this.connection) {
@@ -487,27 +484,49 @@ export class GraphDatabaseService {
     // Get inheritance chain
     const pathToRoot = await this.findPathToRoot(adapterKey);
 
-    // Start with adapter properties
+    // Start with adapter properties (no-inheritance case: resolved = child as-is)
     const resolvedProperties: Record<string, any> = { ...adapterNode };
 
-    // Apply parent properties (if inherits exists)
     if (pathToRoot.length > 0) {
-      // Sort by depth (deepest first)
+      // Sort by depth descending: root (deepest ancestor) first, direct parent last.
       pathToRoot.sort((a, b) => b.depth - a.depth);
 
-      for (const { ancestor } of pathToRoot) {
-        const parentProps = ancestor as any;
-        
-        // Merge parent properties (child wins for explicitly-set fields).
-        // createAdapterNode stores zero-value defaults (0, [], null) for fields the
-        // caller did not supply; those must be treated as "unset" so the parent value
-        // flows through.  Non-empty / non-zero child values always win.
-        for (const [key, value] of Object.entries(parentProps)) {
-          if (isInheritable(resolvedProperties[key])) {
-            resolvedProperties[key] = value;
+      // Identity fields always come from the child — never inherited.
+      const IDENTITY_FIELDS = ['key', 'type', 'slug', 'created_at', 'updated_at', 'frontmatter'];
+
+      // Base: root ancestor's properties
+      const merged: Record<string, any> = { ...(pathToRoot[0]!.ancestor as any) };
+
+      // Walk from root toward the direct parent, applying each intermediate
+      // level's declared overrides on top of the deeper ancestor's values.
+      for (let i = 1; i < pathToRoot.length; i++) {
+        const level = pathToRoot[i]!.ancestor as AdapterNode;
+        const overrides = level.frontmatter?.override ?? [];
+        for (const field of overrides) {
+          if (field in level) {
+            merged[field] = (level as any)[field];
           }
         }
       }
+
+      // Apply the child's declared overrides on top of the parent-resolved base.
+      const childOverrides = adapterNode.frontmatter?.override ?? [];
+      for (const field of childOverrides) {
+        if (field in adapterNode) {
+          merged[field] = (adapterNode as any)[field];
+        }
+      }
+
+      // Identity fields always from child
+      for (const field of IDENTITY_FIELDS) {
+        merged[field] = (adapterNode as any)[field];
+      }
+
+      // Replace resolvedProperties content with merged result
+      for (const key of Object.keys(resolvedProperties)) {
+        delete resolvedProperties[key];
+      }
+      Object.assign(resolvedProperties, merged);
     }
 
     return {

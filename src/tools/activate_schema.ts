@@ -131,7 +131,11 @@ export const activateOutputSchema = z.object({
    * challenges. The server never resolves these to a path on its own filesystem.
    */
   squadrules_local_artifact_dir: z.array(z.string()).optional(),
-  transport: z.enum(['stdio', 'http']).optional().describe('MCP transport mode. When "stdio", no HTTP listener is available; linked-artifact materialize URLs are file:// paths from the server\'s local cache, and materialize.cmd curls them like any other URL.')
+  transport: z.enum(['stdio', 'http']).optional().describe('MCP transport mode. When "stdio", no HTTP listener is available; linked-artifact materialize URLs are file:// paths from the server\'s local cache, and materialize.cmd curls them like any other URL.'),
+  /** Ordered list of adapter slugs from child to root. Empty when no inheritance exists. */
+  inheritance_chain: z.array(z.string()).optional().describe('Inheritance chain slugs from child to root (empty if no inheritance)'),
+  /** True when the graph DB resolved the inheritance chain; false on graceful degradation. */
+  inheritance_resolved: z.boolean().optional().describe('Whether the graph DB resolved inheritance (false = graceful degradation)')
 }).strict();
 
 export type ActivateInput = z.infer<typeof activateInputSchema>;
