@@ -35,6 +35,7 @@ import {
   mapProofSolution,
 } from './forward-view.js';
 import { appendExecutionTrace, solutionToTensorValue } from './forward-trace.js';
+import { resolveEffectiveLayerContent, applyEffectiveContent } from './adapter-effective-content.js';
 import { SquadrulesError } from '../types/index.js';
 
 function traceFireAndForget(op: Promise<void>): void {
@@ -100,10 +101,18 @@ export async function executeForward(
       ? parseSquadrulesUriOrThrow(assertWireAdapterUri(input.uri))
       : parsedInputUri;
   const loaded = await loadMemoryForParsedUri(memoryStore, qdrantService, parsed);
-  const memory = loaded.memory;
-  if (!memory) {
+  const rawMemory = loaded.memory;
+  if (!rawMemory) {
     throw new SquadrulesError('Layer or adapter not found', 'NOT_FOUND', 404);
   }
+  // Touchpoint 2b: execute the MERGED (inheritance-resolved) content, not the raw child.
+  // Identity (memory_uuid, slug, adapter info) stays the child's — the agent activated the
+  // child — while only the executable payload (markdown body + inference contract) is
+  // substituted from the nearest ancestor that defines it. Graceful degradation: when the
+  // graph DB is unavailable, resolveEffectiveLayerContent logs a warning and returns the
+  // raw child unchanged, so forward behaves exactly as it did before this touchpoint.
+  const effectiveContent = await resolveEffectiveLayerContent(memoryStore, qdrantService, rawMemory);
+  const memory = applyEffectiveContent(rawMemory, effectiveContent);
   const adapterId = getAdapterId(memory);
   const adapterUri = buildAdapterUri(adapterId);
   const executionId = parsed.kind === 'layer' && parsed.executionId ? parsed.executionId : crypto.randomUUID();

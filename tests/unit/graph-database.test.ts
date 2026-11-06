@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { GraphDatabaseService, AdapterNode, InheritanceEdge } from '../src/services/graph-db/index.js';
+import { GraphDatabaseService, AdapterNode, InheritanceEdge } from '../../src/services/graph-db/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

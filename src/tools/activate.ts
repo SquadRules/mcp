@@ -24,6 +24,7 @@ import { activateRefinementStore } from '../services/activate-refinement-store.j
 import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 import { buildAdapterContentCacheMetadata } from '../utils/pagination.js';
+import { resolveActivationInheritance } from './activate-inheritance.js';
 
 interface RegisterActivateOptions {
   toolName?: string;
@@ -225,10 +226,30 @@ export async function executeActivate(
       : undefined
   );
 
-  return mapSearchToActivate(memoryStore, qdrantService, searchOutput, input.query, {
+  const activateOutput = await mapSearchToActivate(memoryStore, qdrantService, searchOutput, input.query, {
     executionId,
     includeRefineFooter
   });
+
+  // Touchpoint 2 + 2b: resolve the inheritance chain AND the merged executable content
+  // server-side, so forward runs the effective (inheritance-resolved) adapter rather than
+  // the raw child. The merged content is surfaced on the top match choice (Option A).
+  const { chain, resolved, merged, mergedSlug } = await resolveActivationInheritance(
+    memoryStore,
+    qdrantService,
+    activateOutput.choices
+  );
+  activateOutput.inheritance_chain = chain;
+  activateOutput.inheritance_resolved = resolved;
+  if (merged && mergedSlug) {
+    for (const choice of activateOutput.choices) {
+      if (choice.role === 'match' && choice.slug === mergedSlug) {
+        choice.merged_adapter_content = merged;
+      }
+    }
+  }
+
+  return activateOutput;
 }
 
 export function registerActivateTool(server: any, memoryStore: MemoryQdrantStore, options: RegisterActivateOptions = {}) {

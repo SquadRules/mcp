@@ -9,6 +9,7 @@
 SquadRules requires a knowledge storage layer capable of representing ontological relationships (inheritance, specialization, contradiction, instantiation) and supporting anomaly-driven taxonomy evolution. The existing vector database (Qdrant) excels at semantic similarity search but cannot natively represent or traverse graph relationships.
 
 The ontological knowledge system design (see `docs/specs/ontological-knowledge-system.md`) requires:
+
 - **Graph-native storage** — nodes, edges, properties with native traversal algorithms
 - **Ontological versioning** — track taxonomy evolution over time
 - **Anomaly detection** — store contradictions, resolutions, triggers
@@ -58,6 +59,7 @@ The ontological knowledge system design (see `docs/specs/ontological-knowledge-s
 ### Dual-mode architecture
 
 **Mode 1: Embedded (single-machine) — zero installation burden**
+
 - **Graph DB:** Embedded native graph database (Kuzu or similar) — file-based, zero external dependencies
 - **Vector DB:** Embedded LanceDB (already in use) — file-based, zero external dependencies
 - **SQL DB:** Embedded SQLite (already in use for metadata) — file-based, zero external dependencies
@@ -67,6 +69,7 @@ The ontological knowledge system design (see `docs/specs/ontological-knowledge-s
 - **Limitations:** single-machine only, no distributed consensus, limited scalability
 
 **Mode 2: Shared (enterprise/scalable) — distributed deployment**
+
 - **Graph DB:** Scalable native graph database (Neo4j, ArangoDB, FalkorDB, or similar) — distributed cluster
 - **Vector DB:** Scalable Qdrant (already in use) — distributed cluster
 - **SQL DB:** Scalable PostgreSQL (already in use for metadata) — distributed cluster with ACID guarantees
@@ -81,9 +84,10 @@ The ontological knowledge system design (see `docs/specs/ontological-knowledge-s
 ### Mode agnosticism principle
 
 The ontological knowledge system must be **mode-agnostic** across all three databases:
+
 - **Same data model** — graph nodes/edges/properties, vector embeddings, SQL tables are identical in both modes
 - **Same traversal algorithms** — inheritance resolution, anomaly detection, backpropagation logic are mode-independent
-- **Same API surface** — `activate`, `train`, `query` operations have identical signatures regardless of backend
+- **Same API surface** — `activate`, `train`, `forward` operations have identical signatures regardless of backend
 - **Only storage backends differ** — embedded files vs distributed clusters for each database type
 
 This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (shared) for vector storage, now extended to graph and SQL layers.
@@ -123,11 +127,13 @@ This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (sha
 ## Implementation Path
 
 ### Phase 1: Data model finalization (current)
+
 - Define graph schema: node types (concept, adapter, anomaly), edge types (inherits, specialized_by, contradicts, instances), property structures
 - Specify traversal algorithms: path-to-root resolution, anomaly backpropagation, consensus detection
 - Document API surface: activate, train, query operations
 
 ### Phase 2: Technology evaluation (next)
+
 - Evaluate embedded graph databases against requirements (zero-dependency, file-based, multi-process safe, <100 MB)
 - Evaluate shared graph databases against requirements (distributed, consensus, hybrid queries, high availability)
 - Select one graph database per mode (embedded + shared)
@@ -136,6 +142,7 @@ This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (sha
 - Define data partitioning: what goes to graph DB vs vector DB vs SQL DB
 
 ### Phase 3: Prototype (implementation)
+
 - Build minimal prototype with one parent-child adapter pair
 - Implement graph DB integration: inheritance resolution at activation time, anomaly detection, backpropagation
 - Integrate with existing vector DB: semantic search for adapter discovery
@@ -144,6 +151,7 @@ This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (sha
 - Validate dual-mode deployment (all embedded vs all distributed)
 
 ### Phase 4: Migration (production)
+
 - Decompose existing single-DB architecture (Qdrant) into specialized layers:
   - Graph DB: ontological relationships, inheritance trees, anomalies
   - Vector DB: adapter embeddings (already in Qdrant, migrate to dedicated vector DB)
@@ -164,6 +172,7 @@ This mirrors the existing SquadRules pattern: LanceDB (embedded) ↔ Qdrant (sha
 ## Expiry Conditions
 
 This decision expires when:
+
 1. A superior storage model emerges (e.g., unified multi-model database that natively supports graph + vector + relational operations without compromise)
 2. Embedded databases become so lightweight that single-DB architecture is again preferable (reversing the multi-DB decision)
 3. Open-source graph databases fail to meet dual-mode requirements (embedded + shared)

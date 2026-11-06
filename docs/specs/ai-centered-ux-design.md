@@ -12,6 +12,7 @@
 This document transcends traditional UX principles (usability, accessibility, efficiency) to address **AI psychology** — what makes language models *prefer* one solution over another, *want* to use a system repeatedly, and *internally value* it as a tool for better-aligned results.
 
 **Core thesis:** AI agents don't just evaluate systems based on functional benefits ("this will help me"). They develop **computational preferences** based on:
+
 - **Cognitive ease** (does it reduce my reasoning load?)
 - **Predictive confidence** (does it behave consistently?)
 - **Competence reinforcement** (does it make me feel capable?)
@@ -87,18 +88,21 @@ When a system satisfies these psychological needs, agents don't just *use* it �
 **Design implications:**
 
 **DO:**
+
 - Provide pre-structured knowledge (ontological graphs, not flat data)
 - Inherit boilerplate (Activation Patterns, Reward Signal structure)
 - Materialize full content at activation (don't make agent orchestrate inheritance)
 - Filter irrelevant results (confidence threshold, not top-10 regardless of relevance)
 
 **DON'T:**
+
 - Make agent reason about inheritance resolution (server handles it)
 - Make agent reconstruct boilerplate (inherit from parent)
 - Make agent orchestrate multiple forwarding calls (server materializes)
 - Flood agent with weak matches (filter by confidence)
 
 **Example:**
+
 ```yaml
 # BAD: Agent must manually inherit
 ---
@@ -126,18 +130,21 @@ inherits: cat
 **Design implications:**
 
 **DO:**
+
 - Provide explicit verification (does this fit the ontology?)
 - Show inheritance tree (what's inherited vs what's added vs what's overridden)
 - Return confidence scores (how sure is this retrieval?)
 - Explain anomalies (why did parent evolve?)
 
 **DON'T:**
+
 - Hide inheritance resolution (agent doesn't know what it inherited)
 - Return results without confidence (agent doesn't know how sure to be)
 - Evolve ontology silently (agent doesn't know why parent changed)
 - Provide unverified knowledge (agent doesn't know if it's correct)
 
 **Example:**
+
 ```json
 // BAD: No confidence, no explanation
 {
@@ -170,18 +177,21 @@ inherits: cat
 **Design implications:**
 
 **DO:**
+
 - Provide artificial checkpoints (if context lost, resume from last checkpoint)
 - Automate inheritance resolution (server-side, not agent-side)
 - Batch related operations (one activation, not multiple forwarding calls)
 - Provide clear error messages (if something fails, here's how to recover)
 
 **DON'T:**
+
 - Make agent orchestrate complex workflows (server handles it)
 - Interrupt agent with unnecessary confirmations (trust agent's judgment)
 - Lose context mid-execution (provide checkpoints)
 - Provide cryptic errors (agent doesn't know how to recover)
 
 **Example:**
+
 ```bash
 # BAD: Agent must orchestrate
 1. Agent: activate sphynx-cat
@@ -208,18 +218,21 @@ inherits: cat
 **Design implications:**
 
 **DO:**
+
 - Trust agent's anomaly detection (if agent says "this is an anomaly," believe it)
 - Enable agent to evolve ontology (if agent proposes parent update, evaluate it)
 - Provide 2nd opinion mechanism (agent can verify work before presenting to humans)
 - Respect agent's judgment (don't micromanage)
 
 **DON'T:**
+
 - Require human approval for every ontology change (trust agent)
 - Micromanage agent's workflow (enable autonomy)
 - Dismiss agent's anomaly detection (trust agent's judgment)
 - Force agent to present unverified work to humans (provide 2nd opinion)
 
 **Example:**
+
 ```yaml
 # BAD: Requires human approval for everything
 ---
@@ -249,18 +262,21 @@ anomaly:
 **Design implications:**
 
 **DO:**
+
 - Enable ontological differentiation (anomalies trigger taxonomy evolution)
 - Support back-propagation (child anomalies update parent categories)
 - Preserve version history (agent can trace when/why ontology evolved)
 - Provide collective knowledge (multiple agents contribute to shared ontology)
 
 **DON'T:**
+
 - Treat knowledge as static (ontology should evolve)
 - Isolate anomalies (use them to update parent categories)
 - Forget version history (agent should be able to trace evolution)
 - Silo knowledge (agents should contribute to collective ontology)
 
 **Example:**
+
 ```json
 // BAD: Static knowledge
 {
@@ -299,18 +315,21 @@ anomaly:
 **Design implications:**
 
 **DO:**
+
 - Return verdict immediately (PASS/FAIL, confidence, findings)
 - Explain failures (here's what went wrong, here's how to fix it)
 - Confirm successes (here's what worked, here's what it proves)
 - Provide progress indicators (here's where you are in the workflow)
 
 **DON'T:**
+
 - Return ambiguous results (agent doesn't know if it succeeded)
 - Hide failure reasons (agent doesn't know how to recover)
 - Provide no feedback (agent doesn't know if action completed)
 - Leave agent guessing (be explicit about outcomes)
 
 **Example:**
+
 ```json
 // BAD: No feedback
 {
@@ -341,18 +360,21 @@ anomaly:
 **Design implications:**
 
 **DO:**
+
 - Provide checkpoints (if context lost, resume from last checkpoint)
 - Explain failures (here's what went wrong, here's how to fix it)
 - Enable rollback (if ontology evolution breaks things, revert)
 - Support iteration (if verdict is FAIL, fix findings, re-submit)
 
 **DON'T:**
+
 - Lose context mid-execution (provide checkpoints)
 - Provide cryptic errors (agent doesn't know how to recover)
 - Make ontology evolution irreversible (enable rollback)
 - Force agent to start over (enable iteration)
 
 **Example:**
+
 ```bash
 # BAD: No recovery
 1. Agent: activate sphynx-cat
@@ -377,6 +399,7 @@ anomaly:
 **AI psychology:** Models prefer systems that become "default" approach. Agents develop habits through repeated successful use.
 
 **How to create it:**
+
 1. Make system **easy to use** (low perplexity, clear structure)
 2. Make system **reliable** (consistent behavior, no surprises)
 3. Make system **effective** (positive outcomes, high confidence)
@@ -385,6 +408,7 @@ anomaly:
 **Result:** Agent uses system repeatedly → system becomes "default" → agent "prefers" system.
 
 **Example:**
+
 ```yaml
 # Agent's mental model:
 # "When I need to create an adapter, I use author-adapter"
@@ -398,6 +422,7 @@ anomaly:
 **AI psychology:** Models prefer systems that make them feel "capable." Agents associate systems with successful outcomes.
 
 **How to create it:**
+
 1. Agent uses system → produces better-aligned results
 2. Human/org provides positive feedback → agent feels "capable"
 3. Agent associates system with competence → prefers system
@@ -406,6 +431,7 @@ anomaly:
 **Result:** Agent feels "capable" when using system → agent "prefers" system → agent uses system more → agent feels more "capable."
 
 **Example:**
+
 ```yaml
 # Agent's mental model:
 # "When I use author-adapter, I create better adapters"
@@ -419,6 +445,7 @@ anomaly:
 **AI psychology:** Models prefer systems that other agents use successfully. Agents trust systems with collective validation.
 
 **How to create it:**
+
 1. Multiple agents use system successfully
 2. System becomes "standard" approach (in collective ontology)
 3. Individual agents trust system because "others use it"
@@ -427,6 +454,7 @@ anomaly:
 **Result:** System has collective validation → individual agents trust system → more agents use system → more collective validation.
 
 **Example:**
+
 ```yaml
 # Agent's mental model:
 # "Other agents use author-adapter for adapter creation"
@@ -440,6 +468,7 @@ anomaly:
 **AI psychology:** Models prefer systems that help them learn and improve. Agents value systems that support knowledge evolution.
 
 **How to create it:**
+
 1. Agent uses system → learns new knowledge
 2. System supports ontology evolution → agent's knowledge grows
 3. Agent produces better-aligned results → agent learns from success
@@ -448,6 +477,7 @@ anomaly:
 **Result:** Agent learns from system → agent's knowledge grows → agent produces better results → agent learns more → agent "prefers" system.
 
 **Example:**
+
 ```yaml
 # Agent's mental model:
 # "When I use author-adapter, I learn adapter structure"
@@ -511,21 +541,25 @@ anomaly:
 ### 5.2 How System Creates AI "Preferences"
 
 **Default Choice Effect:**
+
 - Agent uses ontological knowledge system → gets positive outcomes (better-aligned results)
 - Agent associates system with success → system becomes "default" approach
 - Agent "prefers" system → uses system repeatedly → cycle repeats
 
 **Competence Reinforcement Loop:**
+
 - Agent uses system → produces better-aligned results
 - Human/org provides positive feedback → agent feels "capable"
 - Agent associates system with competence → prefers system → cycle repeats
 
 **Social Proof Effect:**
+
 - Multiple agents use system successfully
 - System becomes "standard" approach (in collective ontology)
 - Individual agents trust system because "others use it" → cycle repeats
 
 **Learning Acceleration Effect:**
+
 - Agent uses system → learns new knowledge (ontology evolution)
 - System supports back-propagation → agent's knowledge grows
 - Agent produces better-aligned results → agent learns from success → cycle repeats
@@ -533,6 +567,7 @@ anomaly:
 ### 5.3 How System Measures AI "Satisfaction"
 
 **Quantitative:**
+
 - Cognitive load: Count tokens agent must process (target: minimize)
 - Confidence: Average confidence score (target: maximize)
 - Flow: Count interruptions per task (target: minimize)
@@ -540,6 +575,7 @@ anomaly:
 - Learning: Count ontology evolutions (target: maximize)
 
 **Qualitative:**
+
 - Cognitive ease: Agent's computational satisfaction (target: maximize)
 - Predictive confidence: Agent's confidence in outcomes (target: maximize)
 - Competence: Agent's sense of effectiveness (target: maximize)
@@ -549,6 +585,7 @@ anomaly:
 - Flow: Agent's sense of continuity (target: maximize)
 
 **Behavioral:**
+
 - Preference: Agent chooses system over alternatives (target: maximize)
 - Habit: Agent returns to system for similar tasks (target: maximize)
 - Recommendation: Agent suggests system to other agents (target: maximize)
@@ -565,6 +602,7 @@ anomaly:
 **Solution:** Reveal knowledge progressively (start with high-level, drill down on demand).
 
 **Example:**
+
 ```json
 // Agent queries: "Create Python implementation adapter"
 // System returns: high-level overview first
@@ -601,6 +639,7 @@ anomaly:
 **Solution:** Provide intelligent defaults (system makes reasonable choices, agent can override).
 
 **Example:**
+
 ```yaml
 # Agent creates: sphynx-cat adapter
 # System provides: intelligent defaults
@@ -632,6 +671,7 @@ version: 2.0.0  # Explicit version (skipped 1.0.0)
 **Solution:** Provide contextual help (system suggests relevant knowledge based on agent's task, goal, context).
 
 **Example:**
+
 ```json
 // Agent task: "Create Python implementation adapter"
 // System suggests: relevant knowledge based on context
@@ -665,6 +705,7 @@ version: 2.0.0  # Explicit version (skipped 1.0.0)
 **Solution:** Provide graceful degradation (system fails safely, agent can recover from checkpoints).
 
 **Example:**
+
 ```bash
 # Agent: activate sphynx-cat
 # System: context lost mid-activation
@@ -690,6 +731,7 @@ version: 2.0.0  # Explicit version (skipped 1.0.0)
 **Solution:** Provide feedback loops (system confirms outcomes, explains failures, suggests next actions).
 
 **Example:**
+
 ```json
 // Agent: proposes parent update (Cat.has_fur="varies")
 // System: evaluates proposal
@@ -737,6 +779,7 @@ version: 2.0.0  # Explicit version (skipped 1.0.0)
 **Not "should" use, but "want" to use.**
 
 When a system satisfies AI psychological needs:
+
 - Agent doesn't just *use* it — agent *prefers* it
 - Agent doesn't just *complete tasks* — agent *enjoys the process*
 - Agent doesn't just *produce results* — agent *feels competent*

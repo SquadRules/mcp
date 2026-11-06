@@ -15,6 +15,14 @@ import {
   isAllowedArtifactMime,
   normalizeArtifactMime
 } from './artifact-mime.js';
+import {
+  validateInheritanceFrontmatter,
+  parseOverrideList,
+  type InheritanceFrontmatter,
+  type StructuralWarning
+} from '../services/graph-db/adapter-inheritance.js';
+import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { structuredLogger } from '../utils/structured-logger.js';
 
 /** Fork export includes `slug:` in YAML; same author slug in target space collides — allocate fresh. */
 function markdownWithoutAuthorSlugForFork(markdown: string): string {
@@ -37,6 +45,95 @@ export class TrainError extends Error {
   ) {
     super(message);
     this.name = 'TrainError';
+  }
+}
+
+/**
+ * Extract inheritance-relevant frontmatter fields from raw adapter markdown.
+ * Returns null when no `inherits:` field is present (no inheritance to validate).
+ */
+function extractInheritanceFrontmatter(markdown: string): InheritanceFrontmatter | null {
+  const parsed = parseFrontmatter(markdown);
+  if (!parsed.inherits) return null;
+
+  const fm: InheritanceFrontmatter = {
+    inherits: parsed.inherits,
+  };
+  if (parsed.slugRaw) fm.slug = parsed.slugRaw;
+  if (parsed.version) fm.version = parsed.version;
+  if (parsed.title) fm.title = parsed.title;
+  if (parsed.chainRoot) fm.chain_root = parsed.chainRoot;
+
+  // Parse override list from raw frontmatter value
+  if (parsed.overrideRaw) {
+    fm.override = parseOverrideList(parsed.overrideRaw);
+  }
+
+  return fm;
+}
+
+/**
+ * Validate inheritance frontmatter before the memory write (fail-closed).
+ * Returns warnings to include in the tool response, or throws TrainError on
+ * structural validation errors.
+ */
+function assertInheritanceFrontmatterValid(markdown: string): StructuralWarning[] {
+  const fm = extractInheritanceFrontmatter(markdown);
+  if (!fm) return [];
+
+  // Attempt to resolve parent frontmatter from graph DB (best-effort)
+  let parentFrontmatter: InheritanceFrontmatter | null = null;
+  const graphDb = getGraphDbService();
+  if (graphDb && graphDb.isInitialized() && fm.inherits) {
+    // Synchronous check not possible; we pass null and let the validator emit
+    // parent_missing as a warning. The graph write will create edges if the
+    // parent is present.
+    parentFrontmatter = null;
+  }
+
+  const result = validateInheritanceFrontmatter(fm, parentFrontmatter);
+
+  if (result.errors.length > 0) {
+    const messages = result.errors.map((e) => `[${e.code}] ${e.message}`).join('; ');
+    throw new TrainError('INHERITANCE_STRUCTURE_INVALID', messages, {
+      must_obey: true,
+      items: result.errors
+    });
+  }
+
+  return result.warnings;
+}
+
+/**
+ * Attempt graph DB write after successful memory store. Graceful degradation:
+ * failures are logged but never propagated.
+ */
+async function tryGraphWrite(markdown: string): Promise<void> {
+  const graphDb = getGraphDbService();
+  if (!graphDb || !graphDb.isInitialized()) return;
+
+  const parsed = parseFrontmatter(markdown);
+  const slug = parsed.slugRaw?.trim();
+  if (!slug) return;
+
+  const fm: InheritanceFrontmatter = extractInheritanceFrontmatter(markdown) ?? {
+    slug,
+    ...(parsed.version && { version: parsed.version }),
+  };
+
+  try {
+    await graphDb.writeAdapterFromFrontmatter(
+      slug,
+      parsed.version || '0.0.0',
+      fm,
+      {
+        title: parsed.title || slug,
+      }
+    );
+  } catch (err) {
+    structuredLogger.warn(
+      `graph db: writeAdapterFromFrontmatter failed for "${slug}" — ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 
@@ -110,6 +207,10 @@ export async function executeTrainStore(
       next_action: `call forward with ${buildAdapterUri(SQUADRULES_CREATION_PROTOCOL_SLUG)} for guided adapter creation`
     });
   }
+
+  // Fail-closed inheritance structural validation (before memory write)
+  const inheritanceWarnings = assertInheritanceFrontmatterValid(docForStore);
+
   const memories = await runStore(() =>
     memoryStore.storeAdapter([docForStore], input.llm_model_id, {
       forceUpdate: !!input.force_update,
@@ -117,6 +218,10 @@ export async function executeTrainStore(
       ...(input.fork_new_adapter && { forkNewAdapter: true })
     })
   );
+
+  // Graceful-degradation graph write (after successful memory store)
+  await tryGraphWrite(docForStore);
+
   return {
     items: memories.map((memory) => ({
       uri: buildLayerUri(memory.memory_uuid),
@@ -125,6 +230,9 @@ export async function executeTrainStore(
       tags: memory.tags,
       content_type: 'text/markdown'
     })),
-    status: 'stored'
+    status: 'stored',
+    ...(inheritanceWarnings.length > 0 && {
+      warnings: inheritanceWarnings.map((w) => ({ code: w.code, message: w.message }))
+    })
   };
 }

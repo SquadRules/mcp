@@ -241,7 +241,12 @@ export async function executeTrain(
   );
   return {
     items,
-    status: 'stored'
+    status: 'stored',
+    // Surface inheritance warnings (e.g. parent_missing) from the store step so
+    // agents can act on them. Flattened to `[code] message` strings.
+    ...(result.warnings && result.warnings.length > 0 && {
+      warnings: result.warnings.map((w) => `[${w.code}] ${w.message}`)
+    })
   };
 }
 

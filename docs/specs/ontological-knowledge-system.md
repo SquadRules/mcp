@@ -12,12 +12,14 @@
 This document describes an **ontological knowledge system** for AI agents — a cognitive architecture that enables agents to learn, remember, reason, and evolve knowledge through **ontological differentiation**.
 
 Unlike traditional knowledge storage (flat data, relational tables, vector embeddings), this system treats knowledge as a **dynamic, evolving taxonomy** where:
+
 - Concepts inherit from parent concepts
 - Anomalies in child concepts trigger parent category evolution
 - Knowledge grows through tension between generalization and specialization
 - Multiple agents contribute to collective ontology with consensus mechanisms
 
 The system provides AI agents with context-specific knowledge that models don't have:
+
 1. **Human preferences** — what does this specific human value?
 2. **Organizational conventions** — how does this team/org do things?
 3. **Ways of doing things** — procedures, best practices, patterns
@@ -64,29 +66,34 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not flat data. Not relational tables. Ontological graphs.**
 
 **Nodes = Concepts**
+
 - `concept://cat` — generic category
 - `concept://sphynx-cat` — specialized category
 - `concept://fruit` — generic category
 - `concept://durian` — specialized category
 
 **Edges = Relationships**
+
 - `inherits` — child → parent (Sphynx inherits from Cat)
 - `specialized_by` — parent → children (Cat specialized by Sphynx, Persian, etc.)
 - `contradicts` — anomaly → parent rule (Sphynx.has_fur=false contradicts Cat.has_fur=true)
 - `instances` — specific → category (Tom instances Cat)
 
 **Properties = Attributes**
+
 - `has_fur: {value: "varies", default: true, anomalies: ["sphynx"]}`
 - `can_meow: {value: true, default: true}`
 - `stinks: {value: true, anomalies: ["durian", "jackfruit"]}`
 
 **Anomalies = Contradictions That Trigger Evolution**
+
 - Child attribute contradicts parent baseline
 - System detects anomaly
 - System evaluates: core contradiction? Frequency? Instance-specific? Domain variation?
 - System resolves: update parent OR create sub-category
 
 **Versioning = Ontology Evolution History**
+
 - Parent version 1.0.0: `has_fur: true`
 - Anomaly detected: Sphynx has no fur
 - Parent version 2.0.0: `has_fur: "varies"` (evolved)
@@ -97,12 +104,14 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not relational DB. Not vector DB. Ontological graph DB.**
 
 **Technology constraints (SquadRules 6):**
+
 - **Open-source only** — no proprietary database licenses
 - **Graph-native** — store nodes, edges, properties (not tables, not vectors)
 - **No SQLite/PostgreSQL with graph plugins** — must be native graph database
 - **Dual-mode architecture** — embedded (single-machine) and shared (enterprise/scalable)
 
 **Requirements:**
+
 - **Graph-native** — native graph data model, traversal algorithms, query language
 - **Versioned** — each ontology change increments version, history preserved
 - **Distributed** — multiple agents can contribute, consensus on ontology changes (shared mode)
@@ -112,6 +121,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Dual-mode architecture:**
 
 **Mode 1: Embedded graph DB (single-machine)**
+
 - Zero external dependencies (no separate database server)
 - File-based persistence (graph survives restarts)
 - Multi-process safety (concurrent agent access)
@@ -122,6 +132,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 - Limitations: single-machine only, no distributed consensus, limited scalability
 
 **Mode 2: Shared scalable graph DB (enterprise)**
+
 - Distributed architecture (horizontal scaling)
 - Multi-agent concurrent access with consistency guarantees
 - Shared ontology across team/organization
@@ -131,12 +142,16 @@ This perspective allows system to build organic, evolving worldview where knowle
 - High availability and fault tolerance
 
 **Mode agnosticism principle:**
+
 - Same data model (graph nodes, edges, properties) in both modes
 - Same traversal algorithms (inheritance resolution, anomaly detection)
 - Same API surface (activate, train, query)
 - Only storage backend differs (embedded file vs distributed cluster)
 
+Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Retrieval* below) surfaced to agents through `activate` — not query-language or storage-layer access exposed to agents; it does not imply a new agent-facing tool.
+
 **Data format (ideal):**
+
 ```json
 {
   "id": "concept://cat",
@@ -185,18 +200,21 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not "find adapters matching query." But "find relevant knowledge given context."**
 
 **Context =**
+
 - Current task (create adapter, review code, make decision)
 - Agent's goal (implement Python module, audit adapter, design architecture)
 - Human's preferences (Jakub: start-up culture, clear ownership, honesty)
 - Organizational conventions (SquadRules: DRY, principles-first, ontological differentiation)
 
 **Retrieval = Graph Traversal**
+
 - Start from query concept (e.g., "Python implementation adapter")
 - Traverse relationships (inherits, specialized_by, instances)
 - Filter by context (human preferences, org conventions)
 - Return relevant nodes (Python conventions, implementation patterns, adapter structure)
 
 **Query format (ideal):**
+
 ```json
 {
   "query": "Create Python implementation adapter",
@@ -255,21 +273,25 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not static. Dynamic. Ontology evolves based on anomalies.**
 
 **Anomaly Detection:**
+
 - Agent learns new knowledge (e.g., "Sphynx cat has no fur")
 - System checks: does this contradict parent baseline? (Cat.has_fur=true)
 - If yes → ANOMALY DETECTED
 
 **Anomaly Resolution:**
+
 - Evaluate: core contradiction? Frequency? Instance-specific? Domain variation?
 - Decision: update parent OR create sub-category
 - Verify: does parent update break other children?
 - Execute: update parent, increment version, notify children
 
 **Back-Propagation:**
+
 - Child anomaly → parent update → all children inherit updated parent
 - Example: Sphynx.has_fur=false → Cat.has_fur="varies" → Persian, Siamese, etc. inherit updated Cat
 
 **Version Control:**
+
 - Each ontology change increments version
 - History preserved (can trace when/why parent evolved)
 - Rollback mechanism (if taxonomy evolution breaks things, revert)
@@ -279,12 +301,14 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not "is this factually correct?" But "does this fit the ontology?"**
 
 **Verification = Check if new knowledge contradicts existing ontology**
+
 - Agent proposes: "Create adapter with two comment contracts"
 - System checks: does this contradict org conventions? (SquadRules: ≤1 comment, never combined)
 - If yes → VERIFICATION FAIL
 - System returns: contradiction detected, here's rule you're violating
 
 **Verification = Check if anomaly resolution is valid**
+
 - Agent proposes: "Update parent Cat.has_fur=false for all cats"
 - System checks: does this break other children? (Persian.has_fur=true, Siamese.has_fur=true)
 - If yes → VERIFICATION FAIL
@@ -295,12 +319,14 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Not siloed (each agent has own knowledge). Shared (agents contribute to collective ontology).**
 
 **Consensus = When multiple agents agree on ontology change**
+
 - Agent 1: "Sphynx has no fur" → anomaly detected
 - Agent 2: "Yeah, I've seen Sphynx cats, they're hairless" → consensus
 - Agent 3: "Wait, I thought all cats have fur" → contradiction
 - Resolution: evidence wins (Agent 1, 2 have evidence, Agent 3 doesn't) → parent update
 
 **Conflict Resolution = When agents disagree**
+
 - Option 1: Vote (majority wins)
 - Option 2: Authority (human expert wins)
 - Option 3: Evidence (empirical proof wins)
@@ -315,6 +341,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Scenario:** Jakub says "I like start-up culture, clear ownership, honesty"
 
 **Flow:**
+
 1. Agent stores: `human://jakub.preferences = [start-up, ownership, honesty]`
 2. Agent retrieves: when making decisions, check `human://jakub.preferences`
 3. Agent verifies: before presenting work, check if it aligns with preferences
@@ -325,6 +352,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Scenario:** SquadRules org says "We use DRY, principles-first, ontological differentiation"
 
 **Flow:**
+
 1. Agent stores: `org://squadrules.conventions = [DRY, principles-first, ontological]`
 2. Agent retrieves: when creating adapters, check `org://squadrules.conventions`
 3. Agent verifies: before saving adapter, check if it follows conventions
@@ -335,6 +363,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Scenario:** Agent creates adapter, wants verification before presenting to Jakub
 
 **Flow:**
+
 1. Agent does work: creates adapter (draft)
 2. Agent wants verification: calls `critic-loop` (generic reviewer)
 3. Agent wants domain-specific verification: calls domain-specific reviewer (e.g., adapter principles reviewer)
@@ -348,6 +377,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Scenario:** Agent learns "Sphynx cat has no fur"
 
 **Flow:**
+
 1. Agent learns: `concept://sphynx-cat.has_fur = false`
 2. Agent checks: parent `concept://cat.has_fur = true`
 3. Agent detects: ANOMALY (child contradicts parent)
@@ -362,6 +392,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 **Scenario:** Agent task: "Create Python implementation adapter"
 
 **Flow:**
+
 1. Agent queries: what do I know about Python? About implementation? About adapters?
 2. System retrieves: graph traversal from `concept://python` → `concept://implementation` → `concept://adapter`
 3. System filters: by `human://jakub.preferences` and `org://squadrules.conventions`
@@ -376,11 +407,13 @@ This perspective allows system to build organic, evolving worldview where knowle
 ### Decision 1: Inheritance Resolution Timing
 
 **Chosen: Option A — Server-side at activation**
+
 - Train: store delta only (domain-specific additions)
 - Activate: server materializes full content (parent + delta)
 - Agent receives full materialized content automatically
 
 **Rationale:**
+
 - Minimal training effort — agent only specifies delta
 - Dynamic inheritance — if parent changes, derived automatically gets updates
 - Zero runtime ceremony — agent doesn't orchestrate forwarding; server handles it
@@ -389,11 +422,13 @@ This perspective allows system to build organic, evolving worldview where knowle
 ### Decision 2: Inheritance Cardinality
 
 **Chosen: Single inheritance**
+
 - One parent per adapter
 - Clear lineage, no ambiguity
 - Like Java/C# classes
 
 **Rationale:**
+
 - Single inheritance is simpler and less ambiguous
 - Multiple inheritance creates diamond problems (which parent's Must Never wins?)
 - If agent needs to combine knowledge from multiple sources, use composition (forward to multiple adapters) rather than multiple inheritance
@@ -401,11 +436,13 @@ This perspective allows system to build organic, evolving worldview where knowle
 ### Decision 3: Override Semantics
 
 **Chosen: Selective override with explicit marker**
+
 - Derived can ADD new rules (domain-specific)
 - Derived can OVERRIDE specific parent rules with explicit `override:` marker
 - Structural elements (verdict format, work submission) cannot be overridden
 
 **Rationale:**
+
 - Additive-only is too restrictive (Sphynx cat needs to override "has fur")
 - Selective override allows flexibility while maintaining safety
 - Structural elements are part of verification ladder; derived cannot change them without breaking verification
@@ -413,6 +450,7 @@ This perspective allows system to build organic, evolving worldview where knowle
 ### Decision 4: Frontmatter Syntax
 
 **Chosen:**
+
 ```yaml
 ---
 slug: my-adapter
@@ -425,6 +463,7 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ```
 
 **Rationale:**
+
 - Clear, explicit syntax
 - `inherits` declares parent
 - `override` lists specific rules to override (fail-closed: must reference parent's rules)
@@ -433,6 +472,7 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ### Decision 5: Activation Presentation
 
 **Chosen: Inheritance tree + materialized content + overrides list**
+
 ```json
 {
   "inheritance_tree": [
@@ -446,6 +486,7 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ```
 
 **Rationale:**
+
 - Agent understands lineage (what's inherited vs what's added vs what's overridden)
 - Tree shows full path to root (all ancestors)
 - Materialized content is what agent actually uses
@@ -454,12 +495,14 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ### Decision 6: Context Protection
 
 **Chosen: Artificial checkpoints during activation**
+
 - Server resolves inheritance in stages (level by level)
 - After each stage, write checkpoint to disk (materialized content so far)
 - If context lost, resume from last checkpoint
 - Checkpoints are temporary (cleaned up after activation completes)
 
 **Rationale:**
+
 - Activation is automatic (server-side inheritance resolution)
 - If context is lost mid-activation, execution fails
 - Checkpoints make activation fault-tolerant (like git commits)
@@ -467,11 +510,13 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ### Decision 7: Result Filtering
 
 **Chosen: Filter by confidence threshold**
+
 - Only return results with score >= 0.5 (configurable)
 - If < 3 results meet threshold, return top 3 anyway (with warning)
 - If >= 3 results meet threshold, return only those (cap at 10)
 
 **Rationale:**
+
 - Currently returns top 10 results regardless of confidence
 - Weak matches pollute context
 - Filtering prevents context pollution
@@ -492,24 +537,28 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 ### Operational Triggers
 
 **Trigger 1: Core Definition Contradiction**
+
 - **Condition:** Child's `Must Never` contradicts parent's `Must Always` (or vice versa)
 - **Action:** Propose parent update
 - **Verification:** Parent update must not break other children
 - **Example:** Parent "Cat" says "Must Always: has fur" → Child "Sphynx" says "Must Never: has fur" → Parent updates to "Cats may or may not have fur"
 
 **Trigger 2: Frequency Threshold**
+
 - **Condition:** ≥3 children share same anomalous attribute
 - **Action:** Propose parent update
 - **Verification:** Attribute is not instance-specific
 - **Example:** 3+ fruit adapters (Durian, Jackfruit, Limburger) have "stinks" attribute → Parent "Fruit" updates to include "odors vary"
 
 **Trigger 3: Instance Specificity**
+
 - **Condition:** Anomaly is unique to one child AND not fundamental
 - **Action:** Sub-category split (child becomes new category, parent unchanged)
 - **Verification:** Parent's definition still holds for other children
 - **Example:** "Tom is named" → "Cat" parent unchanged (already has "can have names"), "Tom" is instance of "Cat" (no new category needed)
 
 **Trigger 4: Domain Variation**
+
 - **Condition:** Anomaly is domain-specific (only applies to one domain)
 - **Action:** Sub-category split (domain-specific child category)
 - **Verification:** Parent remains domain-agnostic
