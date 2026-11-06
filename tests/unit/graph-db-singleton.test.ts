@@ -7,10 +7,13 @@
  * `getGraphDbService()`, and `closeGraphDb()` is idempotent and never rejects.
  *
  * `GraphDatabaseService` and the logger are mocked, so no native LadybugDB bindings
- * load and nothing touches the real `~/.squadrules` tree. The suite runs as native
- * ESM, where `jest.mock` cannot intercept static imports, so it uses
- * `jest.unstable_mockModule` plus a fresh dynamic import per test (the singleton and
- * the module-scope `GRAPH_DB_ENABLED` constant both live in module state).
+ * load and nothing touches the real `~/.squadrules` tree.
+ *
+ * Mocking strategy: `jest.resetModules()` clears both the CJS require-cache and the
+ * ESM unstable-mock registry, so mocks are re-registered via BOTH `jest.doMock()`
+ * (CJS path) and `jest.unstable_mockModule()` (ESM path) inside `freshSingleton()`
+ * after each reset. This makes the suite pass regardless of whether Jest is invoked
+ * with `--experimental-vm-modules` or not.
  */
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -39,16 +42,7 @@ const mockInfo = jest.fn();
 const mockWarn = jest.fn();
 const mockError = jest.fn();
 
-jest.unstable_mockModule('../../src/utils/structured-logger.js', () => ({
-  structuredLogger: {
-    debug: mockDebug,
-    info: mockInfo,
-    warn: mockWarn,
-    error: mockError
-  }
-}));
-
-jest.unstable_mockModule('../../src/services/graph-db/graph-database.service.js', () => {
+function serviceFactory() {
   class FakeGraphDatabaseService {
     private opened = false;
 
@@ -78,13 +72,37 @@ jest.unstable_mockModule('../../src/services/graph-db/graph-database.service.js'
   }
 
   return { GraphDatabaseService: FakeGraphDatabaseService };
-});
+}
+
+function loggerFactory() {
+  return {
+    structuredLogger: {
+      debug: mockDebug,
+      info: mockInfo,
+      warn: mockWarn,
+      error: mockError
+    }
+  };
+}
+
+/**
+ * Register mocks using both the CJS (`jest.doMock`) and ESM
+ * (`jest.unstable_mockModule`) APIs so the suite works regardless of whether
+ * Node is invoked with `--experimental-vm-modules`.
+ */
+function registerMocks(): void {
+  jest.unstable_mockModule('../../src/services/graph-db/graph-database.service.js', serviceFactory);
+  jest.unstable_mockModule('../../src/utils/structured-logger.js', loggerFactory);
+  jest.doMock('../../src/services/graph-db/graph-database.service.js', serviceFactory);
+  jest.doMock('../../src/utils/structured-logger.js', loggerFactory);
+}
 
 type GraphDbSingleton = typeof import('../../src/services/graph-db/graph-db-singleton.js');
 
 /** Reload the singleton with fresh module state so `instance` and config constants restart clean. */
 async function freshSingleton(): Promise<GraphDbSingleton> {
   jest.resetModules();
+  registerMocks();
   return await import('../../src/services/graph-db/graph-db-singleton.js');
 }
 

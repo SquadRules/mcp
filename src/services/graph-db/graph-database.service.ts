@@ -11,6 +11,15 @@ import { Database, Connection } from '@ladybugdb/core';
 import * as path from 'path';
 import * as fs from 'fs';
 
+/**
+ * Maximum database size in bytes (256 MB). LadybugDB 0.22.2 defaults to an 8 TB
+ * mmap address-space reservation when maxDBSize is 0, which fails on macOS and
+ * other systems that cannot overcommit that much virtual memory — especially when
+ * multiple Database instances are created and closed in rapid succession (tests).
+ * 256 MB is generous for the adapter/concept graph and avoids the mmap failure.
+ */
+const MAX_DB_SIZE_BYTES = 256 * 1024 * 1024;
+
 export interface AdapterNode {
   key: string;
   type: 'adapter';
@@ -69,6 +78,19 @@ export interface ResolvedInheritance {
 }
 
 /**
+ * Returns true when a resolved-property value should be overwritten by a parent's
+ * value during inheritance merge.  Treats undefined, null, 0, and empty arrays as
+ * "not explicitly set" — these are the sentinel defaults `createAdapterNode` stores
+ * when the caller omits the field.
+ */
+function isInheritable(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (value === 0) return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+}
+
+/**
  * Graph Database Service using LadybugDB (embedded mode)
  */
 export class GraphDatabaseService {
@@ -96,7 +118,7 @@ export class GraphDatabaseService {
 
     // Create database instance (embedded mode) - use file path, not directory
     const dbFilePath = path.join(this.dbPath, 'squadrules-graph.lbug');
-    this.db = new Database(dbFilePath);
+    this.db = new Database(dbFilePath, 0, true, false, MAX_DB_SIZE_BYTES);
     await this.db.init();
 
     // Create connection
@@ -288,6 +310,11 @@ export class GraphDatabaseService {
         ancestor.created_at as created_at,
         ancestor.updated_at as updated_at,
         ancestor.frontmatter as frontmatter,
+        ancestor.layer_count as layer_count,
+        ancestor.contract_types as contract_types,
+        ancestor.space as space,
+        ancestor.tags as tags,
+        ancestor.metadata as metadata,
         length(path) as depth
     `;
 
@@ -309,7 +336,12 @@ export class GraphDatabaseService {
         title: row.title,
         created_at: row.created_at,
         updated_at: row.updated_at,
-        frontmatter: JSON.parse(row.frontmatter || '{}')
+        frontmatter: JSON.parse(row.frontmatter || '{}'),
+        layer_count: row.layer_count,
+        contract_types: JSON.parse(row.contract_types || '[]'),
+        space: row.space,
+        tags: JSON.parse(row.tags || '[]'),
+        metadata: JSON.parse(row.metadata || '{}')
       } as AdapterNode,
       edge: {
         from: adapterKey,
@@ -379,9 +411,12 @@ export class GraphDatabaseService {
       for (const { ancestor } of pathToRoot) {
         const parentProps = ancestor as any;
         
-        // Merge parent properties (child wins for overridden fields)
+        // Merge parent properties (child wins for explicitly-set fields).
+        // createAdapterNode stores zero-value defaults (0, [], null) for fields the
+        // caller did not supply; those must be treated as "unset" so the parent value
+        // flows through.  Non-empty / non-zero child values always win.
         for (const [key, value] of Object.entries(parentProps)) {
-          if (!(key in resolvedProperties) || resolvedProperties[key] === undefined) {
+          if (isInheritable(resolvedProperties[key])) {
             resolvedProperties[key] = value;
           }
         }
