@@ -24,7 +24,7 @@ import { activateRefinementStore } from '../services/activate-refinement-store.j
 import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 import { buildAdapterContentCacheMetadata } from '../utils/pagination.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { resolveActivationInheritance } from './activate-inheritance.js';
 
 interface RegisterActivateOptions {
   toolName?: string;
@@ -169,58 +169,6 @@ async function mapSearchToActivate(
   };
 }
 
-/**
- * Resolve the inheritance chain for the top matched adapter choice.
- *
- * Graceful degradation: if the graph DB is unavailable or resolveInheritance throws,
- * returns `{ chain: [], resolved: false }` and logs a warning. The activation still
- * succeeds using the raw adapter.
- */
-async function resolveActivationInheritance(
-  choices: ActivateOutput['choices']
-): Promise<{ chain: string[]; resolved: boolean }> {
-  const topMatch = choices.find((c) => c.role === 'match' && c.slug);
-  if (!topMatch?.slug) {
-    // No match choice with a slug — nothing to resolve, not a degradation.
-    return { chain: [], resolved: true };
-  }
-
-  const graphDb = getGraphDbService();
-  if (!graphDb || !graphDb.isInitialized()) {
-    structuredLogger.warn(
-      `activate: graph DB unavailable — inheritance not resolved for "${topMatch.slug}"`
-    );
-    return { chain: [], resolved: false };
-  }
-
-  try {
-    const adapterKey = `adapter:${topMatch.slug}`;
-    const result = await graphDb.resolveInheritance(adapterKey);
-
-    if (!result) {
-      // Adapter not in graph (e.g. trained before graph DB was enabled).
-      // Not an error — just no inheritance data available.
-      return { chain: [], resolved: true };
-    }
-
-    // Build child-to-root slug list: [child, parent, grandparent, ...]
-    // result.inheritance_chain is sorted deepest-first (root first), so reverse
-    // to get nearest-parent-first, then prepend the child.
-    const ancestorSlugs = result.inheritance_chain
-      .map((n) => (n as any).slug as string)
-      .filter(Boolean)
-      .reverse();
-    const chain = [result.adapter.slug, ...ancestorSlugs];
-
-    return { chain, resolved: true };
-  } catch (err) {
-    structuredLogger.warn(
-      `activate: resolveInheritance failed for "${topMatch.slug}" (${err instanceof Error ? err.message : String(err)}) — continuing with raw adapter`
-    );
-    return { chain: [], resolved: false };
-  }
-}
-
 export async function executeActivate(
   memoryStore: MemoryQdrantStore,
   qdrantService: QdrantService | undefined,
@@ -283,10 +231,23 @@ export async function executeActivate(
     includeRefineFooter
   });
 
-  // Touchpoint 2: resolve inheritance chain server-side before forwarding.
-  const { chain, resolved } = await resolveActivationInheritance(activateOutput.choices);
+  // Touchpoint 2 + 2b: resolve the inheritance chain AND the merged executable content
+  // server-side, so forward runs the effective (inheritance-resolved) adapter rather than
+  // the raw child. The merged content is surfaced on the top match choice (Option A).
+  const { chain, resolved, merged, mergedSlug } = await resolveActivationInheritance(
+    memoryStore,
+    qdrantService,
+    activateOutput.choices
+  );
   activateOutput.inheritance_chain = chain;
   activateOutput.inheritance_resolved = resolved;
+  if (merged && mergedSlug) {
+    for (const choice of activateOutput.choices) {
+      if (choice.role === 'match' && choice.slug === mergedSlug) {
+        choice.merged_adapter_content = merged;
+      }
+    }
+  }
 
   return activateOutput;
 }

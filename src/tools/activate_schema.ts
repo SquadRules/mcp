@@ -48,6 +48,21 @@ const linkedArtifactSchema = z
     materialize: materializeInstructionSchema.describe('Run `cmd` verbatim to materialize the artifact: it curls `url`, verifies the sha256 digest, and publishes atomically — no export call and no $B64')
   })
   .strict();
+/**
+ * Effective (inheritance-resolved) adapter content surfaced for the top match so the
+ * agent sees exactly what `forward` will execute. Identity (slug/version) stays the
+ * child's; `content` is the merged markdown body carrying the inherited contract blocks,
+ * steps, judgment_criteria, timeout and interpreter. See Touchpoint 2b / Option A.
+ */
+const mergedAdapterContentSchema = z
+  .object({
+    slug: z.string().describe('Child adapter slug — identity stays with the activated child'),
+    version: z.string().nullable().describe('Child adapter version — identity stays with the activated child'),
+    content: z.string().describe('Effective (merged) markdown body the agent executes, including inherited contract blocks and steps'),
+    inheritance_chain: z.array(z.string()).describe('Inheritance chain slugs, child-to-root'),
+    resolved: z.boolean().describe('False on graceful degradation (graph DB unavailable)')
+  })
+  .strict();
 const activateChoiceCommonSchema = z.object({
   uri: adapterUriSchema,
   label: z.string().describe('Display label for the adapter choice'),
@@ -71,7 +86,10 @@ const activateChoiceCommonSchema = z.object({
 const activateMatchChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('match'),
   forward_first_call: forwardFirstCallSchema,
-  linked_artifacts: z.array(linkedArtifactSchema).optional()
+  linked_artifacts: z.array(linkedArtifactSchema).optional(),
+  merged_adapter_content: mergedAdapterContentSchema
+    .optional()
+    .describe('Effective inheritance-resolved content forward executes; present on the top match when the graph DB resolved inheritance')
 });
 const activateRefineChoiceSchema = activateChoiceCommonSchema.extend({
   role: z.literal('refine'),
