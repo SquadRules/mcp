@@ -17,6 +17,7 @@
 ## Step 1: Inheritance Tree (Path to Root)
 
 **What server returns:**
+
 ```json
 {
   "inheritance_tree": [
@@ -39,6 +40,7 @@
 ```
 
 **What this means:**
+
 - Child is at level 0 (most specific)
 - Parent is at level 1 (generic base)
 - Server resolved inheritance at activation time (not train time)
@@ -49,6 +51,7 @@
 ## Step 2: Override Scope Detection
 
 **What server analyzes:**
+
 ```yaml
 # Child frontmatter
 slug: example-specialized-reviewer
@@ -60,12 +63,14 @@ override:
 ```
 
 **What server validates:**
+
 - ✓ `audit-dimensions` is domain-specific rule → override allowed
 - ✓ `severity-mapping` is domain-specific rule → override allowed
 - ✗ If child tried to override `verdict-format` → override rejected (structural element)
 - ✗ If child tried to override `work-submission-protocol` → override rejected (structural element)
 
 **What server returns:**
+
 ```json
 {
   "override_scope": {
@@ -92,6 +97,7 @@ override:
 ### 3.1 Workflow Steps (Materialized)
 
 **Step 1: Receive Work Submission**
+
 ```json
 {
   "step": 1,
@@ -114,6 +120,7 @@ override:
 ```
 
 **Step 2: Domain-Specific Audit**
+
 ```json
 {
   "step": 2,
@@ -134,6 +141,7 @@ override:
 ```
 
 **Step 3: Delegate to Subagent**
+
 ```json
 {
   "step": 3,
@@ -154,6 +162,7 @@ override:
 ```
 
 **Step 4: Synthesize Findings**
+
 ```json
 {
   "step": 4,
@@ -188,6 +197,7 @@ override:
 ```
 
 **Step 5: Produce Verdict**
+
 ```json
 {
   "step": 5,
@@ -211,6 +221,7 @@ override:
 ```
 
 **Step 6: Reward Signal**
+
 ```json
 {
   "step": 6,
@@ -235,6 +246,7 @@ override:
 ### 3.2 Contracts (Materialized)
 
 **Artifact Contract:**
+
 ```json
 {
   "contract": "shell",
@@ -245,6 +257,7 @@ override:
 ```
 
 **Forward Contract:**
+
 ```json
 {
   "contract": "forward",
@@ -261,6 +274,7 @@ override:
 **What server generates:**
 
 ### 4.1 Pre-Execution Checkpoint
+
 ```json
 {
   "checkpoint_id": "pre-execution",
@@ -278,6 +292,7 @@ override:
 ```
 
 ### 4.2 Post-Step-2 Checkpoint (after domain-specific audit)
+
 ```json
 {
   "checkpoint_id": "post-domain-audit",
@@ -297,6 +312,7 @@ override:
 ```
 
 ### 4.3 Post-Step-4 Checkpoint (after synthesis)
+
 ```json
 {
   "checkpoint_id": "post-synthesis",
@@ -315,6 +331,7 @@ override:
 ```
 
 ### 4.4 Post-Execution Checkpoint (after verdict)
+
 ```json
 {
   "checkpoint_id": "post-execution",
@@ -346,6 +363,7 @@ override:
 **Scenario:** Agent discovers that `critic-loop` (parent) doesn't check for interpreter mismatches.
 
 **Agent action:**
+
 ```json
 {
   "contract": "train",
@@ -368,6 +386,7 @@ override:
 ```
 
 **Server action:**
+
 1. Validate anomaly against parent's current dimensions
 2. Check if ≥3 children report same anomaly (consensus threshold)
 3. If consensus reached, trigger parent update proposal
@@ -379,6 +398,7 @@ override:
 **Scenario:** Server detects that child's `audit-dimensions` override contradicts parent's baseline.
 
 **Server detection:**
+
 ```json
 {
   "anomaly_type": "override-contradiction",
@@ -394,6 +414,7 @@ override:
 ```
 
 **Server action:**
+
 1. Flag contradiction (child adds dimensions parent lacks)
 2. Propose backport: add child's dimensions to parent
 3. Verify backport doesn't break other children
@@ -405,6 +426,7 @@ override:
 **Scenario:** Agent judges that parent's workflow is suboptimal for domain-specific work.
 
 **Agent judgment:**
+
 ```json
 {
   "anomaly_type": "workflow-optimization",
@@ -422,6 +444,7 @@ override:
 ```
 
 **Server action:**
+
 1. Accept agent judgment (confidence > 0.7 threshold)
 2. Log optimization proposal for parent's next version
 3. Do NOT auto-update parent (optimization is not core contradiction)
@@ -434,6 +457,7 @@ override:
 **What server filters before returning to agent:**
 
 ### 6.1 Inheritance Tree Filtering
+
 ```json
 {
   "inheritance_tree": [
@@ -454,6 +478,7 @@ override:
 ```
 
 ### 6.2 Override Scope Filtering
+
 ```json
 {
   "override_scope": {
@@ -475,6 +500,7 @@ override:
 ```
 
 ### 6.3 Materialized Content Filtering
+
 ```json
 {
   "materialized_steps": [
@@ -521,6 +547,7 @@ override:
 ```
 
 ### 6.4 Checkpoint Filtering Filtering
+
 ```json
 {
   "checkpoints": [
@@ -614,34 +641,40 @@ override:
 ## Summary: What This Simulation Demonstrates
 
 ### Inheritance Resolution (Server-Side, at Activation)
+
 - ✓ Child stores only delta (domain-specific overrides)
 - ✓ Parent stores base content (generic workflow)
 - ✓ Server materializes full content at activation time
 - ✓ Agent sees single coherent adapter (no manual merging)
 
 ### Override Scope (Domain Rules Flexible, Structural Elements Fixed)
+
 - ✓ Child can override domain-specific rules (audit dimensions, severity mapping)
 - ✓ Child cannot override structural elements (verdict format, work submission protocol)
 - ✓ Server validates override scope before materialization
 
 ### Checkpoint Generation (Context Protection)
+
 - ✓ Server generates checkpoints at inheritance level boundaries
 - ✓ Checkpoints capture inheritance tree, override scope, materialized content
 - ✓ Rollback targets enable recovery from execution failures
 
 ### Anomaly Detection (Ontological Evolution)
+
 - ✓ Explicit anomalies (agent-declared) trigger parent update proposals
 - ✓ Automatic anomalies (server-detected) flag override contradictions
 - ✓ Agent judgment anomalies (LLM assessment) propose workflow optimizations
 - ✓ Consensus threshold (≥3 children) prevents premature parent updates
 
 ### Result Filtering (Confidence-Based)
+
 - ✓ Inheritance tree filtered by confidence (min 0.90)
 - ✓ Override scope filtered by confidence
 - ✓ Materialized content filtered by confidence
 - ✓ Checkpoints filtered by confidence
 
 ### AI Psychology (Beyond Compliance)
+
 - ✓ **Cognitive ease:** Agent sees single coherent adapter, not parent+child merge
 - ✓ **Predictive confidence:** High confidence scores (0.90-1.0) reinforce trust
 - ✓ **Competence reinforcement:** Clear override scope shows what agent can/cannot change
