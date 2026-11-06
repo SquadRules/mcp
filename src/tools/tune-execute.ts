@@ -13,6 +13,14 @@ import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../utils/prot
 import { validateAdapterMarkdownSize } from '../services/memory/validate-adapter-markdown-size.js';
 import { verifyTuneLayerPersistence } from './tune-verify.js';
 import { assertReviewEvidencePassed } from './review-evidence-check.js';
+import {
+  validateInheritanceFrontmatter,
+  parseOverrideList,
+  type InheritanceFrontmatter,
+  type StructuralWarning
+} from '../services/graph-db/adapter-inheritance.js';
+import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { structuredLogger } from '../utils/structured-logger.js';
 type AdapterLayerPoint = { uuid: string; payload: any };
 
 function sortByLayerIndex(layers: AdapterLayerPoint[]): AdapterLayerPoint[] {
@@ -124,6 +132,79 @@ async function reassignAdapterLayersToSpace(
   }
 }
 
+/**
+ * Extract inheritance-relevant frontmatter from adapter markdown for tune.
+ * Returns null when no `inherits:` field is present.
+ */
+function extractInheritanceFrontmatterForTune(markdown: string): InheritanceFrontmatter | null {
+  const parsed = parseFrontmatter(markdown);
+  if (!parsed.inherits) return null;
+
+  const fm: InheritanceFrontmatter = {
+    inherits: parsed.inherits,
+  };
+  if (parsed.slugRaw) fm.slug = parsed.slugRaw;
+  if (parsed.version) fm.version = parsed.version;
+  if (parsed.title) fm.title = parsed.title;
+  if (parsed.chainRoot) fm.chain_root = parsed.chainRoot;
+  if (parsed.overrideRaw) {
+    fm.override = parseOverrideList(parsed.overrideRaw);
+  }
+
+  return fm;
+}
+
+/**
+ * Validate inheritance frontmatter before tune memory write (fail-closed).
+ * Throws on structural errors; returns warnings for the response.
+ */
+function assertTuneInheritanceValid(markdown: string): StructuralWarning[] {
+  const fm = extractInheritanceFrontmatterForTune(markdown);
+  if (!fm) return [];
+
+  const result = validateInheritanceFrontmatter(fm, null);
+
+  if (result.errors.length > 0) {
+    const messages = result.errors.map((e) => `[${e.code}] ${e.message}`).join('; ');
+    throw new Error(`Inheritance validation failed: ${messages}`);
+  }
+
+  return result.warnings;
+}
+
+/**
+ * Attempt graph DB write after successful tune. Graceful degradation:
+ * failures are logged but never propagated.
+ */
+async function tryGraphWriteForTune(markdown: string): Promise<void> {
+  const graphDb = getGraphDbService();
+  if (!graphDb || !graphDb.isInitialized()) return;
+
+  const parsed = parseFrontmatter(markdown);
+  const slug = parsed.slugRaw?.trim();
+  if (!slug) return;
+
+  const fm: InheritanceFrontmatter = extractInheritanceFrontmatterForTune(markdown) ?? {
+    slug,
+    ...(parsed.version && { version: parsed.version }),
+  };
+
+  try {
+    await graphDb.writeAdapterFromFrontmatter(
+      slug,
+      parsed.version || '0.0.0',
+      fm,
+      {
+        title: parsed.title || slug,
+      }
+    );
+  } catch (err) {
+    structuredLogger.warn(
+      `graph db: writeAdapterFromFrontmatter failed for tune "${slug}" — ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
 async function tuneAdapterMarkdownInPlace(
   qdrantService: QdrantService,
   adapterUri: string,
@@ -180,6 +261,9 @@ async function tuneAdapterMarkdownInPlace(
     }
   }
 
+  // Fail-closed inheritance structural validation (before memory write)
+  assertTuneInheritanceValid(markdownDoc);
+
   for (let i = 0; i < existingLayers.length; i++) {
     const existing = existingLayers[i]!;
     const next = nextLayers[i]!;
@@ -212,6 +296,9 @@ async function tuneAdapterMarkdownInPlace(
   }
 
   await verifyTuneLayerPersistence(qdrantService, existingLayers, nextLayers);
+
+  // Graceful-degradation graph write (after successful tune)
+  await tryGraphWriteForTune(markdownDoc);
 
   return buildLayerUri(existingLayers[0]!.uuid);
 }

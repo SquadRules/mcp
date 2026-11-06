@@ -11,6 +11,10 @@ export interface ParsedFrontmatter {
   slugRaw?: string;
   /** Present when the document had a `chain_root:` key in frontmatter (slug of the chain entry-point adapter). */
   chainRoot?: string;
+  /** Present when the document had an `inherits:` key (parent adapter slug). */
+  inherits?: string;
+  /** Present when the document had an `override:` key (list of overridden fields). Raw string value. */
+  overrideRaw?: string;
   body: string;
 }
 
@@ -48,6 +52,12 @@ export function parseFrontmatter(text: string): ParsedFrontmatter {
     }
     if ((key === 'chain_root' || key === 'chainroot') && value) {
       result.chainRoot = value;
+    }
+    if (key === 'inherits' && value) {
+      result.inherits = value;
+    }
+    if (key === 'override' && value) {
+      result.overrideRaw = value;
     }
   }
   return result;

@@ -238,7 +238,11 @@ export const trainStoreOutputSchema = z.object({
       content_type: z.string().optional()
     })
   ),
-  status: z.literal('stored')
+  status: z.literal('stored'),
+  warnings: z.array(z.object({
+    code: z.string(),
+    message: z.string()
+  })).optional()
 });
 
 export type TrainStoreInput = z.infer<typeof trainStoreInputSchema>;

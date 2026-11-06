@@ -8,6 +8,7 @@
  */
 
 import { Database, Connection } from '@ladybugdb/core';
+import type { InheritanceFrontmatter } from './adapter-inheritance.js';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -514,6 +515,170 @@ export class GraphDatabaseService {
         metadata: JSON.parse(adapter.metadata || '{}')
       };
     });
+  }
+
+
+  /**
+   * Upsert an adapter node: create if absent, update if present.
+   * Uses MERGE semantics so partial writes never leak.
+   */
+  async upsertAdapterNode(adapter: AdapterNode): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    // Try to match existing node first
+    const matchQuery = `
+      MATCH (a:Adapter {key: $key})
+      RETURN a.key
+    `;
+    const matchStmt = await this.connection.prepare(matchQuery);
+    const matchResult = await this.connection.execute(matchStmt, { key: adapter.key });
+    const matchQueryResult = Array.isArray(matchResult) ? matchResult[0] : matchResult;
+    const existingRows = matchQueryResult ? await matchQueryResult.getAll() : [];
+
+    if (existingRows.length > 0) {
+      // Update existing node
+      const updateQuery = `
+        MATCH (a:Adapter {key: $key})
+        SET a.version = $version,
+            a.title = $title,
+            a.updated_at = $updated_at,
+            a.frontmatter = $frontmatter,
+            a.layer_count = $layer_count,
+            a.contract_types = $contract_types,
+            a.space = $space,
+            a.tags = $tags,
+            a.metadata = $metadata
+      `;
+      const updateStmt = await this.connection.prepare(updateQuery);
+      await this.connection.execute(updateStmt, {
+        key: adapter.key,
+        version: adapter.version,
+        title: adapter.title,
+        updated_at: adapter.updated_at,
+        frontmatter: JSON.stringify(adapter.frontmatter || null),
+        layer_count: adapter.layer_count || 0,
+        contract_types: JSON.stringify(adapter.contract_types || []),
+        space: adapter.space || 'personal',
+        tags: JSON.stringify(adapter.tags || []),
+        metadata: JSON.stringify(adapter.metadata || {})
+      });
+    } else {
+      // Create new node
+      await this.createAdapterNode(adapter);
+    }
+  }
+
+  /**
+   * Write an adapter node and its inheritance edges from parsed frontmatter.
+   *
+   * Performs: upsert Adapter node → create/update Inherits edge (child→parent) →
+   * create reciprocal SpecializedBy edge (parent→child).
+   *
+   * If the parent adapter node does not exist in the graph, the edges are skipped
+   * (the caller receives a warning from validateInheritanceFrontmatter beforehand).
+   *
+   * @param slug - Adapter slug
+   * @param version - Adapter version string
+   * @param frontmatter - Parsed frontmatter fields including inherits/override
+   * @param opts - Additional options (title, tags, etc.)
+   */
+  async writeAdapterFromFrontmatter(
+    slug: string,
+    version: string,
+    frontmatter: InheritanceFrontmatter,
+    opts?: {
+      title?: string;
+      layerCount?: number;
+      contractTypes?: string[];
+      space?: string;
+      tags?: string[];
+      metadata?: Record<string, any>;
+    }
+  ): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const now = new Date().toISOString();
+    const adapterKey = `adapter:${slug}`;
+
+    // Build the adapter node
+    const adapterNode: AdapterNode = {
+      key: adapterKey,
+      type: 'adapter',
+      slug,
+      version,
+      title: opts?.title || slug,
+      created_at: now,
+      updated_at: now,
+      frontmatter: {
+        slug,
+        version,
+        ...(frontmatter.inherits && { inherits: frontmatter.inherits }),
+        ...(frontmatter.chain_root && { chain_root: frontmatter.chain_root }),
+        ...(frontmatter.override && frontmatter.override.length > 0 && { override: frontmatter.override }),
+        ...(frontmatter.protocol_version && { protocol_version: frontmatter.protocol_version })
+      },
+      layer_count: opts?.layerCount || 0,
+      contract_types: opts?.contractTypes || [],
+      space: opts?.space || 'personal',
+      tags: opts?.tags || [],
+      metadata: opts?.metadata || {}
+    };
+
+    // Upsert the adapter node
+    await this.upsertAdapterNode(adapterNode);
+
+    // Create inheritance edges if inherits is set
+    const parentSlug = frontmatter.inherits;
+    if (parentSlug) {
+      const parentKey = `adapter:${parentSlug}`;
+
+      // Check if parent exists in graph
+      const parentExists = await this.getAdapter(parentKey);
+      if (parentExists) {
+        // Remove existing inheritance edges for this child (idempotent re-train)
+        await this.removeInheritanceEdges(adapterKey);
+
+        // Create Inherits edge (child → parent)
+        const edge: InheritanceEdge = {
+          from: adapterKey,
+          to: parentKey,
+          relationship: 'inherits',
+          override_fields: frontmatter.override || [],
+          created_at: now
+        };
+        await this.createInheritanceEdge(edge);
+      }
+    }
+  }
+
+  /**
+   * Remove all Inherits and SpecializedBy edges involving the given adapter key as child.
+   * Used before re-creating edges on adapter update (idempotent re-train).
+   */
+  private async removeInheritanceEdges(childKey: string): Promise<void> {
+    if (!this.connection) return;
+
+    try {
+      const deleteInheritsQuery = `
+        MATCH (child:Adapter {key: $childKey})-[e:Inherits]->(parent:Adapter)
+        DELETE e
+      `;
+      const deleteStmt = await this.connection.prepare(deleteInheritsQuery);
+      await this.connection.execute(deleteStmt, { childKey });
+
+      const deleteSpecializedByQuery = `
+        MATCH (parent:Adapter)-[e:SpecializedBy]->(child:Adapter {key: $childKey})
+        DELETE e
+      `;
+      const deleteSbStmt = await this.connection.prepare(deleteSpecializedByQuery);
+      await this.connection.execute(deleteSbStmt, { childKey });
+    } catch {
+      // Edge deletion is best-effort; if the edges do not exist, this is a no-op.
+    }
   }
 
   /**
