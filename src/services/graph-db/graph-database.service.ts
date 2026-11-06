@@ -420,7 +420,7 @@ export class GraphDatabaseService {
       return null;
     }
 
-    const adapter = rows[0]['a'] as any;
+    const adapter = rows[0]!['a'] as any;
     return {
       key: adapter.key,
       type: 'adapter',
