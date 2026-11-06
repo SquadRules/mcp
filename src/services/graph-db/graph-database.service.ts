@@ -767,6 +767,39 @@ export class GraphDatabaseService {
     }
   }
 
+
+  /**
+   * Get all child adapters that inherit from the given adapter (via SpecializedBy edges).
+   *
+   * Returns an array of slugs for adapters that have an `Inherits` edge pointing at
+   * the given parent. Used as a precondition check before delete operations.
+   *
+   * @param slug - Parent adapter slug (without the `adapter:` prefix)
+   * @returns Array of child adapter slugs that inherit from the parent
+   */
+  async getChildren(slug: string): Promise<string[]> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const parentKey = `adapter:${slug}`;
+    const query = `
+      MATCH (parent:Adapter {key: $parentKey})-[e:SpecializedBy]->(child:Adapter)
+      RETURN child.slug as slug
+    `;
+
+    const preparedStatement = await this.connection.prepare(query);
+    const result = await this.connection.execute(preparedStatement, { parentKey });
+
+    const queryResult = Array.isArray(result) ? result[0] : result;
+    if (!queryResult) {
+      return [];
+    }
+    const rows = await queryResult.getAll();
+
+    return rows.map((row: any) => row.slug as string).filter(Boolean);
+  }
+
   /**
    * Close database connection
    */
