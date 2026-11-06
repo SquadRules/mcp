@@ -9,6 +9,7 @@ import { installGlobalErrorHandlers } from './utils/global-error-handlers.js';
 import { startHttpTransport } from './http/http-server.js';
 import { startStdioTransport } from './stdio/stdio-server.js';
 import { bootLocalRuntime } from './runtime/boot-local-runtime.js';
+import { closeGraphDb } from './services/graph-db/graph-db-singleton.js';
 import { startMetricsServer } from './metrics-server.js';
 import {
   SERVER_PORT,
@@ -44,6 +45,13 @@ function isDirectRun(): boolean {
 function installSignalHandlers(): void {
     const shutdown = (signal: string) => {
         structuredLogger.info(`Received ${signal}, shutting down`);
+        // Best-effort graph DB shutdown, fired inside the grace period below. It never
+        // rejects and its outcome cannot change the exit code: the graph is internal
+        // bookkeeping, so exit semantics stay exactly as before.
+        void closeGraphDb().catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            structuredLogger.debug(`graph db: shutdown hook failed (${message})`);
+        });
         // Force exit after a short grace period if open handles keep the event loop alive
         setTimeout(() => process.exit(0), 1000).unref();
         process.exitCode = 0;

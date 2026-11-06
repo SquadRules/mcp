@@ -14,6 +14,8 @@ import { MemoryQdrantStore } from '../services/memory/store.js';
 import { qdrantService } from '../services/qdrant/index.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getEmbeddedRecordStore } from '../services/vector-store/embedded-store-singleton.js';
+import { initGraphDb } from '../services/graph-db/graph-db-singleton.js';
+import type { GraphDatabaseService } from '../services/graph-db/graph-database.service.js';
 import { migrateOldSquadrulesConfigDir } from '../utils/squadrules-user-dirs.js';
 import { resolveLanceDbDir } from '../services/vector-store/lancedb-connection.js';
 import { ensureEmbeddingDimension } from '../services/embedding/lazy-probe.js';
@@ -54,6 +56,12 @@ export interface BootLocalRuntimeOptions {
 export interface BootedLocalRuntime {
   memoryStore: MemoryQdrantStore;
   qdrantService: QdrantService;
+  /**
+   * Embedded graph database (LadybugDB) used for framework-internal bookkeeping.
+   * `null` when disabled via `SQUADRULES_GRAPH_DB_ENABLED` or when opening it failed —
+   * callers must degrade to "no graph" rather than treat it as a fatal condition.
+   */
+  graphDb: GraphDatabaseService | null;
 }
 
 /**
@@ -99,7 +107,8 @@ async function waitForQdrant(memoryStore: MemoryQdrantStore, maxRetries = 30, in
  * Boot the local runtime: select the vector store, optionally probe embeddings and
  * wait for Qdrant, initialize the store, optionally snapshot, and optionally seed
  * app-space adapters. Returns the store double plus the `qdrantService` singleton
- * (the same embedded instance on the LanceDB path) for callers to execute tools against.
+ * (the same embedded instance on the LanceDB path) for callers to execute tools against,
+ * plus the optional embedded graph database (`null` when unavailable — see `graphDb`).
  */
 export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Promise<BootedLocalRuntime> {
   migrateOldSquadrulesConfigDir();
@@ -147,6 +156,13 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
   await memoryStore.init();
   structuredLogger.debug('vector store: ready');
 
+  // Embedded graph database: framework-internal bookkeeping only (no MCP tool, no HTTP
+  // route, no health surface). `initGraphDb()` never throws — a failed open is logged by
+  // the singleton and reported as null, so the app still boots without the graph. This
+  // debug line plus tests/unit/graph-db-singleton.test.ts is the verification contract.
+  const graphDb = await initGraphDb();
+  structuredLogger.debug(`graph db: ${graphDb ? 'ready (embedded)' : 'disabled (init failed)'}`);
+
   if (isQdrantConfigured && QDRANT_SNAPSHOT_ON_START) {
     const snapshotResult = await triggerQdrantSnapshot(qdrantService, {
       enabled: true,
@@ -181,5 +197,5 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
     structuredLogger.debug('boot injection: skipped (embedded store already seeded)');
   }
 
-  return { memoryStore, qdrantService };
+  return { memoryStore, qdrantService, graphDb };
 }
