@@ -31,6 +31,8 @@ const doubles = new Map([
 const production = new Set([
   'services/graph-db/evolution/evolution.service.ts',
   'services/graph-db/evolution/consensus.ts',
+  'services/graph-db/evolution/evolution-proposal-record.ts',
+  'services/graph-db/evolution/evolution-plans.ts',
   'services/graph-db/graph-actor.ts',
   'services/graph-db/adapter-scope.ts',
   'utils/sha256.ts',
