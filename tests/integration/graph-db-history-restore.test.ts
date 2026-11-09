@@ -19,7 +19,6 @@
  *   6. History survives closing and reopening the database directory.
  *   7. One slug in two spaces is two independent histories.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { createHash } from 'node:crypto';
 
 import {

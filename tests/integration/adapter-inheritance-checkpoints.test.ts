@@ -18,7 +18,6 @@
  * `adapter-inheritance-effective-content.test.ts` (contract 2). Split from one 857-line
  * file to satisfy the 350-line cap.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';

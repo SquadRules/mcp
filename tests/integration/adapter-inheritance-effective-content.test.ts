@@ -23,7 +23,6 @@
  * `adapter-inheritance-checkpoints.test.ts` (contract 4). Split from one 857-line file
  * to satisfy the 350-line cap.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';

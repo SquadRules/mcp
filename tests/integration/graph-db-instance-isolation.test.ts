@@ -12,7 +12,6 @@
  * Projection ordering and reconciliation from stored records live in the companion
  * suite `graph-db-topology-projection.test.ts`; both share `graph-db-isolation-fixture.ts`.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 
 import {
   IsolationFixture,

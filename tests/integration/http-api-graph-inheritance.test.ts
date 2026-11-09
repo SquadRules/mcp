@@ -16,7 +16,6 @@
  *   3. two independent runtimes in one process: closing one listener + graph leaves the
  *      other serving and its data intact.
  */
-import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

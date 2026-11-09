@@ -19,7 +19,6 @@
  * additive/selective merge) and `adapter-inheritance-checkpoints.test.ts` (contract 4,
  * checkpoint recovery state). Split from one 857-line file to satisfy the 350-line cap.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { join } from 'node:path';
 
 import {

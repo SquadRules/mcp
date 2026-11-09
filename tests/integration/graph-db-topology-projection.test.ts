@@ -13,7 +13,6 @@
  * Ownership and scoped identity live in the companion suite
  * `graph-db-instance-isolation.test.ts`; both share `graph-db-isolation-fixture.ts`.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 
 import {
   IsolationFixture,

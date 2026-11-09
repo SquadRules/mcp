@@ -17,7 +17,6 @@
  *   4. Applying the plan appends snapshot 2 and records the resolution.
  *   5. `activate`'s ontology projection reads the same scoped evidence and history.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { createHash } from 'node:crypto';
 
 import { selectSharedBackend } from './graph-db-arango-selection.js';

@@ -34,7 +34,6 @@
  * (its Lance connection has no close API), so its bytes are released with the temp
  * directory at the end of the suite.
  */
-import { jest } from '@jest/globals';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

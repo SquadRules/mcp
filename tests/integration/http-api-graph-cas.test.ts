@@ -20,7 +20,6 @@
  * a content `VERSION_CONFLICT`, and a restore stay unverified here until a run supplies
  * genuine critic evidence.
  */
-import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

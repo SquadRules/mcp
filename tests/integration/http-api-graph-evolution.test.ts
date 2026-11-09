@@ -23,7 +23,6 @@
  *   4. evidence outranks votes: one evidenced confirmation accepts the proposal and
  *      hands back an apply plan, and the parent's bytes and history stay untouched.
  */
-import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 
 import { ChildApiServer } from './http-api-graph-child-server.js';
 import { exportMarkdown, forkTrain } from './http-api-graph-client.js';

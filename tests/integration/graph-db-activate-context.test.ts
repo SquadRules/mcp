@@ -20,7 +20,6 @@
  *      stored record with no graph node → a context with a `degraded` reason and
  *      zeroed evidence, never invented rows.
  */
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 import { createHash } from 'node:crypto';
 
 import {

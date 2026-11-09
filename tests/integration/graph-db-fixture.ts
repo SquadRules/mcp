@@ -20,7 +20,6 @@
  * fall back to zero vectors. Nothing reaches the network and no embedding call is
  * replaced.
  */
-import { jest } from '@jest/globals';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

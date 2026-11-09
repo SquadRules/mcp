@@ -35,7 +35,6 @@
  * importing suite, so a suite reads `scope.adapterGraphKey(...)` exactly as it would if
  * the import were local.
  */
-import { expect, jest } from '@jest/globals';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

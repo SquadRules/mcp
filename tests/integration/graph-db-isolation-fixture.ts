@@ -19,7 +19,6 @@
  * Used by `graph-db-instance-isolation.test.ts` (ownership + scoped identity) and
  * `graph-db-topology-projection.test.ts` (projection order + reconciliation).
  */
-import { jest } from '@jest/globals';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

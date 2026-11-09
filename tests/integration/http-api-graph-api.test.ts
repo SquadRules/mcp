@@ -31,7 +31,6 @@
  * own ordered scenario (three reporting children, then confirmations), and splitting it
  * keeps each suite under the file-length budget.
  */
-import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals';
 import { createHash } from 'node:crypto';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
