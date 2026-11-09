@@ -39,7 +39,7 @@ function actorId(confirmation: ProposalConfirmation): string {
   // it claims, so flipping `agent` -> `human_expert` can never manufacture a second
   // vote (ADR 0046 provenance: a kind claim without an authenticated subject is not
   // authority, and it is not a second voter either).
-  // Stable subject identity supersedes the legacy kind-qualified identity above.
+  // Stable subject identity supersedes the earlier kind-qualified identity above.
   return confirmation.actor_source === 'auth-subject'
     ? `subject|${actor}`
     : `identity|${actor}`;

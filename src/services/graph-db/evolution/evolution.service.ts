@@ -23,22 +23,18 @@ import { getSpaceContextFromStorage } from '../../../utils/tenant-context.js';
 import { sha256Hex } from '../../../utils/sha256.js';
 import { structuredLogger } from '../../../utils/structured-logger.js';
 import { evaluateConsensus, type ConsensusResult } from './consensus.js';
+import {
+  EvolutionIntegrityError,
+  proposalKey,
+  proposalNode,
+  type ConfirmProposalInput,
+  type EvolutionIntegrityDiagnostic,
+  type ProposeChangeInput
+} from './evolution-proposal-record.js';
+import { buildApplyPlan, type EvolutionApplyPlan } from './evolution-plans.js';
 
-export interface EvolutionIntegrityDiagnostic {
-  code: string;
-  recovery_action: string;
-}
-
-/** Bounded diagnostics, not backend exception text or proof of rollback. */
-export class EvolutionIntegrityError extends Error {
-  readonly diagnostic: EvolutionIntegrityDiagnostic;
-
-  constructor(code: string, recoveryAction: string) {
-    super(code);
-    this.name = 'EvolutionIntegrityError';
-    this.diagnostic = { code, recovery_action: recoveryAction };
-  }
-}
+export { EvolutionIntegrityError, proposalKey, buildApplyPlan };
+export type { EvolutionIntegrityDiagnostic, ProposeChangeInput, ConfirmProposalInput, EvolutionApplyPlan };
 
 /** Use the existing scoped graph read and request access, never an invented target. */
 export async function loadEvolutionTarget(
@@ -71,56 +67,6 @@ export async function loadEvolutionTarget(
   return target;
 }
 
-/** Input for recording one proposal. */
-export interface ProposeChangeInput {
-  targetKey: string;
-  targetSlug: string;
-  space: string;
-  changeType: EvolutionProposalNode['change_type'];
-  field: string;
-  fromValue: string | null;
-  toValue: string;
-  reason: string;
-  /** Scoped child key that raised the proposal. One proposal per child/field/change. */
-  sourceChild: string;
-  sourceAnomaly?: string;
-  evidence: Record<string, unknown>;
-  requiredConfirmations: number;
-}
-
-/** Deterministic proposal identity: the same child raising the same change collapses. */
-export function proposalKey(targetKey: string, field: string, sourceChild: string, toValue: string): string {
-  const digest = sha256Hex([targetKey, field, sourceChild, toValue].join('\u0000')).slice(0, 32);
-  return `proposal:${digest}`;
-}
-
-function proposalNode(key: string, input: ProposeChangeInput): EvolutionProposalNode {
-  const actor = resolveGraphActor();
-  const serialized = JSON.stringify(input.evidence);
-  const node: EvolutionProposalNode = {
-    key,
-    type: 'proposal',
-    target_key: input.targetKey,
-    target_slug: input.targetSlug,
-    space: input.space,
-    change_type: input.changeType,
-    field: input.field,
-    from_value: input.fromValue,
-    to_value: input.toValue,
-    reason: input.reason,
-    source_child: input.sourceChild,
-    evidence: input.evidence,
-    evidence_digest: sha256Hex(serialized),
-    status: 'proposed',
-    created_at: new Date().toISOString(),
-    created_by: actor.actor,
-    actor_source: actor.actor_source,
-    required_confirmations: Math.max(input.requiredConfirmations, 1)
-  };
-  if (input.sourceAnomaly) node.source_anomaly = input.sourceAnomaly;
-  return node;
-}
-
 /**
  * Record a proposal. Returns the existing row when the same child already raised
  * the same change, so retries are idempotent and never duplicate.
@@ -143,16 +89,6 @@ export async function proposeChange(
     if (raced) return { proposal: raced, created: false };
     throw err;
   }
-}
-
-/** One confirmation from an actor that is not the proposal's author. */
-export interface ConfirmProposalInput {
-  proposalKey: string;
-  actorKind: 'agent' | 'human_expert';
-  decision: 'confirm' | 'reject';
-  /** Child that supplies the observation; drives frequency evidence. */
-  distinctChild?: string;
-  evidence?: Record<string, unknown>;
 }
 
 /** Record a confirmation. Duplicate actors collapse at consensus time. */
@@ -213,39 +149,6 @@ export async function confirmProposal(
   if (input.evidence) confirmation.evidence = input.evidence;
   await graphDb.recordConfirmation(confirmation);
   return confirmation;
-}
-
-/** What the caller must run to apply an accepted proposal — never a hidden write. */
-export interface EvolutionApplyPlan {
-  target_uri: string;
-  target_key: string;
-  target_space: string;
-  expected_version: string;
-  field: string;
-  from_value: string | null;
-  to_value: string;
-  instructions: string;
-}
-
-/** Build the actionable apply plan an accepted proposal hands back to its caller. */
-export function buildApplyPlan(proposal: EvolutionProposalNode): EvolutionApplyPlan | null {
-  const expected = proposal.evidence['target_adapter_version'];
-  const expectedVersion = typeof expected === 'string' && expected.trim().length > 0 ? expected.trim() : null;
-  if (expectedVersion === null || !proposal.space.trim() || !proposal.target_slug.trim() ||
-      proposal.target_key !== adapterGraphKey(proposal.space, proposal.target_slug)) return null;
-  return {
-    target_uri: `squadrules://adapter/${proposal.target_slug}`,
-    target_key: proposal.target_key,
-    target_space: proposal.space,
-    expected_version: expectedVersion,
-    field: proposal.field,
-    from_value: proposal.from_value,
-    to_value: proposal.to_value,
-    instructions:
-      `apply through normal tune of ${`squadrules://adapter/${proposal.target_slug}`}: change \`${proposal.field}\` ` +
-      `from ${proposal.from_value === null ? '(absent)' : `\`${proposal.from_value}\``} to \`${proposal.to_value}\`; ` +
-      `tune in space ${proposal.space} with expected_version ${expectedVersion} so a moved parent surfaces as a version conflict instead of a silent overwrite.`
-  };
 }
 
 /** Read a proposal with its consensus verdict. */

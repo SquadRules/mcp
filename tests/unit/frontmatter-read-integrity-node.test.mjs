@@ -147,7 +147,7 @@ test('parser reuses only own duplicate blocks and does not synthesize an inherit
   assert.equal(Object.hasOwn(parsed, 'anomaly'), false);
 });
 
-test('rejected top-level block closes the prior block; orphan indentation keeps legacy scalar fallback (isolated UNIT realm)', () => {
+test('rejected top-level block closes the prior block; orphan indentation keeps the older-format scalar fallback (isolated UNIT realm)', () => {
   const { parsed, unchanged } = isolatedParse('---\ndomain:\n  safe: one\n__proto__:\n  unit_orphan: two\nanomaly:\n  type: mismatch\n---\n# Body');
   assert.equal(unchanged, true);
   assert.deepEqual(parsed.fields, { unit_orphan: 'two' });

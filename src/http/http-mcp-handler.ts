@@ -19,9 +19,9 @@ import { buildListOfferingsForUIResult } from '../mcp-apps/list-offerings-for-ui
 import { createServer } from '../server.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
-import { SquadrulesError } from '../types/index.js';
 import { validateBearerToken } from './bearer-validate.js';
 import { generateCorrelationId, emitRequestStart, emitRequestEnd, emitToolCallAudit, AUDIT_LOG_LEVEL, MCP_ERROR_CODES, captureResponseBody } from './mcp-audit-emit.js';
+import { mcpErrorToHelp } from './mcp-error-help.js';
 const MAX_CONCURRENT = resolveMaxConcurrentRequests(MAX_CONCURRENT_MCP_REQUESTS_RAW);
 
 export interface McpRequestContext {
@@ -62,32 +62,6 @@ async function resolveMcpAuthPayload(req: express.Request): Promise<express.Requ
     );
   }
   return undefined;
-}
-
-function sanitizeMcpErrorDetails(details: unknown): Record<string, unknown> {
-  if (!details || typeof details !== 'object') return {};
-  try { return JSON.parse(JSON.stringify(details)) as Record<string, unknown>; }
-  catch { return {}; }
-}
-
-/** Help text and error_code for clients; never expose internal error details. */
-function mcpErrorToHelp(error: unknown): { message: string; error_code: string; retry_hint: string; details?: Record<string, unknown> } {
-  if (error instanceof SquadrulesError) {
-    const details = sanitizeMcpErrorDetails(error.details);
-    const nextAction = typeof details['next_action'] === 'string' ? details['next_action'] : undefined;
-    return {
-      message: error.message,
-      error_code: typeof error.code === 'string' && error.code.length > 0 ? error.code : 'SERVER_ERROR',
-      retry_hint: nextAction ?? 'Adjust the request and retry.',
-      ...(Object.keys(details).length > 0 ? { details } : {})
-    };
-  }
-  const msg = error instanceof Error ? error.message : String(error);
-  // Defensive: should not trigger with per-request servers; kept as safety net.
-  if (msg.includes('Already connected to a transport')) {
-    return { message: 'Server is busy with another request. Wait a few seconds and retry; if it continues, start a new MCP session.', error_code: 'CONNECTION_CONFLICT', retry_hint: 'Wait a few seconds and retry the same request; if repeated, start a new MCP session.' };
-  }
-  return { message: 'An unexpected error occurred. Please retry. If the problem continues, start a new MCP session.', error_code: 'SERVER_ERROR', retry_hint: 'Retry the request; if it persists, start a new MCP session.' };
 }
 
 /**

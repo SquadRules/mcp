@@ -19,29 +19,10 @@ import type { TuneOutput } from '../tools/tune_schema.js';
 import type { ExportInput, ExportOutput } from '../tools/export_schema.js';
 import type { DeleteOutput } from '../tools/delete_schema.js';
 import { downloadExportRef } from './download-export-ref.js';
+import { buildApiErrorMessage, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS, PROACTIVE_REFRESH_SKEW_SEC } from './api-client-helpers.js';
+import type { ApiClientOptions, ApiErrorData, SpacesOutput } from './api-client-helpers.js';
 
-const PROACTIVE_REFRESH_SKEW_SEC = 60;
-const DEFAULT_TIMEOUT_MS = 15_000;
-const DEFAULT_MAX_RETRIES = 2;
-
-export interface ApiClientOptions {
-    baseUrl?: string | undefined;
-    openInBrowser?: boolean | undefined;
-    /** Request timeout in milliseconds (default: 15 000). */
-    timeoutMs?: number | undefined;
-    /** Max retries on transient network errors (default: 2). Set 0 to disable. */
-    maxRetries?: number | undefined;
-}
-
-type SpacesOutput = {
-    spaces: Array<{
-        name: string;
-        space_id: string;
-        type: 'personal' | 'group' | 'app' | 'other';
-        adapter_count: number;
-        adapters?: Array<{ adapter_id: string; title: string; layer_count: number; artifacts?: Array<{ name: string; slug: string; uri: string; uuid_uri: string; content_type: string; sha256: string; relative_path: string | null }> }>;
-    }>;
-};
+export type { ApiClientOptions };
 
 export class ApiClient {
     private baseUrl: string;
@@ -189,22 +170,8 @@ export class ApiClient {
             });
 
             if (!response.ok) {
-                const errorData = data as {
-                    message?: string;
-                    error?: string;
-                    login_url?: string;
-                    available_spaces?: unknown;
-                };
-                let msg = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-                if (
-                    (errorData.error === 'SPACE_NOT_FOUND' || errorData.error === 'SPACE_READ_ONLY') &&
-                    Array.isArray(errorData.available_spaces)
-                ) {
-                    const availableSpaces = errorData.available_spaces.filter((entry): entry is string => typeof entry === 'string');
-                    if (availableSpaces.length > 0) {
-                        msg += `\nAvailable writable spaces: ${availableSpaces.join(', ')}`;
-                    }
-                }
+                const errorData = data as ApiErrorData;
+                const msg = buildApiErrorMessage(errorData, response.status, response.statusText);
                 if (response.status === 401) {
                     const cfg401 = await readConfig(this.baseUrl);
                     if (!isRetryAfterRefresh && cfg401.refreshToken) {

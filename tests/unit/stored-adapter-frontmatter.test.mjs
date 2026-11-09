@@ -119,7 +119,7 @@ test('actual parser-supported mappings remain nested; identity/topology stay typ
   assert.deepEqual(toStoredAdapterFrontmatter(parsed), expected);
 });
 
-test('legacy scalar, inline-array, alias, quoted, lowercase and CRLF/tab formats', () => {
+test('older-format scalar, inline-array, alias, quoted, lowercase and CRLF/tab formats', () => {
   const doc = "---\nSLUG: 'child'\nVERSION: 1\nCHAINROOT: entry\nOVERRIDE: domain, labels\nlabels: []\nzero: 0\nflag: false\nword: null\ndomain:\n\tINPUTS: [1, true]\n\tNOTE: \"hello\"\n---\n# Body\n";
   for (const text of [doc, doc.replaceAll('\n', '\r\n')]) {
     assert.deepEqual(toStoredAdapterFrontmatter(parseFrontmatter(text)), {
@@ -141,7 +141,7 @@ test('no declarations are still null; nested-only and empty parsed blocks persis
   assert.deepEqual(toStoredAdapterFrontmatter(parseFrontmatter('---\nempty:\n---\n# Body')), { empty: {} });
 });
 
-test('scalar/block collisions preserve legacy scalar/array values in either order', () => {
+test('scalar/block collisions preserve older-format scalar/array values in either order', () => {
   for (const scalar of ['high', '[red, blue]']) {
     for (const declarations of [
       `domain: ${scalar}\ndomain:\n  note: nested`,
