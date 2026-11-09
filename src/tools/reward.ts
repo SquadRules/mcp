@@ -7,6 +7,7 @@ import { rewardInputSchema, rewardOutputSchema, type RewardInput, type RewardOut
 import { buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { evaluateReward } from '../services/reward-evals.js';
+import { recordRewardAnomaly } from './reward-anomaly.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { SquadrulesError } from '../types/index.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
@@ -107,6 +108,15 @@ export async function executeReward(
       throw buildRewardPersistenceError(input.uri, error);
     }
   }
+
+  // Touchpoint 4: proposal-only anomaly bookkeeping when the reward records a
+  // failure. Graceful degradation — never fails the reward call (see reward-anomaly.ts).
+  await recordRewardAnomaly(qdrantService, {
+    uri: input.uri,
+    layerUuid: parsed.id,
+    outcome: input.outcome,
+    ...(input.feedback !== undefined && { feedback: input.feedback })
+  });
 
   return {
     results: rewardMetricsResult.results.map((result) => ({

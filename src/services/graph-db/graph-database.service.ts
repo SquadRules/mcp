@@ -8,8 +8,18 @@
  */
 
 import { Database, Connection } from '@ladybugdb/core';
+import type { InheritanceFrontmatter } from './adapter-inheritance.js';
 import * as path from 'path';
 import * as fs from 'fs';
+
+/**
+ * Maximum database size in bytes (256 MB). LadybugDB 0.22.2 defaults to an 8 TB
+ * mmap address-space reservation when maxDBSize is 0, which fails on macOS and
+ * other systems that cannot overcommit that much virtual memory — especially when
+ * multiple Database instances are created and closed in rapid succession (tests).
+ * 256 MB is generous for the adapter/concept graph and avoids the mmap failure.
+ */
+const MAX_DB_SIZE_BYTES = 256 * 1024 * 1024;
 
 export interface AdapterNode {
   key: string;
@@ -43,6 +53,30 @@ export interface ConceptNode {
   updated_at: string;
   baseline_attributes?: Record<string, any>;
   tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface AnomalyNode {
+  key: string;
+  /** Node type discriminator. Kept as the literal 'Anomaly' per Touchpoint 4. */
+  type: 'Anomaly';
+  /** Adapter (or agent) slug that discovered the anomaly — the adapter that failed. */
+  discovered_by: string;
+  /**
+   * Where the anomaly routes for triage: the parent adapter slug when inheritance
+   * is involved, otherwise the failing adapter slug itself.
+   */
+  routes_to: string;
+  /** Human-readable failure summary. */
+  description: string;
+  /** ISO 8601 timestamp. */
+  created_at: string;
+  /** Severity derived from the proof failure class when available. */
+  severity?: string;
+  /** Classification per graph-schema.md (failure/contradiction/ambiguity/regression). */
+  anomaly_type?: string;
+  /** Resolution state per graph-schema.md (open/investigating/resolved/wontfix). */
+  status?: string;
   metadata?: Record<string, any>;
 }
 
@@ -94,8 +128,9 @@ export class GraphDatabaseService {
       fs.mkdirSync(this.dbPath, { recursive: true });
     }
 
-    // Create database instance (embedded mode)
-    this.db = new Database(this.dbPath);
+    // Create database instance (embedded mode) - use file path, not directory
+    const dbFilePath = path.join(this.dbPath, 'squadrules-graph.lbug');
+    this.db = new Database(dbFilePath, 0, true, false, MAX_DB_SIZE_BYTES);
     await this.db.init();
 
     // Create connection
@@ -172,6 +207,23 @@ export class GraphDatabaseService {
         metadata STRING
       )
     `);
+
+    // Create anomaly node table (Touchpoint 4: reward failure bookkeeping).
+    // Proposal-only: anomalies never rewrite an Adapter node — see createAnomaly.
+    await this.connection.query(`
+      CREATE NODE TABLE IF NOT EXISTS Anomaly(
+        key STRING PRIMARY KEY,
+        type STRING,
+        discovered_by STRING,
+        routes_to STRING,
+        description STRING,
+        created_at STRING,
+        severity STRING,
+        anomaly_type STRING,
+        status STRING,
+        metadata STRING
+      )
+    `);
   }
 
   /**
@@ -215,6 +267,51 @@ export class GraphDatabaseService {
       space: adapter.space || 'personal',
       tags: JSON.stringify(adapter.tags || []),
       metadata: JSON.stringify(adapter.metadata || {})
+    });
+  }
+
+  /**
+   * Create an anomaly node (Touchpoint 4: reward failure bookkeeping).
+   *
+   * PROPOSAL-ONLY INVARIANT: this method writes an `Anomaly` node and nothing
+   * else. It MUST NOT rewrite, upsert, or otherwise mutate any `Adapter` node —
+   * the anomaly is a proposal for later triage, not an applied parent update.
+   * Ownership of the anomaly -> parent-update write is deferred until an ADR
+   * assigns it (see docs/specs/ontological-knowledge-system.md, "Back-Propagation"
+   * and the deferred anomaly-backpropagation ADR).
+   */
+  async createAnomaly(anomaly: AnomalyNode): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const query = `
+      CREATE (n:Anomaly {
+        key: $key,
+        type: $type,
+        discovered_by: $discovered_by,
+        routes_to: $routes_to,
+        description: $description,
+        created_at: $created_at,
+        severity: $severity,
+        anomaly_type: $anomaly_type,
+        status: $status,
+        metadata: $metadata
+      })
+    `;
+
+    const preparedStatement = await this.connection.prepare(query);
+    await this.connection.execute(preparedStatement, {
+      key: anomaly.key,
+      type: anomaly.type,
+      discovered_by: anomaly.discovered_by,
+      routes_to: anomaly.routes_to,
+      description: anomaly.description,
+      created_at: anomaly.created_at,
+      severity: anomaly.severity || 'medium',
+      anomaly_type: anomaly.anomaly_type || 'failure',
+      status: anomaly.status || 'open',
+      metadata: JSON.stringify(anomaly.metadata || {})
     });
   }
 
@@ -287,6 +384,11 @@ export class GraphDatabaseService {
         ancestor.created_at as created_at,
         ancestor.updated_at as updated_at,
         ancestor.frontmatter as frontmatter,
+        ancestor.layer_count as layer_count,
+        ancestor.contract_types as contract_types,
+        ancestor.space as space,
+        ancestor.tags as tags,
+        ancestor.metadata as metadata,
         length(path) as depth
     `;
 
@@ -308,7 +410,12 @@ export class GraphDatabaseService {
         title: row.title,
         created_at: row.created_at,
         updated_at: row.updated_at,
-        frontmatter: JSON.parse(row.frontmatter || '{}')
+        frontmatter: JSON.parse(row.frontmatter || '{}'),
+        layer_count: row.layer_count,
+        contract_types: JSON.parse(row.contract_types || '[]'),
+        space: row.space,
+        tags: JSON.parse(row.tags || '[]'),
+        metadata: JSON.parse(row.metadata || '{}')
       } as AdapterNode,
       edge: {
         from: adapterKey,
@@ -322,6 +429,16 @@ export class GraphDatabaseService {
 
   /**
    * Resolve inheritance: materialize full adapter content (parent + delta)
+   *
+   * Merge semantics (per docs/specs/graph-schema.md § 5.4):
+   *   - Fields listed in the child's `frontmatter.override` come from the child.
+   *   - All other mergeable fields come from the parent chain (nearest ancestor wins
+   *     when multiple levels exist).
+   *   - Identity fields (key, type, slug, created_at, updated_at, frontmatter) always
+   *     come from the child adapter regardless of override declarations.
+   *
+   * Multi-level chains are resolved bottom-up: start with the root ancestor's
+   * properties, then apply each descendant's override fields walking toward the child.
    */
   async resolveInheritance(adapterKey: string): Promise<ResolvedInheritance | null> {
     if (!this.connection) {
@@ -367,24 +484,49 @@ export class GraphDatabaseService {
     // Get inheritance chain
     const pathToRoot = await this.findPathToRoot(adapterKey);
 
-    // Start with adapter properties
+    // Start with adapter properties (no-inheritance case: resolved = child as-is)
     const resolvedProperties: Record<string, any> = { ...adapterNode };
 
-    // Apply parent properties (if inherits exists)
     if (pathToRoot.length > 0) {
-      // Sort by depth (deepest first)
+      // Sort by depth descending: root (deepest ancestor) first, direct parent last.
       pathToRoot.sort((a, b) => b.depth - a.depth);
 
-      for (const { ancestor } of pathToRoot) {
-        const parentProps = ancestor as any;
-        
-        // Merge parent properties (child wins for overridden fields)
-        for (const [key, value] of Object.entries(parentProps)) {
-          if (!(key in resolvedProperties) || resolvedProperties[key] === undefined) {
-            resolvedProperties[key] = value;
+      // Identity fields always come from the child — never inherited.
+      const IDENTITY_FIELDS = ['key', 'type', 'slug', 'created_at', 'updated_at', 'frontmatter'];
+
+      // Base: root ancestor's properties
+      const merged: Record<string, any> = { ...(pathToRoot[0]!.ancestor as any) };
+
+      // Walk from root toward the direct parent, applying each intermediate
+      // level's declared overrides on top of the deeper ancestor's values.
+      for (let i = 1; i < pathToRoot.length; i++) {
+        const level = pathToRoot[i]!.ancestor as AdapterNode;
+        const overrides = level.frontmatter?.override ?? [];
+        for (const field of overrides) {
+          if (field in level) {
+            merged[field] = (level as any)[field];
           }
         }
       }
+
+      // Apply the child's declared overrides on top of the parent-resolved base.
+      const childOverrides = adapterNode.frontmatter?.override ?? [];
+      for (const field of childOverrides) {
+        if (field in adapterNode) {
+          merged[field] = (adapterNode as any)[field];
+        }
+      }
+
+      // Identity fields always from child
+      for (const field of IDENTITY_FIELDS) {
+        merged[field] = (adapterNode as any)[field];
+      }
+
+      // Replace resolvedProperties content with merged result
+      for (const key of Object.keys(resolvedProperties)) {
+        delete resolvedProperties[key];
+      }
+      Object.assign(resolvedProperties, merged);
     }
 
     return {
@@ -420,7 +562,7 @@ export class GraphDatabaseService {
       return null;
     }
 
-    const adapter = rows[0]['a'] as any;
+    const adapter = rows[0]!['a'] as any;
     return {
       key: adapter.key,
       type: 'adapter',
@@ -478,6 +620,203 @@ export class GraphDatabaseService {
         metadata: JSON.parse(adapter.metadata || '{}')
       };
     });
+  }
+
+
+  /**
+   * Upsert an adapter node: create if absent, update if present.
+   * Uses MERGE semantics so partial writes never leak.
+   */
+  async upsertAdapterNode(adapter: AdapterNode): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    // Try to match existing node first
+    const matchQuery = `
+      MATCH (a:Adapter {key: $key})
+      RETURN a.key
+    `;
+    const matchStmt = await this.connection.prepare(matchQuery);
+    const matchResult = await this.connection.execute(matchStmt, { key: adapter.key });
+    const matchQueryResult = Array.isArray(matchResult) ? matchResult[0] : matchResult;
+    const existingRows = matchQueryResult ? await matchQueryResult.getAll() : [];
+
+    if (existingRows.length > 0) {
+      // Update existing node
+      const updateQuery = `
+        MATCH (a:Adapter {key: $key})
+        SET a.version = $version,
+            a.title = $title,
+            a.updated_at = $updated_at,
+            a.frontmatter = $frontmatter,
+            a.layer_count = $layer_count,
+            a.contract_types = $contract_types,
+            a.space = $space,
+            a.tags = $tags,
+            a.metadata = $metadata
+      `;
+      const updateStmt = await this.connection.prepare(updateQuery);
+      await this.connection.execute(updateStmt, {
+        key: adapter.key,
+        version: adapter.version,
+        title: adapter.title,
+        updated_at: adapter.updated_at,
+        frontmatter: JSON.stringify(adapter.frontmatter || null),
+        layer_count: adapter.layer_count || 0,
+        contract_types: JSON.stringify(adapter.contract_types || []),
+        space: adapter.space || 'personal',
+        tags: JSON.stringify(adapter.tags || []),
+        metadata: JSON.stringify(adapter.metadata || {})
+      });
+    } else {
+      // Create new node
+      await this.createAdapterNode(adapter);
+    }
+  }
+
+  /**
+   * Write an adapter node and its inheritance edges from parsed frontmatter.
+   *
+   * Performs: upsert Adapter node → create/update Inherits edge (child→parent) →
+   * create reciprocal SpecializedBy edge (parent→child).
+   *
+   * If the parent adapter node does not exist in the graph, the edges are skipped
+   * (the caller receives a warning from validateInheritanceFrontmatter beforehand).
+   *
+   * @param slug - Adapter slug
+   * @param version - Adapter version string
+   * @param frontmatter - Parsed frontmatter fields including inherits/override
+   * @param opts - Additional options (title, tags, etc.)
+   */
+  async writeAdapterFromFrontmatter(
+    slug: string,
+    version: string,
+    frontmatter: InheritanceFrontmatter,
+    opts?: {
+      title?: string;
+      layerCount?: number;
+      contractTypes?: string[];
+      space?: string;
+      tags?: string[];
+      metadata?: Record<string, any>;
+    }
+  ): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const now = new Date().toISOString();
+    const adapterKey = `adapter:${slug}`;
+
+    // Build the adapter node
+    const adapterNode: AdapterNode = {
+      key: adapterKey,
+      type: 'adapter',
+      slug,
+      version,
+      title: opts?.title || slug,
+      created_at: now,
+      updated_at: now,
+      frontmatter: {
+        slug,
+        version,
+        ...(frontmatter.inherits && { inherits: frontmatter.inherits }),
+        ...(frontmatter.chain_root && { chain_root: frontmatter.chain_root }),
+        ...(frontmatter.override && frontmatter.override.length > 0 && { override: frontmatter.override }),
+        ...(frontmatter.protocol_version && { protocol_version: frontmatter.protocol_version })
+      },
+      layer_count: opts?.layerCount || 0,
+      contract_types: opts?.contractTypes || [],
+      space: opts?.space || 'personal',
+      tags: opts?.tags || [],
+      metadata: opts?.metadata || {}
+    };
+
+    // Upsert the adapter node
+    await this.upsertAdapterNode(adapterNode);
+
+    // Create inheritance edges if inherits is set
+    const parentSlug = frontmatter.inherits;
+    if (parentSlug) {
+      const parentKey = `adapter:${parentSlug}`;
+
+      // Check if parent exists in graph
+      const parentExists = await this.getAdapter(parentKey);
+      if (parentExists) {
+        // Remove existing inheritance edges for this child (idempotent re-train)
+        await this.removeInheritanceEdges(adapterKey);
+
+        // Create Inherits edge (child → parent)
+        const edge: InheritanceEdge = {
+          from: adapterKey,
+          to: parentKey,
+          relationship: 'inherits',
+          override_fields: frontmatter.override || [],
+          created_at: now
+        };
+        await this.createInheritanceEdge(edge);
+      }
+    }
+  }
+
+  /**
+   * Remove all Inherits and SpecializedBy edges involving the given adapter key as child.
+   * Used before re-creating edges on adapter update (idempotent re-train).
+   */
+  private async removeInheritanceEdges(childKey: string): Promise<void> {
+    if (!this.connection) return;
+
+    try {
+      const deleteInheritsQuery = `
+        MATCH (child:Adapter {key: $childKey})-[e:Inherits]->(parent:Adapter)
+        DELETE e
+      `;
+      const deleteStmt = await this.connection.prepare(deleteInheritsQuery);
+      await this.connection.execute(deleteStmt, { childKey });
+
+      const deleteSpecializedByQuery = `
+        MATCH (parent:Adapter)-[e:SpecializedBy]->(child:Adapter {key: $childKey})
+        DELETE e
+      `;
+      const deleteSbStmt = await this.connection.prepare(deleteSpecializedByQuery);
+      await this.connection.execute(deleteSbStmt, { childKey });
+    } catch {
+      // Edge deletion is best-effort; if the edges do not exist, this is a no-op.
+    }
+  }
+
+
+  /**
+   * Get all child adapters that inherit from the given adapter (via SpecializedBy edges).
+   *
+   * Returns an array of slugs for adapters that have an `Inherits` edge pointing at
+   * the given parent. Used as a precondition check before delete operations.
+   *
+   * @param slug - Parent adapter slug (without the `adapter:` prefix)
+   * @returns Array of child adapter slugs that inherit from the parent
+   */
+  async getChildren(slug: string): Promise<string[]> {
+    if (!this.connection) {
+      throw new Error('Database not initialized');
+    }
+
+    const parentKey = `adapter:${slug}`;
+    const query = `
+      MATCH (parent:Adapter {key: $parentKey})-[e:SpecializedBy]->(child:Adapter)
+      RETURN child.slug as slug
+    `;
+
+    const preparedStatement = await this.connection.prepare(query);
+    const result = await this.connection.execute(preparedStatement, { parentKey });
+
+    const queryResult = Array.isArray(result) ? result[0] : result;
+    if (!queryResult) {
+      return [];
+    }
+    const rows = await queryResult.getAll();
+
+    return rows.map((row: any) => row.slug as string).filter(Boolean);
   }
 
   /**

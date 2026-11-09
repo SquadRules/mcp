@@ -9,6 +9,8 @@ import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
+import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { structuredLogger } from '../utils/structured-logger.js';
 
 /** Shared execute: delete memories by URIs. Used by MCP tool and HTTP route. */
 export async function executeDelete(
@@ -26,7 +28,33 @@ export async function executeDelete(
       if (parsed.kind === 'adapter') {
         const canonicalAdapterUri = assertWireAdapterUri(uri);
         const canonicalParsed = parseSquadrulesUri(canonicalAdapterUri);
-        const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(canonicalParsed.id);
+        const slug = canonicalParsed.id;
+
+        // Touchpoint 5: inheritance precondition check.
+        // Refuse to delete when other adapters inherit from this one.
+        // Graceful degradation: if graph DB is unavailable or throws, log and continue.
+        try {
+          const graphDb = getGraphDbService();
+          if (graphDb) {
+            const children = await graphDb.getChildren(slug);
+            if (children.length > 0) {
+              results.push({
+                uri,
+                status: 'error',
+                message: `Cannot delete adapter '${slug}': ${children.length} adapter(s) inherit from it: ${children.join(', ')}. Remove or reparent the dependents first.`
+              });
+              totalFailed++;
+              continue;
+            }
+          } else {
+            structuredLogger.warn(`delete: graph DB unavailable, skipping inheritance precondition check for '${slug}'`);
+          }
+        } catch (graphErr) {
+          const graphErrMsg = graphErr instanceof Error ? graphErr.message : String(graphErr);
+          structuredLogger.warn(`delete: inheritance precondition check failed for '${slug}' (${graphErrMsg}) — continuing with delete`);
+        }
+
+        const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(slug);
         if (!slugOutcome.layerUuid) {
           throw new Error(`Adapter not found: ${canonicalAdapterUri}`);
         }

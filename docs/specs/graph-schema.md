@@ -10,13 +10,25 @@ This document defines the graph database schema for SquadRules 6 ontological kno
 
 **Design principles:**
 
-- Mode-agnostic: same schema for embedded and shared deployments
+- Mode-agnostic: same logical schema for embedded and shared deployments
 
 - URI-based identifiers: stable, dereferenceable, scheme-namespaced
 
 - Explicit relationships: inheritance, specialization, contradiction, instantiation
 
 - Version-aware: track ontology evolution over time
+
+**Physical key mapping (mode-agnostic note):**
+
+The property tables below define **canonical logical names**. Each graph backend maps these to its own physical storage keys:
+
+| Logical property | LadybugDB (embedded) | ArangoDB (shared) |
+|------------------|----------------------|-------------------|
+| `key` | `key` (STRING PRIMARY KEY) | `_key` |
+| *(node identity)* | implicit via `key` | `_id` = `<collection>/<_key>` |
+| `from` / `to` (edges) | implicit in graph pattern syntax | `_from` / `_to` (document IDs) |
+
+Application code and this spec always use the canonical logical names (`key`, `from`, `to`). Backend-specific physical names (`_key`, `_id`, `_from`, `_to`) are an ArangoDB storage detail and MUST NOT appear in the logical schema.
 
 ---
 
@@ -34,8 +46,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_key` | string | Unique identifier (derived from URI): `concept:<name>` |
-| `_id` | string | ArangoDB document ID: `concepts/concept:<name>` |
+| `key` | string | Unique identifier (derived from URI): `concept:<name>` |
 | `type` | string | Node type discriminator: `"concept"` |
 | `name` | string | Human-readable concept name |
 | `definition` | string | Formal definition of the concept |
@@ -54,8 +65,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 ```json
 {
-  "_key": "concept:code-review",
-  "_id": "concepts/concept:code-review",
+  "key": "concept:code-review",
   "type": "concept",
   "name": "code-review",
   "definition": "Systematic examination of code changes to detect defects, improve quality, and share knowledge",
@@ -71,7 +81,6 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
     "author": "team-lead"
   }
 }
-
 ```
 
 ### 1.2 Adapter Nodes
@@ -84,8 +93,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_key` | string | Unique identifier: `adapter:<slug>` |
-| `_id` | string | ArangoDB document ID: `adapters/adapter:<slug>` |
+| `key` | string | Unique identifier: `adapter:<slug>` |
 | `type` | string | Node type discriminator: `"adapter"` |
 | `slug` | string | Adapter slug (matches frontmatter `slug:`) |
 | `version` | string | Semantic version (from frontmatter or store) |
@@ -108,8 +116,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 ```json
 {
-  "_key": "adapter:critic-loop",
-  "_id": "adapters/adapter:critic-loop",
+  "key": "adapter:critic-loop",
   "type": "adapter",
   "slug": "critic-loop",
   "version": "2.1.0",
@@ -130,7 +137,6 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
     "last_execution": "2026-11-05T16:45:00Z"
   }
 }
-
 ```
 
 ### 1.3 Anomaly Nodes
@@ -139,64 +145,53 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 **URI scheme:** `anomaly://<uuid>`
 
+**Write invariant:** Anomaly creation is **proposal-only** — it never rewrites, upserts, or otherwise mutates any Adapter node. Ownership of the anomaly → parent-update write is deferred until an ADR assigns it.
+
 **Required properties:**
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_key` | string | Unique identifier: `anomaly:<uuid>` |
-| `_id` | string | ArangoDB document ID: `anomalies/anomaly:<uuid>` |
-| `type` | string | Node type discriminator: `"anomaly"` |
-| `anomaly_type` | string | Classification: `"contradiction"`, `"failure"`, `"ambiguity"`, `"regression"` |
-| `description` | string | Human-readable description of the anomaly |
-| `severity` | string | `"critical"`, `"high"`, `"medium"`, `"low"` |
-| `status` | string | Resolution state: `"open"`, `"investigating"`, `"resolved"`, `"wontfix"` |
-| `discovered_at` | string | ISO 8601 timestamp |
-| `discovered_by` | string | Adapter or agent that discovered the anomaly |
+| `key` | string | Unique identifier: `anomaly:<uuid>` |
+| `type` | string | Node type discriminator: `"Anomaly"` (capitalized) |
+| `discovered_by` | string | Adapter slug or agent identity that discovered the anomaly |
+| `routes_to` | string | Triage routing target: parent adapter slug when inheritance is involved, otherwise the failing adapter slug itself |
+| `description` | string | Human-readable failure summary |
+| `created_at` | string | ISO 8601 timestamp |
 
-**Optional properties:**
+**Optional properties (populated with defaults by the write path):**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `severity` | string | `"medium"` | `"critical"`, `"high"`, `"medium"`, `"low"` |
+| `anomaly_type` | string | `"failure"` | Classification: `"contradiction"`, `"failure"`, `"ambiguity"`, `"regression"` |
+| `status` | string | `"open"` | Resolution state: `"open"`, `"investigating"`, `"resolved"`, `"wontfix"` |
+| `metadata` | object | `{}` | Extensible metadata |
+
+**Reserved properties (valid schema — not yet populated by the reward path):**
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `context` | object | Execution context when anomaly was discovered |
 | `evidence` | object | Proof data (stdout, stderr, exit_code, traces) |
 | `resolution` | string | How the anomaly was resolved |
-| `resolved_at` | string | ISO 8601 timestamp |
+| `resolved_at` | string | ISO 8601 timestamp of resolution |
 | `affected_adapters` | array[string] | Adapter slugs impacted by this anomaly |
-| `metadata` | object | Extensible metadata |
 
 **Example:**
 
 ```json
 {
-  "_key": "anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "_id": "anomalies/anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "type": "anomaly",
-  "anomaly_type": "contradiction",
-  "description": "Shell contract specifies interpreter 'python' but contract.cmd uses Python 3.11+ syntax",
+  "key": "anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "type": "Anomaly",
+  "discovered_by": "author-adapter",
+  "routes_to": "critic-loop",
+  "description": "Reward recorded failure for squadrules://layer/abc123: gate did not pass (exit_code 1)",
+  "created_at": "2026-10-28T11:15:00Z",
   "severity": "high",
-  "status": "resolved",
-  "discovered_at": "2026-10-28T11:15:00Z",
-  "discovered_by": "adapter:author-adapter",
-  "context": {
-    "execution_id": "exec-2026-10-28-001",
-    "adapter_slug": "python-implementation",
-    "layer_uuid": "layer-uuid-123",
-    "contract_type": "shell"
-  },
-  "evidence": {
-    "stdout": "SyntaxError: invalid syntax",
-    "stderr": "python: can't open file",
-    "exit_code": 1
-  },
-  "resolution": "Updated interpreter from 'python' to 'python3' in contract definition",
-  "resolved_at": "2026-10-28T14:30:00Z",
-  "affected_adapters": ["python-implementation"],
-  "metadata": {
-    "root_cause": "interpreter_mismatch",
-    "fix_commit": "abc123"
-  }
+  "anomaly_type": "failure",
+  "status": "open",
+  "metadata": {}
 }
-
 ```
 
 ### 1.4 Instance Nodes (Optional)
@@ -225,8 +220,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_key` | string | Unique identifier: `instance:<concept-slug>:<instance-id>` |
-| `_id` | string | ArangoDB document ID |
+| `key` | string | Unique identifier: `instance:<concept-slug>:<instance-id>` |
 | `type` | string | Node type discriminator: `"instance"` |
 | `concept` | string | Parent concept URI |
 | `instance_id` | string | Instance identifier within concept scope |
@@ -249,8 +243,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_key` | string | Unique identifier: `version:<entity-key>@<version>` |
-| `_id` | string | ArangoDB document ID |
+| `key` | string | Unique identifier: `version:<entity-key>@<version>` |
 | `type` | string | Node type discriminator: `"version"` |
 | `entity_uri` | string | URI of the versioned entity (concept or adapter) |
 | `version_number` | string | Semantic version or incremental version |
@@ -287,8 +280,8 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `_from` | string | yes | Child node ID |
-| `_to` | string | yes | Parent node ID |
+| `from` | string | yes | Child node key |
+| `to` | string | yes | Parent node key |
 | `relationship` | string | yes | `"inherits"` |
 | `inherited_fields` | array[string] | no | Which fields are inherited (default: all) |
 | `override_fields` | array[string] | no | Which fields the child overrides |
@@ -307,8 +300,8 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `_from` | string | yes | Parent node ID |
-| `_to` | string | yes | Child node ID |
+| `from` | string | yes | Parent node key |
+| `to` | string | yes | Child node key |
 | `relationship` | string | yes | `"specialized_by"` |
 | `specialization_type` | string | no | `"override"`, `"extension"`, `"restriction"` |
 | `created_at` | string | yes | ISO 8601 timestamp |
@@ -326,8 +319,8 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `_from` | string | yes | Anomaly node ID |
-| `_to` | string | yes | Parent node ID |
+| `from` | string | yes | Anomaly node key |
+| `to` | string | yes | Parent node key |
 | `relationship` | string | yes | `"contradicts"` |
 | `contradiction_type` | string | yes | `"ambiguity"`, `"inconsistency"`, `"failure"`, `"regression"` |
 | `severity` | string | yes | `"critical"`, `"high"`, `"medium"`, `"low"` |
@@ -407,17 +400,19 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `anomaly_type` | string | yes | Classification |
-| `description` | string | yes | Human-readable description |
-| `severity` | string | yes | Severity level |
-| `status` | string | yes | Resolution state |
-| `discovered_at` | string | yes | Discovery timestamp |
-| `discovered_by` | string | yes | Discoverer adapter/agent |
-| `context` | object | no | Execution context |
-| `evidence` | object | no | Proof data |
-| `resolution` | string | no | Resolution description |
-| `resolved_at` | string | no | Resolution timestamp |
-| `affected_adapters` | array[string] | no | Impacted adapters |
+| `discovered_by` | string | yes | Discoverer adapter/agent slug |
+| `routes_to` | string | yes | Triage routing target (parent or self) |
+| `description` | string | yes | Human-readable failure summary |
+| `created_at` | string | yes | Discovery timestamp (ISO 8601) |
+| `severity` | string | no | Severity level (default: `"medium"`) |
+| `anomaly_type` | string | no | Classification (default: `"failure"`) |
+| `status` | string | no | Resolution state (default: `"open"`) |
+| `metadata` | object | no | Extensible metadata |
+| `context` | object | no | Execution context (reserved) |
+| `evidence` | object | no | Proof data (reserved) |
+| `resolution` | string | no | Resolution description (reserved) |
+| `resolved_at` | string | no | Resolution timestamp (reserved) |
+| `affected_adapters` | array[string] | no | Impacted adapters (reserved) |
 
 ### 3.4 Version Properties
 
@@ -440,8 +435,8 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `_from` | string | yes | Source node ID |
-| `_to` | string | yes | Target node ID |
+| `from` | string | yes | Source node key |
+| `to` | string | yes | Target node key |
 | `relationship` | string | yes | Edge type discriminator |
 | `created_at` | string | yes | ISO 8601 creation timestamp |
 | `metadata` | object | no | Arbitrary key-value pairs |
@@ -454,8 +449,7 @@ Edges define relationships between nodes. Each edge type specifies source/target
 
 ```json
 {
-  "_key": "adapter:critic-loop",
-  "_id": "adapters/adapter:critic-loop",
+  "key": "adapter:critic-loop",
   "type": "adapter",
   "slug": "critic-loop",
   "version": "2.1.0",
@@ -472,15 +466,13 @@ Edges define relationships between nodes. Each edge type specifies source/target
   "space": "personal",
   "tags": ["review", "quality-gate", "delegated-judgment"]
 }
-
 ```
 
 ### 4.2 Child Adapter Node (with `inherits: critic-loop`)
 
 ```json
 {
-  "_key": "adapter:specialized-reviewer",
-  "_id": "adapters/adapter:specialized-reviewer",
+  "key": "adapter:specialized-reviewer",
   "type": "adapter",
   "slug": "specialized-reviewer",
   "version": "1.0.0",
@@ -498,16 +490,14 @@ Edges define relationships between nodes. Each edge type specifies source/target
   "space": "personal",
   "tags": ["review", "domain-specific", "code-quality"]
 }
-
 ```
 
 ### 4.3 Inheritance Edge (child to parent)
 
 ```json
 {
-  "_key": "inherits:adapter:specialized-reviewer:adapter:critic-loop",
-  "_from": "adapters/adapter:specialized-reviewer",
-  "_to": "adapters/adapter:critic-loop",
+  "from": "adapter:specialized-reviewer",
+  "to": "adapter:critic-loop",
   "relationship": "inherits",
   "inherited_fields": ["contract_types", "layer_count"],
   "override_fields": ["tags", "metadata"],
@@ -517,60 +507,44 @@ Edges define relationships between nodes. Each edge type specifies source/target
     "resolution_strategy": "child-wins"
   }
 }
-
 ```
 
 ### 4.4 Anomaly Node
 
 ```json
 {
-  "_key": "anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "_id": "anomalies/anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "type": "anomaly",
-  "anomaly_type": "contradiction",
-  "description": "Shell contract specifies interpreter 'python' but contract.cmd uses Python 3.11+ syntax",
+  "key": "anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "type": "Anomaly",
+  "discovered_by": "python-implementation",
+  "routes_to": "author-adapter",
+  "description": "Reward recorded failure for squadrules://layer/abc123: SyntaxError: invalid syntax (exit_code 1)",
+  "created_at": "2026-10-28T11:15:00Z",
   "severity": "high",
-  "status": "resolved",
-  "discovered_at": "2026-10-28T11:15:00Z",
-  "discovered_by": "adapter:author-adapter",
-  "context": {
-    "execution_id": "exec-2026-10-28-001",
-    "adapter_slug": "python-implementation",
-    "contract_type": "shell"
-  },
-  "evidence": {
-    "stdout": "SyntaxError: invalid syntax",
-    "exit_code": 1
-  },
-  "resolution": "Updated interpreter from 'python' to 'python3'",
-  "resolved_at": "2026-10-28T14:30:00Z",
-  "affected_adapters": ["python-implementation"]
+  "anomaly_type": "failure",
+  "status": "open",
+  "metadata": {}
 }
-
 ```
 
 ### 4.5 Contradiction Edge (anomaly to parent rule)
 
 ```json
 {
-  "_key": "contradicts:anomaly:f47ac10b:adapter:python-implementation",
-  "_from": "anomalies/anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "_to": "adapters/adapter:python-implementation",
+  "from": "anomaly:f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "to": "adapter:python-implementation",
   "relationship": "contradicts",
   "contradiction_type": "inconsistency",
   "severity": "high",
   "discovered_at": "2026-10-28T11:15:00Z",
   "resolution_status": "resolved"
 }
-
 ```
 
 ### 4.6 Version Node
 
 ```json
 {
-  "_key": "version:adapter:critic-loop@2.1.0",
-  "_id": "versions/version:adapter:critic-loop@2.1.0",
+  "key": "version:adapter:critic-loop@2.1.0",
   "type": "version",
   "entity_uri": "adapter://critic-loop",
   "version_number": "2.1.0",
@@ -592,7 +566,6 @@ Edges define relationships between nodes. Each edge type specifies source/target
     "modified": {"layer_count": {"from": 2, "to": 3}}
   }
 }
-
 ```
 
 ---
@@ -609,7 +582,6 @@ slug: specialized-reviewer
 version: 1.0.0
 inherits: critic-loop
 ---
-
 ```
 
 **Graph representation:**
@@ -632,7 +604,6 @@ slug: implement-terraform
 version: 1.0.0
 chain_root: review-terraform
 ---
-
 ```
 
 `chain_root` is **orthogonal to inheritance**. It indicates routing relationships in a multi-adapter chain, not property inheritance.
@@ -656,7 +627,6 @@ version: 1.0.0
 inherits: critic-loop
 override: [tags, metadata]
 ---
-
 ```
 
 The `override` field marks which parent properties the child explicitly overrides. Stored as edge property on the `inherits` edge.
@@ -671,8 +641,7 @@ The `override` field marks which parent properties the child explicitly override
 
 ### 5.4 Inheritance Resolution Algorithm
 
-```
-
+```text
 function resolveInheritance(childSlug):
   child = getAdapterNode(childSlug)
   resolved = copy(child.properties)
@@ -689,7 +658,6 @@ function resolveInheritance(childSlug):
         resolved[field] = parent.properties[field]
   
   return resolved
-
 ```
 
 **Complexity:** O(depth) where depth is the inheritance chain length.
@@ -702,7 +670,7 @@ function resolveInheritance(childSlug):
 
 **Use case:** Inheritance resolution.
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 FOR vertex, edge, path IN 1..10 OUTBOUND
@@ -714,14 +682,24 @@ FOR vertex, edge, path IN 1..10 OUTBOUND
     edge: edge,
     depth: LENGTH(path.vertices) - 1
   }
+```
 
+**Cypher (LadybugDB embedded mode):**
+
+```cypher
+MATCH path = (child:Adapter {key: 'adapter:specialized-reviewer'})-[:Inherits*1..10]->(ancestor)
+RETURN
+  ancestor.key as key,
+  ancestor.type as type,
+  ancestor.slug as slug,
+  length(path) as depth
 ```
 
 ### 6.2 Anomaly Backpropagation: Find Affected Parent Concepts
 
 **Use case:** Given an anomaly, find all parent concepts or adapters that may need refinement.
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 FOR vertex, edge, path IN 1..5 OUTBOUND
@@ -733,14 +711,13 @@ FOR vertex, edge, path IN 1..5 OUTBOUND
     contradiction_edge: edge,
     path_length: LENGTH(path.edges)
   }
-
 ```
 
 ### 6.3 Consensus Detection: Find All Children Reporting Same Anomaly
 
 **Use case:** If multiple children report the same anomaly type, it may indicate a systemic issue.
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 LET parent = 'adapters/adapter:critic-loop'
@@ -762,12 +739,11 @@ FOR child, edge IN 1..3 INBOUND parent
     anomaly_count: LENGTH(anomalies),
     anomalies: anomalies
   }
-
 ```
 
 ### 6.4 Version History: Trace All Versions and Changes
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 FOR version, edge IN 1..100 INBOUND
@@ -776,12 +752,11 @@ FOR version, edge IN 1..100 INBOUND
   FILTER edge.relationship == 'version_of'
   SORT edge.changed_at DESC
   RETURN { version: version, edge: edge }
-
 ```
 
 ### 6.5 Inheritance Depth Calculation
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 FOR vertex, edge, path IN 1..10 OUTBOUND
@@ -790,12 +765,11 @@ FOR vertex, edge, path IN 1..10 OUTBOUND
   FILTER edge.relationship == 'inherits'
   COLLECT AGGREGATE maxDepth = MAX(LENGTH(path.vertices) - 1)
   RETURN { inheritance_depth: maxDepth }
-
 ```
 
 ### 6.6 Orphan Detection: Find Adapters with No Parent
 
-**AQL:**
+**AQL (ArangoDB shared mode):**
 
 ```aql
 FOR adapter IN adapters
@@ -809,7 +783,6 @@ FOR adapter IN adapters
   )
   FILTER LENGTH(parents) == 0
   RETURN { adapter: adapter, suggestion: "consider_extracting_concept" }
-
 ```
 
 ---
@@ -820,34 +793,33 @@ FOR adapter IN adapters
 
 **Stores:** Ontological relationships, inheritance trees, anomalies, version history.
 
-**Collections:**
+**Collections / Node Tables:**
 
-| Collection | Node/Edge Type | Purpose |
-|------------|----------------|---------|
-| `concepts` | Concept nodes | Abstract categories and rules |
-| `adapters` | Adapter nodes | SquadRules adapters |
-| `anomalies` | Anomaly nodes | Contradictions and failures |
-| `instances` | Instance nodes | Specific instances (optional) |
-| `versions` | Version nodes | Ontology evolution tracking |
-| `inherits` | Edge | Child to parent inheritance |
-| `specialized_by` | Edge | Parent to child specialization |
-| `contradicts` | Edge | Anomaly to parent contradiction |
-| `instances` | Edge | Instance to category |
-| `version_of` | Edge | Version to entity |
-| `discovered_by` | Edge | Anomaly to discoverer |
-| `routes_to` | Edge | Chain routing |
+| Collection (ArangoDB) | Table (LadybugDB) | Node/Edge Type | Purpose |
+|------------------------|-------------------|----------------|---------|
+| `concepts` | `Concept` | Concept nodes | Abstract categories and rules |
+| `adapters` | `Adapter` | Adapter nodes | SquadRules adapters |
+| `anomalies` | `Anomaly` | Anomaly nodes | Contradictions and failures |
+| `instances` | *(reserved)* | Instance nodes | Specific instances (optional) |
+| `versions` | *(reserved)* | Version nodes | Ontology evolution tracking |
+| `inherits` | `Inherits` | Edge | Child to parent inheritance |
+| `specialized_by` | `SpecializedBy` | Edge | Parent to child specialization |
+| `contradicts` | *(reserved)* | Edge | Anomaly to parent contradiction |
+| `version_of` | *(reserved)* | Edge | Version to entity |
+| `discovered_by` | *(reserved)* | Edge | Anomaly to discoverer |
+| `routes_to` | *(reserved)* | Edge | Chain routing |
 
 **Indexes:**
 
-- `adapters`: unique on `slug`
+- `adapters` / `Adapter`: unique on `slug`
 
-- `concepts`: unique on `name`
+- `concepts` / `Concept`: unique on `name`
 
-- `anomalies`: on `status`, `severity`
+- `anomalies` / `Anomaly`: on `status`, `severity`
 
 - `versions`: on `entity_uri`, `changed_at`
 
-- Edge collections: on `_from`, `_to`, `relationship`
+- Edge collections: on `from`, `to`, `relationship`
 
 ### 7.2 Vector DB (LanceDB / Qdrant)
 
@@ -867,7 +839,6 @@ FOR adapter IN adapters
     "space": "string"
   }
 }
-
 ```
 
 ### 7.3 SQL DB (SQLite / PostgreSQL)
@@ -904,7 +875,6 @@ CREATE TABLE audit_logs (
   target TEXT,
   details JSONB
 );
-
 ```
 
 ### 7.4 Cross-Database Relationships
@@ -921,7 +891,7 @@ CREATE TABLE audit_logs (
 
 4. Query Vector DB: `SELECT * FROM adapter_embeddings WHERE adapter_uri = 'adapter://critic-loop'`
 
-5. Query Graph DB: `FOR adapter IN adapters FILTER adapter._key == 'adapter:critic-loop' RETURN adapter`
+5. Query Graph DB: `MATCH (a:Adapter {key: 'adapter:critic-loop'}) RETURN a`
 
 ---
 
@@ -931,7 +901,7 @@ CREATE TABLE audit_logs (
 
 1. Define the node type (URI scheme, properties, example JSON)
 
-2. Create the collection
+2. Create the collection / node table
 
 3. Add indexes
 
@@ -943,7 +913,7 @@ CREATE TABLE audit_logs (
 
 1. Define the edge type (source, target, directionality, properties)
 
-2. Create the edge collection
+2. Create the edge collection / rel table
 
 3. Add indexes
 
@@ -969,7 +939,7 @@ Store schema version in a special node:
 
 ```json
 {
-  "_key": "schema:ontology",
+  "key": "schema:ontology",
   "type": "schema",
   "version": "1.0.0",
   "updated_at": "2026-11-06T00:00:00Z",
@@ -981,7 +951,6 @@ Store schema version in a special node:
     }
   ]
 }
-
 ```
 
 ### 8.5 Backward Compatibility
@@ -1013,12 +982,16 @@ db._createGraph("ontology", [
   { collection: "discovered_by", from: ["anomalies"], to: ["adapters"] },
   { collection: "routes_to", from: ["adapters"], to: ["adapters"] }
 ]);
-
 ```
+
+**Physical field mapping:** In ArangoDB, the logical `key` property is stored as `_key`, and `_id` is auto-generated as `<collection>/<_key>`. Edge endpoints are stored as `_from`/`_to` document IDs.
 
 ### 9.2 LadybugDB Embedded Considerations
 
-Mode-agnostic: same schema for both embedded and shared modes.
+LadybugDB uses `key STRING PRIMARY KEY` for node identity. Edge endpoints are implicit in the graph pattern syntax `(source)-[edge:RelType]->(target)` and in `CREATE REL TABLE` declarations with `FROM <Table> TO <Table>`.
+
+**Current node tables:** `Adapter`, `Concept`, `Anomaly`
+**Current rel tables:** `Inherits`, `SpecializedBy`
 
 ### 9.3 Testing
 
@@ -1046,11 +1019,11 @@ This document defines the complete graph schema for SquadRules 6 ontological kno
 
 - URI-based identifiers
 
-- Mode-agnostic schema
+- Mode-agnostic logical schema with backend-specific physical mapping
 
 - Adapter inheritance via frontmatter
 
-- Anomaly-driven ontology evolution
+- Anomaly-driven ontology evolution (proposal-only write invariant)
 
 - Version tracking
 
