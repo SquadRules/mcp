@@ -93,7 +93,7 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `key` | string | Unique identifier: `adapter:<slug>` |
+| `key` | string | Unique identifier: `adapter:<spaceId>:<slug>` — scope-qualified, because one slug can exist in several spaces |
 | `type` | string | Node type discriminator: `"adapter"` |
 | `slug` | string | Adapter slug (matches frontmatter `slug:`) |
 | `version` | string | Semantic version (from frontmatter or store) |
@@ -111,6 +111,14 @@ The graph stores five node types, each with a distinct URI scheme and purpose.
 | `space` | string | Space ownership: `"personal"` or group path |
 | `tags` | array[string] | Activation pattern tags |
 | `metadata` | object | Extensible metadata |
+
+**Key form.** The logical URI is `adapter://<slug>`; the node key adds the scope:
+`adapter:<spaceId>:<slug>` (`src/services/graph-db/adapter-scope.ts`, decision recorded in
+[ADR 0042](../adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md)). The scope comes from
+the store's tenant context on write and the record's `space_id` on read — never from a
+guess — and `metadata` records `scope_space_id` / `scope_source` so it stays auditable. The
+examples and queries below still spell the shortened logical form `adapter:<slug>`; read
+them with the scope taken from each node's `space`.
 
 **Example:**
 

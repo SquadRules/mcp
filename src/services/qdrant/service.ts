@@ -13,6 +13,7 @@ import { UpsertResourceItem, UpsertResourceResult } from './types.js';
 import { logger } from '../../utils/structured-logger.js';
 import { getQdrantUrl, QDRANT_API_KEY, getQdrantCollection, isQdrantConfigured } from '../../config.js';
 import { getEmbeddedRecordStore } from '../vector-store/embedded-store-singleton.js';
+import { createEmbeddedRuntime } from '../vector-store/embedded-runtime.js';
 
 export class QdrantService {
   private conn: QdrantConnection;
@@ -150,12 +151,17 @@ export class QdrantService {
   }
 }
 
-// Backend-selected singleton. Constructing `QdrantService` resolves `getQdrantUrl()`
+// Backend-selected default. Constructing `QdrantService` resolves `getQdrantUrl()`
 // (throws when `QDRANT_URL` is unset) and would crash import for the ~dozens of
 // modules that reach for `qdrantService` even on the embedded path. So on the
-// LanceDB path we hand them the shared embedded store double-cast to this shape —
-// only the methods actually called at runtime must exist, and the integration
-// suite is the gate that proves the used surface is covered.
+// LanceDB path this is the PROCESS-DEFAULT runtime's facade, bound by
+// `createEmbeddedRuntime` to the same store object the default boot uses.
+//
+// It is not a fallback for a runtime that owns its own store: `bootLocalRuntime`
+// returns the facade it bound, `createServer`/`startStdioTransport`/
+// `startHttpTransport` take it as an argument, and tools are registered with it.
+// Modules that run before a runtime exists (navigation helpers, the delete tool)
+// resolve this default, which is that same runtime's store.
 export const qdrantService: QdrantService = isQdrantConfigured
   ? new QdrantService()
-  : (getEmbeddedRecordStore() as unknown as QdrantService);
+  : createEmbeddedRuntime(getEmbeddedRecordStore()).qdrantService;

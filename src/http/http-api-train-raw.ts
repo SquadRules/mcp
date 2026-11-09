@@ -72,6 +72,13 @@ export function setupTrainRawRoute(
       const force_update =
         req.query['force'] === 'true' || req.headers['x-force-update'] === 'true';
       const protocol_version = (req.query['protocol_version'] as string) || (req.headers['x-protocol-version'] as string) || undefined;
+      // Compare-and-swap guard: the raw route carries markdown as the body, so the base
+      // version travels as a query param or header (the JSON route reads it from the body).
+      // Dropping it here would let the same document overwrite a moved adapter over HTTP only.
+      const expected_version =
+        (req.query['expected_version'] as string) ||
+        (req.headers['x-expected-version'] as string) ||
+        undefined;
       const space =
         (req.query['space'] as string) ||
         (req.headers['x-space'] as string) ||
@@ -96,6 +103,7 @@ export function setupTrainRawRoute(
         content: markdown,
         llm_model_id,
         force_update,
+        ...(expected_version && { expected_version }),
         ...(protocol_version && { protocol_version }),
         ...(space ? { space } : {}),
         ...(reviewEvidence ? { review_evidence: reviewEvidence } : {})

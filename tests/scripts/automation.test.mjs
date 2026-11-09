@@ -261,7 +261,7 @@ test('producer credentials and validation remain separated in workflow wiring', 
 
 const validation = name => load(readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
 const mandatoryJobs = {
-  integration: ['build', 'verify-integration-cluster', 'verify-integration-single'],
+  integration: ['build', 'verify-integration-cluster', 'verify-integration-graph', 'verify-integration-single'],
   security: ['npm-audit', 'codeql', 'dependency-review'],
 };
 const requiredPaths = {
@@ -274,7 +274,7 @@ for (const [name, jobs] of Object.entries(mandatoryJobs)) {
   const gate = config.jobs[`${name}-pass`];
   test(`${name}: native path filtering prevents empty-diff bypass`, () => {
     assert.ok(Object.hasOwn(config.on, 'pull_request'));
-    assert.deepEqual(config.on.pull_request.branches, ['main']);
+    assert.deepEqual(config.on.pull_request.branches, ['main', 'squadrules-6']);
     assert.ok(Array.isArray(config.on.pull_request.paths), 'Workflows must use native path filtering');
     for (const path of requiredPaths[name]) {
       assert.ok(config.on.pull_request.paths.includes(path), `Missing required path: ${path}`);
@@ -315,6 +315,9 @@ for (const [name, jobs] of Object.entries(mandatoryJobs)) {
       assert.equal(runGate(results, event), 0);
       for (const id of jobs) {
         if (id === 'dependency-review' && event !== 'pull_request') continue;
+        const missing = { ...results };
+        delete missing[id];
+        assert.notEqual(runGate(missing, event), 0, `Missing ${id} must block ${event}`);
         for (const bad of ['skipped', 'failure', 'cancelled', '', 'unknown']) {
           assert.notEqual(runGate({ ...results, [id]: bad }, event), 0, `${id}=${bad} must block ${event}`);
         }

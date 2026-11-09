@@ -41,6 +41,10 @@ export function tuneCommand(program: Command): void {
             '--space <space>',
             'Move all layers of each target adapter to this space (e.g. personal or a group name). Use without --file for move-only.'
         )
+        .option(
+            '--expected-version <version>',
+            'CAS guard: the adapter version this content was written against; a stale value fails with VERSION_CONFLICT before any write'
+        )
         .option('--allow-sensitive-upload', 'Allow uploads that contain token-like or private-key-like text')
         .action(async (
             uris: string[],
@@ -49,6 +53,7 @@ export function tuneCommand(program: Command): void {
                 files?: string[];
                 updates?: string;
                 space?: string;
+                expectedVersion?: string;
                 allowSensitiveUpload?: boolean;
             }
         ) => {
@@ -99,6 +104,9 @@ export function tuneCommand(program: Command): void {
                 if (markdownDoc) tuneOpts.markdownDoc = markdownDoc;
                 if (updates) tuneOpts.updates = updates;
                 if (rawSpace.length > 0) tuneOpts.space = rawSpace;
+                if (typeof options.expectedVersion === 'string' && options.expectedVersion.trim().length > 0) {
+                    tuneOpts.expectedVersion = options.expectedVersion.trim();
+                }
                 const envReviewEvidence = reviewEvidenceFromEnv();
                 if (envReviewEvidence) tuneOpts.reviewEvidence = envReviewEvidence;
 

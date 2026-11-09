@@ -37,14 +37,62 @@ function isDirectRun(): boolean {
 }
 
 /**
+ * Listeners this process owns, drained on shutdown. A listener that is still
+ * accepting work holds the event loop open, so the process cannot exit on its own
+ * while one is bound.
+ */
+const openListeners: Array<() => void> = [];
+
+/**
+ * Set the instant a signal is handled, before the registry is drained.
+ * Registration has to be atomic against the drain: a signal can land while
+ * `bootLocalRuntime()` is still awaited, and a listener registered after the drain
+ * would never be closed, so it would hold the event loop open until the last resort
+ * (`process.exit(0)`) ran against a live ORT session and aborted the process.
+ */
+let shuttingDown = false;
+
+/** One listener close, best effort: a failure must not skip the remaining ones. */
+function closeQuietly(close: () => void): void {
+    try {
+        close();
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        structuredLogger.debug(`shutdown: listener close failed (${message})`);
+    }
+}
+
+/**
+ * The ONLY way a listener may join the shutdown set, so a future listener cannot
+ * reintroduce the boot window. When a shutdown is already in progress the registry
+ * has been drained, so the listener is closed at once instead of being pushed onto
+ * a set nobody will ever read again.
+ */
+function registerListener(close: () => void): void {
+    if (shuttingDown) {
+        closeQuietly(close);
+        return;
+    }
+    openListeners.push(close);
+}
+
+/**
  * Install signal handlers for graceful shutdown.
  * Without listeners Node terminates immediately on SIGTERM, but open handles
- * (Qdrant gRPC, stdio pipes) can delay exit. An explicit handler ensures
- * the process exits promptly.
+ * (the HTTP/MCP listener, the metrics listener, Qdrant gRPC, stdio pipes) keep the
+ * event loop alive, so the process would not exit on its own. An explicit handler
+ * stops every listener this process owns and lets the loop drain: a drained process
+ * exits 0 through the ordinary path. That natural exit is the only safe one once
+ * fastembed has loaded, because `process.exit()` runs the ONNX Runtime teardown
+ * against a live InferenceSession and aborts the process (SIGABRT, exit 134).
  */
 function installSignalHandlers(): void {
     const shutdown = (signal: string) => {
         structuredLogger.info(`Received ${signal}, shutting down`);
+        // Set before the drain: every listener that finishes booting from here on
+        // closes itself through `registerListener()` instead of waiting for a drain
+        // that has already happened.
+        shuttingDown = true;
         // Best-effort graph DB shutdown, fired inside the grace period below. It never
         // rejects and its outcome cannot change the exit code: the graph is internal
         // bookkeeping, so exit semantics stay exactly as before.
@@ -52,7 +100,14 @@ function installSignalHandlers(): void {
             const message = err instanceof Error ? err.message : String(err);
             structuredLogger.debug(`graph db: shutdown hook failed (${message})`);
         });
-        // Force exit after a short grace period if open handles keep the event loop alive
+        // Stop accepting new work so the event loop can drain and the process can exit
+        // naturally with the code set below. Best effort: a listener that fails to
+        // close must not skip the remaining ones or change the exit code.
+        for (const close of openListeners.splice(0)) closeQuietly(close);
+        // Last resort, unreachable on a process that drains once every listener has
+        // registered its closer before the signal arrived (late boot closers close
+        // themselves above). It fires only when a handle we do not own keeps the loop
+        // alive - and with the model loaded that exit aborts (ADR 0049).
         setTimeout(() => process.exit(0), 1000).unref();
         process.exitCode = 0;
     };
@@ -86,11 +141,15 @@ export async function runSquadrulesServer(): Promise<void> {
         // Shared boot: store selection, embedding probe, init, optional snapshot, and
         // app-space seeding. The server runs every stage (defaults); the CLI local path
         // dials the expensive stages down for fastboot. Same sequence, no drift.
-        const { memoryStore } = await bootLocalRuntime();
+        const { memoryStore, qdrantService: runtimeService } = await bootLocalRuntime();
 
         // Metrics HTTP server: only when the app serves HTTP (stdio mode avoids any HTTP listeners).
         if (TRANSPORT_TYPE === 'http') {
-            startMetricsServer();
+            const metricsServer = startMetricsServer();
+            registerListener(() => {
+                metricsServer.closeAllConnections();
+                metricsServer.close();
+            });
         }
 
         const transportSource = process.env['SQUADRULES_CLI_TRANSPORT_SOURCE']?.trim();
@@ -108,10 +167,26 @@ export async function runSquadrulesServer(): Promise<void> {
             structuredLogger.debug('metrics: disabled in stdio mode');
         }
 
+        // Both transports get the facade this runtime booted, not the module default:
+        // a second runtime in the same process must not resolve another store's records.
         if (TRANSPORT_TYPE === 'http') {
-            await startHttpTransport(memoryStore);
+            const httpServer = await startHttpTransport(memoryStore, runtimeService);
+            registerListener(() => {
+                httpServer.closeAllConnections();
+                httpServer.close();
+            });
         } else {
-            await startStdioTransport(memoryStore);
+            await startStdioTransport(memoryStore, runtimeService);
+            // stdin is the only handle stdio mode owns: the MCP transport reads it, and
+            // while the host keeps that pipe open it holds the event loop, so nothing
+            // else here can drain. Pausing it releases the read handle - the same call
+            // StdioServerTransport.close() makes - and destroying it closes the fd, so
+            // the loop can drain and the process exits naturally instead of reaching the
+            // `process.exit()` last resort above, which aborts with a live ORT session.
+            registerListener(() => {
+                process.stdin.pause();
+                process.stdin.destroy();
+            });
         }
     } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

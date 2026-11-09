@@ -148,7 +148,8 @@ export async function storeHeaderBasedAdapter(
           ...(adapter.protocol_version && { protocol_version: adapter.protocol_version }),
           ...(adapter.activation_patterns && { activation_patterns: adapter.activation_patterns }),
           ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal }),
-          ...(typeof adapter.chain_root === 'string' && adapter.chain_root.length > 0 && { chain_root: adapter.chain_root })
+          ...(typeof adapter.chain_root === 'string' && adapter.chain_root.length > 0 && { chain_root: adapter.chain_root }),
+          ...(adapter.frontmatter && { frontmatter: adapter.frontmatter })
         },
         slug: protocolSlug
       }

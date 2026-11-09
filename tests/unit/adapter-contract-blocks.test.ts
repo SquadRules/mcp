@@ -181,9 +181,12 @@ Suffix text`;
 
         for (const contract of contracts) {
           if (contract.type === 'shell') {
-            // ADR 0034: a gate must observe something; an echo-only cmd asserts a claim.
-            const cmd = String(contract.shell?.cmd ?? '');
-            expect(cmd.trim().startsWith('echo')).toBe(false);
+            // ADR 0034: a gate must observe something. A BARE `echo` asserts a claim; an
+            // `echo` that is redirected or piped is building the evidence the rest of the
+            // command then checks (`test -s`, `grep`), so the command is empirical.
+            const cmd = String(contract.shell?.cmd ?? '').trim();
+            const isBareEcho = /^echo\b/.test(cmd) && !/[|>;&]/.test(cmd);
+            expect({ file, cmd, isBareEcho }).toEqual({ file, cmd, isBareEcho: false });
           }
 
           if (contract.type === 'forward') {
@@ -191,7 +194,10 @@ Suffix text`;
             expect(String(contract.forward?.target)).not.toBe('squadrules://adapter/critic-loop');
           }
 
-          if (String(contract.type) === 'subagent' && String(contract.subagent?.context ?? '').includes('critic')) {
+          // The hop this rule is about is the one that reaches the critic ADAPTER, so match
+          // the adapter slug. A bare `critic` substring also matches "critical/high/medium/low",
+          // which is a rung-2 judgment contract that correctly names no MCP call at all.
+          if (String(contract.type) === 'subagent' && String(contract.subagent?.context ?? '').includes('critic-loop')) {
             // ADR 0034 Decision 2: the critic hop pins the call the subagent must make.
             const mcp = contract.subagent?.mcp ?? [];
             expect(mcp.some(call => call.tool_name === 'forward'

@@ -4,7 +4,7 @@ import { runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { SQUADRULES_APP_SPACE_ID } from '../config.js';
 import { MEM_FILE_SLUG_KEY, getMemDir, getMemDirFallback, readMemFiles } from './mem-dir-utils.js';
 import { deletePreexistingAppSpaceEntries, extractFrontmatterSlug } from './mem-uuid-mapper.js';
-import { sha256Hex } from '../tools/skill-export/sha256.js';
+import { sha256Hex } from '../utils/sha256.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
 import { compareSemver } from '../utils/version-compare.js';
 import { redisCacheService } from '../services/redis-cache.js';

@@ -1,12 +1,19 @@
 /**
- * Unit tests for Touchpoint 5: delete refuses when inheritance dependents exist.
+ * UNIT tests (mocked graph) for the delete inheritance precondition.
  *
- * Covers:
- *   - Delete succeeds when no dependents
- *   - Delete refused with correct error message when dependents exist
- *   - Delete succeeds when graph DB is unavailable (graceful degradation)
- *   - Delete succeeds when getChildren throws (graceful degradation)
- *   - No cascade: dependents are NOT modified when delete is refused
+ * These are unit tests, not integration tests: `delete` is exercised with a fake
+ * graph object supplied through the same seam production uses
+ * (`graph-owner.getGraphDb`). The behaviour they pin:
+ *
+ *   - delete succeeds when no dependents exist
+ *   - delete is refused, with a message naming the dependents, when they do
+ *   - delete succeeds when the store has no graph (graceful degradation)
+ *   - delete succeeds when `getChildren` throws (graceful degradation)
+ *   - no cascade: dependents are not modified when delete is refused
+ *   - the graph lookup is scoped by the stored record's own space
+ *
+ * The mock-free counterpart that uses a real LadybugDB is
+ * `tests/integration/graph-db-instance-isolation.test.ts`.
  *
  * Mocking strategy: `jest.resetModules()` + both `jest.doMock()` and
  * `jest.unstable_mockModule()` per the established pattern (commit 11293c62).
@@ -18,31 +25,38 @@ const mockDebug = jest.fn();
 const mockInfo = jest.fn();
 const mockError = jest.fn();
 
-/** Track whether the graph singleton returns null (unavailable). */
+/** Whether the store under test has a graph attached to it. */
 let graphDbAvailable = false;
+
+/** Space the stored record lives in — the scope the graph lookup must use. */
+const STORED_SPACE = 'space:unit-personal';
 
 const mockGetChildren = jest.fn<any>();
 // Methods that MUST NOT be called on the delete-refusal path (no cascade).
-const mockRemoveInheritanceEdges = jest.fn<any>();
+const mockClearInheritanceEdges = jest.fn<any>();
 const mockUpsertAdapterNode = jest.fn<any>();
 const mockCreateAdapterNode = jest.fn<any>();
-const mockWriteAdapterFromFrontmatter = jest.fn<any>();
+const mockUpsertAdapterFromFrontmatter = jest.fn<any>();
 
-function graphDbSingletonFactory() {
+/**
+ * Fake of the graph the runtime attaches to a store. `getGraphDb` is the seam
+ * `delete` uses, so the fake is reached exactly the way the real graph is.
+ */
+function graphOwnerFactory() {
   return {
-    getGraphDbService: () => {
+    getGraphDb: () => {
       if (!graphDbAvailable) return null;
       return {
         isInitialized: () => true,
         getChildren: mockGetChildren,
-        removeInheritanceEdges: mockRemoveInheritanceEdges,
+        clearInheritanceEdges: mockClearInheritanceEdges,
         upsertAdapterNode: mockUpsertAdapterNode,
         createAdapterNode: mockCreateAdapterNode,
-        writeAdapterFromFrontmatter: mockWriteAdapterFromFrontmatter
+        upsertAdapterFromFrontmatter: mockUpsertAdapterFromFrontmatter
       };
     },
-    initGraphDb: jest.fn<any>(),
-    closeGraphDb: jest.fn<any>()
+    attachGraphDb: jest.fn<any>(),
+    detachGraphDb: jest.fn<any>()
   };
 }
 
@@ -80,9 +94,20 @@ function deleteHeavyDepMocks(): void {
   const toolDocFactory = () => ({
     resolveToolDoc: () => undefined
   });
+  // Scope resolution reads the tenant context, so the fake context carries the
+  // same space the stored record is written in.
   const tenantFactory = () => ({
     getTenantId: () => 'test-tenant',
-    getSpaceContext: () => ({ space: 'personal' })
+    getSpaceContext: () => ({ space: 'personal' }),
+    getSpaceContextFromStorage: () => ({
+      userId: 'test-user',
+      groupIds: [],
+      allowedSpaceIds: [STORED_SPACE],
+      defaultWriteSpaceId: STORED_SPACE,
+      personalSpaceId: STORED_SPACE,
+      spaceNamesById: {},
+      requestId: 'unit'
+    })
   });
   jest.unstable_mockModule('../../src/services/qdrant/index.js', qdrantIndexFactory);
   jest.doMock('../../src/services/qdrant/index.js', qdrantIndexFactory);
@@ -95,9 +120,9 @@ function deleteHeavyDepMocks(): void {
 }
 
 function registerMocks(): void {
-  jest.unstable_mockModule('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.unstable_mockModule('../../src/services/graph-db/graph-owner.js', graphOwnerFactory);
   jest.unstable_mockModule('../../src/utils/structured-logger.js', loggerFactory);
-  jest.doMock('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.doMock('../../src/services/graph-db/graph-owner.js', graphOwnerFactory);
   jest.doMock('../../src/utils/structured-logger.js', loggerFactory);
 }
 
@@ -109,7 +134,8 @@ function makeQdrantService(opts?: { slugFound?: boolean; layers?: any[] }) {
       slugFound ? { layerUuid: 'first-layer-uuid' } : { layerUuid: null }
     ),
     getMemoryByUUID: jest.fn<any>().mockResolvedValue({
-      adapter: { id: 'adapter-id-123' }
+      adapter: { id: 'adapter-id-123' },
+      space_id: STORED_SPACE
     }),
     getAdapterLayers: jest.fn<any>().mockResolvedValue(layers),
     deleteMemory: jest.fn<any>().mockResolvedValue(undefined)
@@ -122,10 +148,10 @@ describe('delete inheritance precondition (Touchpoint 5)', () => {
   beforeEach(() => {
     graphDbAvailable = false;
     mockGetChildren.mockReset();
-    mockRemoveInheritanceEdges.mockReset();
+    mockClearInheritanceEdges.mockReset();
     mockUpsertAdapterNode.mockReset();
     mockCreateAdapterNode.mockReset();
-    mockWriteAdapterFromFrontmatter.mockReset();
+    mockUpsertAdapterFromFrontmatter.mockReset();
     mockWarn.mockClear();
     mockDebug.mockClear();
     mockInfo.mockClear();
@@ -151,7 +177,7 @@ describe('delete inheritance precondition (Touchpoint 5)', () => {
     expect(result.total_deleted).toBe(1);
     expect(result.total_failed).toBe(0);
     expect(result.results[0]!.status).toBe('deleted');
-    expect(mockGetChildren).toHaveBeenCalledWith('parent-adapter');
+    expect(mockGetChildren).toHaveBeenCalledWith(STORED_SPACE, 'parent-adapter');
     expect(qdrant.deleteMemory).toHaveBeenCalled();
   });
 
@@ -238,12 +264,14 @@ describe('delete inheritance precondition (Touchpoint 5)', () => {
     expect(result.total_failed).toBe(1);
     expect(result.results[0]!.status).toBe('error');
     // No mutation of the graph: no cascade, no edge removal, no adapter rewrites
-    expect(mockRemoveInheritanceEdges).not.toHaveBeenCalled();
+    expect(mockClearInheritanceEdges).not.toHaveBeenCalled();
     expect(mockUpsertAdapterNode).not.toHaveBeenCalled();
     expect(mockCreateAdapterNode).not.toHaveBeenCalled();
-    expect(mockWriteAdapterFromFrontmatter).not.toHaveBeenCalled();
+    expect(mockUpsertAdapterFromFrontmatter).not.toHaveBeenCalled();
     // No qdrant deletion either
     expect(qdrant.deleteMemory).not.toHaveBeenCalled();
-    expect(qdrant.findFirstStepMemoryUuidBySlug).not.toHaveBeenCalled();
+    // The stored record is read first: its space_id is what scopes the graph lookup,
+    // so the lookup cannot run against a guessed scope.
+    expect(qdrant.findFirstStepMemoryUuidBySlug).toHaveBeenCalledTimes(1);
   });
 });

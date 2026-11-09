@@ -8,6 +8,8 @@ import { buildLayerUri, parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { evaluateReward } from '../services/reward-evals.js';
 import { recordRewardAnomaly } from './reward-anomaly.js';
+import { recordRewardEvolution, recordRewardProposalDecision } from './reward-evolution.js';
+import type { RewardEvolutionReport } from './reward-evolution.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 import { SquadrulesError } from '../types/index.js';
 import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
@@ -111,12 +113,20 @@ export async function executeReward(
 
   // Touchpoint 4: proposal-only anomaly bookkeeping when the reward records a
   // failure. Graceful degradation — never fails the reward call (see reward-anomaly.ts).
-  await recordRewardAnomaly(qdrantService, {
+  const anomaly = await recordRewardAnomaly(qdrantService, {
     uri: input.uri,
     layerUuid: parsed.id,
     outcome: input.outcome,
     ...(input.feedback !== undefined && { feedback: input.feedback })
   });
+
+  // Proposal-only evolution record: a failed reward proposes, it never mutates the
+  // parent. A caller-named proposal is confirmed/rejected here and settled.
+  let evolution: RewardEvolutionReport | null = anomaly
+    ? await recordRewardEvolution(qdrantService, anomaly, input)
+    : null;
+  const decided = await recordRewardProposalDecision(qdrantService, input);
+  if (decided) evolution = decided;
 
   return {
     results: rewardMetricsResult.results.map((result) => ({
@@ -137,6 +147,7 @@ export async function executeReward(
     })),
     total_rated: rewardMetricsResult.total_rated,
     total_failed: rewardMetricsResult.total_failed,
+    ...(evolution && { evolution }),
     next_call: null
   };
 }

@@ -56,3 +56,49 @@ acting on them.
 two triggers above. Background: issues
 [#77](https://github.com/SquadRules/mcp/issues/77) and
 [#173](https://github.com/SquadRules/mcp/issues/173), both closed.
+
+## A successful run exits `134` after the embedding model loads
+
+**What you see.** A run does its work, prints its final success marker, and then
+dies with:
+
+```text
+libc++abi: terminating due to uncaught exception of type std::__1::system_error:
+mutex lock failed: Invalid argument
+```
+
+The shell reports `exit 134` (`Abort trap: 6`), and nothing was actually lost —
+no write is missing and no state is corrupt. A supervisor or CI step that
+asserts a zero exit code still fails the run.
+
+**Why it happens.** `process.exit()` tears down ONNX Runtime while an
+`onnxruntime-node` `InferenceSession` is live, and the native teardown aborts.
+It is not a JavaScript exception, so no handler runs and the error carries no
+stack. It is not the graph database: 300 leaked Ladybug handles on their own
+report exit `0`.
+
+**What already mitigates it.** Shutdown closes the listeners the process owns,
+releases stdin in stdio mode, and sets `process.exitCode` rather than forcing an
+exit. The remaining `process.exit()` on that path is a bounded last resort: it
+stays silent once every listener has registered its closer before the signal —
+including one that finishes booting after it — and it produces `134` again if one
+never registers. The decision, the measurements and the trade-offs are in
+[ADR 0049](adr/0049-drain-handles-on-graceful-shutdown-instead-of-process-exit.md).
+
+**Paths still exposed.** A port conflict at HTTP startup
+(`src/http/http-server-startup.ts`), the CLI catch-all in
+`src/cli/auth-error.ts`, and Qdrant client channels that shutdown does not
+close. These three are judged reachable, not measured; ADR 0049 records them,
+plus the retained proof harness's last resort, as known exposure.
+
+The proof harness (`tests/integration/http-reviewed-runtime.ts`) is not product
+code, but it had this defect in its failure branch too: a blocked run called
+`process.exit(1)` with the model loaded and aborted instead of exiting `1`. It
+now sets `process.exitCode = 1` and keeps only a bounded 2 s last resort for a
+handle it does not own — measured as exit `1` with no abort, and `134` after
+~2.7 s only when a foreign handle keeps the loop alive. The supervising lane
+fails either way, so no gate depends on which status it reports.
+
+**Status.** Expected while the embedding provider is in-process ONNX. Do not
+re-diagnose it as a store or graph defect; re-evaluate only when ADR 0049's
+expiry conditions change.

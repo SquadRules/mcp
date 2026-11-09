@@ -16,7 +16,11 @@ export default {
         '**/*.spec.ts',
         '**/*.spec.js',
     ],
-    testPathIgnorePatterns: ['/node_modules/', '/tests/ui/', '/tests/load/'],
+    testPathIgnorePatterns: [
+        '/node_modules/', '/tests/ui/', '/tests/load/',
+        // Task-bound proof, not ordinary CI; the dedicated opt-in config removes only this exclusion.
+        '^<rootDir>/tests/integration/http-api-graph-reviewed-content\\.test\\.ts$',
+    ],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     transform: {
         '^.+\\.tsx?$': ['ts-jest', {
@@ -31,8 +35,10 @@ export default {
     },
     moduleNameMapper: {
         '^(\\.{1,2}/.*)\\.js$': '$1',
-        // CJS stub: real `uuid` is ESM; transitive CJS (e.g. dockerode) must require() a .cjs mock.
-        '^uuid$': '<rootDir>/tests/mocks/uuid-stub.cjs',
+        // `uuid` is deliberately not mapped. Adapter, layer and space ids are RFC 4122 v5
+        // digests (ADR 0042 scopes graph identity by them), so a substituted module makes
+        // every lane assert identities production never mints. `uuid` loads as ESM here and
+        // no installed dependency require()s it. Pinned by tests/unit/jest-uuid-real-identity.test.ts.
     },
     collectCoverageFrom: [
         'src/**/*.{ts,tsx}',

@@ -3,7 +3,7 @@ name: Automation policy
 on:
   workflow_call:
   pull_request:
-    branches: [main]
+    branches: [main, squadrules-6]
     types: [opened, synchronize, reopened, ready_for_review, edited]
   merge_group:
   workflow_dispatch:

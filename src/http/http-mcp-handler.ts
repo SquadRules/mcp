@@ -17,10 +17,11 @@ import { buildListOfferingsUnauthorizedJsonRpc } from './mcp-ui-offerings-auth-j
 import { getSpaceContext, getTenantId, runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { buildListOfferingsForUIResult } from '../mcp-apps/list-offerings-for-ui.js';
 import { createServer } from '../server.js';
+import type { QdrantService } from '../services/qdrant/service.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
-import { SquadrulesError } from '../types/index.js';
 import { validateBearerToken } from './bearer-validate.js';
 import { generateCorrelationId, emitRequestStart, emitRequestEnd, emitToolCallAudit, AUDIT_LOG_LEVEL, MCP_ERROR_CODES, captureResponseBody } from './mcp-audit-emit.js';
+import { mcpErrorToHelp } from './mcp-error-help.js';
 const MAX_CONCURRENT = resolveMaxConcurrentRequests(MAX_CONCURRENT_MCP_REQUESTS_RAW);
 
 export interface McpRequestContext {
@@ -30,13 +31,17 @@ export interface McpRequestContext {
 export const mcpRequestStore = new AsyncLocalStorage<McpRequestContext>();
 
 // Track request start times by ID for accurate cancellation timing. Stale entries swept periodically.
+// `unref()` keeps the sweep from holding the event loop open on its own, so a
+// short-lived process can exit naturally; in-flight requests (not this timer)
+// are what keep a serving process alive.
 const requestTimestamps = new Map<string, number>();
-setInterval(() => {
+const requestTimestampSweep = setInterval(() => {
   const cutoff = Date.now() - 120_000;
   for (const [id, start] of requestTimestamps.entries()) {
     if (start < cutoff) requestTimestamps.delete(id);
   }
 }, 60_000);
+requestTimestampSweep.unref();
 
 /** Current number of in-flight MCP requests; used for backpressure (503 when over limit). */
 let concurrentMcpRequests = 0;
@@ -59,32 +64,6 @@ async function resolveMcpAuthPayload(req: express.Request): Promise<express.Requ
   return undefined;
 }
 
-function sanitizeMcpErrorDetails(details: unknown): Record<string, unknown> {
-  if (!details || typeof details !== 'object') return {};
-  try { return JSON.parse(JSON.stringify(details)) as Record<string, unknown>; }
-  catch { return {}; }
-}
-
-/** Help text and error_code for clients; never expose internal error details. */
-function mcpErrorToHelp(error: unknown): { message: string; error_code: string; retry_hint: string; details?: Record<string, unknown> } {
-  if (error instanceof SquadrulesError) {
-    const details = sanitizeMcpErrorDetails(error.details);
-    const nextAction = typeof details['next_action'] === 'string' ? details['next_action'] : undefined;
-    return {
-      message: error.message,
-      error_code: typeof error.code === 'string' && error.code.length > 0 ? error.code : 'SERVER_ERROR',
-      retry_hint: nextAction ?? 'Adjust the request and retry.',
-      ...(Object.keys(details).length > 0 ? { details } : {})
-    };
-  }
-  const msg = error instanceof Error ? error.message : String(error);
-  // Defensive: should not trigger with per-request servers; kept as safety net.
-  if (msg.includes('Already connected to a transport')) {
-    return { message: 'Server is busy with another request. Wait a few seconds and retry; if it continues, start a new MCP session.', error_code: 'CONNECTION_CONFLICT', retry_hint: 'Wait a few seconds and retry the same request; if repeated, start a new MCP session.' };
-  }
-  return { message: 'An unexpected error occurred. Please retry. If the problem continues, start a new MCP session.', error_code: 'SERVER_ERROR', retry_hint: 'Retry the request; if it persists, start a new MCP session.' };
-}
-
 /**
  * Set up MCP endpoint handling.
  *
@@ -98,14 +77,18 @@ function mcpErrorToHelp(error: unknown): { message: string; error_code: string; 
  * @param app Express application instance
  * @param memoryStore Store used to create per-request MCP servers
  */
-export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantStore) {
+export function setupMcpRoutes(
+    app: express.Express,
+    memoryStore: MemoryQdrantStore,
+    service?: QdrantService
+) {
     // Create the MCP handler once per process. The factory creates a fresh
     // McpServer per request (stateless serving). The handler routes modern
     // (2026-07-28) and 2025-era clients to the appropriate codec.
     // The compat option key is a third-party SDK identifier; built at runtime.
     const compatKey = ['leg', 'acy'].join('');
     const mcpHandler = createMcpHandler(
-      () => createServer(memoryStore) as McpServer,
+      () => createServer(memoryStore, service) as McpServer,
       {
         [compatKey]: 'stateless',
         responseMode: 'json',

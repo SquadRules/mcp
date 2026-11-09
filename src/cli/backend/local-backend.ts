@@ -88,7 +88,17 @@ export class LocalBackend implements ActionBackend {
   async activate(query: string, options?: ActivateOptions): Promise<ActivateOutput> {
     await ensureEmbeddingDimension();
     const sp = typeof options?.space === 'string' ? options.space.trim() : '';
-    const input = activateInputSchema.parse({ query, ...(sp ? { space: sp } : {}) });
+    const sid = typeof options?.space_id === 'string' ? options.space_id.trim() : '';
+    const execId = typeof options?.execution_id === 'string' ? options.execution_id.trim() : '';
+    const input = activateInputSchema.parse({
+      query,
+      ...(sp ? { space: sp } : {}),
+      ...(sid ? { space_id: sid } : {}),
+      ...(execId ? { execution_id: execId } : {}),
+      ...(options?.context ? { context: options.context } : {}),
+      ...(options?.authoring ? { authoring: options.authoring } : {}),
+      ...(options?.max_choices !== undefined ? { max_choices: options.max_choices } : {})
+    });
     const { memoryStore, qdrantService } = this.runtime;
     return this.run(() => executeActivate(memoryStore, qdrantService, input));
   }
@@ -106,6 +116,9 @@ export class LocalBackend implements ActionBackend {
       content: markdown as string,
       llm_model_id: options?.llmModelId?.trim() || 'cli',
       force_update: Boolean(options?.force),
+      ...(typeof options?.expectedVersion === 'string' && options.expectedVersion.trim().length > 0
+        ? { expected_version: options.expectedVersion.trim() }
+        : {}),
       ...(sp ? { space: sp } : {}),
       ...(options?.reviewEvidence ? { review_evidence: options.reviewEvidence } : {})
     };
@@ -152,10 +165,13 @@ export class LocalBackend implements ActionBackend {
       ...(options?.markdownDoc ? { content: options.markdownDoc } : {}),
       ...(options?.updates ? { updates: options.updates } : {}),
       ...(options?.space ? { space: options.space } : {}),
+      ...(typeof options?.expectedVersion === 'string' && options.expectedVersion.trim().length > 0
+        ? { expected_version: options.expectedVersion.trim() }
+        : {}),
       ...(options?.reviewEvidence ? { review_evidence: options.reviewEvidence } : {})
     });
-    const { qdrantService } = this.runtime;
-    return this.run(() => executeTune(qdrantService, input));
+    const { memoryStore, qdrantService } = this.runtime;
+    return this.run(() => executeTune(qdrantService, input, memoryStore));
   }
 
   async delete(uris: string[]): Promise<DeleteOutput> {
@@ -177,7 +193,11 @@ export class LocalBackend implements ActionBackend {
       ...(options?.score !== undefined ? { score: options.score } : {}),
       ...(options?.rater ? { rater: options.rater } : {}),
       ...(options?.rubricVersion ? { rubric_version: options.rubricVersion } : {}),
-      ...(options?.llmModelId ? { llm_model_id: options.llmModelId } : {})
+      ...(options?.llmModelId ? { llm_model_id: options.llmModelId } : {}),
+      ...(options?.proposal ? { proposal: options.proposal.trim() } : {}),
+      ...(options?.proposalDecision ? { proposal_decision: options.proposalDecision } : {}),
+      ...(options?.proposalActorKind ? { proposal_actor_kind: options.proposalActorKind } : {}),
+      ...(options?.proposalEvidence ? { proposal_evidence: options.proposalEvidence } : {})
     });
     const { qdrantService } = this.runtime;
     return this.run(() => executeReward(qdrantService, input));

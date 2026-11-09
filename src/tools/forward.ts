@@ -5,14 +5,11 @@ import crypto from 'node:crypto';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getTenantId } from '../utils/tenant-context.js';
-import { resolveAdapterNextLayer, resolveAdapterPreviousLayer, buildAndPinLayerManifest } from '../services/adapter-navigation.js';
+import { buildAndPinLayerManifest } from '../services/adapter-navigation.js';
 import { executionTraceStore } from '../services/execution-trace-store.js';
 import { forwardRuntimeStore } from '../services/forward-runtime-store.js';
-import { getAdapterId, getInferenceContract, getLayerIndex } from '../services/memory/memory-accessors.js';
-import { proofOfWorkStore } from '../services/proof-of-work-store.js';
-import { structuredLogger } from '../utils/structured-logger.js';
+import { getAdapterId, getInferenceContract } from '../services/memory/memory-accessors.js';
 import {
-  GENESIS_HASH,
   handleProofSubmission,
   tryUserInputElicitation,
   type HandleProofResult,
@@ -35,59 +32,14 @@ import {
   mapProofSolution,
 } from './forward-view.js';
 import { appendExecutionTrace, solutionToTensorValue } from './forward-trace.js';
+import {
+  buildPostSubmissionView,
+  expectedPreviousHash,
+  traceFireAndForget
+} from './forward-post-submission.js';
 import { resolveEffectiveLayerContent, applyEffectiveContent } from './adapter-effective-content.js';
+import { createInheritanceCheckpointService } from '../services/graph-db/inheritance-checkpoint.js';
 import { SquadrulesError } from '../types/index.js';
-
-function traceFireAndForget(op: Promise<void>): void {
-  op.catch((err) => structuredLogger.warn(`[trace] Persistence failed, data lost: ${err instanceof Error ? err.message : String(err)}`));
-}
-async function loadLayer(memoryStore: MemoryQdrantStore, layerId: string | undefined): Promise<Awaited<ReturnType<MemoryQdrantStore['getMemory']>>> {
-  return layerId ? memoryStore.getMemory(layerId) : null;
-}
-async function expectedPreviousHash(
-  memory: Awaited<ReturnType<MemoryQdrantStore['getMemory']>>,
-  qdrantService: QdrantService | undefined,
-  executionId?: string
-): Promise<string> {
-  if (!memory || getLayerIndex(memory) <= 1) {
-    return GENESIS_HASH;
-  }
-  const previous = await resolveAdapterPreviousLayer(memory, qdrantService, executionId);
-  if (!previous?.uuid) {
-    return GENESIS_HASH;
-  }
-  return (await proofOfWorkStore.getProofHash(previous.uuid)) ?? GENESIS_HASH;
-}
-
-async function buildPostSubmissionView(params: {
-  memoryStore: MemoryQdrantStore;
-  currentMemory: Awaited<ReturnType<MemoryQdrantStore['getMemory']>>;
-  executionId: string;
-  proofHash?: string;
-  qdrantService: QdrantService | undefined;
-  message?: string;
-}): Promise<ForwardOutput> {
-  const { memoryStore, currentMemory, executionId, proofHash, qdrantService, message } = params;
-  if (!currentMemory) {
-    throw new Error('Layer not found while building forward response');
-  }
-  const next = await resolveAdapterNextLayer(currentMemory, qdrantService, executionId);
-  if (!next?.uuid) {
-    return buildForwardView(currentMemory, executionId, {
-      final: true,
-      ...(message ? { message } : { message: 'Adapter layers complete. Call reward to finalize.' }),
-      ...(proofHash ? { proofHash } : {})
-    });
-  }
-  const nextMemory = await loadLayer(memoryStore, next.uuid);
-  if (!nextMemory) {
-    throw new Error(`Next layer ${next.uuid} could not be loaded`);
-  }
-  return buildForwardView(nextMemory, executionId, {
-    ...(proofHash ? { proofHash } : {}),
-    ...(message ? { message } : {})
-  });
-}
 
 export async function executeForward(
   server: any,
@@ -111,11 +63,19 @@ export async function executeForward(
   // substituted from the nearest ancestor that defines it. Graceful degradation: when the
   // graph DB is unavailable, resolveEffectiveLayerContent logs a warning and returns the
   // raw child unchanged, so forward behaves exactly as it did before this touchpoint.
-  const effectiveContent = await resolveEffectiveLayerContent(memoryStore, qdrantService, rawMemory);
+  // The execution id is resolved BEFORE content so a crash/retry reuses the same
+  // checkpoint identity as the activate/forward call it belongs to.
+  const executionId = parsed.kind === 'layer' && parsed.executionId ? parsed.executionId : crypto.randomUUID();
+  const effectiveContent = await resolveEffectiveLayerContent(
+    memoryStore,
+    qdrantService,
+    rawMemory,
+    'forward',
+    { executionId, checkpoints: createInheritanceCheckpointService() }
+  );
   const memory = applyEffectiveContent(rawMemory, effectiveContent);
   const adapterId = getAdapterId(memory);
   const adapterUri = buildAdapterUri(adapterId);
-  const executionId = parsed.kind === 'layer' && parsed.executionId ? parsed.executionId : crypto.randomUUID();
 
   const continuing = parsed.kind === 'layer' && Boolean(parsed.executionId);
   let authoring = input.authoring ? authoringContextSchema.parse(input.authoring) : undefined;

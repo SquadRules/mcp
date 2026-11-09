@@ -14,6 +14,7 @@ import { storeHeaderBasedAdapter } from './store-adapter-header-handler.js';
 import { storeDefaultAdapter } from './store-adapter-default-handler.js';
 import { checkSimilarAdapterByTitle } from './store-adapter-helpers.js';
 import { storeArtifact as storeArtifactPoint } from './store-artifact.js';
+import { attachStoredAdapterFrontmatter } from './stored-adapter-frontmatter.js';
 
 export interface StoreAdapterOptions {
   forceUpdate?: boolean;
@@ -79,6 +80,9 @@ export class MemoryQdrantStoreAdapter {
               if (memory.adapter) memory.adapter.chain_root = parsedSingleDoc.chainRoot;
             }
           }
+          // Persist `inherits:`/`override:`/`chain_root:` on the stored payload so the
+          // graph can be rebuilt from records alone (see stored-adapter-frontmatter.ts).
+          attachStoredAdapterFrontmatter(headerAdapterMemories, parsedSingleDoc);
           const firstLabel = headerAdapterMemories[0]?.label || 'Knowledge Adapter';
           const explicitAdapterTitle = headerAdapterMemories[0]?.adapter?.name;
           const adapterTitle =

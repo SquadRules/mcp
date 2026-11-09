@@ -11,7 +11,7 @@ import { loginWithBrowser } from './commands/login.js';
 import { jwtExpiresInSeconds, refreshAccessToken } from './oauth-refresh.js';
 import { rewriteLoginUrlRedirectToApiBase } from './rewrite-login-url.js';
 import { normalizeAndValidateApiBaseUrl, type SafeMarkdownUpload } from './upload-guards.js';
-import type { ActivateOutput } from '../tools/activate_schema.js';
+import type { ActivateInput, ActivateOutput } from '../tools/activate_schema.js';
 import type { ForwardOutput } from '../tools/forward_schema.js';
 import type { RewardOutput } from '../tools/reward_schema.js';
 import type { TrainOutput } from '../tools/train_schema.js';
@@ -19,29 +19,10 @@ import type { TuneOutput } from '../tools/tune_schema.js';
 import type { ExportInput, ExportOutput } from '../tools/export_schema.js';
 import type { DeleteOutput } from '../tools/delete_schema.js';
 import { downloadExportRef } from './download-export-ref.js';
+import { buildApiErrorMessage, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS, PROACTIVE_REFRESH_SKEW_SEC } from './api-client-helpers.js';
+import type { ApiClientOptions, ApiErrorData, SpacesOutput } from './api-client-helpers.js';
 
-const PROACTIVE_REFRESH_SKEW_SEC = 60;
-const DEFAULT_TIMEOUT_MS = 15_000;
-const DEFAULT_MAX_RETRIES = 2;
-
-export interface ApiClientOptions {
-    baseUrl?: string | undefined;
-    openInBrowser?: boolean | undefined;
-    /** Request timeout in milliseconds (default: 15 000). */
-    timeoutMs?: number | undefined;
-    /** Max retries on transient network errors (default: 2). Set 0 to disable. */
-    maxRetries?: number | undefined;
-}
-
-type SpacesOutput = {
-    spaces: Array<{
-        name: string;
-        space_id: string;
-        type: 'personal' | 'group' | 'app' | 'other';
-        adapter_count: number;
-        adapters?: Array<{ adapter_id: string; title: string; layer_count: number; artifacts?: Array<{ name: string; slug: string; uri: string; uuid_uri: string; content_type: string; sha256: string; relative_path: string | null }> }>;
-    }>;
-};
+export type { ApiClientOptions };
 
 export class ApiClient {
     private baseUrl: string;
@@ -189,22 +170,8 @@ export class ApiClient {
             });
 
             if (!response.ok) {
-                const errorData = data as {
-                    message?: string;
-                    error?: string;
-                    login_url?: string;
-                    available_spaces?: unknown;
-                };
-                let msg = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-                if (
-                    (errorData.error === 'SPACE_NOT_FOUND' || errorData.error === 'SPACE_READ_ONLY') &&
-                    Array.isArray(errorData.available_spaces)
-                ) {
-                    const availableSpaces = errorData.available_spaces.filter((entry): entry is string => typeof entry === 'string');
-                    if (availableSpaces.length > 0) {
-                        msg += `\nAvailable writable spaces: ${availableSpaces.join(', ')}`;
-                    }
-                }
+                const errorData = data as ApiErrorData;
+                const msg = buildApiErrorMessage(errorData, response.status, response.statusText);
                 if (response.status === 401) {
                     const cfg401 = await readConfig(this.baseUrl);
                     if (!isRetryAfterRefresh && cfg401.refreshToken) {
@@ -248,10 +215,24 @@ export class ApiClient {
             ? networkErrorWithHint(`Request to ${url} failed after ${maxAttempts} attempts`, lastErr)
             : new Error(`Request to ${url} failed after ${maxAttempts} attempts`);
     }
-    async activate(query: string, options?: { space?: string }): Promise<ActivateOutput> {
+    async activate(query: string, options?: {
+        space?: string;
+        space_id?: string;
+        execution_id?: string;
+        context?: ActivateInput['context'];
+        authoring?: ActivateInput['authoring'];
+        max_choices?: number;
+    }): Promise<ActivateOutput> {
         const body: Record<string, unknown> = { query };
         const sp = typeof options?.space === 'string' ? options.space.trim() : '';
         if (sp.length > 0) body['space'] = sp;
+        const sid = typeof options?.space_id === 'string' ? options.space_id.trim() : '';
+        if (sid.length > 0) body['space_id'] = sid;
+        const execId = typeof options?.execution_id === 'string' ? options.execution_id.trim() : '';
+        if (execId.length > 0) body['execution_id'] = execId;
+        if (options?.context) body['context'] = options.context;
+        if (options?.authoring) body['authoring'] = options.authoring;
+        if (options?.max_choices !== undefined) body['max_choices'] = options.max_choices;
         return this.request<ActivateOutput>('/api/activate', { method: 'POST', body: JSON.stringify(body) });
     }
 
@@ -261,12 +242,15 @@ export class ApiClient {
 
     async train(
         markdown: SafeMarkdownUpload,
-        options?: { llmModelId?: string; force?: boolean; space?: string; reviewEvidence?: { verdict_file: string; exit_code: number; stdout: string } },
+        options?: { llmModelId?: string; force?: boolean; space?: string; expectedVersion?: string; reviewEvidence?: { verdict_file: string; exit_code: number; stdout: string } },
         isRetryAfterLogin = false
     ): Promise<TrainOutput> {
         const headers: Record<string, string> = { 'Content-Type': 'text/markdown' };
         if (options?.llmModelId) headers['x-llm-model-id'] = options.llmModelId;
         if (options?.force) headers['x-force-update'] = 'true';
+        if (typeof options?.expectedVersion === 'string' && options.expectedVersion.trim().length > 0) {
+            headers['x-expected-version'] = options.expectedVersion.trim();
+        }
         if (typeof options?.space === 'string' && options.space.trim().length > 0) {
             headers['x-space'] = options.space.trim();
         }
@@ -278,13 +262,15 @@ export class ApiClient {
 
     async tune(
         uris: string[],
-        opts?: { markdownDoc?: SafeMarkdownUpload[]; updates?: Record<string, unknown>; space?: string; reviewEvidence?: { verdict_file: string; exit_code: number; stdout: string } }
+        opts?: { markdownDoc?: SafeMarkdownUpload[]; updates?: Record<string, unknown>; space?: string; expectedVersion?: string; reviewEvidence?: { verdict_file: string; exit_code: number; stdout: string } }
     ): Promise<TuneOutput> {
         const body: Record<string, unknown> = { uris };
         if (opts?.markdownDoc) body['content'] = opts.markdownDoc;
         if (opts?.updates) body['updates'] = opts.updates;
         const sp = typeof opts?.space === 'string' ? opts.space.trim() : '';
         if (sp.length > 0) body['space'] = sp;
+        const expectedVersion = typeof opts?.expectedVersion === 'string' ? opts.expectedVersion.trim() : '';
+        if (expectedVersion.length > 0) body['expected_version'] = expectedVersion;
         if (opts?.reviewEvidence) body['review_evidence'] = opts.reviewEvidence;
         return this.request<TuneOutput>('/api/tune', { method: 'POST', body: JSON.stringify(body) });
     }
@@ -292,6 +278,7 @@ export class ApiClient {
     async trainJson(body: {
         llm_model_id: string;
         force_update?: boolean;
+        expected_version?: string;
         space?: string;
         source_adapter_uri?: string;
         content?: string;
@@ -318,15 +305,25 @@ export class ApiClient {
 
     async reward(
         uri: string, outcome: 'success' | 'failure', feedback: string,
-        options?: { score?: number; rater?: string; rubricVersion?: string; llmModelId?: string }
+        options?: {
+            score?: number; rater?: string; rubricVersion?: string; llmModelId?: string;
+            proposal?: string; proposalDecision?: 'confirm' | 'reject';
+            proposalActorKind?: 'agent' | 'human_expert'; proposalEvidence?: Record<string, unknown>;
+        }
     ): Promise<RewardOutput> {
+        const body: Record<string, unknown> = {
+            uri, outcome, feedback,
+            score: options?.score, rater: options?.rater,
+            rubric_version: options?.rubricVersion, llm_model_id: options?.llmModelId,
+        };
+        const proposal = typeof options?.proposal === 'string' ? options.proposal.trim() : '';
+        if (proposal.length > 0) body['proposal'] = proposal;
+        if (options?.proposalDecision) body['proposal_decision'] = options.proposalDecision;
+        if (options?.proposalActorKind) body['proposal_actor_kind'] = options.proposalActorKind;
+        if (options?.proposalEvidence) body['proposal_evidence'] = options.proposalEvidence;
         return this.request<RewardOutput>('/api/reward', {
             method: 'POST',
-            body: JSON.stringify({
-                uri, outcome, feedback,
-                score: options?.score, rater: options?.rater,
-                rubric_version: options?.rubricVersion, llm_model_id: options?.llmModelId,
-            }),
+            body: JSON.stringify(body),
         });
     }
 

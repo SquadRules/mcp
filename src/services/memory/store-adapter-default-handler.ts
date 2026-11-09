@@ -27,6 +27,7 @@ import { SquadrulesError } from '../../types/index.js';
 import type { CodeBlockProcessor } from '../code-block-processor.js';
 import type { MemoryQdrantStoreMethods } from './store-methods.js';
 import { buildActivationSearchFieldsForMemory } from './activation-search-fields.js';
+import { attachStoredAdapterFrontmatter } from './stored-adapter-frontmatter.js';
 
 /**
  * Handles default adapter storage (one memory per document).
@@ -104,6 +105,9 @@ export async function storeDefaultAdapter(
       adapter
     };
   });
+
+  // Persist the topology frontmatter so the graph can be rebuilt from records.
+  attachStoredAdapterFrontmatter(memories, parsedFrontmatter);
 
   const activationFields = memories.map((memory) => buildActivationSearchFieldsForMemory(memory));
   let primaryEmbeddings: number[][];
@@ -199,7 +203,8 @@ export async function storeDefaultAdapter(
           layer_count: adapter.layer_count,
           ...(adapter.protocol_version && { protocol_version: adapter.protocol_version }),
           ...(adapter.activation_patterns && { activation_patterns: adapter.activation_patterns }),
-          ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal })
+          ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal }),
+          ...(adapter.frontmatter && { frontmatter: adapter.frontmatter })
         }
       }
     });

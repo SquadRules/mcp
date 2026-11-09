@@ -1,14 +1,20 @@
 /**
- * Unit tests for Touchpoint 4: reward writes an Anomaly node on proof failure.
+ * UNIT tests (mocked graph) for reward anomaly bookkeeping.
  *
- * Covers:
+ * The graph is a fake supplied through `graph-owner.getGraphDb` — the same seam
+ * production uses — so these are unit tests, not integration tests. They pin:
+ *
  *   - anomaly written on failure (with parent inheritance -> routes_to parent)
  *   - routes_to falls back to the failing adapter when no inheritance
  *   - discovered_by falls back to the layer identity when resolution fails
  *   - no anomaly on success
- *   - graph-db-unavailable still allows reward bookkeeping to succeed (no throw)
+ *   - an unattached graph still lets reward bookkeeping succeed (no throw)
  *   - createAnomaly failure is swallowed + warned (graceful degradation)
  *   - PROPOSAL-ONLY: no Adapter-rewrite method is ever called
+ *   - the parent lookup is scoped by the stored record's own space
+ *
+ * The mock-free counterpart that uses a real LadybugDB is
+ * `tests/integration/graph-db-instance-isolation.test.ts`.
  *
  * Mocking strategy: `jest.resetModules()` + both `jest.doMock()` and
  * `jest.unstable_mockModule()` per the established pattern (commit 11293c62).
@@ -20,21 +26,25 @@ const mockDebug = jest.fn();
 const mockInfo = jest.fn();
 const mockError = jest.fn();
 
-/** Track whether the graph singleton returns null (unavailable). */
+/** Whether the store under test has a graph attached to it. */
 let graphDbAvailable = false;
+
+/** Space the stored record lives in — the scope every graph key must use. */
+const STORED_SPACE = 'space:unit-personal';
 
 const mockCreateAnomaly = jest.fn<any>();
 const mockGetAdapter = jest.fn<any>();
 // Adapter-rewrite methods: MUST never be called on the reward anomaly path.
 const mockCreateAdapterNode = jest.fn<any>();
 const mockUpsertAdapterNode = jest.fn<any>();
-const mockWriteAdapterFromFrontmatter = jest.fn<any>();
+const mockUpsertAdapterFromFrontmatter = jest.fn<any>();
 
 const mockGetResult = jest.fn<any>();
 
-function graphDbSingletonFactory() {
+/** Fake graph reached through the production seam: `getGraphDb(store)`. */
+function graphOwnerFactory() {
   return {
-    getGraphDbService: () => {
+    getGraphDb: () => {
       if (!graphDbAvailable) return null;
       return {
         isInitialized: () => true,
@@ -42,11 +52,11 @@ function graphDbSingletonFactory() {
         getAdapter: mockGetAdapter,
         createAdapterNode: mockCreateAdapterNode,
         upsertAdapterNode: mockUpsertAdapterNode,
-        writeAdapterFromFrontmatter: mockWriteAdapterFromFrontmatter
+        upsertAdapterFromFrontmatter: mockUpsertAdapterFromFrontmatter
       };
     },
-    initGraphDb: jest.fn<any>(),
-    closeGraphDb: jest.fn<any>()
+    attachGraphDb: jest.fn<any>(),
+    detachGraphDb: jest.fn<any>()
   };
 }
 
@@ -77,10 +87,10 @@ function proofStoreFactory() {
 }
 
 function registerMocks(): void {
-  jest.unstable_mockModule('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.unstable_mockModule('../../src/services/graph-db/graph-owner.js', graphOwnerFactory);
   jest.unstable_mockModule('../../src/utils/structured-logger.js', loggerFactory);
   jest.unstable_mockModule('../../src/services/proof-of-work-store.js', proofStoreFactory);
-  jest.doMock('../../src/services/graph-db/graph-db-singleton.js', graphDbSingletonFactory);
+  jest.doMock('../../src/services/graph-db/graph-owner.js', graphOwnerFactory);
   jest.doMock('../../src/utils/structured-logger.js', loggerFactory);
   jest.doMock('../../src/services/proof-of-work-store.js', proofStoreFactory);
 }
@@ -92,14 +102,14 @@ function makeQdrant(memory: unknown): any {
 const LAYER_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const URI = `squadrules://layer/${LAYER_UUID}`;
 
-describe('reward anomaly integration (Touchpoint 4)', () => {
+describe('reward anomaly bookkeeping (unit, mocked graph)', () => {
   beforeEach(() => {
     graphDbAvailable = false;
     mockCreateAnomaly.mockReset();
     mockGetAdapter.mockReset();
     mockCreateAdapterNode.mockReset();
     mockUpsertAdapterNode.mockReset();
-    mockWriteAdapterFromFrontmatter.mockReset();
+    mockUpsertAdapterFromFrontmatter.mockReset();
     mockGetResult.mockReset();
     mockWarn.mockClear();
     mockDebug.mockClear();
@@ -120,7 +130,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     mockGetResult.mockResolvedValue({ status: 'failed', shell: { exit_code: 2 } });
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+    const qdrant = makeQdrant({ slug: 'failing-adapter', space_id: STORED_SPACE });
 
     await recordRewardAnomaly(qdrant, {
       uri: URI,
@@ -141,8 +151,9 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     expect(typeof node.created_at).toBe('string');
     expect(node.description).toContain('gate did not pass');
     expect(node.description).toContain('exit_code 2');
-    // Read-only parent lookup only.
-    expect(mockGetAdapter).toHaveBeenCalledWith('adapter:failing-adapter');
+    // Read-only parent lookup only, keyed by the stored record's own space.
+    expect(mockGetAdapter).toHaveBeenCalledWith(`adapter:${STORED_SPACE}:failing-adapter`);
+    expect(node.metadata).toEqual({ scope_space_id: STORED_SPACE, scope_source: 'stored-record' });
   });
 
   test('routes_to falls back to the failing adapter when there is no inheritance', async () => {
@@ -154,7 +165,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     mockGetResult.mockResolvedValue(null);
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ adapter: { name: 'lonely-adapter' } });
+    const qdrant = makeQdrant({ adapter: { name: 'lonely-adapter' }, space_id: STORED_SPACE });
 
     await recordRewardAnomaly(qdrant, {
       uri: URI,
@@ -198,7 +209,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     graphDbAvailable = true;
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+    const qdrant = makeQdrant({ slug: 'failing-adapter', space_id: STORED_SPACE });
 
     await recordRewardAnomaly(qdrant, {
       uri: URI,
@@ -216,7 +227,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     graphDbAvailable = false;
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+    const qdrant = makeQdrant({ slug: 'failing-adapter', space_id: STORED_SPACE });
 
     await expect(
       recordRewardAnomaly(qdrant, {
@@ -225,7 +236,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
         outcome: 'failure',
         feedback: 'boom'
       })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
 
     expect(mockCreateAnomaly).not.toHaveBeenCalled();
     expect(mockWarn).not.toHaveBeenCalled();
@@ -240,7 +251,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     mockGetResult.mockResolvedValue(null);
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+    const qdrant = makeQdrant({ slug: 'failing-adapter', space_id: STORED_SPACE });
 
     await expect(
       recordRewardAnomaly(qdrant, {
@@ -248,7 +259,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
         layerUuid: LAYER_UUID,
         outcome: 'failure'
       })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeNull();
 
     expect(mockWarn).toHaveBeenCalledWith(expect.stringContaining('createAnomaly failed'));
   });
@@ -262,7 +273,7 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     mockGetResult.mockResolvedValue({ status: 'failed', shell: { exit_code: 1 } });
 
     const { recordRewardAnomaly } = await import('../../src/tools/reward-anomaly.js');
-    const qdrant = makeQdrant({ slug: 'failing-adapter' });
+    const qdrant = makeQdrant({ slug: 'failing-adapter', space_id: STORED_SPACE });
 
     await recordRewardAnomaly(qdrant, {
       uri: URI,
@@ -273,6 +284,6 @@ describe('reward anomaly integration (Touchpoint 4)', () => {
     expect(mockCreateAnomaly).toHaveBeenCalledTimes(1);
     expect(mockCreateAdapterNode).not.toHaveBeenCalled();
     expect(mockUpsertAdapterNode).not.toHaveBeenCalled();
-    expect(mockWriteAdapterFromFrontmatter).not.toHaveBeenCalled();
+    expect(mockUpsertAdapterFromFrontmatter).not.toHaveBeenCalled();
   });
 });

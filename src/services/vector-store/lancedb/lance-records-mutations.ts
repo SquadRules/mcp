@@ -15,6 +15,7 @@ import { buildSpaceFilter } from '../../../utils/space-filter.js';
 import { SquadrulesError } from '../../../types/index.js';
 import { logger } from '../../../utils/structured-logger.js';
 import { embeddingService } from '../../embedding/service.js';
+import { getEmbeddingDimension } from '../../embedding/config.js';
 import { redisCacheService } from '../../redis-cache.js';
 import { validateAndConvertId } from '../../qdrant/utils.js';
 import type { LanceRecordEngine } from './lance-records-engine.js';
@@ -102,15 +103,26 @@ export class LanceRecordMutator {
     const vector = vectorsFromRow(row);
     const textChanged = typeof updates?.text === 'string' && updates.text !== existingPayload.text;
     if (textChanged) {
-      const embeddingResult = await embeddingService.generateEmbedding(updates.text as string);
-      // Derive column name from the store's bound width, not the embedding length (#94)
+      // Derive the column name from the store's bound width, not the embedding length (#94).
       const storedWidth = await this.engine.resolveStoredWidth();
-      const dim = storedWidth ?? embeddingResult.embedding.length;
+      // Mirror the store path: an unavailable embedding service degrades to zero
+      // vectors instead of failing the write. Without this, `tune` (which updates text
+      // through here) could never persist content on an embedded runtime with no
+      // embedding endpoint, while `train` (the store path) already degraded — two
+      // writes of the same kind must not disagree about the same failure.
+      let embedding: number[] | null = null;
+      try {
+        const embeddingResult = await embeddingService.generateEmbedding(updates.text as string);
+        embedding = embeddingResult.embedding;
+      } catch (err) {
+        logger.error('[LanceStore] Embedding generation failed on update; falling back to zero vectors', err);
+      }
+      const dim = storedWidth ?? embedding?.length ?? getEmbeddingDimension();
       const primaryName = `vs${dim}`;
       for (const key of Object.keys(vector)) {
         if (key.startsWith('vs')) delete vector[key];
       }
-      vector[primaryName] = embeddingResult.embedding;
+      vector[primaryName] = embedding ?? Array.from({ length: dim }, () => 0);
     }
 
     await this.engine.upsertPoint({ id: row.id, payload: updatedPayload, vector });

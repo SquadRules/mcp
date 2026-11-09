@@ -30,7 +30,7 @@ export class HttpBackend implements ActionBackend {
   constructor(private readonly client: ApiClient) {}
 
   activate(query: string, options?: ActivateOptions): Promise<ActivateOutput> {
-    return this.client.activate(query, options?.space ? { space: options.space } : undefined);
+    return this.client.activate(query, options);
   }
 
   forward(uri: string, solution?: unknown): Promise<ForwardOutput> {

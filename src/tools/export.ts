@@ -10,6 +10,7 @@ import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { spaceIdToDisplayName, spaceKindFromSpaceId } from '../utils/space-display.js';
 import { executeExportSource } from './export-source.js';
+import { executeExportVersion } from './export-history.js';
 import { resolveExportAdapter } from './export-resolve-adapter.js';
 import { buildPreferenceJsonlItems, buildRewardJsonlItems, buildSftJsonlItems, stringifyLines } from './export-reward-jsonl.js';
 import { resolveToolDoc } from '../utils/mcp-tool-doc-runtime.js';
@@ -106,6 +107,11 @@ async function executeExportImpl(
 
   if (input.format === 'source' && typeof input.uri === 'string') {
     return executeExportSource(memoryStore, qdrantService, input.uri, resolveExportAdapter, input.delivery);
+  }
+
+  // Historical snapshot selector: additive to the existing export API (ADR 0045).
+  if (typeof input.version === 'string' && input.version.trim().length > 0) {
+    return executeExportVersion(memoryStore, qdrantService, input);
   }
 
   const adapterUris = await resolveExportUris(memoryStore, input);

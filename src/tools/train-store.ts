@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { Memory } from '../types/memory.js';
 import { parseFrontmatter } from '../utils/frontmatter.js';
@@ -15,125 +16,102 @@ import {
   isAllowedArtifactMime,
   normalizeArtifactMime
 } from './artifact-mime.js';
+import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import {
-  validateInheritanceFrontmatter,
-  parseOverrideList,
-  type InheritanceFrontmatter,
-  type StructuralWarning
-} from '../services/graph-db/adapter-inheritance.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+  projectAdapterLineage,
+  syncAdapterGraph
+} from '../services/graph-db/adapter-graph-sync.js';
+import { recordAdapterEvolution } from '../services/graph-db/adapter-evolution-hooks.js';
 import { structuredLogger } from '../utils/structured-logger.js';
+import { TrainError } from './train-error.js';
+import {
+  assertInheritanceFrontmatterValid,
+  assertTrainDescendantsValid,
+  assertTrainExpectedVersion
+} from './train-validation.js';
+
+export { TrainError };
 
 /** Fork export includes `slug:` in YAML; same author slug in target space collides — allocate fresh. */
-function markdownWithoutAuthorSlugForFork(markdown: string): string {
-  const p = parseFrontmatter(markdown);
-  if (p.slugRaw === undefined) return markdown;
-  const lines: string[] = [];
-  if (p.version) lines.push(`version: ${p.version}`);
-  if (p.title) lines.push(`title: ${p.title}`);
-  if (p.chainRoot) lines.push(`chain_root: ${p.chainRoot}`);
-  const fm = lines.length > 0 ? `---\n${lines.join('\n')}\n---\n\n` : '';
-  return `${fm}${p.body}`;
-}
-
-/** Thrown by executeTrainStore on validation or store errors. */
-export class TrainError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public details?: Record<string, unknown>
-  ) {
-    super(message);
-    this.name = 'TrainError';
-  }
-}
-
-/**
- * Extract inheritance-relevant frontmatter fields from raw adapter markdown.
- * Returns null when no `inherits:` field is present (no inheritance to validate).
- */
-function extractInheritanceFrontmatter(markdown: string): InheritanceFrontmatter | null {
+export function markdownWithoutAuthorSlugForFork(markdown: string): string {
   const parsed = parseFrontmatter(markdown);
-  if (!parsed.inherits) return null;
+  if (parsed.slugRaw === undefined && !Object.hasOwn(parsed.nested, 'slug')) return markdown;
 
-  const fm: InheritanceFrontmatter = {
-    inherits: parsed.inherits,
-  };
-  if (parsed.slugRaw) fm.slug = parsed.slugRaw;
-  if (parsed.version) fm.version = parsed.version;
-  if (parsed.title) fm.title = parsed.title;
-  if (parsed.chainRoot) fm.chain_root = parsed.chainRoot;
+  // The authoritative parser has no serializer and its views omit raw list lines.
+  // Serialize the unchanged declarations from their original bytes, removing only
+  // top-level identity lines. This preserves arrays, nested data, quotes and body.
+  const contentStart = markdown.length - markdown.trimStart().length + 3;
+  const closingIndex = markdown.indexOf('\n---', contentStart);
+  const declarations = markdown.slice(contentStart, closingIndex)
+    .split(/(?<=\n)/)
+    .filter((line) => !/^slug[ \t]*:/i.test(line))
+    .join('');
+  const rewritten = markdown.slice(0, contentStart) + declarations + markdown.slice(closingIndex);
 
-  // Parse override list from raw frontmatter value
-  if (parsed.overrideRaw) {
-    fm.override = parseOverrideList(parsed.overrideRaw);
-  }
-
-  return fm;
-}
-
-/**
- * Validate inheritance frontmatter before the memory write (fail-closed).
- * Returns warnings to include in the tool response, or throws TrainError on
- * structural validation errors.
- */
-function assertInheritanceFrontmatterValid(markdown: string): StructuralWarning[] {
-  const fm = extractInheritanceFrontmatter(markdown);
-  if (!fm) return [];
-
-  // Attempt to resolve parent frontmatter from graph DB (best-effort)
-  let parentFrontmatter: InheritanceFrontmatter | null = null;
-  const graphDb = getGraphDbService();
-  if (graphDb && graphDb.isInitialized() && fm.inherits) {
-    // Synchronous check not possible; we pass null and let the validator emit
-    // parent_missing as a warning. The graph write will create edges if the
-    // parent is present.
-    parentFrontmatter = null;
-  }
-
-  const result = validateInheritanceFrontmatter(fm, parentFrontmatter);
-
-  if (result.errors.length > 0) {
-    const messages = result.errors.map((e) => `[${e.code}] ${e.message}`).join('; ');
-    throw new TrainError('INHERITANCE_STRUCTURE_INVALID', messages, {
+  const expected = { ...parsed, fields: { ...parsed.fields }, nested: { ...parsed.nested } };
+  delete expected.slugRaw;
+  delete expected.fields['slug'];
+  delete expected.nested['slug'];
+  if (!isDeepStrictEqual(parseFrontmatter(rewritten), expected)) {
+    throw new TrainError('INVALID_SLUG', 'Fork identity cannot be changed without altering other frontmatter declarations.', {
       must_obey: true,
-      items: result.errors
+      next_action: 'use a top-level scalar slug declaration, then retry the fork'
     });
   }
-
-  return result.warnings;
+  return rewritten;
 }
 
 /**
- * Attempt graph DB write after successful memory store. Graceful degradation:
- * failures are logged but never propagated.
+ * Project one just-written adapter **and its stored ancestry** into the graph owned by
+ * `memoryStore`.
+ *
+ * Every successful markdown train lands here, whether or not the adapter declares
+ * `inherits`: a plain adapter is a node too, and a node is what makes it immediately
+ * discoverable to a child trained next. The head layer is read back so the projection
+ * uses what was actually persisted — including the `space_id` the store returned,
+ * which is the only scope authority here (never the request's or a guessed tenant).
+ *
+ * The ancestry walk in `projectAdapterLineage` returns root-first snapshots, so a
+ * parent stored before this train is written before the child edge is reconciled.
+ * Graceful degradation: no graph, no read, or a graph write error never fails the train,
+ * and edge failures are reported by `syncAdapterGraph` rather than escaping.
  */
-async function tryGraphWrite(markdown: string): Promise<void> {
-  const graphDb = getGraphDbService();
-  if (!graphDb || !graphDb.isInitialized()) return;
-
-  const parsed = parseFrontmatter(markdown);
-  const slug = parsed.slugRaw?.trim();
-  if (!slug) return;
-
-  const fm: InheritanceFrontmatter = extractInheritanceFrontmatter(markdown) ?? {
-    slug,
-    ...(parsed.version && { version: parsed.version }),
-  };
+async function projectStoredAdapterLineage(
+  memoryStore: MemoryQdrantStore,
+  storedMemoryUuid: string,
+  context: string
+): Promise<Memory | null> {
+  const graphDb = getGraphDb(memoryStore);
+  if (!graphDb) return null;
 
   try {
-    await graphDb.writeAdapterFromFrontmatter(
-      slug,
-      parsed.version || '0.0.0',
-      fm,
-      {
-        title: parsed.title || slug,
-      }
-    );
+    const head = await memoryStore.getMemory(storedMemoryUuid, { fresh: true });
+    if (!head) {
+      structuredLogger.warn(`train: graph projection skipped for ${storedMemoryUuid} — stored head not readable`);
+      return null;
+    }
+    const lineage = await projectAdapterLineage(graphDb, memoryStore, head, context);
+    if (lineage.length === 0) {
+      structuredLogger.warn(`train: graph projection skipped for ${storedMemoryUuid} — no adapter snapshot`);
+      return null;
+    }
+    const report = await syncAdapterGraph(graphDb, lineage);
+    if (report.missing_parents.length > 0) {
+      structuredLogger.warn(
+        `train: graph edge skipped (${report.missing_parents.join(', ')}) — parent record not stored in this scope or the app space`
+      );
+    }
+    if (report.failed.length > 0 || report.edge_failures.length > 0) {
+      structuredLogger.warn(
+        `train: graph projection incomplete — failed nodes: [${report.failed.join(', ')}], failed edges: [${report.edge_failures.join(', ')}]`
+      );
+    }
+    return head;
   } catch (err) {
     structuredLogger.warn(
-      `graph db: writeAdapterFromFrontmatter failed for "${slug}" — ${err instanceof Error ? err.message : String(err)}`
+      `train: graph projection failed for ${storedMemoryUuid} — ${err instanceof Error ? err.message : String(err)}`
     );
+    return null;
   }
 }
 
@@ -208,8 +186,18 @@ export async function executeTrainStore(
     });
   }
 
-  // Fail-closed inheritance structural validation (before memory write)
-  const inheritanceWarnings = assertInheritanceFrontmatterValid(docForStore);
+  // Fail-closed inheritance structural validation (before memory write), against the
+  // parent frontmatter that is actually stored.
+  const inheritanceWarnings = await assertInheritanceFrontmatterValid(docForStore, memoryStore);
+
+  // CAS: a restore or an evolution apply may name the version it read. Checked before
+  // the write so a moved adapter is an actionable conflict, never a silent overwrite.
+  await assertTrainExpectedVersion(docForStore, input.expected_version, memoryStore);
+
+  // Parent side of the same policy (ADR 0046 §6): the prospective document must not
+  // invalidate a stored descendant. Checked before the write, so a conflict leaves no
+  // half-updated parent and no new history row.
+  await assertTrainDescendantsValid(docForStore, memoryStore);
 
   const memories = await runStore(() =>
     memoryStore.storeAdapter([docForStore], input.llm_model_id, {
@@ -219,8 +207,22 @@ export async function executeTrainStore(
     })
   );
 
-  // Graceful-degradation graph write (after successful memory store)
-  await tryGraphWrite(docForStore);
+  // Graph projection is a derived index written only for memories that landed. It runs
+  // for every markdown train, plain or inheriting, and takes its scope from the stored head.
+  const headUuid = memories[0]?.memory_uuid;
+  if (headUuid) {
+    const projectedHead = await projectStoredAdapterLineage(memoryStore, headUuid, 'train');
+    if (projectedHead) {
+      await recordAdapterEvolution({
+        owner: memoryStore,
+        head: projectedHead,
+        markdown: docForStore,
+        source: memoryStore,
+        changeType: 'created',
+        reason: 'train: adapter markdown stored'
+      });
+    }
+  }
 
   return {
     items: memories.map((memory) => ({

@@ -91,6 +91,71 @@ export function createResults(
     .filter((result) => result.score >= normalizedThreshold);
 }
 
+/** A qualified match set is only trusted from this many matches up. */
+export const MIN_QUALIFIED_MATCHES = 3;
+/** Upper bound on qualified matches surfaced in one answer. */
+export const MAX_QUALIFIED_MATCHES = 10;
+/** Size of the honest fallback set when too few matches clear the threshold. */
+export const FALLBACK_MATCH_COUNT = 3;
+
+export interface QualifiedSelection {
+  /** The matches to surface — always real candidates, never synthesised. */
+  results: Candidate[];
+  /** How many candidates scored at or above the threshold. */
+  qualified_count: number;
+  /** True when the answer is the fallback set rather than a qualified set. */
+  fallback: boolean;
+  /** Human-readable explanation of the fallback; absent for a qualified set. */
+  warning?: string;
+}
+
+/**
+ * Choose which matches to surface.
+ *
+ * The threshold is a confidence gate, not a hard filter, because a query that genuinely
+ * matches one adapter must still return that adapter rather than an empty list. The rule:
+ *
+ *   - `MIN_QUALIFIED_MATCHES` or more candidates clear the threshold → surface the
+ *     qualified ones, capped at `MAX_QUALIFIED_MATCHES`.
+ *   - Fewer than that → surface the real top `FALLBACK_MATCH_COUNT` candidates with a
+ *     warning. "Real" is load-bearing: this never pads the list with fabricated rows,
+ *     so a warning is the only difference between the two paths.
+ *
+ * Pure: same candidates and threshold always produce the same selection.
+ */
+export function selectQualifiedResults(
+  headCandidates: Array<{ memory: Memory; score: number }>,
+  scoreThreshold: number,
+  options: { maxChoices?: number } = {}
+): QualifiedSelection {
+  if (headCandidates.length === 0) {
+    return { results: [], qualified_count: 0, fallback: false };
+  }
+
+  const all = createResults(headCandidates, 0);
+  const qualified = createResults(headCandidates, scoreThreshold);
+  const requestedCap = options.maxChoices ?? MAX_QUALIFIED_MATCHES;
+  const qualifiedCap = Math.max(1, Math.min(requestedCap, MAX_QUALIFIED_MATCHES));
+
+  if (qualified.length >= MIN_QUALIFIED_MATCHES) {
+    return {
+      results: qualified.slice(0, qualifiedCap),
+      qualified_count: qualified.length,
+      fallback: false
+    };
+  }
+
+  const fallbackResults = all.slice(0, FALLBACK_MATCH_COUNT);
+  return {
+    results: fallbackResults,
+    qualified_count: qualified.length,
+    fallback: true,
+    warning:
+      `Only ${qualified.length} of ${all.length} match(es) scored at or above the ${scoreThreshold} threshold; ` +
+      `returning the top ${fallbackResults.length} real match(es) instead.`
+  };
+}
+
 export async function resolveHead(
   memory: Memory,
   qdrantService?: QdrantService
@@ -112,6 +177,8 @@ export interface GenerateUnifiedOutputOpts {
   refiningProtocolVersion?: string | null;
   /** Stored adapter version for create protocol (from Qdrant), when resolvable. */
   createProtocolVersion?: string | null;
+  /** Fallback explanation appended to the human-readable message. */
+  matchWarning?: string | null;
 }
 
 export async function generateUnifiedOutput(
@@ -125,7 +192,8 @@ export async function generateUnifiedOutput(
     createUri,
     createNextAction,
     refiningProtocolVersion = null,
-    createProtocolVersion = null
+    createProtocolVersion = null,
+    matchWarning = null
   } = opts;
   const choices: UnifiedChoice[] = [];
   const spaceNamesById = getSpaceContextFromStorage().spaceNamesById;
@@ -235,6 +303,10 @@ export async function generateUnifiedOutput(
     const confidencePercent = Math.round((topMatch.score || 0) * 100);
     message = `Found ${matchCount} matches (top confidence: ${confidencePercent}%). Choose one, refine your search, or create a new adapter/protocol.`;
     nextAction = "Pick one choice and follow that choice's next_action.";
+  }
+  if (matchWarning) {
+    // The fallback set is honest about being a fallback: same real matches, explicit reason.
+    message = `${message} ${matchWarning}`;
   }
   return { must_obey: true, message, next_action: nextAction, choices };
 }

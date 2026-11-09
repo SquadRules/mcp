@@ -63,6 +63,10 @@ export function pointToMemory(point: QdrantPointLike): Memory {
       ...(typeof payloadAdapter.reward_signal === 'string' && {
         reward_signal: payloadAdapter.reward_signal,
       }),
+      ...(payloadAdapter.frontmatter &&
+        typeof payloadAdapter.frontmatter === 'object' && {
+          frontmatter: payloadAdapter.frontmatter,
+        }),
     };
   }
 

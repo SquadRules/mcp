@@ -56,3 +56,52 @@ export function resolveGraphDbDir(): string {
   }
   return join(getSquadrulesConfigDir(), GRAPH_DB_DIR_NAME);
 }
+
+/**
+ * Env-parsed non-negative integer. Invalid values fall back to the default rather than
+ * throwing: an operator typo must not take the runtime down.
+ */
+function getEnvNonNegativeInt(key: string, defaultValue: number): number {
+  const raw = process.env[key];
+  if (raw === undefined) return defaultValue;
+  const parsed = Number.parseInt(String(raw).trim(), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : defaultValue;
+}
+
+/**
+ * Directory holding inheritance checkpoints for THIS runtime instance.
+ *
+ * Default: a sibling of the graph database (`<graph-db>/inheritance-checkpoints`), so the
+ * directory moves with `SQUADRULES_GRAPH_DB_PATH` / `SQUADRULES_HOME` and a second
+ * runtime with its own graph directory never replays the first runtime's checkpoints.
+ * `SQUADRULES_INHERITANCE_CHECKPOINT_DIR` overrides the whole path.
+ *
+ * Checkpoints are recovery metadata, not proofs (see
+ * `services/graph-db/inheritance-checkpoint.ts`).
+ */
+export function resolveInheritanceCheckpointDir(): string {
+  const raw = process.env['SQUADRULES_INHERITANCE_CHECKPOINT_DIR'];
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  if (trimmed.length > 0) {
+    return isAbsolute(trimmed) ? trimmed : resolve(trimmed);
+  }
+  return join(resolveGraphDbDir(), 'inheritance-checkpoints');
+}
+
+/**
+ * Time-to-live for an abandoned inheritance checkpoint.
+ *
+ * `SQUADRULES_INHERITANCE_CHECKPOINT_TTL_HOURS`, default 24. `0` disables expiry (the
+ * checkpoint then survives until terminal cleanup or manual removal).
+ */
+export const INHERITANCE_CHECKPOINT_TTL_MS =
+  getEnvNonNegativeInt('SQUADRULES_INHERITANCE_CHECKPOINT_TTL_HOURS', 24) * 60 * 60 * 1000;
+
+/**
+ * Display depth for an ancestry tree in tool output.
+ *
+ * `SQUADRULES_TREE_DISPLAY_DEPTH`, default `0` = full tree. This trims ONLY the surfaced
+ * `lineage` list; it never trims the effective content, the effective contracts, or the
+ * materialisation walk — a display preference must not change what `forward` executes.
+ */
+export const TREE_DISPLAY_DEPTH = getEnvNonNegativeInt('SQUADRULES_TREE_DISPLAY_DEPTH', 0);

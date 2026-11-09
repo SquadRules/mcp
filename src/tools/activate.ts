@@ -25,6 +25,7 @@ import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 import { buildAdapterContentCacheMetadata } from '../utils/pagination.js';
 import { resolveActivationInheritance } from './activate-inheritance.js';
+import { resolveActivationOntologyContext } from './activate-ontology-context.js';
 
 interface RegisterActivateOptions {
   toolName?: string;
@@ -248,6 +249,16 @@ export async function executeActivate(
       }
     }
   }
+
+  // ADR 0047: graph-backed ontology context for the top match. Scoped to the stored
+  // adapter's space, read-only, and composed server-side — no new query tool.
+  const ontologyContext = await resolveActivationOntologyContext(
+    memoryStore,
+    qdrantService,
+    activateOutput.choices,
+    input.context
+  );
+  if (ontologyContext) activateOutput.ontology_context = ontologyContext;
 
   return activateOutput;
 }

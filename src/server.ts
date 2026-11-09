@@ -6,6 +6,7 @@ import { registerPromptResources } from './resources/prompt-resources.js';
 import { bootstrapEmptyResourceHandlers } from './resources/resource-bootstrap.js';
 import { MemoryQdrantStore } from './services/memory/store.js';
 import { qdrantService } from './services/qdrant/index.js';
+import type { QdrantService } from './services/qdrant/service.js';
 import { getBuildVersion } from './utils/build-version.js';
 import { LOG_LEVEL, LOG_FORMAT, TRANSPORT_TYPE, isQdrantConfigured, getQdrantUrl, getQdrantCollection, QDRANT_API_KEY, QDRANT_RESCORE_STRING, TEI_BASE_URL, TEI_MODEL, SQUADRULES_SEARCH_OVERFETCH_FACTOR, SQUADRULES_SEARCH_MAX_FETCH, SQUADRULES_ENABLE_GROUP_COLLAPSE } from './config.js';
 import { getEmbeddingDimension } from './services/embedding/config.js';
@@ -185,8 +186,12 @@ function installPaginatedPromptsListHandler(server: McpServer): void {
   });
 }
 
-// Create and configure the MCP server
-export function createServer(memoryStore: MemoryQdrantStore): McpServer {
+// Create and configure the MCP server.
+//
+// `service` is the retrieval facade this runtime owns. On the embedded path it is the
+// same record store as `memoryStore` (see `createEmbeddedRuntime`); the module default
+// is used only by callers that never booted a runtime of their own.
+export function createServer(memoryStore: MemoryQdrantStore, service: QdrantService = qdrantService): McpServer {
     const server = new McpServer(
         {
             name: 'SquadRules',
@@ -208,13 +213,13 @@ export function createServer(memoryStore: MemoryQdrantStore): McpServer {
     );
 
     // Register the current MCP tools.
-    registerActivateTool(server, memoryStore, { qdrantService });
-    registerForwardTool(server, memoryStore, { qdrantService });
-    registerTrainTool(server, memoryStore, { qdrantService });
-    registerRewardTool(server, qdrantService);
-    registerTuneTool(server, memoryStore, { qdrantService });
+    registerActivateTool(server, memoryStore, { qdrantService: service });
+    registerForwardTool(server, memoryStore, { qdrantService: service });
+    registerTrainTool(server, memoryStore, { qdrantService: service });
+    registerRewardTool(server, service);
+    registerTuneTool(server, memoryStore, { qdrantService: service });
     registerDeleteTool(server, 'delete');
-    registerExportTool(server, memoryStore, { qdrantService });
+    registerExportTool(server, memoryStore, { qdrantService: service });
     registerSpacesTool(server, memoryStore, { toolName: 'spaces' });
     installStrictToolsListHandler(server);
     installPaginatedResourcesListHandler(server);

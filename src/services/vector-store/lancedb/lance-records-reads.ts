@@ -78,6 +78,11 @@ export class LanceRecordReader {
     const payload = result.payload;
     return {
       id: result.uuid,
+      // Identity fields the reward/anomaly path needs: without them a caller cannot tell
+      // which adapter and which scope this record belongs to (it falls back to the title
+      // and the app-space policy, which mis-attributes the evidence).
+      ...(typeof payload.space_id === 'string' && payload.space_id.length > 0 && { space_id: payload.space_id }),
+      ...(typeof payload.slug === 'string' && payload.slug.trim().length > 0 && { slug: payload.slug.trim() }),
       label: payload.label || '',
       text: payload.text || '',
       domain: payload.domain || '',
@@ -96,6 +101,7 @@ export class LanceRecordReader {
         ...(typeof payload.adapter.protocol_version === 'string' && { protocol_version: payload.adapter.protocol_version }),
         ...(Array.isArray(payload.adapter.activation_patterns) && { activation_patterns: payload.adapter.activation_patterns }),
         ...(typeof payload.adapter.reward_signal === 'string' && { reward_signal: payload.adapter.reward_signal }),
+        ...(payload.adapter.frontmatter && typeof payload.adapter.frontmatter === 'object' && { frontmatter: payload.adapter.frontmatter }),
         ...(typeof payload.adapter.chain_root === 'string' && payload.adapter.chain_root.length > 0 && { chain_root: payload.adapter.chain_root })
       } : undefined,
       inference_contract: payload.inference_contract,

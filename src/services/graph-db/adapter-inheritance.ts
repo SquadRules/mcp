@@ -4,14 +4,15 @@
  * Fail-closed validators:
  *   - `single_parent`: `inherits` must be a single string, not an array.
  *   - `override_unknown_field`: each field in `override` must exist in the parent's frontmatter.
- *   - `structural_override_forbidden`: certain fields (contract, type, steps, chain_root, inherits, override)
- *     may never appear in the `override` list.
+ *   - `structural_override_forbidden`: certain fields (contract, type, steps, verdict,
+ *     work envelope, chain_root, inherits, override) may never appear in the `override` list.
  *   - `parent_missing`: warning (not error) when the parent slug is not found in the graph.
  *
  * Pure function — no I/O, no database access. The caller supplies parent frontmatter
  * (or null when the parent is unknown).
  *
  * @see docs/specs/graph-schema.md § 5 — frontmatter→graph mapping
+ * @see docs/adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md — merge semantics
  */
 
 /** Fields that may never appear in an `override:` list. */
@@ -21,7 +22,13 @@ export const STRUCTURAL_OVERRIDE_FORBIDDEN_FIELDS: ReadonlySet<string> = new Set
   'steps',
   'chain_root',
   'inherits',
-  'override'
+  'override',
+  // Structural verdict / work envelope / effective-contract inputs are decided by
+  // the framework. A child may add content, never replace how the run is judged.
+  'verdict',
+  'work_envelope',
+  'effective_contract',
+  'effective_contracts'
 ]);
 
 /** Known frontmatter fields that can be validly overridden by a child adapter. */
@@ -71,7 +78,11 @@ export interface InheritanceFrontmatter {
   protocol_version?: string;
   /** Chain root slug. */
   chain_root?: string;
-  /** Any additional frontmatter fields for override cross-check. */
+  /**
+   * Any additional frontmatter field (author-declared domain properties included).
+   * `override_unknown_field` is checked against these keys, so a field that really
+   * exists on the parent is never rejected merely because it is not in a fixed list.
+   */
   [key: string]: unknown;
 }
 
@@ -170,7 +181,9 @@ export function validateInheritanceFrontmatter(
     return { errors, warnings };
   }
 
-  // override_unknown_field: each override field must exist in the parent's frontmatter
+  // override_unknown_field: each override field must exist in the parent's frontmatter.
+  // The parent frontmatter carries arbitrary author properties, so a declared domain
+  // field is accepted without adding it to a hard-coded allowlist.
   const parentKeys = new Set(Object.keys(parentFrontmatter));
   for (const field of overrideFields) {
     // Skip fields already reported as structurally forbidden

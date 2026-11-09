@@ -1,200 +1,281 @@
 /**
- * Effective (inheritance-resolved) adapter content — SquadRules 6, Touchpoint 2b.
- *
- * Touchpoint 2 made `activate` resolve the inheritance chain, but the resolution was
- * cosmetic: `forward` still executed the CHILD's raw markdown, so a child that inherits
- * `steps` from a parent (because `steps` is structurally forbidden from `override:`,
- * see `services/graph-db/adapter-inheritance.ts`) had no contract blocks to run.
+ * Effective (inheritance-resolved) adapter content — SquadRules 6, Touchpoints 2b + 4.
  *
  * This module is the single home for "what content does the agent actually execute".
- * Both `activate` (to surface the merged content in its response — Option A) and
- * `forward` (to execute it) call `resolveEffectiveLayerContent`, so the content the
- * agent sees in `activate` is byte-for-byte the content `forward` runs.
+ * Both `activate` (to surface the merged content) and `forward` (to execute it) call
+ * `resolveEffectiveLayerContent`, so the content the agent sees in `activate` is
+ * byte-for-byte the content `forward` runs.
  *
- * Identity stays with the CHILD: the agent activated the child, so slug/version/
- * memory_uuid/adapter info are never substituted. Only the executable payload
- * (markdown body + inference contract) is taken from the nearest ancestor that
- * defines it, per the override-list merge semantics in docs/specs/graph-schema.md § 5.4.
+ * SOURCE OF TRUTH
+ * Executable content lives in stored layer records, not in the graph. The graph stores
+ * topology (who inherits from whom) and resolved properties; the bodies live in the
+ * store. Resolution therefore walks the **stored** ancestry: child record → its
+ * `inherits:` frontmatter → that parent's stored record in the shared scope policy
+ * (child's own space first, app space second) → onward to the root.
  *
- * Graceful degradation: when the graph DB is unavailable or resolution throws, the
- * result carries `resolved: false` and `substitute: false`, a warning is logged, and
- * the caller uses the raw child adapter exactly as it did before this touchpoint.
+ * MERGE (chosen behaviour, ADR 0043)
+ * Additive + selective, never whole-ancestor replacement. The child is the spine: its
+ * sections keep their order and its identity (slug/version/space) stays the child's.
+ * An ancestor section is inherited only when no nearer level claims the same keyed
+ * heading; a nearer level's section with that heading is the explicit override and is
+ * recorded. Child-only sections are additions and survive. The merge itself is the pure
+ * `mergeAdapterMarkdown` in `services/graph-db/adapter-content-merge.ts`.
  *
- * ADR 0025 (forward-link-only) governs the `mcp`/`forward` CONTRACT TYPE, not this
- * server-internal resolution: `forward` gains no new agent-facing query capability,
- * no new MCP tool and no new HTTP route. It executes what `activate` resolved.
+ * FAIL-CLOSED
+ * `resolved: false` carries an explicit `resolved_reason` whenever the ancestry could not
+ * be fully materialised: an ancestor record is missing, the chain cycles, or the safety
+ * depth bound is exceeded. It is never `true` for an incomplete chain, because a
+ * `resolved: true` with silently missing parent contracts is exactly the false proof the
+ * verification principle forbids.
+ *
+ * Graceful degradation: when the graph DB is unavailable the content still resolves from
+ * stored records (they are the authority for bodies); only `resolved_properties` is
+ * absent. Nothing here adds an agent-facing capability, tool, or route — ADR 0025/0028
+ * govern the contract *type*, not this internal resolution.
+ *
+ * SHAPE OF THIS FILE
+ * The chain walk lives in `adapter-effective-ancestry.ts`, the result/view types in
+ * `adapter-effective-content-types.ts` (re-exported below so callers keep one import).
+ * What remains here is the decision: merge, or fail closed with a reason.
  */
-import type { InferenceContractDefinition, Memory } from '../types/memory.js';
+import type { Memory } from '../types/memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
-import {
-  getAdapterId,
-  getAdapterSlugForSearchOutput,
-  getLayerIndex
-} from '../services/memory/memory-accessors.js';
+import { getGraphDb } from '../services/graph-db/graph-owner.js';
+import { adapterGraphKey, storedAdapterScope } from '../services/graph-db/adapter-scope.js';
+import { mergeAdapterMarkdown, type AdapterContentLevel } from '../services/graph-db/adapter-content-merge.js';
+import { type CheckpointIdentity, type CheckpointLoadResult } from '../services/graph-db/inheritance-checkpoint.js';
+import { TREE_DISPLAY_DEPTH } from '../config/graph-db.js';
+import { getAdapterSlugForSearchOutput } from '../services/memory/memory-accessors.js';
 import { extractMemoryBody } from '../utils/memory-body.js';
 import { structuredLogger } from '../utils/structured-logger.js';
+import {
+  loadStoredAncestry,
+  storedOverrideList,
+  toCheckpointStage,
+  type StoredAncestry
+} from './adapter-effective-ancestry.js';
+import {
+  NO_SUBSTITUTION,
+  type EffectiveContentOptions,
+  type EffectiveContentResult,
+  type EffectiveLayerContent,
+  type MergedAdapterContent
+} from './adapter-effective-content-types.js';
 
-/** Effective executable payload for a single adapter layer. */
-export interface EffectiveLayerContent {
-  /** Raw markdown body (BODY markers intact) so downstream `extractMemoryBody` still applies. */
-  text: string;
-  /** Inference contract for the layer; undefined when the source layer defines none. */
-  inference_contract?: InferenceContractDefinition;
-}
-
-export interface EffectiveContentResult {
-  /** True when the child layer's executable payload must be replaced by `effective`. */
-  substitute: boolean;
-  /** The substituted payload; present exactly when `substitute` is true. */
-  effective?: EffectiveLayerContent;
-  /** Inheritance chain slugs, child-to-root. Empty when there is no inheritance. */
-  inheritance_chain: string[];
-  /** Merged frontmatter properties from the graph resolution (identity from child). */
-  resolved_properties?: Record<string, unknown>;
-  /** False on graceful degradation (graph DB unavailable or resolution threw). */
-  resolved: boolean;
-}
-
-/** No inheritance declared, or adapter absent from the graph: nothing to substitute. */
-const NO_SUBSTITUTION: EffectiveContentResult = {
-  substitute: false,
-  inheritance_chain: [],
-  resolved: true
-};
+// One import surface for callers: the types moved out, the public path did not.
+export type {
+  EffectiveContentOptions,
+  EffectiveContentResult,
+  EffectiveLayerContent,
+  MergedAdapterContent
+} from './adapter-effective-content-types.js';
 
 /**
  * Resolve the effective (merged) executable content for a child adapter layer.
  *
- * @param memoryStore   - backing store used to load ancestor layer memories
- * @param qdrantService - retrieval surface used to map an ancestor slug to its layers
+ * @param memoryStore   - backing store; also the record source for the ancestry walk
+ * @param qdrantService - retrieval surface (kept for the `resolved_properties` graph read)
  * @param childMemory   - the child layer memory `forward`/`activate` is about to render
  */
 export async function resolveEffectiveLayerContent(
   memoryStore: MemoryQdrantStore,
   qdrantService: QdrantService | undefined,
   childMemory: Memory,
-  logContext: 'forward' | 'activate' = 'forward'
+  logContext: 'forward' | 'activate' = 'forward',
+  options: EffectiveContentOptions = {}
 ): Promise<EffectiveContentResult> {
   const childSlug = getAdapterSlugForSearchOutput(childMemory);
-  if (!childSlug) {
-    // No slug → cannot key into the graph. Not a degradation, just nothing to resolve.
+  if (!childSlug) return NO_SUBSTITUTION;
+
+  const identity: CheckpointIdentity | null =
+    options.executionId && options.checkpoints
+      ? {
+          execution_id: options.executionId,
+          scope_id: childMemory.space_id ?? '',
+          adapter_slug: childSlug
+        }
+      : null;
+
+  const recordStage = async (level: StoredAncestry['levels'][number]): Promise<void> => {
+    if (!identity || !options.checkpoints) return;
+    try {
+      await options.checkpoints.recordStage(identity, toCheckpointStage(level));
+    } catch (err) {
+      // Recovery metadata must never break resolution.
+      structuredLogger.debug(
+        `${logContext}: inheritance checkpoint write skipped for "${level.slug}" (${err instanceof Error ? err.message : String(err)})`
+      );
+    }
+  };
+
+  // Read the state a previous process left BEFORE this walk records its own stages.
+  // Reconciling against post-walk state would compare the walk with itself and could
+  // never report a changed ancestor (see `InheritanceCheckpointService.reconcile`).
+  let priorCheckpoint: CheckpointLoadResult | null = null;
+  if (identity && options.checkpoints) {
+    try {
+      priorCheckpoint = await options.checkpoints.load(identity);
+    } catch (err) {
+      structuredLogger.debug(
+        `${logContext}: inheritance checkpoint read skipped for "${childSlug}" (${err instanceof Error ? err.message : String(err)})`
+      );
+    }
+  }
+
+  const ancestry = await loadStoredAncestry(memoryStore, childMemory, childSlug, recordStage);
+  if (ancestry.levels.length === 1 && !ancestry.reason) {
+    // No `inherits:` on the stored child: nothing to merge and nothing incomplete.
     return NO_SUBSTITUTION;
   }
-
-  const graphDb = getGraphDbService();
-  if (!graphDb || !graphDb.isInitialized()) {
+  if (ancestry.levels.length === 1) {
+    // The child DOES declare `inherits:`, but the parent could not be materialised
+    // (missing record, self-inheritance). A single-level ancestry with a reason is an
+    // INCOMPLETE chain, so it must report `resolved: false` — returning the
+    // "nothing to substitute" answer here would claim a resolution that never happened.
+    // `loadStoredAncestry` returns a single level here only via an early `inherits:`
+    // walk that set a reason, so the fallback below is a type-safety net, not a new case.
+    const incompleteReason =
+      ancestry.reason ?? 'inheritance_incomplete: declared parent could not be materialised';
     structuredLogger.warn(
-      `${logContext}: graph DB unavailable — inheritance not resolved for "${childSlug}", executing raw adapter`
+      `${logContext}: inheritance incomplete for "${childSlug}" (${incompleteReason}) — no ancestor content is available`
     );
-    return { substitute: false, inheritance_chain: [], resolved: false };
+    return {
+      substitute: false,
+      inheritance_chain: ancestry.chain,
+      resolved: false,
+      resolved_reason: incompleteReason
+    };
   }
 
-  try {
-    const result = await graphDb.resolveInheritance(`adapter:${childSlug}`);
-    if (!result) {
-      // Adapter not in the graph (e.g. trained before the graph DB was enabled).
-      // Not an error and not a degradation — there is simply no inheritance data.
-      return NO_SUBSTITUTION;
+  // Record the child stage first: the walk records ancestors as it finds them, and a
+  // crash right after the child stage still resumes the same execution identity.
+  await recordStage(ancestry.levels[0]!);
+
+  // Resume state is reconciled against the ancestry that was just read. A stored stage
+  // whose version or content digest changed is invalidated with an explicit reason.
+  let checkpointStatus: EffectiveContentResult['checkpoint'];
+  if (identity && options.checkpoints) {
+    try {
+      const reconciled = await options.checkpoints.reconcile(
+        identity,
+        ancestry.levels.map((level) => toCheckpointStage(level)),
+        priorCheckpoint ?? undefined
+      );
+      checkpointStatus =
+        reconciled.status === 'resumed'
+          ? { status: 'resumed', token: reconciled.token }
+          : reconciled.status === 'stale'
+            ? { status: 'stale', reason: reconciled.reason }
+            : { status: 'missing' };
+    } catch (err) {
+      structuredLogger.debug(
+        `${logContext}: inheritance checkpoint reconcile skipped for "${childSlug}" (${err instanceof Error ? err.message : String(err)})`
+      );
     }
+  }
 
-    // `inheritance_chain` is sorted deepest-first (root first); reverse to nearest-parent-first.
-    const ancestorSlugs = result.inheritance_chain
-      .map((n) => (n as { slug?: string }).slug)
-      .filter((s): s is string => Boolean(s))
-      .reverse();
-    const chain = [result.adapter.slug, ...ancestorSlugs];
+  // Root-first levels for the merge (the walk is child-first).
+  const mergeLevels: AdapterContentLevel[] = [...ancestry.levels]
+    .reverse()
+    .map((level) => ({
+      slug: level.slug,
+      body: extractMemoryBody(level.memory.text),
+      overrides: storedOverrideList(level.memory),
+      // The layer record carries the executable contract; the writer strips the fence
+      // from `text`, so reading only fences here would drop the child's own contract.
+      ...(level.memory.inference_contract ? { contract: level.memory.inference_contract } : {})
+    }));
+  const merged = mergeAdapterMarkdown(mergeLevels);
 
-    if (ancestorSlugs.length === 0) {
-      // Chain of one: the child inherits from nothing.
-      return {
-        substitute: false,
-        inheritance_chain: chain,
-        resolved_properties: result.resolved_properties,
-        resolved: true
-      };
-    }
+  const effectiveContracts = merged.effective_contracts;
+  const effective: EffectiveLayerContent = {
+    text: merged.content,
+    ...(effectiveContracts[0] ? { inference_contract: effectiveContracts[0].contract } : {}),
+    effective_contracts: effectiveContracts,
+    lineage: merged.lineage,
+    overrides: merged.overrides,
+    sections: merged.sections
+  };
 
-    const effective = await loadAncestorLayerContent(
-      memoryStore,
-      qdrantService,
-      ancestorSlugs,
-      getLayerIndex(childMemory)
+  if (ancestry.reason) {
+    structuredLogger.warn(
+      `${logContext}: inheritance incomplete for "${childSlug}" (${ancestry.reason}) — executing the resolved child and its resolvable ancestors only`
     );
-
-    if (!effective) {
-      // Ancestors are in the graph but have no matching stored layer content.
-      // Fall back to the raw child rather than executing nothing.
-      return {
-        substitute: false,
-        inheritance_chain: chain,
-        resolved_properties: result.resolved_properties,
-        resolved: true
-      };
-    }
-
     return {
       substitute: true,
       effective,
-      inheritance_chain: chain,
-      resolved_properties: result.resolved_properties,
-      resolved: true
+      inheritance_chain: ancestry.chain,
+      resolved: false,
+      resolved_reason: ancestry.reason,
+      ...(checkpointStatus ? { checkpoint: checkpointStatus } : {})
     };
-  } catch (err) {
-    structuredLogger.warn(
-      `${logContext}: resolveInheritance failed for "${childSlug}" (${err instanceof Error ? err.message : String(err)}) — executing raw adapter`
-    );
-    return { substitute: false, inheritance_chain: [], resolved: false };
   }
+
+  // Graph is optional here: it supplies resolved_properties (frontmatter-level merge) and
+  // is never the authority for bodies. A graph read failure must not claim the content
+  // resolution failed, and must not claim it succeeded either — it simply adds nothing.
+  const graphDb = getGraphDb(memoryStore);
+  if (graphDb) {
+    try {
+      const childScope = storedAdapterScope(childMemory.space_id, `${logContext}:${childSlug}`);
+      const resolved = await graphDb.resolveInheritance(adapterGraphKey(childScope.spaceId, childSlug));
+      if (resolved) {
+        await finishCheckpoint(identity, options, logContext, childSlug);
+        return {
+          substitute: true,
+          effective,
+          inheritance_chain: ancestry.chain,
+          resolved_properties: resolved.resolved_properties,
+          resolved: true,
+          ...(checkpointStatus ? { checkpoint: checkpointStatus } : {})
+        };
+      }
+    } catch (err) {
+      structuredLogger.debug(
+        `${logContext}: graph resolved_properties unavailable for "${childSlug}" (${err instanceof Error ? err.message : String(err)}) — content merge still authoritative`
+      );
+    }
+  } else {
+    structuredLogger.debug(
+      `${logContext}: graph DB unavailable for "${childSlug}" — resolving inheritance from stored records only`
+    );
+  }
+
+  await finishCheckpoint(identity, options, logContext, childSlug);
+  return {
+    substitute: true,
+    effective,
+    inheritance_chain: ancestry.chain,
+    resolved: true,
+    ...(checkpointStatus ? { checkpoint: checkpointStatus } : {})
+  };
 }
 
-/**
- * Walk the ancestor chain nearest-parent-first and return the first ancestor whose
- * stored layers contain a layer matching `layerIndex`. Because `steps`/`contract` are
- * structurally forbidden from `override:`, executable content always originates in the
- * parent chain; the nearest ancestor that actually stored the layer wins.
- */
-async function loadAncestorLayerContent(
-  memoryStore: MemoryQdrantStore,
-  qdrantService: QdrantService | undefined,
-  ancestorSlugs: string[],
-  layerIndex: number
-): Promise<EffectiveLayerContent | null> {
-  if (!qdrantService) {
-    // Without retrieval we cannot map an ancestor slug to its layers.
-    return null;
-  }
-  for (const slug of ancestorSlugs) {
-    const entry = await qdrantService.findFirstStepMemoryUuidBySlug(slug);
-    if (!entry.layerUuid) continue;
-    const entryMemory = await memoryStore.getMemory(entry.layerUuid);
-    if (!entryMemory) continue;
-
-    const adapterId = getAdapterId(entryMemory);
-    const layers = await qdrantService.getAdapterLayers(adapterId);
-    const match = layers.find(
-      (l) => (l.payload?.adapter?.layer_index ?? 1) === layerIndex
+/** Terminal cleanup: a fully resolved walk has no recovery value left. */
+async function finishCheckpoint(
+  identity: CheckpointIdentity | null,
+  options: EffectiveContentOptions,
+  logContext: string,
+  childSlug: string
+): Promise<void> {
+  if (!identity || !options.checkpoints) return;
+  try {
+    await options.checkpoints.finish(identity);
+  } catch (err) {
+    structuredLogger.debug(
+      `${logContext}: inheritance checkpoint cleanup skipped for "${childSlug}" (${err instanceof Error ? err.message : String(err)})`
     );
-    const targetMemory = match
-      ? await memoryStore.getMemory(match.uuid)
-      : entryMemory;
-    if (!targetMemory) continue;
-
-    return {
-      text: targetMemory.text,
-      ...(targetMemory.inference_contract !== undefined
-        ? { inference_contract: targetMemory.inference_contract }
-        : {})
-    };
   }
-  return null;
 }
 
 /**
  * Apply an effective-content result to a child memory, returning a memory whose
  * executable payload (text + inference contract) is the merged one while every
  * identity field (memory_uuid, slug, adapter info, space) stays the child's.
+ *
+ * The contract applied here is exactly `effective_contracts[0]` — the first entry the
+ * resolution surfaced — so `forward` cannot execute a contract `activate` did not show.
  *
  * Returns the original memory unchanged when there is nothing to substitute.
  */
@@ -207,8 +288,8 @@ export function applyEffectiveContent(
   }
   // Identity fields (memory_uuid, slug, adapter, space_id) are preserved by the spread;
   // only the executable payload is replaced. exactOptionalPropertyTypes forbids assigning
-  // `undefined` to an optional property, so an ancestor layer with no contract must DELETE
-  // the child's contract rather than set it to undefined.
+  // `undefined` to an optional property, so a merge with no contract must DELETE the
+  // child's contract rather than set it to undefined.
   const merged: Memory = {
     ...childMemory,
     text: result.effective.text
@@ -222,29 +303,9 @@ export function applyEffectiveContent(
 }
 
 /**
- * The merged adapter content surfaced by `activate` (Option A). This is the human/agent
- * readable view of what `forward` will execute: the child's identity plus the effective
- * (inheritance-resolved) markdown body. Contract blocks, steps, judgment_criteria,
- * timeout and interpreter all live inside `content` as the adapter's fenced ```json
- * contract blocks and step prose, exactly as `forward` renders them.
- */
-export interface MergedAdapterContent {
-  /** Child slug — identity stays with the activated child. */
-  slug: string;
-  /** Child version — identity stays with the activated child. */
-  version: string | null;
-  /** Effective markdown body (BODY markers stripped) the agent executes. */
-  content: string;
-  /** Inheritance chain slugs, child-to-root. */
-  inheritance_chain: string[];
-  /** False on graceful degradation (graph DB unavailable). */
-  resolved: boolean;
-}
-
-/**
  * Build the surfaceable merged-content view from a child memory and its effective-content
- * resolution. When nothing is substituted (no inheritance, or graceful degradation) the
- * child's own body is surfaced, so the field is always safe to emit.
+ * resolution. When nothing is substituted (no inheritance) the child's own body is
+ * surfaced, so the field is always safe to emit.
  */
 export function buildMergedAdapterContent(
   childMemory: Memory,
@@ -254,11 +315,33 @@ export function buildMergedAdapterContent(
     result.substitute && result.effective ? result.effective.text : childMemory.text;
   const slug = getAdapterSlugForSearchOutput(childMemory) ?? '';
   const version = childMemory.adapter?.protocol_version ?? null;
-  return {
+  const fullLineage =
+    result.effective?.lineage ??
+    (result.inheritance_chain.length > 0 ? [...result.inheritance_chain].reverse() : []);
+  // Display depth is a presentation preference: it trims only the surfaced tree, keeping
+  // the nearest levels. Content, contracts, and the materialisation walk stay complete.
+  const displayDepth = TREE_DISPLAY_DEPTH;
+  const lineage =
+    displayDepth > 0 && fullLineage.length > displayDepth
+      ? fullLineage.slice(fullLineage.length - displayDepth)
+      : fullLineage;
+  const base = {
     slug,
     version,
     content: extractMemoryBody(effectiveText),
     inheritance_chain: result.inheritance_chain,
-    resolved: result.resolved
+    resolved: result.resolved,
+    lineage,
+    lineage_truncated: lineage.length !== fullLineage.length,
+    overrides: result.effective?.overrides ?? {},
+    effective_contracts:
+      result.effective?.effective_contracts.map((entry) => ({
+        source: entry.source,
+        heading: entry.heading,
+        contract: entry.contract
+      })) ?? []
   };
+  return result.resolved_reason !== undefined
+    ? { ...base, resolved_reason: result.resolved_reason }
+    : base;
 }

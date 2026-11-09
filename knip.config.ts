@@ -11,6 +11,13 @@ const config: KnipConfig = {
         'release.config.mjs',     // semantic-release configuration
         'eslint.config.cjs',      // ESLint entry (loads @typescript-eslint/*)
         'eslint/flat-config.cjs',
+        // Graph-db subsystem public façade: re-exports are consumed by the services/tests
+        // and by phase wiring, so the barrel is a real module boundary knip must root on.
+        'src/services/graph-db/index.ts',
+        // Evolution service API is consumed through the integration fixture's dynamic
+        // `typeof import()`/`await import()` namespace (e.g. resolveProposal is exercised
+        // via modules.evolution), which knip cannot trace statically.
+        'src/services/graph-db/evolution/evolution.service.ts',
     ],
     project: [
         'src/**/*.ts',

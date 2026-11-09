@@ -12,42 +12,62 @@ This service provides graph database functionality for managing adapter inherita
 - Cypher query language support
 - Adapter inheritance resolution
 - Path-to-root queries
+- Scope-qualified adapter keys — one slug can exist in several spaces
+
+**Ownership.** The graph belongs to the runtime that booted it, not to the process. Open
+one with `openGraphDb({ databaseDir })`, then attach it to the objects tools are handed
+(`attachGraphDb(graphDb, memoryStore, qdrantService)`); tools resolve it with
+`getGraphDb(owner)`. Two instances in one process are independent. `initGraphDb()` and
+`closeGraphDb()` are the boot/shutdown pair, and `closeGraphDb()` never closes a graph a
+caller opened directly. Rationale and trade-offs:
+[ADR 0042](../../../docs/adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md).
+
+**Scope.** An adapter node key is `adapter:<spaceId>:<slug>` (`adapter-scope.ts`), and
+`createAdapterNode` / `upsertAdapterNode` reject an adapter with no `space` rather than
+guessing one. The graph is a derived projection of stored adapter records: it can be
+rebuilt from the store, except for `Anomaly` nodes, which exist only in the graph.
 
 ## Quick Start
 
 ```typescript
-import { GraphDatabaseService } from './src/services/graph-db/index.js';
+import { openGraphDb, adapterGraphKey } from './src/services/graph-db/index.js';
 
-// Initialize
-const db = new GraphDatabaseService('.squadrules-graph-db');
-await db.initialize();
+// Open an instance at an explicit directory. `openGraphDb` never throws:
+// it returns null when the graph is disabled or the open fails.
+const db = await openGraphDb({ databaseDir: '.squadrules-graph-db' });
+if (!db) throw new Error('graph unavailable');
 
-// Create adapter
+const space = 'space:my-team';
+const childKey = adapterGraphKey(space, 'child');
+const parentKey = adapterGraphKey(space, 'parent');
+
+// Create an adapter. `space` is required.
 await db.createAdapterNode({
-  key: 'adapter:my-adapter',
+  key: parentKey,
   type: 'adapter',
-  slug: 'my-adapter',
+  slug: 'parent',
   version: '1.0.0',
-  title: 'My Adapter',
+  title: 'Parent Adapter',
+  space,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
 });
 
-// Create inheritance
+// Create inheritance (both endpoint keys carry the same scope)
 await db.createInheritanceEdge({
-  from: 'adapter:child',
-  to: 'adapter:parent',
+  from: childKey,
+  to: parentKey,
   relationship: 'inherits',
   created_at: new Date().toISOString()
 });
 
 // Query ancestors
-const ancestors = await db.findPathToRoot('adapter:child');
+const ancestors = await db.findPathToRoot(childKey);
 
 // Resolve inheritance
-const resolved = await db.resolveInheritance('adapter:child');
+const resolved = await db.resolveInheritance(childKey);
 
-// Cleanup
+// Cleanup — the opener closes
 await db.close();
 ```
 
@@ -65,6 +85,10 @@ Creates a new graph database service instance.
 
 **Parameters:**
 - `databasePath` (optional): Path to database directory. Defaults to `.squadrules-graph-db` in current working directory.
+
+Prefer `openGraphDb({ databaseDir })` for runtime use: it reads the
+`SQUADRULES_GRAPH_DB_*` switches, reports a failed open as `null` instead of throwing, and
+matches the constructor no-argument default when no directory is given.
 
 #### initialize()
 
@@ -211,7 +235,7 @@ interface AdapterNode {
   };
   layer_count?: number;           // Number of workflow layers
   contract_types?: string[];      // Contract types used
-  space?: string;                 // Space ownership
+  space: string;                  // Space ownership — required; scopes the key
   tags?: string[];                // Activation tags
   metadata?: Record<string, any>; // Extensible metadata
 }
@@ -391,11 +415,12 @@ node scripts/ladybugdb-demo.mjs
 
 ## Limitations
 
-- Schema subset (Adapter, Concept, Inherits, SpecializedBy only)
+- Schema subset (Adapter, Concept, Anomaly, Inherits, SpecializedBy only)
 - JSON serialization for complex objects
 - No full-text search (yet)
 - No vector indices (yet)
-- Single space (no partitioning yet)
+- One database file per runtime; scope is part of the key, not a partition
+- `Anomaly` nodes have no rebuild path — they exist only in the graph
 
 ## Next Steps
 
@@ -404,8 +429,8 @@ See `docs/specs/ladybugdb-prototype.md` for complete roadmap.
 ## References
 
 - [LadybugDB Documentation](https://docs.ladybugdb.com/)
-- [Graph Schema Specification](../../docs/specs/graph-schema.md)
-- [Prototype Documentation](../../docs/specs/ladybugdb-prototype.md)
+- [Graph Schema Specification](../../../docs/specs/graph-schema.md)
+- [Prototype Documentation](../../../docs/specs/ladybugdb-prototype.md)
 
 ## License
 

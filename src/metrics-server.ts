@@ -1,4 +1,5 @@
 import express from 'express';
+import type { Server } from 'node:http';
 import { register } from './services/metrics/registry.js';
 import { structuredLogger } from './utils/structured-logger.js';
 import { METRICS_PORT } from './config.js';
@@ -15,8 +16,12 @@ import './services/metrics/system-metrics.js';
  * - Can be restricted to internal networks only
  * - No impact on application performance
  * - Standard Prometheus deployment pattern
+ *
+ * Returns the listener so the shutdown handler can close it: a metrics socket that
+ * is still accepting scrapes holds the event loop open, which would keep the
+ * process alive after SIGTERM.
  */
-export function startMetricsServer(port: number = METRICS_PORT): void {
+export function startMetricsServer(port: number = METRICS_PORT): Server {
   const app = express();
   
   // ONLY route: /metrics endpoint
@@ -36,7 +41,7 @@ export function startMetricsServer(port: number = METRICS_PORT): void {
     res.status(200).json({ status: 'ok', service: 'metrics' });
   });
   
-  app.listen(port, () => {
+  return app.listen(port, () => {
     structuredLogger.info(`Metrics server listening on port ${port}`);
     structuredLogger.info(`Metrics endpoint: http://localhost:${port}/metrics`);
   });

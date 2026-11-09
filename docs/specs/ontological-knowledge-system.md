@@ -103,12 +103,15 @@ This perspective allows system to build organic, evolving worldview where knowle
 
 **Not relational DB. Not vector DB. Ontological graph DB.**
 
-**Technology constraints (SquadRules 6):**
+**Technology constraints:**
 
-- **Open-source only** — no proprietary database licenses
-- **Graph-native** — store nodes, edges, properties (not tables, not vectors)
-- **No SQLite/PostgreSQL with graph plugins** — must be native graph database
-- **Dual-mode architecture** — embedded (single-machine) and shared (enterprise/scalable)
+The storage class — graph-native, open source, dual-mode — and the databases that satisfy
+it have their own evaluation and decision records. This spec does not re-list the
+constraints or the vendors: see the
+[technology evaluation](graph-database-technology-evaluation.md),
+[ADR 0041](../adr/0041-graph-native-open-source-database-for-ontological-knowledge-system.md)
+and, for the port and the two concrete backends,
+[ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md).
 
 **Requirements:**
 
@@ -157,7 +160,7 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
   "id": "concept://cat",
   "type": "concept",
   "name": "Cat",
-  "version": 2.0.0,
+  "version": "2.0.0",
   "properties": {
     "has_fur": {
       "value": "varies",
@@ -180,12 +183,12 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
   ],
   "version_history": [
     {
-      "version": 1.0.0,
+      "version": "1.0.0",
       "properties": {"has_fur": true, "can_meow": true},
       "timestamp": "2026-01-01T00:00:00Z"
     },
     {
-      "version": 2.0.0,
+      "version": "2.0.0",
       "properties": {"has_fur": "varies", "can_meow": true},
       "trigger": "Sphynx anomaly: has_fur=false",
       "resolution": "parent_update",
@@ -365,12 +368,16 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
 **Flow:**
 
 1. Agent does work: creates adapter (draft)
-2. Agent wants verification: calls `critic-loop` (generic reviewer)
-3. Agent wants domain-specific verification: calls domain-specific reviewer (e.g., adapter principles reviewer)
+2. Agent wants verification: delegates to a `subagent` contract that runs `critic-loop`
+   (generic reviewer) — the review never runs on the working agent's own thread
+   ([ADR 0034](../adr/0034-verification-isolation-critic-hop.md))
+3. Agent wants domain-specific verification: delegates the same way to a domain-specific
+   reviewer adapter (e.g. the principles guardian)
 4. Reviewer checks: does work align with ontology? Does it follow conventions? Does it contradict existing knowledge?
 5. Reviewer returns: verdict (PASS/FAIL) + findings
 6. Agent iterates: if FAIL, fix findings, re-submit
-7. Agent presents: to Jakub only after reviewer PASS
+7. Agent presents the result: the reviewer's PASS authorizes it, not a human approval
+   ([ADR 0009](../adr/0009-autonomous-adapter-execution-no-human-gates.md))
 
 ### Flow 4: Agent Discovers Anomaly
 
@@ -435,17 +442,21 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
 
 ### Decision 3: Override Semantics
 
-**Chosen: Selective override with explicit marker**
+**Chosen: Additive content, selective field override**
 
-- Derived can ADD new rules (domain-specific)
-- Derived can OVERRIDE specific parent rules with explicit `override:` marker
-- Structural elements (verdict format, work submission) cannot be overridden
+- A derived adapter ADDS sections and frontmatter fields (domain-specific)
+- It OVERRIDES a parent frontmatter field by naming that field in `override:`
+- Structural keys stay the framework's: `contract`, `type`, `steps`, `chain_root`,
+  `inherits`, `override`, `verdict`, `work_envelope`, `effective_contract` and
+  `effective_contracts` are rejected in `override:` as `structural_override_forbidden`
 
 **Rationale:**
 
 - Additive-only is too restrictive (Sphynx cat needs to override "has fur")
-- Selective override allows flexibility while maintaining safety
-- Structural elements are part of verification ladder; derived cannot change them without breaking verification
+- Selective override allows flexibility while the structural keys — the ones that decide
+  how a run is judged — stay fixed, so a child can never weaken its own verification
+- The merge, the veto list and what counts as an explicit override are
+  [ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md) §1 and §4
 
 ### Decision 4: Frontmatter Syntax
 
@@ -456,9 +467,8 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
 slug: my-adapter
 version: 1.0.0
 inherits: parent-slug  # Inheritance declaration
-override:              # Optional: explicit overrides
-  - has_fur           # List of parent rules to override
-chain_root: parent-slug  # Optional: activation routing (orthogonal)
+override: [has_fur, weight] # Optional: parent frontmatter fields to override
+chain_root: parent-slug     # Optional: activation routing (orthogonal)
 ---
 ```
 
@@ -466,46 +476,47 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 
 - Clear, explicit syntax
 - `inherits` declares parent
-- `override` lists specific rules to override (fail-closed: must reference parent's rules)
+- `override` lists parent frontmatter fields, inline (`[a, b]`) or comma-separated; a field
+  the parent does not declare is rejected (`override_unknown_field`)
 - `chain_root` is orthogonal (activation routing, not inheritance)
 
 ### Decision 5: Activation Presentation
 
-**Chosen: Inheritance tree + materialized content + overrides list**
+**Chosen: resolved content + recorded lineage + section overrides**
 
-```json
-{
-  "inheritance_tree": [
-    {"slug": "sphynx-cat", "level": 0, "delta": "..."},
-    {"slug": "cat", "level": 1, "inherited": "..."},
-    {"slug": "animal", "level": 2, "inherited": "..."}
-  ],
-  "materialized_content": "...",
-  "overrides": ["has_fur"]
-}
-```
+`activate` must surface three things: the resolved body the agent will execute, the
+root-first lineage of contributing slugs (child last), and which sections a nearer level
+explicitly claimed. They ride in `merged_adapter_content` on the activated choice, present
+when the graph resolved the inheritance; the authoritative field names and shapes are that
+tool's contract and are not copied here. The merge, the override recording and the
+display-depth rule are
+[ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md) §1, §3 and §6.
 
 **Rationale:**
 
-- Agent understands lineage (what's inherited vs what's added vs what's overridden)
-- Tree shows full path to root (all ancestors)
-- Materialized content is what agent actually uses
-- Overrides list shows what was explicitly changed
+- The agent sees what it will execute, not a reconstruction of it
+- Lineage shows every ancestor that contributed, and which of them was overridden
+- Recording overrides keeps the lineage auditable instead of implicit
 
-### Decision 6: Context Protection
+### Decision 6: Crash-Resume Checkpoints
 
-**Chosen: Artificial checkpoints during activation**
+**Chosen: one crash-resume checkpoint per resolved ancestry stage**
 
-- Server resolves inheritance in stages (level by level)
-- After each stage, write checkpoint to disk (materialized content so far)
-- If context lost, resume from last checkpoint
-- Checkpoints are temporary (cleaned up after activation completes)
+- The server resolves inheritance stage by stage and records each stage's version and
+  content digest, keyed by `execution_id + scope + adapter slug`
+- A retried resolution resumes only when the identity and every stage digest match; a
+  mismatch is reported stale with a reason, not silently resumed
+- A completed resolution removes the checkpoint; an abandoned one expires after the TTL
+  (24 h by default) and is swept
 
 **Rationale:**
 
-- Activation is automatic (server-side inheritance resolution)
-- If context is lost mid-activation, execution fails
-- Checkpoints make activation fault-tolerant (like git commits)
+- A crash or timeout mid-resolution should resume instead of re-reading every ancestor,
+  and the checkpoint is the only state that makes that safe
+- It is recovery state, **never evidence**: it carries no verdict, exit code or output, and
+  no gate or quality path may read it as a proof
+- The decision, the invalidation rules and the TTL are
+  [ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md) §5
 
 ### Decision 7: Result Filtering
 
@@ -576,7 +587,15 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 
 **Not a knowledge graph (in the traditional sense).** Traditional KGs are static. This is dynamic (ontology evolves based on anomalies).
 
-**Not a database at all (yet).** This is a theoretical framework. We design the ideal, then translate to existing tech or create new tech.
+**Not a theory-only sketch.** The graph layer is implemented — LadybugDB embedded,
+ArangoDB shared, scoped keys, topology projected from stored records — together with
+anomaly records, evidence-gated proposals, history/restore and activate-time ontology
+context ([ADR 0042](../adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md),
+[ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md),
+[ADR 0045](../adr/0045-graph-native-history-and-restore.md),
+[ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md),
+[ADR 0047](../adr/0047-activate-time-ontology-context.md)). This document remains the design
+record for the system those pieces implement.
 
 ---
 
@@ -598,7 +617,9 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 
 ### Option 1: Translate to Existing Tech
 
-- **Graph DB:** Neo4j, Amazon Neptune
+- **Graph DB:** the embedded/shared pair chosen in the
+  [technology evaluation](graph-database-technology-evaluation.md) and
+  [ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md)
 - **Ontology format:** OWL, RDF, custom JSON-LD
 - **Retrieval:** SPARQL queries, graph traversal algorithms
 - **Versioning:** Git-like (each ontology change is a commit)
@@ -645,20 +666,19 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 
 ### Decision 2: Override Scope — Domain Rules Flexible, Structural Elements Fixed
 
-**Resolution:** Derived adapters CAN override domain-specific rules; CANNOT override structural elements.
+**Resolution:** Derived adapters CAN override domain-specific content and parent-declared
+frontmatter fields; CANNOT override the structural keys.
 
-- **CAN override:**
-  - Must Never rules (domain-specific constraints)
-  - Must Always rules (domain-specific requirements)
-  - Properties (domain-specific attributes)
-  - Contracts (domain-specific JSON fences)
+- **CAN override:** Must Never / Must Always rules (by re-declaring the section heading),
+  domain properties, and frontmatter fields the parent declares
+- **CANNOT override:** the structural keys the validator vetoes as
+  `structural_override_forbidden` — `contract`, `type`, `steps`, `chain_root`, `inherits`,
+  `override`, `verdict`, `work_envelope`, `effective_contract`, `effective_contracts` — and
+  the inheritance mechanism itself
 
-- **CANNOT override:**
-  - Verdict format (structural — PASS/FAIL on line 1, confidence on line 2)
-  - Work submission format (structural — how to receive `work` with `kind`, `items`, `root`)
-  - Inheritance mechanism itself (can't change how inheritance works)
-
-**Rationale:** Domain-specific rules are flexible; structural elements are fixed (part of verification ladder).
+**Rationale:** Domain content is flexible; the structural keys are fixed because they are
+what makes a run verifiable
+([ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md) §4).
 
 ### Decision 3: Checkpoint Granularity — Per Inheritance Level
 
@@ -712,13 +732,22 @@ chain_root: parent-slug  # Optional: activation routing (orthogonal)
 
 ---
 
-## Principles Compliance
+## Principles Alignment
 
-**Autonomy:** ✓ Agents can evolve taxonomy without human intervention (anomaly detection is automatic)
+How the design answers the [three principles](../adapter-design-principles.md) — the
+principles themselves are not restated here:
 
-**Help, not puzzles:** ✓ Clear triggers (core contradiction, frequency, instance specificity, domain variation) — agents know when to update parent vs split sub-category
-
-**Honest verification:** ✓ Anomaly detection is empirical (contradicts parent's rules), parent update is verified (doesn't break other children), rollback mechanism exists
+- **Autonomy** — anomalies and proposals are recorded by the write path, consensus
+  authorizes a change, and the normal `train`/`tune` path applies it; no human approval
+  gate stands between a settled decision and the write
+  ([ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md)).
+- **Help, not puzzles** — the anomaly decision matrix above names the trigger and the
+  required action for each case, so an agent does not have to infer which branch applies.
+- **Honest verification** — automatic detection is limited to primitive property
+  differences and opposing rule statements; a proposal records its evidence and an
+  `evidence_digest`, and the digest proves the bytes did not change, not that the claim is
+  true. A parent is never rewritten by the write path; history and restore are
+  [ADR 0045](../adr/0045-graph-native-history-and-restore.md).
 
 ---
 
