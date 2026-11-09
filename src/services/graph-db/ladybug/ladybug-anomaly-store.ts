@@ -90,31 +90,3 @@ export async function listAnomalies(
   if (!filter.sourceChild) return nodes;
   return nodes.filter((node) => node.source_child === filter.sourceChild);
 }
-
-/**
- * Distinct reporting children for a routing target.
- *
- * Frequency evidence is counted per distinct child, not per execution: three
- * retries from one child are one observation, not three (ADR 0045).
- */
-export async function countDistinctSourceChildren(
-  connection: Connection,
-  routesTo: string,
-  anomalyType?: string
-): Promise<string[]> {
-  const rows = await readRows<Record<string, unknown>>(
-    connection,
-    `MATCH (a:Anomaly {routes_to: $routesTo})
-     RETURN a.metadata as metadata, a.anomaly_type as anomaly_type`,
-    { routesTo }
-  );
-  const children = new Set<string>();
-  for (const row of rows) {
-    if (anomalyType && String(row['anomaly_type'] ?? '') !== anomalyType) continue;
-    const metadata = parseJson<Record<string, unknown>>(row['metadata'], {});
-    if (typeof metadata['source_child'] === 'string' && metadata['source_child'].length > 0) {
-      children.add(metadata['source_child']);
-    }
-  }
-  return [...children];
-}

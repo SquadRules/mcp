@@ -71,7 +71,6 @@ export type {
   ConceptNode,
   EvolutionProposalNode,
   HistoryFilter,
-  InheritanceEdge,
   PathToRootResult,
   ProposalConfirmation,
   ProposalFilter,

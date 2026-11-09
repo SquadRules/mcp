@@ -107,25 +107,3 @@ export async function listAnomalies(
   if (!filter.sourceChild) return nodes;
   return nodes.filter((node) => node.source_child === filter.sourceChild);
 }
-
-/**
- * Distinct reporting children for a routing target.
- *
- * Frequency evidence counts distinct children, not executions (ADR 0045).
- */
-export async function countDistinctSourceChildren(
-  client: ArangoHttpClient,
-  routesTo: string,
-  anomalyType?: string
-): Promise<string[]> {
-  const rows = await client.query<{ child?: string }>(
-    `FOR a IN Anomaly
-       FILTER a.routes_to == @routesTo
-       FILTER @anomalyType == '' OR a.anomaly_type == @anomalyType
-       FILTER a.metadata.source_child != null
-       COLLECT child = a.metadata.source_child
-       RETURN { child }`,
-    { routesTo, anomalyType: anomalyType ?? '' }
-  );
-  return rows.map((row) => String(row.child ?? '')).filter((value) => value.length > 0);
-}

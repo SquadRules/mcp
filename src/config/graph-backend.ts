@@ -12,7 +12,6 @@
  *
  * @see docs/adr/0044-graph-repository-port-and-arango-shared-backend.md
  */
-import { isAbsolute } from 'node:path';
 
 export type GraphBackendKind = 'embedded' | 'arango';
 
@@ -124,14 +123,4 @@ export function resolveArangoConnectionConfig(): ArangoConnectionConfig {
   if (username) config.username = username;
   if (password !== undefined && password.length > 0) config.password = password;
   return config;
-}
-
-/** True when the operator explicitly selected the shared backend. */
-export function isArangoBackendSelected(): boolean {
-  return resolveGraphBackendKind() === 'arango';
-}
-
-/** Absolute path helper kept exported so embedded callers do not re-implement it. */
-export function isAbsoluteDatabaseDir(dir: string): boolean {
-  return isAbsolute(dir);
 }

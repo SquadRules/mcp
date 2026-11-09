@@ -44,11 +44,6 @@ export function parseJson<T>(raw: unknown, fallback: T): T {
   }
 }
 
-/** Read a row cell without triggering the index-signature property rule. */
-export function cell(row: Record<string, unknown>, key: string): unknown {
-  return row[key];
-}
-
 /** Map a raw `Adapter` row (flat columns) to an `AdapterNode`. */
 export function adapterFromRow(row: Record<string, unknown>): AdapterNode {
   const node: AdapterNode = {

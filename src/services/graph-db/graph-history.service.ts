@@ -132,33 +132,3 @@ export async function readVerifiedVersion(
   }
   return snapshot;
 }
-
-/** Compact history row for tool output (no full document). */
-export interface HistoryEntry {
-  version: string;
-  adapter_version: string;
-  change_type: VersionNode['change_type'];
-  changed_at: string;
-  changed_by: string;
-  actor_source: string;
-  parent_version: string | null;
-  reason: string;
-  content_digest: string;
-  content_bytes: number;
-}
-
-/** Map a snapshot to the compact row tools return. */
-export function historyEntry(snapshot: VersionNode): HistoryEntry {
-  return {
-    version: snapshot.version_number,
-    adapter_version: snapshot.adapter_version,
-    change_type: snapshot.change_type,
-    changed_at: snapshot.changed_at,
-    changed_by: snapshot.changed_by,
-    actor_source: snapshot.actor_source,
-    parent_version: snapshot.parent_version,
-    reason: snapshot.reason,
-    content_digest: snapshot.content_digest,
-    content_bytes: Buffer.byteLength(snapshot.content, 'utf8')
-  };
-}
