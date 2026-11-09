@@ -2,11 +2,20 @@
 
 ## Status
 
-**Proposed** — measured and implemented on branch `sr6-graph-db-touchpoints` on
-2026-11-08; awaiting independent owner ratification. No tracking issue exists
-yet; the reopen triggers are in [Expiry conditions](#expiry-conditions). An
-independent review on the same day measured one claim in this record wrong; the
-mid-boot case it found is corrected under [Evidence](#evidence).
+**Accepted** — measured and implemented on branch `sr6-graph-db-touchpoints` on
+2026-11-08; landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/296)
+squash-merge commit `40af9c75` on
+2026-11-09 with all thirteen required CI gates green. Reconciled by agent on 2026-11-09
+under the documentation-authority ADR-status rule. The shutdown-handler **mechanism** is
+shipped and CI-covered (any regression in the drain-aware listener helper fails the
+`verify-integration-*` lanes that boot the real server); the **recording probes** that
+produced the `SIGABRT` evidence still live under `.local/` only, so this ADR's abort
+reproducer is not itself a CI gate — see [Known remaining exposure](#known-remaining-exposure)
+below and the follow-up issue [SquadRules/mcp#297](https://github.com/SquadRules/mcp/issues/297)
+filed alongside this reconciliation. The reopen triggers are
+in [Expiry conditions](#expiry-conditions). An independent review on the authoring day
+measured one claim in this record wrong; the mid-boot case it found is corrected under
+[Evidence](#evidence).
 
 ## Context
 

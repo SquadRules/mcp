@@ -2,8 +2,11 @@
 
 ## Status
 
-Proposed — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
-awaiting independent owner ratification.
+Accepted — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
+landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/296)
+squash-merge commit `40af9c75` on 2026-11-09 with all thirteen required CI gates green
+including both embedded and Arango-shared evolution suites in the `verify-integration-graph`
+lane; reconciled by agent on 2026-11-09 under the documentation-authority ADR-status rule.
 
 Implements the resolution rules of
 [`docs/specs/ontological-knowledge-system.md`](../specs/ontological-knowledge-system.md)
