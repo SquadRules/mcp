@@ -15,8 +15,6 @@ import crypto from 'node:crypto';
 import type { Memory } from '../../../types/memory.js';
 import { logger } from '../../../utils/structured-logger.js';
 import { CodeBlockProcessor } from '../../code-block-processor.js';
-import { embeddingService } from '../../embedding/service.js';
-import { getEmbeddingDimension } from '../../embedding/config.js';
 import { bm25Tokenizer } from '../../embedding/bm25-tokenizer.js';
 import { IDGenerator } from '../../id-generator.js';
 import { modelStats } from '../../stats/model-stats.js';
@@ -27,17 +25,19 @@ import { normalizeMarkdownBlob, generateLabel, generateTags, parseMarkdownStruct
 import { parseFrontmatter, type ParsedFrontmatter } from '../../../utils/frontmatter.js';
 import { resolveProtocolSlugCandidate } from '../../../utils/protocol-slug.js';
 import { SquadrulesError } from '../../../types/index.js';
-import { getActivationPatternVectorName, getAdapterTitleVectorName, getPrimaryVectorName } from '../../../utils/qdrant-vector-types.js';
 import { buildHeaderMemoryAdapter } from '../../memory/adapter-builder.js';
 import { buildActivationSearchFieldsForMemory } from '../../memory/activation-search-fields.js';
 import type { StoreAdapterOptions, StoreArtifactOptions } from '../../memory/store-adapter.js';
 import type { LanceRecordEngine } from './lance-records-engine.js';
 import type { LanceRecordSearch } from './lance-records-search.js';
-import { LanceWriteRepo } from './lance-records-write-helpers.js';
+import {
+  LanceWriteRepo,
+  embedActivationVectors,
+  resolvePointVectorNames
+} from './lance-records-write-helpers.js';
 import type { QdrantPointLike } from './lance-records-schema.js';
 import { LanceArtifactWriter } from './lance-records-write-artifact.js';
-
-type ActivationVectors = { primary: number[][]; title: number[][]; activation: number[][] };
+import { attachStoredAdapterFrontmatter } from '../../memory/stored-adapter-frontmatter.js';
 
 export class LanceRecordWriter {
   private readonly repo: LanceWriteRepo;
@@ -79,6 +79,7 @@ export class LanceRecordWriter {
         if (parsedSingleDoc?.chainRoot) {
           for (const m of headerMemories) if (m.adapter) m.adapter.chain_root = parsedSingleDoc.chainRoot!;
         }
+        attachStoredAdapterFrontmatter(headerMemories, parsedSingleDoc);
         const adapterTitle = this.resolveAdapterTitle(headerMemories[0]);
         const slugCand = resolveProtocolSlugCandidate(
           parsedSingleDoc?.slugRaw !== undefined ? { slugRaw: parsedSingleDoc.slugRaw } : {},
@@ -121,39 +122,6 @@ export class LanceRecordWriter {
     return firstLabel.includes(':') ? firstLabel.split(':')[0]!.trim() : firstLabel.trim();
   }
 
-  private async embedActivation(memories: Memory[]): Promise<ActivationVectors> {
-    const vectorSize = getEmbeddingDimension();
-    const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
-    const zeros = (): number[][] => memories.map(() => Array(vectorSize).fill(0));
-    try {
-      const batch = await embeddingService.generateBatchEmbeddings(
-        activationFields.flatMap((f) => [f.primaryDenseText, f.titleDenseText, f.activationPatternDenseText])
-      );
-      const embeddings = batch.embeddings;
-      const wrongCount = embeddings.length !== memories.length * 3;
-      const wrongDim = embeddings.some((v) => !Array.isArray(v) || v.length !== vectorSize);
-      if (wrongCount || wrongDim) {
-        logger.warn(`[LanceStore] Embedding shape mismatch (count=${embeddings.length}/${memories.length * 3}); zero vectors`);
-        return { primary: zeros(), title: zeros(), activation: zeros() };
-      }
-      return {
-        primary: memories.map((_, i) => embeddings[i * 3]!),
-        title: memories.map((_, i) => embeddings[i * 3 + 1]!),
-        activation: memories.map((_, i) => embeddings[i * 3 + 2]!)
-      };
-    } catch (err) {
-      logger.error('[LanceStore] Embedding generation failed; falling back to zero vectors', err);
-      return { primary: zeros(), title: zeros(), activation: zeros() };
-    }
-  }
-
-  private async vectorNames(): Promise<{ primary: string; title: string; activation: string }> {
-    // Use the store's bound width, not the current embedding dimension (#94)
-    const storedWidth = await this.engine.resolveStoredWidth();
-    const size = storedWidth ?? getEmbeddingDimension();
-    return { primary: getPrimaryVectorName(size), title: getAdapterTitleVectorName(size), activation: getActivationPatternVectorName(size) };
-  }
-
   private async storeHeaderBasedAdapter(
     memories: Memory[],
     llmModelId: string,
@@ -166,8 +134,8 @@ export class LanceRecordWriter {
     await this.repo.handleDuplicateAdapter(adapterUuid, forceUpdate);
     const protocolSlug = await this.repo.allocateAdapterSlugForMint(slugInput, adapterUuid);
 
-    const names = await this.vectorNames();
-    const vectors = await this.embedActivation(memories);
+    const names = await resolvePointVectorNames(this.engine);
+    const vectors = await embedActivationVectors(memories);
     const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
     const context = getSpaceContext();
     const spaceId = context.defaultWriteSpaceId;
@@ -214,7 +182,8 @@ export class LanceRecordWriter {
             ...(adapter.protocol_version && { protocol_version: adapter.protocol_version }),
             ...(adapter.activation_patterns && { activation_patterns: adapter.activation_patterns }),
             ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal }),
-            ...(typeof adapter.chain_root === 'string' && adapter.chain_root.length > 0 && { chain_root: adapter.chain_root })
+            ...(typeof adapter.chain_root === 'string' && adapter.chain_root.length > 0 && { chain_root: adapter.chain_root }),
+            ...(adapter.frontmatter && { frontmatter: adapter.frontmatter })
           },
           slug: protocolSlug
         }
@@ -269,8 +238,10 @@ export class LanceRecordWriter {
       };
     });
 
-    const names = await this.vectorNames();
-    const vectors = await this.embedActivation(memories);
+    attachStoredAdapterFrontmatter(memories, parsedFrontmatter);
+
+    const names = await resolvePointVectorNames(this.engine);
+    const vectors = await embedActivationVectors(memories);
     const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
     const context = getSpaceContext();
     const spaceId = context.defaultWriteSpaceId;
@@ -316,7 +287,8 @@ export class LanceRecordWriter {
             layer_count: adapter.layer_count,
             ...(adapter.protocol_version && { protocol_version: adapter.protocol_version }),
             ...(adapter.activation_patterns && { activation_patterns: adapter.activation_patterns }),
-            ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal })
+            ...(typeof adapter.reward_signal === 'string' && { reward_signal: adapter.reward_signal }),
+            ...(adapter.frontmatter && { frontmatter: adapter.frontmatter })
           }
         }
       };

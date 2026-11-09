@@ -2,8 +2,10 @@ name: Integration
 
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+    # `main` is the release branch; `squadrules-6` is the integration branch PRs are
+    # stacked on (e.g. #295), so a main-only trigger never reported a check for them.
+    branches: [main, squadrules-6]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'src/**'
       - 'tests/**'
@@ -49,6 +51,7 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
+      - run: npm run test:unit-node
       - run: npm run version:check-skills
       - run: npm run lint
       - run: npm run typecheck
@@ -60,6 +63,9 @@ jobs:
         run: npm run typecheck:tests
       - run: npm run knip
       - run: npm run test:spec-parity
+      # Canonical-vocabulary parity across transports plus the shared-backend suite
+      # selection contract (ADR 0048). Both are pure/unit-level: no infrastructure.
+      - run: npm run test:api-spec-parity
       - run: npm run test:ui
       - run: npm run build:tgz
       - run: npm run test:tgz
@@ -343,11 +349,149 @@ jobs:
           done
           if [ -n "$latest" ]; then tail -n 200 "$latest"; else echo "No test report log found"; fi
 
-  # Merge gate: the Node 24/26 build lane plus the two integration lanes (CLUSTER + SINGLE).
-  # Container image build/scan/publish is decoupled into SquadRules/containers, not a gate here.
+  # SHARED-BACKEND lane: a real ArangoDB 3.11 as a test-owned service container
+  # (ADR 0044, ADR 0048). The graph port has two implementations; the embedded
+  # LadybugDB lanes cannot detect a port divergence, so shared parity needs a server.
+  #
+  # Three required suite groups share that one disposable container budget:
+  #   1. shared-backend parity (real ArangoDB, `SQUADRULES_ARANGO_REQUIRED=true`);
+  #   2. mock-free embedded boot / instance / inheritance / topology (real LadybugDB +
+  #      LanceDB, no mocks, no network);
+  #   3. the shipped-package API suites, booting `dist/bootstrap.js` from the build
+  #      job's tarball over real HTTP.
+  # One job, not three: the container starts once and no group can be scheduled without
+  # the others — a second job could let one group pass while another never ran.
+  #
+  # Deliberately neither path-filtered nor `if:`-gated: a conditional lane is a
+  # skippable lane, and `integration-pass` requires this job unconditionally. The
+  # service is disposable, runs without authentication, mounts nothing, publishes no
+  # image, and never leaves the job. `SQUADRULES_ARANGO_REQUIRED=true` turns an
+  # unconfigured run into a failure, so deleting the `env:` block below cannot turn
+  # this job green with zero executed assertions.
+  #
+  # The job name is left unchanged so an already-registered required-check name stays
+  # stable; read it as "every graph lane" (the three groups above).
+  verify-integration-graph:
+    name: Graph (ArangoDB 3.11 shared backend, Node 24)
+    needs: [build]
+    runs-on: ubuntu-latest
+    # Arango parity is fast. Group 3 is not: every API suite boots the shipped server
+    # with real ONNX fastembed, so the budget has to cover all three groups.
+    timeout-minutes: 40
+    services:
+      arangodb:
+        image: arangodb:3.11
+        env:
+          ARANGO_NO_AUTH: '1'
+        ports:
+          - 8529:8529
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Group 3 boots the *shipped* entry (`dist/bootstrap.js`, what Docker and
+      # `squadrules serve` run), so it consumes the tarball the build job packed for
+      # this same revision instead of rebuilding from source and testing other bytes.
+      - name: Download npm package artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: npm-package-node24
+          path: artifact-npm
+
+      - name: Install package from tgz
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          npm install "./artifact-npm/squadrules-mcp-${VERSION}.tgz"
+
+      - name: Expose installed package dist for the API suites
+        run: |
+          rm -rf dist
+          cp -R node_modules/@squadrules/mcp/dist ./dist
+
+      # The suites themselves assert the served series and a real stream-transaction
+      # round-trip; this step only waits for the endpoint and creates the database the
+      # deployment URL points at. A 409 means a retried container already created it.
+      - name: Wait for ArangoDB and create the test database
+        run: |
+          set -euo pipefail
+          endpoint=http://127.0.0.1:8529
+          ready=''
+          for attempt in $(seq 1 60); do
+            if curl -fsS "$endpoint/_api/version" >/dev/null; then ready=1; break; fi
+            echo "waiting for ArangoDB ($attempt/60)"
+            sleep 2
+          done
+          if [ -z "$ready" ]; then
+            echo "::error::ArangoDB 3.11 did not become ready on $endpoint"
+            exit 1
+          fi
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$endpoint/_api/database" \
+            -H 'content-type: application/json' --data '{"name":"squadrules_it"}')
+          if [ "$status" != '201' ] && [ "$status" != '409' ]; then
+            echo "::error::could not create database squadrules_it (HTTP $status)"
+            exit 1
+          fi
+
+      - name: Run shared-backend integration suites against real ArangoDB
+        env:
+          SQUADRULES_ARANGO_URL: http://127.0.0.1:8529
+          SQUADRULES_ARANGO_DATABASE: squadrules_it
+          SQUADRULES_ARANGO_REQUIRED: 'true'
+        run: >-
+          NODE_OPTIONS=--experimental-vm-modules npx jest
+          tests/integration/graph-db-arango-shared.test.ts
+          tests/integration/graph-db-arango-evolution.test.ts
+          --runInBand --forceExit --testTimeout=120000
+
+      # Group 2: real embedded LadybugDB + LanceDB through the production boot and
+      # projection code — no mocks, no module fakes, no network (the write path's `tei`
+      # provider has no endpoint, so the real call fails over to zero vectors).
+      - name: Run mock-free embedded graph suites
+        run: npm run test:graph-embedded
+
+      # Group 3: every child server the API suites boot reuses this one weight cache
+      # (the child env helper forwards the ambient cache dirs), so the download happens
+      # once per lockfile change instead of once per boot.
+      - name: Restore fastembed model cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: fastembed-model-cache
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-fastembed-model-
+
+      # Default dist + default embedded graph: no backend override here, so the suites
+      # prove the shipped package's own defaults.
+      - name: Run shipped-package graph API suites
+        run: npm run test:graph-api
+
+      - name: Save fastembed model cache
+        if: always() && steps.fastembed-model-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/embedding-models
+          key: ${{ steps.fastembed-model-cache.outputs.cache-primary-key }}
+
+  # Merge gate: the Node 24/26 build lane plus the integration lanes (CLUSTER, SINGLE,
+  # shared GRAPH). Container image build/scan/publish is decoupled into
+  # SquadRules/containers, not a gate here.
   integration-pass:
     name: Integration workflow passed
-    needs: [build, verify-integration-cluster, verify-integration-single]
+    needs: [build, verify-integration-cluster, verify-integration-graph, verify-integration-single]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -355,11 +499,13 @@ jobs:
         env:
           BUILD: ${{ needs.build.result }}
           CLUSTER: ${{ needs.verify-integration-cluster.result }}
+          GRAPH: ${{ needs.verify-integration-graph.result }}
           SINGLE: ${{ needs.verify-integration-single.result }}
         run: |
           set -euo pipefail
-          echo "build=$BUILD cluster=$CLUSTER single=$SINGLE"
+          echo "build=$BUILD cluster=$CLUSTER graph=$GRAPH single=$SINGLE"
           # Require positive evidence from every lane; skipped or empty is not success.
           test "$BUILD" = "success"
           test "$CLUSTER" = "success"
+          test "$GRAPH" = "success"
           test "$SINGLE" = "success"

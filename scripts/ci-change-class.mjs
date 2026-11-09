@@ -20,6 +20,7 @@
  * merge without build, integration or security evidence:
  *   - every path documentation-only  -> { docs: true,  app: false }
  *   - any APP_PATHS hit              -> app: true, docs decided independently
+ *   - any GRAPH_PATHS hit            -> graph: true (shared-backend class, ADR 0048)
  *   - no path matches either set     -> both lanes expected (reason: unmatched-paths)
  *   - empty or unreadable input      -> both lanes expected (reason: unclassified)
  * `--empty-diff` is the explicit hard-fail path for a revision that contributes no
@@ -55,6 +56,32 @@ export const APP_PATHS = [
 export const DOCS_PATHS = ['docs/**', '.qoder/**', '.agents/**', '*.md'];
 
 /**
+ * Graph-class globs: the shared-backend surface the ArangoDB 3.11 lane exists to
+ * prove (ADR 0044, ADR 0048). Every path here can change what the shared backend
+ * stores or how the graph-native history/evolution read paths behave, so a revision
+ * that touches one owes shared-backend evidence — the embedded-only lanes cannot
+ * detect a port divergence.
+ *
+ * This class never *narrows* the requirement: `verify-integration-graph` runs on every
+ * application revision and `integration-pass` requires it unconditionally (a gated
+ * job is a skippable job). `graph` only records *which* revisions must be able to
+ * attribute a shared-backend failure, and it fails closed exactly like `app`.
+ *
+ * Every graph path is deliberately also an application path, so this class can never
+ * pull a revision into a lane that a workflow `paths:` filter would drop. Specification
+ * prose (`docs/specs/graph-schema.md`) is documentation class: it changes no behaviour.
+ */
+export const GRAPH_PATHS = [
+  'src/services/graph-db/**',
+  'src/config/graph-backend.ts',
+  'compose/**',
+  'tests/integration/graph-db-*',
+  'tests/unit/graph-*',
+  'scripts/ci-change-class.mjs',
+  '.github/workflows/**',
+];
+
+/**
  * Translate one workflow-style glob into a regular expression over a POSIX path:
  * `**` spans slashes, `*` and `?` do not. A pattern without a slash matches the
  * basename at any depth, which is what `*.md` needs in order to count
@@ -77,6 +104,7 @@ function globToRegExp(pattern) {
 
 const APP_RES = APP_PATHS.map(globToRegExp);
 const DOCS_RES = DOCS_PATHS.map(globToRegExp);
+const GRAPH_RES = GRAPH_PATHS.map(globToRegExp);
 
 /** True when `file` is covered by the application-class filter set. */
 export function isAppPath(file) {
@@ -88,28 +116,43 @@ export function isDocsPath(file) {
   return DOCS_RES.some((re) => re.test(file));
 }
 
+/** True when `file` is covered by the shared-backend graph-class filter set. */
+export function isGraphPath(file) {
+  return GRAPH_RES.some((re) => re.test(file));
+}
+
 /**
  * Classify a changed-file list into the lanes the revision owes evidence for.
+ *
+ * `graph` is the shared-backend class. It fails closed on the same inputs as `app`
+ * (an unattributable or empty revision could have touched graph behaviour, so it must
+ * be able to attribute a shared-backend failure), and a documentation-only revision is
+ * never graph-class.
  * @param {string[]} paths repository-relative paths; blank lines are ignored
- * @returns {{docs: boolean, app: boolean, reason: string, files: number, app_hits: number, docs_hits: number}}
+ * @returns {{docs: boolean, app: boolean, graph: boolean, reason: string, files: number, app_hits: number, docs_hits: number, graph_hits: number}}
  */
 export function classify(paths) {
   const files = Array.isArray(paths) ? paths.map((p) => String(p).trim()).filter(Boolean) : [];
-  const detail = (docs, app, reason) => ({
+  const detail = (docs, app, graph, reason) => ({
     docs,
     app,
+    graph,
     reason,
     files: files.length,
     app_hits: files.filter(isAppPath).length,
     docs_hits: files.filter(isDocsPath).length,
+    graph_hits: files.filter(isGraphPath).length,
   });
+  const graphClass = () => files.some(isGraphPath);
 
-  if (files.length === 0) return detail(true, true, 'unclassified');
+  if (files.length === 0) return detail(true, true, true, 'unclassified');
   const appHits = files.filter(isAppPath);
   const docsHits = files.filter(isDocsPath);
-  if (appHits.length === 0 && docsHits.length === files.length) return detail(true, false, 'documentation-only');
-  if (appHits.length > 0) return detail(docsHits.length > 0, true, docsHits.length > 0 ? 'mixed' : 'application');
-  return detail(true, true, 'unmatched-paths');
+  if (appHits.length === 0 && docsHits.length === files.length) return detail(true, false, false, 'documentation-only');
+  if (appHits.length > 0) {
+    return detail(docsHits.length > 0, true, graphClass(), docsHits.length > 0 ? 'mixed' : 'application');
+  }
+  return detail(true, true, true, 'unmatched-paths');
 }
 
 function writeOutput(values) {
@@ -121,7 +164,7 @@ function writeOutput(values) {
 
 function emit(result) {
   console.log(JSON.stringify(result));
-  writeOutput({ docs: result.docs, app: result.app, reason: result.reason });
+  writeOutput({ docs: result.docs, app: result.app, graph: result.graph, reason: result.reason });
 }
 
 function readChangedPaths() {

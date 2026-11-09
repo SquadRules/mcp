@@ -50,7 +50,7 @@ export function registerTuneTool(server: any, memoryStore: MemoryQdrantStore, op
           const qdrantModule = await import('../services/qdrant/index.js');
           qdrantService = qdrantModule.qdrantService;
         }
-        const result = await executeTune(qdrantService, input);
+        const result = await executeTune(qdrantService, input, memoryStore);
 
         // Invalidate caches so subsequent reads see the freshly written data.
         await invalidateTuneCache(result);

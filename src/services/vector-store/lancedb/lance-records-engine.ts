@@ -8,6 +8,7 @@
  * write treat the absent table as empty (never create it), so a cold start does
  * not touch disk for a read. Writes serialize on Lance MVCC via `withCommitRetry`.
  */
+import { resolve } from 'node:path';
 import type { LanceConnection, LanceTable } from '../lancedb-connection.js';
 import { openLanceConnection } from '../lancedb-connection.js';
 import { withCommitRetry } from '../commit-retry.js';
@@ -25,10 +26,33 @@ const SCAN_LIMIT = 100_000;
 export class LanceRecordEngine {
   private connectionPromise: Promise<LanceConnection> | null = null;
   private cachedSchemaResult: SchemaInspectionResult | null = null;
+  private readonly databaseDir: string | undefined;
+  private boundDirectory: string | undefined;
+
+  /**
+   * @param databaseDir - LanceDB directory for THIS engine. Omitted means the
+   *        env-resolved default, so every existing caller keeps its behaviour.
+   *        Passing a directory is what makes the engine (not just the store
+   *        facade) address an explicit database: a second runtime in the same
+   *        process must read and write its own records, not the process default.
+   */
+  constructor(databaseDir?: string) {
+    this.databaseDir = databaseDir;
+  }
+
+  /** Bind on first use, without opening LanceDB; later env/cwd changes cannot redirect it. */
+  getDirectory(): string {
+    if (this.boundDirectory === undefined) {
+      const directory = this.databaseDir ?? resolveLanceDbDir();
+      // Resolve local paths without requiring them to exist; preserve storage URLs.
+      this.boundDirectory = /^[a-z][a-z0-9+.-]*:\/\//i.test(directory) ? directory : resolve(directory);
+    }
+    return this.boundDirectory;
+  }
 
   private getConnection(): Promise<LanceConnection> {
     if (!this.connectionPromise) {
-      this.connectionPromise = openLanceConnection();
+      this.connectionPromise = openLanceConnection(this.getDirectory());
     }
     return this.connectionPromise;
   }
@@ -54,7 +78,7 @@ export class LanceRecordEngine {
    */
   async resolveStoredWidth(): Promise<number | null> {
     // Try metadata first (fastest, most reliable)
-    const meta = readStoreMetadata(resolveLanceDbDir());
+    const meta = readStoreMetadata(this.getDirectory());
     if (meta) return meta.dimension;
     // Fall back to schema inspection
     const schema = await this.inspectStoredSchema();
@@ -80,7 +104,7 @@ export class LanceRecordEngine {
     const table = await connection.createTable(RECORDS_TABLE, [firstRow], { mode: 'create' });
     // Persist store metadata on first creation (#94)
     const resolved = getSuccessfulProvider();
-    writeStoreMetadata(resolveLanceDbDir(), {
+    writeStoreMetadata(this.getDirectory(), {
       provider: resolved?.provider ?? 'unknown',
       model: resolved?.model ?? 'unknown',
       dimension: getEmbeddingDimension()

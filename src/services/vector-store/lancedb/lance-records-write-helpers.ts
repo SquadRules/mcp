@@ -20,6 +20,12 @@ import { buildAdapterUri, buildLayerUri } from '../../../tools/squadrules-uri.js
 import { MAX_AUTO_SUFFIX_ATTEMPTS, nextAutoSlugCandidate } from '../../../utils/protocol-slug.js';
 import { ALLOWED_ARTIFACT_MIMES } from '../../../tools/artifact-mime.js';
 import { deriveDomainTaskType, buildAdapterSimilaritySearchQuery, type AdapterSlugMintInput } from '../../memory/store-adapter-helpers.js';
+import type { Memory } from '../../../types/memory.js';
+import { logger } from '../../../utils/structured-logger.js';
+import { embeddingService } from '../../embedding/service.js';
+import { getEmbeddingDimension } from '../../embedding/config.js';
+import { getActivationPatternVectorName, getAdapterTitleVectorName, getPrimaryVectorName } from '../../../utils/qdrant-vector-types.js';
+import { buildActivationSearchFieldsForMemory } from '../../memory/activation-search-fields.js';
 import type { LanceRecordEngine } from './lance-records-engine.js';
 import type { LanceRecordSearch } from './lance-records-search.js';
 import type { LanceRecordRow } from './lance-records-schema.js';
@@ -246,4 +252,52 @@ export class LanceWriteRepo {
   deriveDomainTaskType(label: string, text: string, tags: string[]): { task: string; type: string } {
     return deriveDomainTaskType(label, text, tags);
   }
+}
+
+/** The three activation vectors stored per Lance row. */
+export type ActivationVectors = { primary: number[][]; title: number[][]; activation: number[][] };
+
+/**
+ * Batch-embed the three activation texts per memory. A provider failure or a
+ * shape mismatch degrades to zero vectors exactly like `storeAdapter` does, so a
+ * write during an embedding outage still stores the adapter (lexically searchable)
+ * instead of failing the train.
+ */
+export async function embedActivationVectors(memories: Memory[]): Promise<ActivationVectors> {
+  const vectorSize = getEmbeddingDimension();
+  const activationFields = memories.map((m) => buildActivationSearchFieldsForMemory(m));
+  const zeros = (): number[][] => memories.map(() => Array(vectorSize).fill(0));
+  try {
+    const batch = await embeddingService.generateBatchEmbeddings(
+      activationFields.flatMap((f) => [f.primaryDenseText, f.titleDenseText, f.activationPatternDenseText])
+    );
+    const embeddings = batch.embeddings;
+    const wrongCount = embeddings.length !== memories.length * 3;
+    const wrongDim = embeddings.some((v) => !Array.isArray(v) || v.length !== vectorSize);
+    if (wrongCount || wrongDim) {
+      logger.warn(`[LanceStore] Embedding shape mismatch (count=${embeddings.length}/${memories.length * 3}); zero vectors`);
+      return { primary: zeros(), title: zeros(), activation: zeros() };
+    }
+    return {
+      primary: memories.map((_, i) => embeddings[i * 3]!),
+      title: memories.map((_, i) => embeddings[i * 3 + 1]!),
+      activation: memories.map((_, i) => embeddings[i * 3 + 2]!)
+    };
+  } catch (err) {
+    logger.error('[LanceStore] Embedding generation failed; falling back to zero vectors', err);
+    return { primary: zeros(), title: zeros(), activation: zeros() };
+  }
+}
+
+/** Point-vector names for the store's bound width, not the current embedding dimension (#94). */
+export async function resolvePointVectorNames(
+  engine: LanceRecordEngine
+): Promise<{ primary: string; title: string; activation: string }> {
+  const storedWidth = await engine.resolveStoredWidth();
+  const size = storedWidth ?? getEmbeddingDimension();
+  return {
+    primary: getPrimaryVectorName(size),
+    title: getAdapterTitleVectorName(size),
+    activation: getActivationPatternVectorName(size)
+  };
 }

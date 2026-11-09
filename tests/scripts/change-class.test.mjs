@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
-import { APP_PATHS, DOCS_PATHS, classify, isAppPath, isDocsPath } from '../../scripts/ci-change-class.mjs';
+import { APP_PATHS, DOCS_PATHS, GRAPH_PATHS, classify, isAppPath, isDocsPath, isGraphPath } from '../../scripts/ci-change-class.mjs';
 
 const script = 'scripts/ci-change-class.mjs';
 const run = (input, args = [], env = {}) =>
@@ -21,7 +21,7 @@ test('documentation-only changes owe no application evidence', () => {
     ['README.md', 'CONTRIBUTING.md'],
     ['.qoder/repowiki/en/content/overview.md', '.agents/rules/task-isolation.md'],
   ]) {
-    assert.deepEqual(classify(paths), { docs: true, app: false, reason: 'documentation-only', files: paths.length, app_hits: 0, docs_hits: paths.length });
+    assert.deepEqual(classify(paths), { docs: true, app: false, graph: false, reason: 'documentation-only', files: paths.length, app_hits: 0, docs_hits: paths.length, graph_hits: 0 });
   }
 });
 
@@ -119,10 +119,46 @@ test('the command emits JSON plus the documented step output keys', () => {
     const parsed = stdout(result);
     assert.equal(parsed.app, true);
     assert.equal(parsed.docs, true);
-    assert.equal(readFileSync(outputFile, 'utf8'), 'docs=true\napp=true\nreason=mixed\n');
+    assert.equal(readFileSync(outputFile, 'utf8'), 'docs=true\napp=true\ngraph=false\nreason=mixed\n');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('graph-class revisions are attributed to the shared-backend surface', () => {
+  // One representative path per declared glob, so a broken translator is caught per
+  // pattern rather than only through the aggregate class.
+  assert.deepEqual(GRAPH_PATHS, [
+    'src/services/graph-db/**', 'src/config/graph-backend.ts', 'compose/**', 'tests/integration/graph-db-*',
+    'tests/unit/graph-*', 'scripts/ci-change-class.mjs', '.github/workflows/**',
+  ]);
+  for (const path of [
+    'src/services/graph-db/arango/arango-schema.ts',
+    'src/config/graph-backend.ts',
+    'compose/infra.yaml',
+    'tests/integration/graph-db-arango-shared.test.ts',
+    'tests/unit/graph-db-reward-unit.test.ts',
+    '.github/workflows/integration.yml',
+  ]) {
+    assert.ok(isGraphPath(path), `${path} must be shared-backend class`);
+    assert.equal(classify([path]).graph, true, `${path} must set graph=true`);
+    assert.ok(isAppPath(path), `${path} must also be application class, or the graph lane could be path-filtered away`);
+  }
+  // Every graph glob is span-checked, not just segment-checked.
+  assert.ok(isGraphPath('tests/integration/graph-db-arango-evolution.test.ts'));
+  assert.ok(isGraphPath('scripts/ci-change-class.mjs'), 'the classifier contract proves itself');
+  assert.ok(!isGraphPath('src/tools/train.ts'), 'a non-graph source file is application class only');
+  assert.ok(!isGraphPath('docs/adr/0048-x.md'), 'prose about the graph is not graph-class work');
+});
+
+test('the graph class fails closed exactly like the application class', () => {
+  // An unattributable revision could have touched graph behaviour, so it must be able
+  // to attribute a shared-backend failure instead of silently skipping that lane.
+  assert.equal(classify([]).graph, true);
+  assert.equal(classify(['logo/icon.svg']).graph, true);
+  assert.equal(classify(['README.md', 'logo/icon.svg']).graph, true);
+  assert.equal(classify(['docs/adr/0048-shared-backend-ci-lane.md']).graph, false);
+  assert.equal(classify(['src/tools/train.ts', 'docs/adr/0048-x.md']).graph, false);
 });
 
 test('a revision with no files fails the gate instead of burning the wait deadline', () => {

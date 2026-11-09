@@ -9,15 +9,22 @@ import { extractInferenceContract, findAllLayerContractBlocks } from './adapter-
 /**
  * Sanitize H2 headings to remove STEP patterns and numbering that break layer order.
  * Transforms patterns like "## STEP 1 - Foo" or "## 3. Bar" into "## Foo" or "## Bar".
+ *
+ * A heading that carries nothing but its prefix ("## Step 1", "## 3.") is kept verbatim:
+ * stripping the prefix would leave a bare "##", which is not a heading at all. That is a
+ * silent content loss — the section loses its key, so the merge can neither inherit it
+ * from a parent nor let a child override it (ADR 0043).
  */
 function sanitizeHeading(line: string): string {
   if (!line.startsWith('## ')) return line;
 
-  return line
+  const sanitized = line
     .replace(/^##\s*STEP\s*\d+[:\s-–\-·•]*\s*/i, '## ')
     .replace(/^##\s*\d+[\s\.\)\-:—–\-·•]*\s*/i, '## ')
     .replace(/^##\s*[0-9]+[a-zA-Z]*[\s\.\)\-:—–\-·•]*\s*/i, '## ')
     .trim();
+
+  return sanitized === '##' ? line.trim() : sanitized;
 }
 
 /**

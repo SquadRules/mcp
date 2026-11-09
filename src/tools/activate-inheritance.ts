@@ -1,7 +1,8 @@
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { structuredLogger } from '../utils/structured-logger.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { getGraphDb } from '../services/graph-db/graph-owner.js';
+import { adapterGraphKey, storedAdapterScope } from '../services/graph-db/adapter-scope.js';
 import {
   resolveEffectiveLayerContent,
   buildMergedAdapterContent,
@@ -40,10 +41,12 @@ export async function resolveActivationInheritance(
   // layer and resolve the effective content through the SAME helper `forward` executes.
   // One graph resolution yields both the chain and the merged executable content, so what
   // activate surfaces is byte-for-byte what forward runs (Option A).
+  let resolvedChild: Awaited<ReturnType<MemoryQdrantStore['getMemory']>> | null = null;
   if (qdrantService) {
     try {
       const entry = await qdrantService.findFirstStepMemoryUuidBySlug(topMatch.slug);
       const childMemory = entry.layerUuid ? await memoryStore.getMemory(entry.layerUuid) : null;
+      resolvedChild = childMemory;
       if (childMemory) {
         const effective = await resolveEffectiveLayerContent(
           memoryStore,
@@ -67,16 +70,26 @@ export async function resolveActivationInheritance(
 
   // Fallback: slug-only chain resolution (no retrieval, or the child entry layer could not
   // be loaded). Surfaces the chain but no merged content; forward still resolves on its own.
-  const graphDb = getGraphDbService();
-  if (!graphDb || !graphDb.isInitialized()) {
+  const graphDb = getGraphDb(memoryStore);
+  if (!graphDb) {
     structuredLogger.warn(
       `activate: graph DB unavailable — inheritance not resolved for "${topMatch.slug}"`
     );
     return { chain: [], resolved: false, merged: null, mergedSlug: null };
   }
 
+  // Scope comes from the stored record. Without it the slug alone is ambiguous (the
+  // same slug can exist in several spaces), so the graph is not consulted.
+  if (!resolvedChild) {
+    structuredLogger.warn(
+      `activate: stored record for "${topMatch.slug}" is unavailable — inheritance chain cannot be resolved without its space`
+    );
+    return { chain: [], resolved: false, merged: null, mergedSlug: null };
+  }
+
   try {
-    const adapterKey = `adapter:${topMatch.slug}`;
+    const childScope = storedAdapterScope(resolvedChild.space_id, `activate:${topMatch.slug}`);
+    const adapterKey = adapterGraphKey(childScope.spaceId, topMatch.slug);
     const result = await graphDb.resolveInheritance(adapterKey);
 
     if (!result) {

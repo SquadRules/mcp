@@ -6,7 +6,7 @@
  * calls the same `execute*` core the HTTP routes and MCP tools use, against an
  * in-process embedded store. Both return the canonical `src/tools/*` output shapes.
  */
-import type { ActivateOutput } from '../../tools/activate_schema.js';
+import type { ActivateInput, ActivateOutput } from '../../tools/activate_schema.js';
 import type { ForwardOutput } from '../../tools/forward_schema.js';
 import type { RewardOutput } from '../../tools/reward_schema.js';
 import type { TrainOutput } from '../../tools/train_schema.js';
@@ -36,6 +36,8 @@ export interface TrainRawOptions {
   llmModelId?: string;
   force?: boolean;
   space?: string;
+  /** CAS base version; a stale value fails before any write. */
+  expectedVersion?: string;
   reviewEvidence?: ReviewEvidence;
 }
 
@@ -43,6 +45,7 @@ export interface TrainRawOptions {
 export interface TrainJsonBody {
   llm_model_id: string;
   force_update?: boolean;
+  expected_version?: string;
   space?: string;
   source_adapter_uri?: string;
   content?: string;
@@ -59,6 +62,8 @@ export interface TuneOptions {
   markdownDoc?: SafeMarkdownUpload[];
   updates?: Record<string, unknown>;
   space?: string;
+  /** CAS base version: restore a snapshot or apply an accepted proposal only onto the row it was read from. */
+  expectedVersion?: string;
   reviewEvidence?: ReviewEvidence;
 }
 
@@ -68,6 +73,11 @@ export interface RewardOptions {
   rater?: string;
   rubricVersion?: string;
   llmModelId?: string;
+  /** Evolution proposal to confirm or reject; never mutates the target adapter (ADR 0046). */
+  proposal?: string;
+  proposalDecision?: 'confirm' | 'reject';
+  proposalActorKind?: 'agent' | 'human_expert';
+  proposalEvidence?: Record<string, unknown>;
 }
 
 /** Options for `spaces`. */
@@ -79,6 +89,11 @@ export interface SpacesOptions {
 /** Options for `activate`. */
 export interface ActivateOptions {
   space?: string;
+  space_id?: string;
+  execution_id?: string;
+  context?: NonNullable<ActivateInput['context']>;
+  authoring?: NonNullable<ActivateInput['authoring']>;
+  max_choices?: number;
 }
 
 /** Downloaded export bytes (skill_zip). */

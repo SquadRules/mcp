@@ -54,15 +54,117 @@ const linkedArtifactSchema = z
  * child's; `content` is the merged markdown body carrying the inherited contract blocks,
  * steps, judgment_criteria, timeout and interpreter. See Touchpoint 2b / Option A.
  */
+const effectiveContractSchema = z
+  .object({
+    source: z.string().describe('Adapter slug that supplied the section holding this contract'),
+    heading: z.string().describe('Section heading the contract fence lives in'),
+    contract: z.unknown().describe('The parsed contract object exactly as it appears in the merged body')
+  })
+  .strict();
 const mergedAdapterContentSchema = z
   .object({
     slug: z.string().describe('Child adapter slug — identity stays with the activated child'),
     version: z.string().nullable().describe('Child adapter version — identity stays with the activated child'),
     content: z.string().describe('Effective (merged) markdown body the agent executes, including inherited contract blocks and steps'),
     inheritance_chain: z.array(z.string()).describe('Inheritance chain slugs, child-to-root'),
-    resolved: z.boolean().describe('False on graceful degradation (graph DB unavailable)')
+    resolved: z.boolean().describe('False when the stored ancestry could not be fully materialised'),
+    resolved_reason: z
+      .string()
+      .optional()
+      .describe('Why resolution is incomplete (for example parent_missing); present exactly when resolved is false'),
+    lineage: z.array(z.string()).describe('Contributing adapter slugs, root-first with the child last'),
+    lineage_truncated: z
+      .boolean()
+      .describe('True when SQUADRULES_TREE_DISPLAY_DEPTH trimmed the displayed lineage; content is never trimmed'),
+    overrides: z.record(z.string(), z.string()).describe('Section heading -> slug that explicitly overrode the inherited section'),
+    effective_contracts: z
+      .array(effectiveContractSchema)
+      .describe('Contract fences in the merged body, nearest level first; the first entry is the contract forward executes')
   })
   .strict();
+const activationContextSchema = z
+  .object({
+    task: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'What the caller is doing right now (for example "create_adapter"). Describes the request; it never widens the search scope.'
+      ),
+    domain: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Domain of the request (for example "python"). Overrides the domain declared on the stored adapter. Describes the request; it never widens the search scope.'
+      )
+  })
+  .strict();
+const ontologyEvidenceRowSchema = z.object({ key: z.string(), detail: z.string() }).strict();
+const ontologyContextSchema = z
+  .object({
+    scope: z
+      .object({
+        adapter_key: z.string().describe('Scoped graph key adapter:<spaceId>:<slug>'),
+        space_id: z.string().describe('Space the context was read from'),
+        space_source: z.string().describe('How that space was resolved (stored-record, stored-content-policy, write-context)')
+      })
+      .strict(),
+    context: z
+      .object({
+        task: z.string().nullable(),
+        domain: z.string().nullable(),
+        human: z.string().nullable().describe('Runtime actor identity, never a document-supplied value'),
+        org: z.string().nullable().describe('A permitted group space only; never a global lookup'),
+        sources: z.record(z.string(), z.string()).describe('Where each non-null context value came from')
+      })
+      .strict(),
+    concept: z
+      .object({
+        key: z.string(),
+        name: z.string(),
+        baseline_attributes: z.record(z.string(), z.unknown())
+      })
+      .strict()
+      .nullable(),
+    relationships: z.array(
+      z.object({ type: z.enum(['inherits', 'concept']), target: z.string(), depth: z.number() }).strict()
+    ),
+    evidence: z
+      .object({
+        open_anomalies: z.number(),
+        pending_proposals: z.number(),
+        accepted_proposals: z.number(),
+        version_snapshots: z.number(),
+        anomalies: z.array(ontologyEvidenceRowSchema),
+        proposals: z.array(ontologyEvidenceRowSchema)
+      })
+      .strict(),
+    evolution: z
+      .object({
+        current_adapter_version: z.string().nullable(),
+        current_snapshot: z.string().nullable(),
+        applied: z.array(
+          z
+            .object({
+              version_number: z.string(),
+              adapter_version: z.string(),
+              change_type: z.enum(['created', 'updated', 'restored', 'deprecated', 'deleted']),
+              changed_at: z.string(),
+              changed_by: z.string(),
+              reason: z.string(),
+              content_digest: z.string().describe('SHA-256 of that snapshot bytes: integrity, not truth of a claim')
+            })
+            .strict()
+        ),
+        resolution_notes: z.array(z.string()),
+        explanation: z.string().describe('Which snapshot is current and what accepted evolution it reflects')
+      })
+      .strict(),
+    degraded: z.string().nullable().describe('Set when part of the projection could not be read')
+  })
+  .strict();
+
 const activateChoiceCommonSchema = z.object({
   uri: adapterUriSchema,
   label: z.string().describe('Display label for the adapter choice'),
@@ -114,6 +216,11 @@ export const activateInputSchema = z.object({
     .optional()
     .describe('Scope results to this space: "personal", a group name, "Group: …", or your space id'),
   space_id: z.string().optional().describe('Alias for space'),
+  context: activationContextSchema
+    .optional()
+    .describe(
+      'Explicit retrieval context for graph-backed ontology retrieval. It is descriptive only and never enables a cross-space search.'
+    ),
   max_choices: z
     .number()
     .int()
@@ -153,7 +260,11 @@ export const activateOutputSchema = z.object({
   /** Ordered list of adapter slugs from child to root. Empty when no inheritance exists. */
   inheritance_chain: z.array(z.string()).optional().describe('Inheritance chain slugs from child to root (empty if no inheritance)'),
   /** True when the graph DB resolved the inheritance chain; false on graceful degradation. */
-  inheritance_resolved: z.boolean().optional().describe('Whether the graph DB resolved inheritance (false = graceful degradation)')
+  inheritance_resolved: z.boolean().optional().describe('Whether the graph DB resolved inheritance (false = graceful degradation)'),
+  /** Scoped graph-backed ontology context: relationships, evidence and applied evolution. Absent when unavailable. */
+  ontology_context: ontologyContextSchema
+    .optional()
+    .describe('Scoped ontology context for the top match: inheritance relationships, open anomalies, proposals and applied evolution. Read-only; no raw graph query surface.')
 }).strict();
 
 export type ActivateInput = z.infer<typeof activateInputSchema>;

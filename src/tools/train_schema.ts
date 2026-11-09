@@ -61,6 +61,13 @@ export const trainInputSchema = z
       ),
     llm_model_id: z.string().min(1).describe('LLM model ID'),
     force_update: z.boolean().optional().default(false).describe('Overwrite an existing adapter with the same label'),
+    expected_version: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Compare-and-swap guard: the stored adapter version this document is based on. Requires an explicit `slug:` in frontmatter. A stale value fails the train with VERSION_CONFLICT before anything is written.'
+      ),
     protocol_version: z.string().optional().describe('Adapter version (for example, semver)'),
     space: z.union([z.literal('personal'), z.string()]).optional().describe('Target space: "personal" or a group name'),
     source_adapter_uri: sourceAdapterUriSchema.optional().describe(
@@ -164,10 +171,13 @@ export const trainInputSchema = z
 
     refineTrainRelativePath(value, ctx);
 
-    // review_evidence is required for adapter (markdown) trains, not for artifacts or forks
+    // review_evidence is required for adapter (markdown) trains, not for artifacts or forks.
+    // The fork exemption must mirror `executeTrain`'s `isForkTrain` check: a fork carries
+    // the source adapter's reviewed content, so gating it here would reject over HTTP/MCP
+    // what the shared core accepts on the local path — a per-transport rule, not a rule.
     const hasArtifactFields = artifactName.length > 0 && adapterUri.length > 0;
     const isArtifact = (mime.length > 0 && mime !== 'text/markdown') || hasArtifactFields;
-    if (!isArtifact && value.content && !value.review_evidence) {
+    if (!isArtifact && !src && value.content && !value.review_evidence) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['review_evidence'],
@@ -210,6 +220,7 @@ export const trainStoreInputSchema = z.object({
   content: z.string().min(1).describe('Content to store'),
   llm_model_id: z.string().min(1).describe('LLM model ID'),
   force_update: z.boolean().optional().default(false).describe('Overwrite an existing adapter with the same label'),
+  expected_version: z.string().optional().describe('Compare-and-swap guard against the stored adapter version (requires an explicit slug in frontmatter).'),
   protocol_version: z.string().optional().describe('Protocol version (e.g. semver). Overrides or supplies version when document has no frontmatter.'),
   space: z.union([z.literal('personal'), z.string()]).optional().describe('Target space: "personal" (default) or group name to train into that group space'),
   mime: z.string().optional().describe('MIME type for content'),

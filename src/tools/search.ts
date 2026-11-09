@@ -16,7 +16,7 @@ import {
   SQUADRULES_ENABLE_GROUP_COLLAPSE,
   isRedisConfigured
 } from '../config.js';
-import { createResults, generateUnifiedOutput } from './search_output.js';
+import { generateUnifiedOutput, selectQualifiedResults } from './search_output.js';
 import { searchOutputSchema, type SearchInput, type SearchOutput } from './search_schema.js';
 import { logSearchAnomaly } from '../services/embedding/audit.js';
 import { structuredLogger } from '../utils/structured-logger.js';
@@ -167,7 +167,12 @@ async function doSearch(
   if (headCandidates.length > effectiveLimit) {
     headCandidates = headCandidates.slice(0, effectiveLimit);
   }
-  const results = headCandidates.length > 0 ? createResults(headCandidates, SCORE_THRESHOLD) : [];
+  // Qualified-set selection: >= MIN_QUALIFIED_MATCHES clear the threshold -> qualified,
+  // capped; otherwise the real top 3 with a warning. Never an invented match.
+  const selection = selectQualifiedResults(headCandidates, SCORE_THRESHOLD, {
+    maxChoices: SQUADRULES_SEARCH_MAX_CHOICES
+  });
+  const results = selection.results;
   logSearchAnomaly({
     tenantId,
     requestId,
@@ -181,7 +186,8 @@ async function doSearch(
     createUri: CREATION_PROTOCOL_URI,
     createNextAction: CREATE_NEXT_ACTION,
     refiningProtocolVersion: footerVersions.refine,
-    createProtocolVersion: footerVersions.create
+    createProtocolVersion: footerVersions.create,
+    matchWarning: selection.warning ?? null
   });
 }
 

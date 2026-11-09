@@ -32,16 +32,45 @@ import { LanceRecordWriter } from './lance-records-writes.js';
 
 const COLLECTION_LABEL = getQdrantCollection('squadrules');
 
+export interface LanceVectorRecordStoreOptions {
+  /**
+   * Directory holding the LanceDB database. Omitted means the env-resolved default
+   * (`resolveLanceDbDir()`), so existing callers keep their behaviour.
+   *
+   * Passing a directory is what lets two embedded stores live in one process without
+   * sharing a database — a second runtime, or an isolated test fixture.
+   */
+  databaseDir?: string;
+}
+
 export class LanceVectorRecordStore implements IVectorRecordStore {
-  private readonly engine = new LanceRecordEngine();
-  private readonly reader = new LanceRecordReader(this.engine);
-  private readonly mutator = new LanceRecordMutator(this.engine);
-  private readonly search = new LanceRecordSearch(this.engine);
-  private readonly writer = new LanceRecordWriter(this.engine, this.search);
+  private readonly engine: LanceRecordEngine;
+  private readonly reader: LanceRecordReader;
+  private readonly mutator: LanceRecordMutator;
+  private readonly search: LanceRecordSearch;
+  private readonly writer: LanceRecordWriter;
   private connectionPromise: Promise<LanceConnection> | null = null;
 
+  constructor(options: LanceVectorRecordStoreOptions = {}) {
+    // The engine owns reads and writes, so the directory must reach it too —
+    // otherwise this store would report one path and persist to another.
+    this.engine = new LanceRecordEngine(options.databaseDir);
+    this.reader = new LanceRecordReader(this.engine);
+    this.mutator = new LanceRecordMutator(this.engine);
+    this.search = new LanceRecordSearch(this.engine);
+    this.writer = new LanceRecordWriter(this.engine, this.search);
+  }
+
+  /** Lazily bind the effective directory shared by this facade, its engine and metadata. */
+  getDirectory(): string {
+    return this.engine.getDirectory();
+  }
+
   private connection(): Promise<LanceConnection> {
-    if (!this.connectionPromise) this.connectionPromise = openLanceConnection();
+    if (!this.connectionPromise) {
+      // Explicit directory when given, env-resolved default otherwise.
+      this.connectionPromise = openLanceConnection(this.getDirectory());
+    }
     return this.connectionPromise;
   }
 

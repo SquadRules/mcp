@@ -50,6 +50,13 @@ export const exportInputSchema = z
     format: exportFormatSchema.optional().default('skill_zip'),
     delivery: exportDeliverySchema.optional().describe('Byte transport for the response payload: `skill_zip` ZIP bytes, or `source` artifact bytes. `inline_base64` on `source` is the materialization path — an agent cannot re-write raw text byte-exactly.'),
     include_reward: z.boolean().optional().default(true),
+    version: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Historical snapshot selector: the monotonic version number recorded by train/tune (see the `history_version` field of a previous export). Requires a single `uri` and an initialized graph backend. Returns the exact stored markdown, digest-verified; restore it through normal train/tune.'
+      ),
     directory: z.string().optional().describe('Absolute directory path to write per-adapter files. SIMPLE/stdio mode only (CLI: local mode). Each selected adapter is written as <directory>/<slug>.md and the response carries directory_manifest instead of inline content. Required for `format: markdown` with an `adapters` or `all_adapters` selection.')
   })
   .superRefine((data, ctx) => {
@@ -74,6 +81,21 @@ export const exportInputSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: '`space_name` is required when `all_adapters` is true.'
+        });
+      }
+    }
+
+    if (data.version !== undefined && data.version.trim().length > 0) {
+      if (!hasUri || hasList || hasAll) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '`version` requires a single `uri` (adapter or layer), not an adapters list or all_adapters.'
+        });
+      }
+      if (data.format !== 'markdown') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '`version` is only valid with `format: markdown`.'
         });
       }
     }
@@ -143,6 +165,14 @@ export const exportOutputSchema = z.object({
   bundle_sha256: z.string().optional(),
   /** SHA-256 hex of the bytes in `content`; a `source` response can verify itself. */
   sha256: z.string().optional(),
+  /** Monotonic snapshot number returned when `version` selected a historical row. */
+  history_version: z.string().optional(),
+  /** Number of recorded snapshots for the exported adapter. */
+  history_versions: z.number().optional(),
+  /** SHA-256 of the returned snapshot bytes (equals the recorded digest when verified). */
+  snapshot_sha256: z.string().optional(),
+  snapshot_changed_at: z.string().optional(),
+  snapshot_changed_by: z.string().optional(),
   /** Number of adapters included in a multi-export bundle. */
   export_adapter_count: z.number().optional(),
   /** Optional compact manifest JSON string for skill bundles. */

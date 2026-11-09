@@ -6,9 +6,12 @@ Update existing **adapter** content in place.
 - `content` (optional) — parallel array of full markdown bodies (preferred for text changes).
 - `updates` (optional) — advanced field map; prefer `content` for ordinary edits.
 - `space` (optional) — `"personal"` or a full group path such as `"{{SQUADRULES_GROUP_SPACE_PATH_EXAMPLE}}"`: reassign **all layers** of each targeted adapter to that space. You can use **`space` alone** (move only) or combine with `content` / `updates` (edit then move). Adapter URI moves every layer; layer URI moves that layer only.
+- `expected_version` (optional) — compare-and-swap guard: the adapter version this write was prepared against. It is checked against the adapter head **before anything is written**, for an adapter URI and for a layer URI that is a stored layer of an adapter. A stale value fails that URI with `VERSION_CONFLICT`; a layer that cannot be tied to a stored adapter head fails with `VERSION_GUARD_UNSUPPORTED` instead of writing unguarded. Use it when restoring a historical snapshot or applying an accepted evolution proposal.
 - `review_evidence` (required when `content` is provided) — critic-loop verdict proof. Delegate a subagent to run critic-loop before **`tune`** with content; do not review your own edit on the caller's thread. Provide the verdict file as proof. Object with `verdict_file` (absolute path), `exit_code` (must be 0), and `stdout` (line 1 must be PASS). One PASS covers all URIs in the tune call. Not required for space-only moves or updates-only (no content) tunes.
 
-**Output:** `results` with per-URI `status` (`updated` | `error`) and `message`, plus totals. Response contains the update results and any errors encountered. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
+**Output:** `results` with per-URI `status` (`updated` | `error`) and `message`, plus totals. A failed row also carries `error` — `code`, `target`, `expected`, then `current` for a conflict or `reason` for an unsupported guard — so branch on the code, never on the sentence. Response contains the update results and any errors encountered. Response envelope includes `ttlMs` and `cacheScope` cache metadata.
+
+**History:** every successful markdown tune appends an immutable snapshot (content, digest, actor, space, parent version, reason) to the graph — the previous document is never overwritten in place, so a bad tune is recoverable with **`export`** (`version: "<n>"`) plus a normal **`train`**/**`tune`** carrying `expected_version`. Read history through **`export`**, not through a graph query (`docs/adr/0045-graph-native-history-and-restore.md`).
 
 **Rules:**
 
@@ -22,4 +25,4 @@ Update existing **adapter** content in place.
 - Refresh execution context after large **`tune`** edits (new **`forward`**
   from the adapter URI).
 
-**On failure:** If tune returns an error status, verify the URI exists and check the message for details. If the error is "layer not found", verify the URI or train a new adapter if needed. If review_evidence validation fails, ensure the critic-loop verdict file is provided with exit_code 0 and PASS on stdout line 1.
+**On failure:** If tune returns an error status, verify the URI exists and check the message for details. If the error is "layer not found", verify the URI or train a new adapter if needed. If the row carries `error.code: VERSION_CONFLICT`, re-read the current adapter (**`export`**) and rebase the edit on `error.current`. If it carries `error.code: VERSION_GUARD_UNSUPPORTED`, the URI names no adapter head to compare — retry with the adapter URI, or drop `expected_version` to write without the guard. If review_evidence validation fails, ensure the critic-loop verdict file is provided with exit_code 0 and PASS on stdout line 1.

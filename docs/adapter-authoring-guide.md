@@ -38,9 +38,11 @@ exemptions are in
 Descend only when the higher rung genuinely cannot apply, and say why in the
 adapter text. "Was faster to write" is not a reason. Rungs 1–3 and the fallback are
 **soft-enforced** through this guide, the `critic-loop` review checklist, and the
-`author-adapter` authoring checklist; the hard, fail-closed structural rules are
-the three objective ones (`shell_interpreter_required`, `forward_link_only`,
-`subagent_mcp_invalid`).
+`author-adapter` authoring checklist. The hard, fail-closed rules are the ones
+`train`'s structural validator enforces — the required sections and the contract
+block, plus the per-type rules (`shell_interpreter_required`, `forward_link_only`,
+`subagent_mcp_invalid`) — and a rejected document names the violated code. Because
+that set lives in the validator, it is not enumerated exhaustively here.
 
 ### The critic never runs on the executor's thread
 
@@ -224,7 +226,12 @@ needs. All four operations are autonomous: no human approval gate, and the
   evidence about those parts), prove the verdict before saving with `tune`, then
   read the stored adapter back as the completion criterion. Readiness before the
   save is a gate; the read-back after it is not observable from a shell on a
-  remote store, so it stays an instruction rather than a fake proof.
+  remote store, so it stays an instruction rather than a fake proof. Carry the
+  version you exported as `expected_version` on the save: a concurrent change then
+  fails as an actionable `VERSION_CONFLICT` instead of silently overwriting it,
+  and restoring a historical snapshot or applying an accepted evolution proposal
+  takes this same path ([ADR 0045](adr/0045-graph-native-history-and-restore.md),
+  [ADR 0046](adr/0046-evidence-gated-evolution-proposals.md)).
 - **Review** — read-only. Export the target(s) and audit against the checklist
   (structural compliance, contract coverage, ladder placement, DRY, activation
   accuracy). Produce a findings report; do not mutate and do not `train`.

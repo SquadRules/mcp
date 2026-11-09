@@ -20,6 +20,13 @@ export const tuneInputSchema = z
       .union([z.literal('personal'), z.string()])
       .optional()
       .describe('Move all layers of each target adapter to this space ("personal" or group name), optionally after content updates'),
+    expected_version: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Compare-and-swap guard: the adapter version this write was prepared against. Checked against the adapter head before anything is written, for an adapter URI and for a layer URI that is a stored layer of an adapter. A stale value fails that URI with VERSION_CONFLICT; a layer that cannot be tied to a stored adapter head fails with VERSION_GUARD_UNSUPPORTED instead of writing unguarded. Use it when restoring a historical snapshot or applying an accepted evolution proposal.'
+      ),
     review_evidence: z.object({
       verdict_file: z.string().describe('Absolute path to the critic-loop verdict file'),
       exit_code: z.number().describe('Shell exit code (must be 0)'),
@@ -60,7 +67,23 @@ export const tuneOutputSchema = z.object({
   results: z.array(z.object({
     uri: tuneUriSchema,
     status: z.enum(['updated', 'error']),
-    message: z.string()
+    message: z.string(),
+    // Version guards and unavailable inheritance validation retain typed diagnostics.
+    // Other errors remain message-only; callers need not parse these supported families.
+    error: z.union([
+      z.object({
+        code: z.enum(['VERSION_CONFLICT', 'VERSION_GUARD_UNSUPPORTED']),
+        target: z.string(),
+        expected: z.string(),
+        current: z.string().optional(),
+        reason: z.string().optional()
+      }),
+      z.object({
+        code: z.literal('INHERITANCE_VALIDATION_UNAVAILABLE'),
+        status: z.literal('unavailable'),
+        details: z.record(z.string(), z.unknown())
+      })
+    ]).optional()
   })),
   total_updated: z.number(),
   total_failed: z.number()

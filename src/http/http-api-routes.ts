@@ -30,7 +30,7 @@ export function setupApiRoutes(app: express.Express, memoryStore: MemoryQdrantSt
     setupActivateRoute(app, memoryStore, qdrantService); // /api/activate
     setupForwardRoute(app, memoryStore, qdrantService); // /api/forward
     setupRewardRoute(app, qdrantService); // /api/reward
-    setupUpdateRoute(app, qdrantService); // /api/tune
+    setupUpdateRoute(app, memoryStore, qdrantService); // /api/tune
     setupDeleteRoute(app, qdrantService);
     setupDumpRoute(app, memoryStore, qdrantService);
 }

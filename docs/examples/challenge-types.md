@@ -13,7 +13,7 @@ The documents in this folder are **real markdown adapters ready for `train`**. E
 | [adapter-example-user-input.md](adapter-example-user-input.md) | user_input | Emergency authority gap — not routine confirmation. |
 | [adapter-example-comment.md](adapter-example-comment.md) | comment | Knowledge adapter closing acknowledgement (last resort). |
 | [adapter-example-all-types.md](adapter-example-all-types.md) | shell, forward, subagent, user_input, comment | Reference demonstration of every contract shape. |
-| [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | UI/long-run test fixture (exempt from ≤1 comment rule). |
+| [adapter-twelve-step-linear-test.md](adapter-twelve-step-linear-test.md) | comment ×12 | UI/long-run test fixture, not a template; its exemption is the closed §5 fixture exemption in [ADR 0024](../adr/0024-adapter-contract-verification-ladder.md). |
 
 ## How to train
 
@@ -77,19 +77,13 @@ Proof requires `evidence.report` containing the subagent's actual report.
 
 - `comment.min_length` — minimum character count for the acknowledgement.
 
-## Solution shapes (for forward)
+## Solution shapes
 
-When the server returns a challenge, the agent submits a solution in `forward`. The solution must match the contract type.
-
-| Type | Solution shape | Pass condition |
-|------|----------------|----------------|
-| **shell** | `type: "shell"`, `shell: { exit_code, stdout?, stderr?, duration_seconds? }` | `exit_code === 0` |
-| **forward** | `type: "forward"`, `evidence: { target, success }` | `success === true`; `target` matches contract `forward.target` |
-| **subagent** | `type: "subagent"`, `evidence: { report }` | `report` is non-empty |
-| **user_input** | `type: "user_input"`, `user_input: { confirmation, timestamp? }` | Agent supplies confirmation from user |
-| **comment** | `type: "comment"`, `comment: { text }` | `text.length` ≥ contract `min_length` |
-
-Always echo `nonce` and `proof_hash` from the challenge (or previous response) when present; the server generates them.
+A solution is submitted through the **`forward`** tool (the tool, not the `forward`
+contract type) and must match the challenge's contract type. The unified envelope
+(`type`, `outcome`, `evidence`), the per-type `evidence` payloads, the `nonce`/`proof_hash`
+echo, and the older shapes the server still accepts are specified in the **`forward` tool
+description** — their single home — and are not copied here.
 
 After the final **`forward`** for the run, the server directs the client to
 call **`reward`** to finish the run.

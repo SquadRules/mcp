@@ -1,309 +1,63 @@
+/**
+ * `tune` dispatcher.
+ *
+ * Three request shapes reach this entry point and each has its own write path:
+ *
+ *   1. `content` for an adapter URI → `tuneAdapterMarkdownInPlace` (own module: the
+ *      gate-heavy path).
+ *   2. `content`/`updates` for a layer URI → `executeUpdate`, unchanged.
+ *   3. `space` only → reassign the adapter's layers, no content write.
+ *
+ * Keeping the dispatcher thin is deliberate: it is the file that decides *which*
+ * path runs, and a reader must be able to see that decision without scrolling past
+ * the markdown rewrite's validators.
+ */
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { resolveSpaceParamForContext } from '../utils/resolve-space-param.js';
-import { CodeBlockProcessor } from '../services/code-block-processor.js';
-import { IDGenerator } from '../services/id-generator.js';
-import { buildHeaderMemoryAdapter } from '../services/memory/adapter-builder.js';
-import { parseFrontmatter } from '../utils/frontmatter.js';
 import { executeUpdate } from './update.js';
 import { type TuneInput, type TuneOutput } from './tune_schema.js';
-import { assertWireAdapterUri, parseSquadrulesUri, buildLayerUri } from './squadrules-uri.js';
+import { parseSquadrulesUri, buildLayerUri } from './squadrules-uri.js';
 import { buildTuneResultMessage } from './tune-messages.js';
-import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../utils/protected-space-write-guard.js';
-import { validateAdapterMarkdownSize } from '../services/memory/validate-adapter-markdown-size.js';
-import { verifyTuneLayerPersistence } from './tune-verify.js';
 import { assertReviewEvidencePassed } from './review-evidence-check.js';
+import type { MemoryQdrantStore } from '../services/memory/store.js';
+import { tuneAdapterMarkdownInPlace } from './tune-adapter-markdown.js';
+import { versionGuardPayload } from './version-cas.js';
+import { InheritanceValidationUnavailableError } from '../services/graph-db/inheritance-write-validation.js';
 import {
-  validateInheritanceFrontmatter,
-  parseOverrideList,
-  type InheritanceFrontmatter,
-  type StructuralWarning
-} from '../services/graph-db/adapter-inheritance.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
-import { structuredLogger } from '../utils/structured-logger.js';
-type AdapterLayerPoint = { uuid: string; payload: any };
+  assertTuneExpectedVersionForTarget,
+  collectLayerMemoryUuidsForTune,
+  normalizeTuneUri,
+  reassignAdapterLayersToSpace
+} from './tune-uri-resolution.js';
 
-function sortByLayerIndex(layers: AdapterLayerPoint[]): AdapterLayerPoint[] {
-  return [...layers].sort((left, right) => {
-    const li =
-      typeof left.payload?.adapter?.layer_index === 'number'
-        ? left.payload.adapter.layer_index
-        : Number.MAX_SAFE_INTEGER;
-    const ri =
-      typeof right.payload?.adapter?.layer_index === 'number'
-        ? right.payload.adapter.layer_index
-        : Number.MAX_SAFE_INTEGER;
-    return li - ri;
-  });
-}
-
-function selectAdapterLayerSet(layers: AdapterLayerPoint[], preferredSpaceId?: string): AdapterLayerPoint[] {
-  if (layers.length <= 1) {
-    return sortByLayerIndex(layers);
-  }
-
-  const groupedBySpace = new Map<string, AdapterLayerPoint[]>();
-  for (const layer of layers) {
-    const sid = typeof layer.payload?.space_id === 'string' ? layer.payload.space_id.trim() : '';
-    const key = sid.length > 0 ? sid : '__unknown__';
-    groupedBySpace.set(key, [...(groupedBySpace.get(key) ?? []), layer]);
-  }
-
-  if (groupedBySpace.size <= 1) {
-    return sortByLayerIndex(layers);
-  }
-
-  const ctx = getSpaceContextFromStorage();
-  const candidateSpaceIds = [preferredSpaceId, ctx.defaultWriteSpaceId].filter(
-    (value): value is string => typeof value === 'string' && value.trim().length > 0
-  );
-  for (const candidate of candidateSpaceIds) {
-    const selected = groupedBySpace.get(candidate.trim());
-    if (selected && selected.length > 0) {
-      return sortByLayerIndex(selected);
-    }
-  }
-
-  const fallbackSpaceId = [...groupedBySpace.keys()].sort((a, b) => a.localeCompare(b))[0];
-  return sortByLayerIndex(groupedBySpace.get(fallbackSpaceId!) ?? layers);
-}
-
-function assertWritableTuneLayers(layers: AdapterLayerPoint[]): void {
-  for (const layer of layers) {
-    const spaceId = typeof layer.payload?.space_id === 'string' ? layer.payload.space_id : '';
-    if (isProtectedWriteSpace(spaceId)) {
-      throw new Error(protectedWriteErrorMessage(spaceId));
-    }
-  }
-}
-
-async function resolveAdapterIdFromWireUri(
-  qdrantService: QdrantService,
-  uri: string
-): Promise<{ adapterId: string; canonicalAdapterUri: string }> {
-  const canonicalAdapterUri = assertWireAdapterUri(uri);
-  const parsed = parseSquadrulesUri(canonicalAdapterUri);
-  const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(parsed.id);
-  if (!slugOutcome.layerUuid) throw new Error(`Adapter not found: ${canonicalAdapterUri}`);
-  const firstLayer = await qdrantService.getMemoryByUUID(slugOutcome.layerUuid);
-  const adapterId =
-    typeof firstLayer?.adapter?.id === 'string' && firstLayer.adapter.id.trim().length > 0
-      ? firstLayer.adapter.id
-      : slugOutcome.layerUuid;
-  return { adapterId, canonicalAdapterUri };
-}
-
-async function normalizeTuneUri(qdrantService: QdrantService, uri: string, preferredSpaceId?: string): Promise<string> {
-  const parsed = parseSquadrulesUri(uri);
-  if (parsed.kind === 'layer') {
-    return buildLayerUri(parsed.id, parsed.executionId);
-  }
-
-  const { adapterId } = await resolveAdapterIdFromWireUri(qdrantService, uri);
-  const layers = selectAdapterLayerSet(await qdrantService.getAdapterLayers(adapterId), preferredSpaceId);
-  assertWritableTuneLayers(layers);
-  const head = layers[0]?.uuid ?? adapterId;
-  return buildLayerUri(head);
-}
-
-async function collectLayerMemoryUuidsForTune(
-  qdrantService: QdrantService,
+/**
+ * A failed row, keeping a failed version guard machine-readable.
+ *
+ * The prose `message` stays as it was (callers match on `VERSION_CONFLICT`), but the code
+ * and the compared versions travel as fields so a transport never has to parse them back
+ * out of a sentence.
+ */
+function failureRow(
   uri: string,
-  preferredSpaceId?: string
-): Promise<string[]> {
-  const parsed = parseSquadrulesUri(uri);
-  if (parsed.kind === 'layer') {
-    return [parsed.id];
+  error: unknown,
+  prefix: string
+): TuneOutput['results'][number] {
+  const detail = error instanceof Error ? error.message : String(error);
+  const row: TuneOutput['results'][number] = { uri, status: 'error', message: `${prefix}${detail}` };
+  const guard = versionGuardPayload(error);
+  if (guard) row.error = guard;
+  else if (error instanceof InheritanceValidationUnavailableError) {
+    row.error = { code: error.code, status: error.status, details: error.details };
   }
-  const { adapterId } = await resolveAdapterIdFromWireUri(qdrantService, uri);
-  const layers = selectAdapterLayerSet(await qdrantService.getAdapterLayers(adapterId), preferredSpaceId);
-  assertWritableTuneLayers(layers);
-  return layers.map((l) => l.uuid);
+  return row;
 }
 
-async function reassignAdapterLayersToSpace(
+export async function executeTune(
   qdrantService: QdrantService,
-  originalUri: string,
-  targetSpaceId: string
-): Promise<void> {
-  const layerUuids = await collectLayerMemoryUuidsForTune(qdrantService, originalUri);
-  for (const uuid of layerUuids) {
-    await qdrantService.updateMemory(uuid, { space_id: targetSpaceId });
-  }
-}
-
-/**
- * Extract inheritance-relevant frontmatter from adapter markdown for tune.
- * Returns null when no `inherits:` field is present.
- */
-function extractInheritanceFrontmatterForTune(markdown: string): InheritanceFrontmatter | null {
-  const parsed = parseFrontmatter(markdown);
-  if (!parsed.inherits) return null;
-
-  const fm: InheritanceFrontmatter = {
-    inherits: parsed.inherits,
-  };
-  if (parsed.slugRaw) fm.slug = parsed.slugRaw;
-  if (parsed.version) fm.version = parsed.version;
-  if (parsed.title) fm.title = parsed.title;
-  if (parsed.chainRoot) fm.chain_root = parsed.chainRoot;
-  if (parsed.overrideRaw) {
-    fm.override = parseOverrideList(parsed.overrideRaw);
-  }
-
-  return fm;
-}
-
-/**
- * Validate inheritance frontmatter before tune memory write (fail-closed).
- * Throws on structural errors; returns warnings for the response.
- */
-function assertTuneInheritanceValid(markdown: string): StructuralWarning[] {
-  const fm = extractInheritanceFrontmatterForTune(markdown);
-  if (!fm) return [];
-
-  const result = validateInheritanceFrontmatter(fm, null);
-
-  if (result.errors.length > 0) {
-    const messages = result.errors.map((e) => `[${e.code}] ${e.message}`).join('; ');
-    throw new Error(`Inheritance validation failed: ${messages}`);
-  }
-
-  return result.warnings;
-}
-
-/**
- * Attempt graph DB write after successful tune. Graceful degradation:
- * failures are logged but never propagated.
- */
-async function tryGraphWriteForTune(markdown: string): Promise<void> {
-  const graphDb = getGraphDbService();
-  if (!graphDb || !graphDb.isInitialized()) return;
-
-  const parsed = parseFrontmatter(markdown);
-  const slug = parsed.slugRaw?.trim();
-  if (!slug) return;
-
-  const fm: InheritanceFrontmatter = extractInheritanceFrontmatterForTune(markdown) ?? {
-    slug,
-    ...(parsed.version && { version: parsed.version }),
-  };
-
-  try {
-    await graphDb.writeAdapterFromFrontmatter(
-      slug,
-      parsed.version || '0.0.0',
-      fm,
-      {
-        title: parsed.title || slug,
-      }
-    );
-  } catch (err) {
-    structuredLogger.warn(
-      `graph db: writeAdapterFromFrontmatter failed for tune "${slug}" — ${err instanceof Error ? err.message : String(err)}`
-    );
-  }
-}
-
-async function tuneAdapterMarkdownInPlace(
-  qdrantService: QdrantService,
-  adapterUri: string,
-  markdownDoc: string
-): Promise<string> {
-  const { adapterId } = await resolveAdapterIdFromWireUri(qdrantService, adapterUri);
-  const existingLayers = selectAdapterLayerSet(await qdrantService.getAdapterLayers(adapterId));
-  assertWritableTuneLayers(existingLayers);
-  if (existingLayers.length === 0) {
-    throw new Error(`Adapter not found: ${adapterUri}`);
-  }
-
-  const currentModel = existingLayers[0]?.payload?.llm_model_id;
-  const llmModelId =
-    typeof currentModel === 'string' && currentModel.trim().length > 0 ? currentModel.trim() : 'tune-in-place';
-
-  const fullDocCheck = validateAdapterMarkdownSize(markdownDoc);
-  if (!fullDocCheck.ok) {
-    throw new Error(`${fullDocCheck.message} (${fullDocCheck.code})`);
-  }
-
-  const parsedDoc = parseFrontmatter(markdownDoc);
-  const adapterMarkdown = parsedDoc.body.length > 0 ? parsedDoc.body : markdownDoc;
-  const codeBlockProcessor = new CodeBlockProcessor();
-  const nextLayers = buildHeaderMemoryAdapter(adapterMarkdown, llmModelId, new Date(), codeBlockProcessor);
-  if (nextLayers.length === 0) {
-    throw new Error('Invalid adapter markdown: expected H1 with at least one layer');
-  }
-
-  const nextAdapterName = nextLayers[0]?.adapter?.name?.trim() ?? '';
-  if (!nextAdapterName) {
-    throw new Error('Invalid adapter markdown: missing adapter title (H1)');
-  }
-  const expectedAdapterId = IDGenerator.generateAdapterUUIDv5(nextAdapterName);
-  if (expectedAdapterId !== adapterId) {
-    throw new Error(
-      `Adapter title "${nextAdapterName}" resolves to ${expectedAdapterId}, but tune target is ${adapterId}. Keep the H1 unchanged when tuning by adapter URI.`
-    );
-  }
-
-  if (nextLayers.length !== existingLayers.length) {
-    throw new Error(
-      `Layer count mismatch: adapter has ${existingLayers.length} layers, markdown has ${nextLayers.length}. Use train(force_update=true) for structural adapter changes.`
-    );
-  }
-
-  const frontmatterVersion =
-    typeof parsedDoc.version === 'string' && parsedDoc.version.trim().length > 0 ? parsedDoc.version.trim() : undefined;
-  if (frontmatterVersion) {
-    for (const memory of nextLayers) {
-      if (memory.adapter) {
-        memory.adapter.protocol_version = frontmatterVersion;
-      }
-    }
-  }
-
-  // Fail-closed inheritance structural validation (before memory write)
-  assertTuneInheritanceValid(markdownDoc);
-
-  for (let i = 0; i < existingLayers.length; i++) {
-    const existing = existingLayers[i]!;
-    const next = nextLayers[i]!;
-    const existingAdapter =
-      existing.payload?.adapter && typeof existing.payload.adapter === 'object'
-        ? (existing.payload.adapter as Record<string, unknown>)
-        : {};
-    const nextAdapter = next.adapter;
-
-    const adapterUpdate: Record<string, unknown> = {
-      ...existingAdapter,
-      id: adapterId,
-      name: nextAdapter?.name ?? existingAdapter['name'],
-      layer_index: i + 1,
-      layer_count: nextLayers.length,
-      activation_patterns: Array.isArray(nextAdapter?.activation_patterns) ? nextAdapter.activation_patterns : [],
-      reward_signal: typeof nextAdapter?.reward_signal === 'string' ? nextAdapter.reward_signal : ''
-    };
-    if (typeof nextAdapter?.protocol_version === 'string' && nextAdapter.protocol_version.trim().length > 0) {
-      adapterUpdate['protocol_version'] = nextAdapter.protocol_version.trim();
-    }
-
-    await qdrantService.updateMemory(existing.uuid, {
-      label: next.label,
-      text: next.text,
-      tags: next.tags,
-      adapter: adapterUpdate,
-      inference_contract: next.inference_contract ?? null
-    });
-  }
-
-  await verifyTuneLayerPersistence(qdrantService, existingLayers, nextLayers);
-
-  // Graceful-degradation graph write (after successful tune)
-  await tryGraphWriteForTune(markdownDoc);
-
-  return buildLayerUri(existingLayers[0]!.uuid);
-}
-
-export async function executeTune(qdrantService: QdrantService, input: TuneInput): Promise<TuneOutput> {
+  input: TuneInput,
+  memoryStore?: MemoryQdrantStore
+): Promise<TuneOutput> {
   const ctx = getSpaceContextFromStorage();
   const rawSpace = typeof input.space === 'string' ? input.space.trim() : '';
   let targetSpaceId: string | undefined;
@@ -333,6 +87,8 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
     let total_failed = 0;
     for (const originalUri of input.uris) {
       try {
+        // A move-only tune still writes stored layers, so a requested guard is checked here.
+        await assertTuneExpectedVersionForTarget(qdrantService, originalUri, input.expected_version);
         const layerUuids = await collectLayerMemoryUuidsForTune(qdrantService, originalUri);
         for (const uuid of layerUuids) {
           await qdrantService.updateMemory(uuid, { space_id: targetSpaceId });
@@ -345,12 +101,7 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
         });
         total_updated++;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        results.push({
-          uri: originalUri,
-          status: 'error',
-          message: `Space move failed: ${errorMessage}`
-        });
+        results.push(failureRow(originalUri, error, 'Space move failed: '));
         total_failed++;
       }
     }
@@ -367,7 +118,13 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
     const parsedUri = parseSquadrulesUri(originalUri);
     try {
       if (parsedUri.kind === 'adapter' && typeof contentAtIndex === 'string' && contentAtIndex.trim().length > 0) {
-        const layerUri = await tuneAdapterMarkdownInPlace(qdrantService, originalUri, contentAtIndex);
+        const layerUri = await tuneAdapterMarkdownInPlace(
+          qdrantService,
+          originalUri,
+          contentAtIndex,
+          memoryStore,
+          input.expected_version
+        );
         results.push({
           uri: layerUri,
           status: 'updated',
@@ -376,6 +133,12 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
         total_updated++;
         continue;
       }
+
+      // Every remaining path writes stored layers directly (a layer URI, or an adapter URI
+      // with `updates` instead of `content`). The markdown rewrite above owns its own guard,
+      // so this is the one place the other paths inherit it. No `expected_version` is a
+      // no-op: an ordinary tune behaves exactly as before.
+      await assertTuneExpectedVersionForTarget(qdrantService, originalUri, input.expected_version);
 
       const normalizedUri = await normalizeTuneUri(qdrantService, originalUri);
       const perUriUpdate = await executeUpdate(qdrantService, {
@@ -397,12 +160,7 @@ export async function executeTune(qdrantService: QdrantService, input: TuneInput
       if (row.status === 'updated') total_updated++;
       else total_failed++;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      results.push({
-        uri: originalUri,
-        status: 'error',
-        message: `Failed to update adapter layer: ${errorMessage}`
-      });
+      results.push(failureRow(originalUri, error, 'Failed to update adapter layer: '));
       total_failed++;
     }
   }

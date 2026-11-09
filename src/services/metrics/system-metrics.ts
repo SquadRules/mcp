@@ -30,8 +30,11 @@ export const systemProcessStartTime = new Gauge({
 const processStartTime = Date.now() / 1000;
 systemProcessStartTime.set(processStartTime);
 
-// Update uptime periodically
-setInterval(() => {
+// Update uptime periodically. `unref()` keeps this refresh from being the only
+// thing holding the event loop open, so a short-lived process (CLI, test
+// harness) can still exit naturally; a serving process is held open by its
+// listener, not by this timer.
+const systemMetricsTimer = setInterval(() => {
   systemUptime.set(process.uptime());
   
   const memUsage = process.memoryUsage();
@@ -39,6 +42,7 @@ setInterval(() => {
   systemMemoryUsage.set({ type: 'heapTotal' }, memUsage.heapTotal);
   systemMemoryUsage.set({ type: 'heapUsed' }, memUsage.heapUsed);
 }, 5000); // Update every 5 seconds
+systemMetricsTimer.unref();
 
 
 

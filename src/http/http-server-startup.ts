@@ -5,10 +5,15 @@ import express from 'express';
  * Start HTTP server with error handling
  * @param app Express application instance
  * @param port Port to listen on
+ * @param host Interface to bind to; defaults to all interfaces
  * @returns HTTP server instance
  */
-export function startHttpServerWithErrorHandling(app: express.Express, port: number) {
-    const httpServer = app.listen(port, '0.0.0.0', () => {
+export function startHttpServerWithErrorHandling(
+    app: express.Express,
+    port: number,
+    host: string = '0.0.0.0'
+) {
+    const httpServer = app.listen(port, host, () => {
         structuredLogger.success('HTTP server', 'listening on port ' + port);
         structuredLogger.info('Health check: http://localhost:' + port + '/health');
         structuredLogger.info('MCP endpoint: http://localhost:' + port + '/mcp');

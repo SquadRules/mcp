@@ -1,5 +1,29 @@
 import type { ShellInterpreter } from '../tools/shell-challenge-invocation.js';
 
+/**
+ * Inheritance frontmatter persisted on a stored adapter layer.
+ *
+ * The adapter body stays in `Memory.text`; this carries the frontmatter the graph
+ * projects and the merge semantics read. The index signature is deliberate: an
+ * author may declare arbitrary domain properties (`risk_level: high`) and they must
+ * survive the write, otherwise `override:` naming them would fail `override_unknown_field`
+ * even though the parent really declared the field.
+ */
+export interface StoredAdapterFrontmatter {
+  slug?: string;
+  version?: string;
+  title?: string;
+  /** Parent adapter slug — the edge this adapter declares. */
+  inherits?: string;
+  /** Chain entry-point slug. */
+  chain_root?: string;
+  /** Fields this adapter overrides from its parent. */
+  override?: string[];
+  protocol_version?: string;
+  /** Any other author-declared frontmatter field, preserved verbatim. */
+  [key: string]: unknown;
+}
+
 export interface AdapterInfo {
   id: string; // Stable adapter identifier (typically the head layer UUID)
   name: string; // Adapter title (H1)
@@ -10,6 +34,8 @@ export interface AdapterInfo {
   reward_signal?: string; // Optional trailing Reward Signal markdown section
   /** Slug of the chain entry-point adapter. When set, `activate` collapses this adapter's URI to the root. */
   chain_root?: string;
+  /** Persisted inheritance frontmatter, so the graph can be rebuilt from records. */
+  frontmatter?: StoredAdapterFrontmatter;
 }
 
 export type InferenceContractType = 'shell' | 'forward' | 'user_input' | 'comment' | 'subagent';

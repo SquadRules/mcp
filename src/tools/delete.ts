@@ -9,7 +9,8 @@ import { mcpLooseToolInput } from './mcp-loose-input-schema.js';
 import { mcpToolInputValidationErrorResult } from './mcp-tool-input-teaching.js';
 import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
-import { getGraphDbService } from '../services/graph-db/graph-db-singleton.js';
+import { getGraphDb } from '../services/graph-db/graph-owner.js';
+import { storedAdapterScope } from '../services/graph-db/adapter-scope.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 
 /** Shared execute: delete memories by URIs. Used by MCP tool and HTTP route. */
@@ -30,13 +31,29 @@ export async function executeDelete(
         const canonicalParsed = parseSquadrulesUri(canonicalAdapterUri);
         const slug = canonicalParsed.id;
 
+        const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(slug);
+        if (!slugOutcome.layerUuid) {
+          throw new Error(`Adapter not found: ${canonicalAdapterUri}`);
+        }
+        const firstLayer = await qdrantService.getMemoryByUUID(slugOutcome.layerUuid);
+        const adapterId =
+          typeof firstLayer?.adapter?.id === 'string' && firstLayer.adapter.id.trim().length > 0
+            ? firstLayer.adapter.id
+            : slugOutcome.layerUuid;
+
         // Touchpoint 5: inheritance precondition check.
-        // Refuse to delete when other adapters inherit from this one.
+        // Refuse to delete when other adapters inherit from this one. The check runs
+        // after the record is loaded because the node key is scoped by the space the
+        // adapter is stored in — the same slug in another space is a different node.
         // Graceful degradation: if graph DB is unavailable or throws, log and continue.
         try {
-          const graphDb = getGraphDbService();
+          const graphDb = getGraphDb(qdrantService);
           if (graphDb) {
-            const children = await graphDb.getChildren(slug);
+            const scope = storedAdapterScope(
+              typeof firstLayer?.space_id === 'string' ? firstLayer.space_id : undefined,
+              'delete'
+            );
+            const children = await graphDb.getChildren(scope.spaceId, slug);
             if (children.length > 0) {
               results.push({
                 uri,
@@ -53,16 +70,6 @@ export async function executeDelete(
           const graphErrMsg = graphErr instanceof Error ? graphErr.message : String(graphErr);
           structuredLogger.warn(`delete: inheritance precondition check failed for '${slug}' (${graphErrMsg}) — continuing with delete`);
         }
-
-        const slugOutcome = await qdrantService.findFirstStepMemoryUuidBySlug(slug);
-        if (!slugOutcome.layerUuid) {
-          throw new Error(`Adapter not found: ${canonicalAdapterUri}`);
-        }
-        const firstLayer = await qdrantService.getMemoryByUUID(slugOutcome.layerUuid);
-        const adapterId =
-          typeof firstLayer?.adapter?.id === 'string' && firstLayer.adapter.id.trim().length > 0
-            ? firstLayer.adapter.id
-            : slugOutcome.layerUuid;
         const layers = await qdrantService.getAdapterLayers(adapterId);
         for (const layer of layers) {
           await qdrantService.deleteMemory(layer.uuid);

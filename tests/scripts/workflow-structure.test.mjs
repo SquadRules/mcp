@@ -38,7 +38,7 @@ test('security workflow includes dependency review and does not continue on erro
 
 test('integration build runs all required scripts', () => {
   const integration = workflow('integration');
-  for (const script of ['lint', 'typecheck', 'knip', 'test:ui', 'build:tgz', 'test:tgz']) {
+  for (const script of ['lint', 'typecheck', 'knip', 'test:spec-parity', 'test:api-spec-parity', 'test:ui', 'build:tgz', 'test:tgz']) {
     assert.ok(integration.jobs.build.steps.some(s => s.run === `npm run ${script}`));
   }
 });
@@ -71,8 +71,10 @@ test('workflows use native path filtering to prevent empty-diff bypass', () => {
     security: ['src/**', 'package.json', 'package-lock.json'],
   };
 
+  const requiredBranches = { integration: ['main', 'squadrules-6'], security: ['main', 'squadrules-6'] };
+
   for (const [config, name] of [[integration, 'integration'], [security, 'security']]) {
-    assert.deepEqual(config.on.pull_request.branches, ['main']);
+    assert.deepEqual(config.on.pull_request.branches, requiredBranches[name]);
     assert.ok(Array.isArray(config.on.pull_request.paths), 'Workflows must use native path filtering');
     for (const path of requiredPaths[name]) {
       assert.ok(config.on.pull_request.paths.includes(path), `Missing required path: ${path}`);
@@ -88,7 +90,7 @@ test('aggregate gates require all jobs and fail closed', () => {
   const security = workflow('security');
 
   for (const [config, gateId, required] of [
-    [integration, 'integration-pass', ['build', 'verify-integration-cluster', 'verify-integration-single']],
+    [integration, 'integration-pass', ['build', 'verify-integration-cluster', 'verify-integration-graph', 'verify-integration-single']],
     [security, 'security-pass', ['dependency-review', 'npm-audit', 'codeql']],
   ]) {
     const gate = config.jobs[gateId];
@@ -112,6 +114,7 @@ test('integration and security job dependencies are correct', () => {
   const security = workflow('security');
   assert.equal(integration.jobs.build.needs, undefined);
   assert.deepEqual(integration.jobs['verify-integration-cluster'].needs, ['build']);
+  assert.deepEqual(integration.jobs['verify-integration-graph'].needs, ['build']);
   assert.equal(security.jobs.codeql.needs, undefined);
   assert.equal(security.jobs['npm-audit'].needs, undefined);
   assert.equal(security.jobs['dependency-review'].if, "github.event_name == 'pull_request'");
@@ -262,7 +265,7 @@ test('ci gate is always-on, classifies the revision and fails closed', () => {
   const raw = readFileSync('.github/workflows/ci-gate.yml', 'utf8');
 
   assert.equal(gate.name, 'CI gate');
-  assert.deepEqual(gate.on.pull_request.branches, ['main']);
+  assert.deepEqual(gate.on.pull_request.branches, ['main', 'squadrules-6']);
   assert.deepEqual(gate.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review']);
   assert.ok(Object.hasOwn(gate.on, 'merge_group') && Object.hasOwn(gate.on, 'workflow_dispatch'));
   // The absence of a filter is the whole mechanism: a filtered aggregate cannot report.
@@ -334,10 +337,9 @@ test('ci gate is always-on, classifies the revision and fails closed', () => {
   assert.match(evidence.run, /--arg event "\$GITHUB_EVENT_NAME"/);
 });
 
-test('change-class application set equals the union of the filtered workflow paths', () => {
-  const integration = workflow('integration');
-  const security = workflow('security');
-  const union = [...new Set([...integration.on.pull_request.paths, ...security.on.pull_request.paths])].sort();
-  assert.deepEqual([...APP_PATHS].sort(), union,
-    'scripts/ci-change-class.mjs must expect evidence for exactly what integration.yml and security.yml can run for');
+test('each required evidence producer covers the entire change-class application set', () => {
+  for (const name of ['integration', 'security']) {
+    assert.deepEqual([...workflow(name).on.pull_request.paths].sort(), [...APP_PATHS].sort(),
+      `${name}.yml must report evidence for every application path the aggregate requires, not just their union`);
+  }
 });

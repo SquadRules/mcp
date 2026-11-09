@@ -165,6 +165,7 @@ export async function executeTrain(
     content,
     llm_model_id: input.llm_model_id,
     force_update: input.force_update,
+    ...(input.expected_version !== undefined && { expected_version: input.expected_version }),
     ...(input.protocol_version !== undefined && { protocol_version: input.protocol_version }),
     ...(input.space !== undefined && { space: input.space }),
     ...(resolvedMime !== undefined && { mime: resolvedMime }),

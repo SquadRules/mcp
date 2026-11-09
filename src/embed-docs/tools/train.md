@@ -5,6 +5,7 @@ Register a new **adapter** from markdown (one H1 = one adapter; each verifiable 
 - `content` — full document string (optional if `source_adapter_uri` supplies content).
 - `llm_model_id` — required model identifier string.
 - `force_update` (optional) — replace an existing adapter with the same label.
+- `expected_version` (optional) — compare-and-swap guard: the stored adapter version this document is based on. Requires an explicit `slug:` in frontmatter; a stale value fails with `VERSION_CONFLICT` before anything is written.
 - `protocol_version` (optional) — version string (e.g. semver) stored on the adapter.
 - `space` (optional) — `"personal"` or a full group path such as `"{{SQUADRULES_GROUP_SPACE_PATH_EXAMPLE}}"` (target space for the new adapter).
 - `source_adapter_uri` (optional) — `squadrules://adapter/{uuid}` to **fork**: export that adapter’s markdown and **train** a **new** adapter (new ids). If you also pass `content`, that text is used instead of the export (customize before calling **`train`**).
@@ -24,6 +25,34 @@ Register a new **adapter** from markdown (one H1 = one adapter; each verifiable 
   **`contract`** object.
 - Contract fences must use the `json` language tag only (no plain ``` blocks holding contract JSON).
 - Non-markdown artifacts (`mime` not `text/markdown`) are stored as adapter-linked artifacts instead of stored Markdown layers.
+
+**Inheritance frontmatter (checked before the memory write).** Two optional keys, validated against the **parent's stored** frontmatter so a bad declaration never lands:
+
+- `inherits:` — one parent slug. An array or comma list fails with `single_parent`.
+- `override:` — the parent fields this document replaces (the only fields a child's own value wins on; anything the parent never declared is contributed regardless). A structural field (`contract`, `type`, `steps`, `chain_root`, `inherits`, `override`, `verdict`, `work_envelope`, `effective_contract`, `effective_contracts`) fails with `structural_override_forbidden`; a field the parent does not declare fails with `override_unknown_field`.
+- A parent missing from the graph is **not** an error: the write succeeds and the response carries a `parent_missing` warning, which is what lets you train a chain bottom-up.
+
+Errors fail the call with nothing stored; warnings are returned in `warnings[]` alongside `status: stored`. Merge semantics: `docs/adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md`.
+
+**Declared anomaly (optional `anomaly:` frontmatter block).** A successful markdown train records the declaration as a graph anomaly discovered by this adapter, so the evidence outlives the call that produced it:
+
+  ```yaml
+  anomaly:
+    reason: "parent caps retry at 3; this adapter retries 5"
+    type: contradiction
+    severity: medium
+    field: retry_limit
+    observed: "5"
+    expected: "3"
+  ```
+
+`reason` (or `description`) becomes the anomaly text; `type` defaults to `contradiction`, `severity` to `medium`, `status` to `open`. This records a **claim to be confirmed**, never a verified fact — a digest proves the bytes, not the truth of the sentence.
+
+**History and version guard.** Every successful markdown train appends an immutable snapshot (content, digest, actor, space, parent version, reason) to the graph. History is append-only: nothing is overwritten in place, and a re-train of the same bytes is recorded as a new snapshot labelled `restored` with the snapshot it matches.
+
+- Pass `expected_version` to make the write a compare-and-swap; a moved adapter fails with `VERSION_CONFLICT` instead of being silently overwritten.
+- Restore is a normal train, not a special mode: read the snapshot with **`export`** (`version: "<n>"`), then train that markdown back with `expected_version`.
+- A train that would invalidate a stored descendant is rejected before the write, so a parent never lands half-updated. See `docs/adr/0045-graph-native-history-and-restore.md` and `docs/adr/0046-evidence-gated-evolution-proposals.md`.
 
 **Artifact identity header (artifact bodies only).** Start the file with a
 `squadrules-artifact` comment block to pin the artifact's identity instead of
@@ -64,4 +93,4 @@ For contract shapes and examples, call **`forward`** with
 `squadrules://adapter/author-adapter` and omit `solution` on the first call of
 the run (then follow `next_action`).
 
-**On failure:** If train fails with a duplicate adapter error, inspect the match and either use `force_update: true` to replace it or choose a different title. If structure validation fails, fix the markdown to include the required H1 title, Activation Patterns section, Reward Signal section, and at least one fenced JSON block with a contract object.
+**On failure:** If train fails with a duplicate adapter error, inspect the match and either use `force_update: true` to replace it or choose a different title. If structure validation fails, fix the markdown to include the required H1 title, Activation Patterns section, Reward Signal section, and at least one fenced JSON block with a contract object. If it fails with `VERSION_CONFLICT`, re-read the current adapter (**`export`**) and rebase your edit on that version; if it fails on inheritance (`single_parent` / `override_unknown_field` / `structural_override_forbidden`), fix the frontmatter — the message names the offending field and nothing was written.

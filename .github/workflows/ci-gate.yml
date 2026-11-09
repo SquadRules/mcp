@@ -10,6 +10,12 @@
 #     positive evidence in this check run instead of a skipped job;
 #   - application-class revision   -> integration and security runs for the same head
 #     commit must be completed and successful before this check reports Success.
+#     Integration carries the shared-backend Graph lane (real ArangoDB 3.11); that job is
+#     required by integration-pass unconditionally, so no path filter or `if:` guard can
+#     skip it away (ADR 0048);
+#   - graph-class revision         -> recorded so a shared-backend failure is attributable.
+#     The class is diagnostic, never permission: the Graph lane runs for every
+#     application revision, not only this one.
 # Everything else fails closed: unattributable paths, a failed git classification and
 # an empty diff all demand evidence rather than grant a pass.
 #
@@ -19,7 +25,7 @@ name: CI gate
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, squadrules-6]
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
   workflow_dispatch:
@@ -65,23 +71,26 @@ jobs:
         run: |
           set -uo pipefail
           summary() {
+            local shared=${5:-expected}
             {
               echo '## CI gate'
               echo ''
               echo "- change class: \`$1\` ($2)"
               echo '- documentation lane: '"$3"
               echo '- application lanes: '"$4"
+              echo '- shared-backend class: '"$shared"
             } >> "$GITHUB_STEP_SUMMARY"
           }
 
           if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ]; then
             # No pull request context exists, so there is no revision to attribute and no
             # integration or security run to wait for.
-            printf 'docs=true\napp=false\nreason=dispatch-no-pull-request-context\n' >> "$GITHUB_OUTPUT"
+            printf 'docs=true\napp=false\ngraph=false\nreason=dispatch-no-pull-request-context\n' >> "$GITHUB_OUTPUT"
             echo 'Dispatch runs execute the documentation lane only and cannot satisfy a required status check.'
             summary 'dispatch-no-pull-request-context' 'no pull request context' \
               'ran in this gate' \
-              'not evaluated - a dispatch revision can never satisfy a required check'
+              'not evaluated - a dispatch revision can never satisfy a required check' \
+              'not evaluated - the Graph lane needs a pull request revision'
             exit 0
           fi
 
@@ -90,13 +99,13 @@ jobs:
           # reaching git: anything unexpected is treated as unattributable, not as a pass.
           if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::warning::unexpected base/head revision identifiers; expecting every lane"
-            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            printf 'docs=true\napp=true\ngraph=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
             summary 'unclassified' 'revision identifiers rejected' 'expected' 'expected'
             exit 0
           fi
           if ! merge_base=$(git merge-base "$BASE_SHA" "$GITHUB_SHA" 2>/dev/null) || [ -z "$merge_base" ]; then
             echo "::warning::git merge-base failed for base $BASE_SHA head $GITHUB_SHA; expecting every lane"
-            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            printf 'docs=true\napp=true\ngraph=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
             summary 'unclassified' 'git classification unavailable' \
               'expected' 'expected'
             exit 0
@@ -105,7 +114,7 @@ jobs:
           # Quoted paths fail glob attribution and falsely demand app CI.
           if ! git diff --name-only -z "$merge_base" "$GITHUB_SHA" > "$DIFF_LIST"; then
             echo "::warning::git diff failed; expecting every lane"
-            printf 'docs=true\napp=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
+            printf 'docs=true\napp=true\ngraph=true\nreason=unclassified\n' >> "$GITHUB_OUTPUT"
             summary 'unclassified' 'git diff unavailable' 'expected' 'expected'
             exit 0
           fi
@@ -121,10 +130,15 @@ jobs:
           docs=$(printf '%s' "$classification" | jq -r .docs)
           app=$(printf '%s' "$classification" | jq -r .app)
           reason=$(printf '%s' "$classification" | jq -r .reason)
+          graph=$(printf '%s' "$classification" | jq -r .graph)
           files=$(printf '%s' "$classification" | jq -r .files)
           if [ "$docs" = 'true' ]; then documentation='ran in this gate'; else documentation='not owed (no documentation path changed)'; fi
           if [ "$app" = 'true' ]; then application='integration and security evidence required below'; else application='not owed (documentation-only revision)'; fi
-          summary "$reason" "$files file(s) attributed" "$documentation" "$application"
+          # Diagnostic only: the Graph lane is required for every application revision, so
+          # this records which revisions could own a shared-backend regression rather than
+          # deciding whether the lane runs.
+          if [ "$graph" = 'true' ]; then shared='owed (ArangoDB 3.11 lane inside integration.yml)'; else shared='not owed (no graph path changed; the lane still runs and is still required)'; fi
+          summary "$reason" "$files file(s) attributed" "$documentation" "$application" "$shared"
 
       - name: Documentation lane
         if: steps.classify.outputs.docs == 'true'

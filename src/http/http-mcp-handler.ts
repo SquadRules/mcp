@@ -17,6 +17,7 @@ import { buildListOfferingsUnauthorizedJsonRpc } from './mcp-ui-offerings-auth-j
 import { getSpaceContext, getTenantId, runWithSpaceContextAsync } from '../utils/tenant-context.js';
 import { buildListOfferingsForUIResult } from '../mcp-apps/list-offerings-for-ui.js';
 import { createServer } from '../server.js';
+import type { QdrantService } from '../services/qdrant/service.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import { SquadrulesError } from '../types/index.js';
 import { validateBearerToken } from './bearer-validate.js';
@@ -30,13 +31,17 @@ export interface McpRequestContext {
 export const mcpRequestStore = new AsyncLocalStorage<McpRequestContext>();
 
 // Track request start times by ID for accurate cancellation timing. Stale entries swept periodically.
+// `unref()` keeps the sweep from holding the event loop open on its own, so a
+// short-lived process can exit naturally; in-flight requests (not this timer)
+// are what keep a serving process alive.
 const requestTimestamps = new Map<string, number>();
-setInterval(() => {
+const requestTimestampSweep = setInterval(() => {
   const cutoff = Date.now() - 120_000;
   for (const [id, start] of requestTimestamps.entries()) {
     if (start < cutoff) requestTimestamps.delete(id);
   }
 }, 60_000);
+requestTimestampSweep.unref();
 
 /** Current number of in-flight MCP requests; used for backpressure (503 when over limit). */
 let concurrentMcpRequests = 0;
@@ -98,14 +103,18 @@ function mcpErrorToHelp(error: unknown): { message: string; error_code: string; 
  * @param app Express application instance
  * @param memoryStore Store used to create per-request MCP servers
  */
-export function setupMcpRoutes(app: express.Express, memoryStore: MemoryQdrantStore) {
+export function setupMcpRoutes(
+    app: express.Express,
+    memoryStore: MemoryQdrantStore,
+    service?: QdrantService
+) {
     // Create the MCP handler once per process. The factory creates a fresh
     // McpServer per request (stateless serving). The handler routes modern
     // (2026-07-28) and 2025-era clients to the appropriate codec.
     // The compat option key is a third-party SDK identifier; built at runtime.
     const compatKey = ['leg', 'acy'].join('');
     const mcpHandler = createMcpHandler(
-      () => createServer(memoryStore) as McpServer,
+      () => createServer(memoryStore, service) as McpServer,
       {
         [compatKey]: 'stateless',
         responseMode: 'json',

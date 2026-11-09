@@ -53,6 +53,10 @@ export function trainCliCommand(program: Command): void {
       'Fork from an existing adapter via POST /api/train (requires --model); optional --space for target space'
     )
     .option('--space <space>', 'Target space for train or fork (personal or group display name)')
+    .option(
+      '--expected-version <version>',
+      'Raw markdown only: CAS guard naming the stored adapter version this document is based on (requires an explicit slug)'
+    )
     .option('--adapter <uri>', 'Artifact mode: parent adapter URI (squadrules://adapter/{slug})')
     .option('--artifact-name <name>', 'Artifact mode: artifact filename override (defaults to input basename)')
     .option('--mime <mime>', 'Artifact mode: MIME override (otherwise inferred from filename extension)')
@@ -68,6 +72,7 @@ export function trainCliCommand(program: Command): void {
           allowSensitiveUpload?: boolean;
           sourceAdapterUri?: string;
           space?: string;
+          expectedVersion?: string;
           adapter?: string;
           artifactName?: string;
           mime?: string;
@@ -121,6 +126,9 @@ export function trainCliCommand(program: Command): void {
           if (options.force) trainOptions.force = options.force;
           if (typeof options.space === 'string' && options.space.trim().length > 0) {
             trainOptions.space = options.space.trim();
+          }
+          if (typeof options.expectedVersion === 'string' && options.expectedVersion.trim().length > 0) {
+            trainOptions.expectedVersion = options.expectedVersion.trim();
           }
           const envReviewEvidence = reviewEvidenceFromEnv();
           if (envReviewEvidence) trainOptions.reviewEvidence = envReviewEvidence;

@@ -18,8 +18,14 @@ import { setupExportArtifactDownloadRoutes } from './http-export-artifact-downlo
 import { setupErrorHandlers } from './http-error-handlers.js';
 import { startHttpServerWithErrorHandling } from './http-server-startup.js';
 import { qdrantService } from '../services/qdrant/index.js';
+import type { QdrantService } from '../services/qdrant/service.js';
 
-export function startHttpServer(port: number, memoryStore: MemoryQdrantStore) {
+export function startHttpServer(
+    port: number,
+    memoryStore: MemoryQdrantStore,
+    service: QdrantService = qdrantService,
+    host: string = '0.0.0.0'
+) {
     const app = express();
 
     // Configure middleware
@@ -36,23 +42,26 @@ export function startHttpServer(port: number, memoryStore: MemoryQdrantStore) {
 
     // Route handlers after auth middleware; capability download is outside `/api` auth.
     setupHealthRoutes(app, memoryStore);
-    setupExportDownloadRoutes(app, memoryStore, qdrantService);
+    setupExportDownloadRoutes(app, memoryStore, service);
     setupExportArtifactDownloadRoutes(app, memoryStore);
-    setupApiRoutes(app, memoryStore, { qdrantService });
-    setupMcpRoutes(app, memoryStore);
+    setupApiRoutes(app, memoryStore, { qdrantService: service });
+    setupMcpRoutes(app, memoryStore, service);
     setupUiStatic(app);
     setupErrorHandlers(app);
 
     // Start server with error handling
-    return startHttpServerWithErrorHandling(app, port);
+    return startHttpServerWithErrorHandling(app, port, host);
 }
 
-export async function startHttpTransport(memoryStore: MemoryQdrantStore) {
+export async function startHttpTransport(memoryStore: MemoryQdrantStore, service?: QdrantService) {
     const httpPort = SERVER_PORT;
 
     structuredLogger.success('SquadRules MCP Server starting', 'HTTP transport');
     structuredLogger.info('HTTP transport: enabled');
     structuredLogger.info('Port: ' + httpPort);
 
-    startHttpServer(httpPort, memoryStore);
+    // Return the listener so the shutdown handler can close it: an MCP listener that
+    // is still accepting requests holds the event loop open, which would keep the
+    // process alive after SIGTERM.
+    return startHttpServer(httpPort, memoryStore, service);
 }
