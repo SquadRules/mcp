@@ -17,11 +17,16 @@
  *   1. a failed reward records a proposal and never rewrites the parent;
  *   2. three distinct children reporting the same parent raise the bar to three
  *      confirmations — frequency is distinct children, never execution count;
- *   3. confirmations are attributed from the stored record and deduped by identity, so
- *      one runtime-local caller cannot reach quorum (two thirds of distinct agents) by
- *      repeating itself or by claiming `human_expert`;
- *   4. evidence outranks votes: one evidenced confirmation accepts the proposal and
- *      hands back an apply plan, and the parent's bytes and history stay untouched.
+ *   3. an auth-disabled HTTP caller is `runtime-local`, and ADR 0046 §6 requires an
+ *      authenticated subject for every vote. confirmProposal refuses that identity with
+ *      `authenticated_subject_required` before anything is written, so neither a repeated
+ *      call, a `human_expert` claim, nor evidence can bypass the guard over HTTP. The
+ *      dedupe-by-identity consensus rules that guard enforces are exercised end-to-end
+ *      by the embedded suite (`graph-db-evolution.test.ts`), which supplies a stable
+ *      `userId` through the space context.
+ *   4. whatever the caller sends on a confirmation attempt, the parent's bytes and
+ *      history stay untouched — the ladder is proposal-only until an authenticated
+ *      subject confirms it.
  */
 
 import { ChildApiServer } from './http-api-graph-child-server.js';
@@ -161,35 +166,38 @@ describe('HTTP reward: three distinct children raise the bar to three', () => {
   }, 600_000);
 });
 
-describe('HTTP reward: confirmations are attributed and deduped by identity', () => {
-  test('three children confirming through one runtime-local caller never reach quorum', async () => {
-    for (const slug of CHILDREN) await confirm(slug);
-    const last = await confirm(CHILDREN[0] ?? '');
+describe('HTTP reward: an auth-disabled caller cannot confirm (ADR 0046 §6)', () => {
+  // The child server runs with `AUTH_ENABLED=false`, so `resolveGraphActor()` reports
+  // `actor_source: 'runtime-local'` for every request. `confirmProposal` rejects that
+  // identity before anything is written; the returned evolution carries a diagnostic and
+  // every consensus field stays null. See the file header for the ladder's semantics at
+  // HTTP level and for where the dedupe-by-identity consensus rules are actually proven.
 
-    // Three confirmations by ONE identity collapse into one confirmation row, and its
-    // child is the one the caller actually reported: dedupe is the mechanism, not a bug.
-    expect(last['distinct_children']).toBe(1);
-    expect(last['required_confirmations']).toBe(3);
-    // Two thirds of distinct agents is two, and auth-disabled is one identity: the
-    // repeated confirmations collapse instead of manufacturing a quorum.
-    expect(last['decision']).toBe('pending');
-    expect(last['decided_by']).toBe('quorum not reached');
-    expect(last['apply_plan']).toBeNull();
-    expect(String(last['next_action'])).toContain('pending');
+  test('a bare proposal_decision fails with authenticated_subject_required', async () => {
+    const blocked = await confirm(CHILDREN[0] ?? '');
+
+    expect(blocked['status']).toBeNull();
+    expect(blocked['decision']).toBeNull();
+    expect(blocked['required_confirmations']).toBeNull();
+    expect(blocked['apply_plan']).toBeNull();
+    const diagnostic = blocked['diagnostic'] as { code?: string } | undefined;
+    expect(diagnostic?.code).toBe('authenticated_subject_required');
+    expect(String(blocked['next_action'])).toContain('blocked: authenticated_subject_required');
   }, 600_000);
 
-  test('a claimed human_expert without an authenticated subject is not a second voter', async () => {
-    const claimed = await confirm(CHILDREN[1] ?? '', { proposal_actor_kind: 'human_expert' });
+  test('claiming proposal_actor_kind=human_expert does not bypass the subject guard', async () => {
+    const blocked = await confirm(CHILDREN[1] ?? '', { proposal_actor_kind: 'human_expert' });
 
-    // Same identity, different label: it must not count as another agent nor as authority.
-    expect(claimed['decision']).toBe('pending');
-    expect(claimed['decided_by']).toBe('quorum not reached');
-    expect(String(claimed['decided_by'])).not.toContain('human expert');
-    expect(claimed['apply_plan']).toBeNull();
+    // A kind claim is not authority without an authenticated subject: the guard fires
+    // before consensus ever sees the label. Same diagnostic code as the plain path.
+    const diagnostic = blocked['diagnostic'] as { code?: string } | undefined;
+    expect(diagnostic?.code).toBe('authenticated_subject_required');
+    expect(blocked['decision']).toBeNull();
+    expect(blocked['apply_plan']).toBeNull();
   }, 600_000);
 
-  test('evidence outranks votes, and the accepted plan still writes nothing', async () => {
-    const accepted = await confirm(CHILDREN[2] ?? '', {
+  test('proposal_evidence does not bypass the subject guard and never mutates the parent', async () => {
+    const blocked = await confirm(CHILDREN[2] ?? '', {
       proposal_evidence: {
         observed: 'retry_limit=5',
         expected: 'retry_limit=3',
@@ -197,21 +205,13 @@ describe('HTTP reward: confirmations are attributed and deduped by identity', ()
       }
     });
 
-    expect(accepted['proposal']).toBe(proposal);
-    expect(accepted['status']).toBe('accepted');
-    expect(accepted['decision']).toBe('accept');
-    expect(String(accepted['decided_by'])).toContain('evidence from');
+    const diagnostic = blocked['diagnostic'] as { code?: string } | undefined;
+    expect(diagnostic?.code).toBe('authenticated_subject_required');
+    expect(blocked['apply_plan']).toBeNull();
+    expect(blocked['proposal']).toBe(proposal);
 
-    const plan = accepted['apply_plan'] as Record<string, unknown>;
-    expect(plan['target_uri']).toBe(`squadrules://adapter/${PARENT}`);
-    expect(plan['field']).toBe('reward_failure');
-    expect(plan['from_value']).toBeNull();
-    expect(plan['to_value']).toBe(FEEDBACK);
-    // The plan is instructions for a normal tune, never a hidden parent write.
-    expect(String(plan['instructions'])).toContain(`squadrules://adapter/${PARENT}`);
-    expect(String(accepted['next_action'])).toBe(String(plan['instructions']));
-
-    // Acceptance settled a record; it did not apply it.
+    // PROPOSAL-ONLY INVARIANT: a rejected confirmation attempt must not touch the
+    // parent's stored bytes or history, even when the caller supplies evidence.
     const head = await exportMarkdown(server, `squadrules://adapter/${PARENT}`);
     expect(head.status).toBe(200);
     expect(head.body['content']).toBe(parentContentBefore);
