@@ -2,8 +2,12 @@
 
 ## Status
 
-Proposed — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
-awaiting independent owner ratification.
+Accepted — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
+landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/296)
+squash-merge commit `40af9c75` on 2026-11-09 with all thirteen required CI gates green,
+including the `verify-integration-graph` lane executing both Arango suites against a
+real `arangodb:3.11` service container (see [ADR 0048](0048-required-shared-backend-ci-lane.md));
+reconciled by agent on 2026-11-09 under the documentation-authority ADR-status rule.
 
 Keeps [ADR 0041](0041-graph-native-open-source-database-for-ontological-knowledge-system.md)'s
 storage class (graph-native, open source, dual-mode) and

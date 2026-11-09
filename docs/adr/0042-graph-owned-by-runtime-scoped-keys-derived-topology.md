@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06; awaiting independent owner ratification.
+Accepted — implemented and verified on branch `sr6-graph-db-touchpoints` on
+2026-11-06; landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/296)
+squash-merge commit `40af9c75`
+on 2026-11-09 with all thirteen required CI gates green (Build Node 24/26,
+Single, Cluster, Graph, CodeQL ×2, CI gate, Dependency review, Security
+workflow, Integration workflow, Automation policy, npm audit). Status reconciled
+by agent on 2026-11-09 under the documentation-authority ADR-status rule.
 
 This record does not change [ADR 0041](0041-graph-native-open-source-database-for-ontological-knowledge-system.md)'s
 choice of storage class (graph-native, open source, dual-mode). It fixes three

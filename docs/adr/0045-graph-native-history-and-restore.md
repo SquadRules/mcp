@@ -2,8 +2,10 @@
 
 ## Status
 
-Proposed — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
-awaiting independent owner ratification.
+Accepted — implemented and verified on branch `sr6-graph-db-touchpoints` on 2026-11-06;
+landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/296)
+squash-merge commit `40af9c75` on 2026-11-09 with all thirteen required CI gates green;
+reconciled by agent on 2026-11-09 under the documentation-authority ADR-status rule.
 
 Extends [ADR 0042](0042-graph-owned-by-runtime-scoped-keys-derived-topology.md) (graph
 ownership, scoped keys, derived topology) and depends on

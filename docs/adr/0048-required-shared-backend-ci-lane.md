@@ -2,10 +2,15 @@
 
 ## Status
 
-Proposed — authored and verified locally on branch `sr6-graph-db-touchpoints` on
-2026-11-07; the ArangoDB container run itself is **UNPROVEN on the authoring host**
-(the Docker daemon is not available there) and awaits its first CI execution plus
-independent owner ratification.
+Accepted — authored and verified locally on branch `sr6-graph-db-touchpoints` on
+2026-11-07 (workflow lint, classifier/structure contracts and the no-skip contract pass);
+the ArangoDB container run was **proven on GitHub Actions** when [PR #296](https://github.com/SquadRules/mcp/pull/296) reached its final CI round: the
+`verify-integration-graph` job executed `graph-db-arango-shared.test.ts` and
+`graph-db-arango-evolution.test.ts` against a disposable `arangodb:3.11` service
+container with `SQUADRULES_ARANGO_REQUIRED=true`, reported green alongside the other
+twelve required gates, and landed on `squadrules-6` on 2026-11-09 as squash-merge
+commit `40af9c75`. Reconciled by agent on 2026-11-09 under the documentation-authority
+ADR-status rule.
 
 Extends [ADR 0032](0032-change-class-routing-for-required-ci-gates.md) with a third
 change class, and closes the evidence gap left open by

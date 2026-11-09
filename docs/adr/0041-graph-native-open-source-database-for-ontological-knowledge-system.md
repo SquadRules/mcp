@@ -2,7 +2,19 @@
 
 ## Status
 
-**Proposed** — 2026-11-05
+**Accepted** — taken 2026-11-05; design phase, technology evaluation and
+implementation all landed on `squadrules-6` on 2026-11-09. Reconciled by agent on
+2026-11-09 with codebase evidence: the multi-database architecture this record
+authorises is now shipped as
+[`src/services/graph-db/`](../../src/services/graph-db) (LadybugDB embedded +
+ArangoDB ≤v3.11 shared, `GraphRepository` port), retained
+[`src/services/memory/lance-db*`](../../src/services/memory) for vector search,
+and retained SQLite/PostgreSQL for structured metadata. Delivery: [PR #294](https://github.com/SquadRules/mcp/pull/294) (schema + LadybugDB prototype, squash-merged as `87ddc543`), [PR #295](https://github.com/SquadRules/mcp/pull/295) (adapter-lifecycle integration, squash-merged as `7bc6d8ca`) and [PR #296](https://github.com/SquadRules/mcp/pull/296) (repository port, Arango shared
+backend, inheritance evolution, ontology context — squash-merged as `40af9c75`),
+the last with all thirteen required CI gates green including a real ArangoDB 3.11
+service container. The refined decisions that filled in this record's open
+implementation questions live in [ADR 0042](0042-graph-owned-by-runtime-scoped-keys-derived-topology.md)
+through [ADR 0049](0049-drain-handles-on-graceful-shutdown-instead-of-process-exit.md).
 
 ## Context
 
