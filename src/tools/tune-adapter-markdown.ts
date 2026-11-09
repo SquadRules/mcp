@@ -14,9 +14,10 @@
  * byte-identical and appends no history row.
  *
  * AFTER THE WRITE
- * `verifyTuneLayerPersistence` proves the layers persisted, then the graph projection
- * and the evolution snapshot run. Both are derived index work: a graph failure never
- * fails the tune.
+ * `verifyTuneLayerPersistence` confirms persisted layer text readback — layer existence
+ * plus `text` equality only (see `tune-verify.ts`); it does not prove `inference_contract`,
+ * frontmatter, tags or version. Then the graph projection and the evolution snapshot run.
+ * Both are derived index work: a graph failure never fails the tune.
  */
 import type { QdrantService } from '../services/qdrant/service.js';
 import { CodeBlockProcessor } from '../services/code-block-processor.js';
@@ -137,10 +138,17 @@ async function projectTunedAdapter(
   if (!graphDb) return null;
 
   try {
-    // Read the stored record losslessly. `getMemoryByUUID` is a presentation shape that
-    // drops `slug`, `space_id` and `adapter.frontmatter`, so projecting from it keyed the
-    // node by the H1 title and lost the topology. `retrieveById` + `pointToMemory` is the
-    // same stored-record read the effective-content resolver uses, on both backends.
+    // Read the stored payload rather than the shaped accessor: `getMemoryByUUID` returns
+    // an explicit field allowlist with normalized values (defaults for `type`/`tags`/`domain`,
+    // `created_at`/`last_accessed` rebuilt as dates), so projecting from the raw record keeps
+    // the node keyed by the stored `slug` and scoped by the stored `space_id` exactly as
+    // written. `retrieveById` + `pointToMemory` is the same stored-record read the
+    // effective-content resolver uses, on both backends.
+    // Historical note, not the present behaviour: when this line was written the accessors
+    // dropped `slug`, `space_id` and `adapter.frontmatter`, so projecting from them keyed the
+    // node by the H1 title and lost the topology. They retain those fields now
+    // (`qdrant/memory-retrieval.ts`, `vector-store/lancedb/lance-records-reads.ts`); reading
+    // the stored payload is still preferred for the shape reasons above.
     const stored = await qdrantService.retrieveById(headUuid);
     const head = stored ? pointToMemory({ id: stored.uuid, payload: stored.payload }) : null;
     if (!head) {
@@ -256,9 +264,11 @@ export async function tuneAdapterMarkdownInPlace(
     markdown: markdownDoc
   });
 
-  // The tuned document's frontmatter, losslessly: removing `inherits:` must remove it
-  // from the record (not leave the previous value shadowing it), and an arbitrary
-  // author property must survive so a child's `override:` of it is not a false
+  // The tuned document's frontmatter, in the normalized subset the parser supports and the
+  // converter persists (see `toStoredAdapterFrontmatter`): lowercased scalar and nested
+  // declarations, not general lossless YAML. Removing `inherits:` must still remove it from
+  // the record (not leave the previous value shadowing it), and an arbitrary author property
+  // must survive so a child's `override:` of it is not a false
   // `override_unknown_field`. `null` means the document declares no frontmatter.
   const storedFrontmatter = toStoredAdapterFrontmatter(parsedDoc);
 
@@ -291,12 +301,18 @@ export async function tuneAdapterMarkdownInPlace(
       delete adapterUpdate['frontmatter'];
     }
 
+    // A markdown content tune rewrites prose, label, tags and adapter metadata only. The
+    // stored executable gate is deliberately NOT part of this payload: `updateMemory` merges
+    // `{ ...existingPayload, ...safeUpdates }` (see `qdrant/memory-updates.ts`), so omitting
+    // the key leaves the stored `inference_contract` untouched, while sending
+    // `next.inference_contract ?? null` would let a prose edit replace the gate the markdown
+    // merely echoes — or clear it outright. Intentional gate changes go through
+    // train(force_update=true) alone.
     await qdrantService.updateMemory(existing.uuid, {
       label: next.label,
       text: next.text,
       tags: next.tags,
-      adapter: adapterUpdate,
-      inference_contract: next.inference_contract ?? null
+      adapter: adapterUpdate
     });
   }
 

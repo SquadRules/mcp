@@ -3,16 +3,25 @@
  * Content between first --- and second --- is parsed for key: value lines.
  * Returns extracted metadata and the body (rest of document after closing ---).
  *
- * `fields` keeps every key/value pair, not only the fixed keys this module knows
- * about. Inheritance needs that: an arbitrary domain property declared by an
- * author (`risk_level: high`) must survive the write so `override:` can name it
- * without tripping `override_unknown_field`. The typed fields below are derived
- * views for the common keys; `fields` is the lossless one.
+ * `fields` keeps the top-level scalar declarations this parser understands, not only the
+ * fixed keys it knows about. Inheritance needs that: an arbitrary domain property declared
+ * by an author (`risk_level: high`) must survive the write so `override:` can name it
+ * without tripping `override_unknown_field`. The typed fields below are derived views for
+ * the common keys; `fields` carries the remainder.
+ *
+ * The result is a normalized subset, not general lossless YAML. Every key is lowercased,
+ * one surrounding pair of quotes is stripped, `__proto__`/`constructor`/`prototype`
+ * declarations are rejected, a `key:` declaration with no inline value opens a `nested`
+ * block instead of becoming a field, and a repeated scalar resolves to its last occurrence.
+ * Frontmatter comments are dropped (the body keeps the document text verbatim) and sub-keys
+ * nested deeper than one level flatten into that one block. What reaches a stored record is
+ * narrower still — see `toStoredAdapterFrontmatter` in
+ * `services/memory/stored-adapter-frontmatter.ts`.
  *
  * Indented sub-keys of a key written without a value (`anomaly:` followed by
- * `  type: …`) are kept in `nested`. That is the documented adapter form for an
- * agent-declared anomaly (docs/specs/ontological-knowledge-system.md, Decision 6)
- * and it must not flatten into `fields` where it would collide with top-level keys.
+ * `  type: …`) are kept in `nested`, one level deep. That is the documented adapter form for
+ * an agent-declared anomaly (docs/specs/ontological-knowledge-system.md, Decision 6) and it
+ * must not flatten into `fields` where it would collide with top-level keys.
  */
 
 export interface ParsedFrontmatter {
@@ -27,9 +36,12 @@ export interface ParsedFrontmatter {
   /** Present when the document had an `override:` key (list of overridden fields). Raw string value. */
   overrideRaw?: string;
   /**
-   * Every top-level frontmatter key exactly as written (keys lowercased, surrounding
-   * quotes stripped). Empty when the document has no frontmatter. This is what makes
-   * arbitrary domain properties persist on the stored record.
+   * Top-level scalar declarations in the parser's normalized form: keys lowercased, one
+   * surrounding pair of quotes stripped, prototype-sensitive keys dropped, valueless `key:`
+   * declarations routed to `nested`, and a repeated scalar resolved to its last occurrence.
+   * A subset of the document's YAML rather than a lossless copy of it — see
+   * `toStoredAdapterFrontmatter` for what is actually persisted. Empty when the document has
+   * no frontmatter. This is what lets an arbitrary domain property reach the stored record.
    */
   fields: Record<string, string>;
   /** Indented sub-keys grouped under their top-level key, keys lowercased. */
