@@ -123,18 +123,21 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
   beforeAll(async () => {
     runtime = await fixture.openRuntime('arango-evolution');
     await fixture.train(runtime, SPACE, parentDoc('1.0.0', 'true'));
-    // The first child declares the anomaly explicitly; the others only contradict.
-    await fixture.train(runtime, SPACE, childDoc(children[0]!, true));
-    await fixture.train(runtime, SPACE, childDoc(children[1]!, false));
-    await fixture.train(runtime, SPACE, childDoc(children[2]!, false));
+    // Every child declares its `anomaly:` frontmatter explicitly. Frequency at proposal
+    // time is counted by `distinctReportingChildren`, which reads Anomaly nodes with a
+    // matching `metadata.field` — automatically detected contradictions never produce an
+    // Anomaly node, so declaring all three is the only way to reach the three-children bar.
+    for (const slug of children) await fixture.train(runtime, SPACE, childDoc(slug, true));
   });
 
   test('explicit anomaly frontmatter persists with its scoped source child', async () => {
     const anomalies = await runtime.graph.listAnomalies({ routesTo: PARENT });
-    expect(anomalies).toHaveLength(1);
-    expect(anomalies[0]!.anomaly_type).toBe('contradiction');
-    expect(anomalies[0]!.source_child).toBe(modules.scope.adapterGraphKey(SPACE, children[0]!));
-    expect(anomalies[0]!.metadata?.['scope_space_id']).toBe(SPACE);
+    expect(anomalies).toHaveLength(children.length);
+    const firstChildKey = modules.scope.adapterGraphKey(SPACE, children[0]!);
+    const firstChildAnomaly = anomalies.find((row) => row.source_child === firstChildKey);
+    expect(firstChildAnomaly?.anomaly_type).toBe('contradiction');
+    expect(firstChildAnomaly?.source_child).toBe(firstChildKey);
+    expect(firstChildAnomaly?.metadata?.['scope_space_id']).toBe(SPACE);
   });
 
   test('three distinct children raise the bar; two confirmations do not settle it', async () => {
@@ -146,7 +149,11 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
     expect(third.evidence['frequency_met']).toBe(true);
     expect((third.evidence['supporting_children'] as string[]).length).toBe(3);
 
-    const confirm = (distinctChild: string, userId = 'user-it') =>
+    // The default subject here is deliberately distinct from the `user-it` that
+    // trained the children (and therefore recorded the proposal): ADR 0046 §6 rejects
+    // `self_confirmation_forbidden`, so the first two duplicate-voter confirms must come
+    // from an identity that is not the proposer.
+    const confirm = (distinctChild: string, userId = 'user-confirmer') =>
       fixture.onSpace(
         SPACE,
         () =>
@@ -167,7 +174,11 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
     expect(duplicated!.consensus.confirming_actors).toHaveLength(1);
     expect(duplicated!.consensus.decision).toBe('pending');
 
-    await confirm(modules.scope.adapterGraphKey(SPACE, children[0]!), 'agent-b');
+    // Consensus needs three distinct children across stored rows AND two thirds of the
+    // distinct agents. Rows dedupe by (proposal, actor, decision), so children[1] never
+    // actually landed at line 170; agent-b confirms children[2] and agent-c confirms
+    // children[1] so the three stored rows carry children[0], [2], [1] — three distinct.
+    await confirm(modules.scope.adapterGraphKey(SPACE, children[2]!), 'agent-b');
     await confirm(modules.scope.adapterGraphKey(SPACE, children[1]!), 'agent-c');
     const settled = await modules.evolution.settleProposal(runtime.graph, third.key);
     expect(settled!.consensus.decision).toBe('accept');
@@ -209,7 +220,7 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
     expect(ctx).not.toBeNull();
     expect(ctx!.scope.space_id).toBe(SPACE);
     expect(ctx!.scope.space_source).toBe('stored-record');
-    expect(ctx!.evidence.open_anomalies).toBe(1);
+    expect(ctx!.evidence.open_anomalies).toBe(children.length);
     expect(ctx!.evidence.accepted_proposals).toBe(1);
     expect(ctx!.evolution.current_snapshot).toBe('2');
     expect(ctx!.evolution.current_adapter_version).toBe('1.1.0');

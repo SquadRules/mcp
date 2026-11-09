@@ -17,10 +17,24 @@ _d('HTTP REST API Activate Endpoint', () => {
       expect(response.status).toBe(200);
       const data = (await response.json()) as Record<string, unknown>;
       // Activate HTTP response keeps canonical top-level keys; artifact-dir aliases are optional.
-      const baseSearchKeys = ['choices', 'message', 'must_obey', 'next_action', 'query', 'transport'];
+      // Inheritance fields are written unconditionally whenever the touchpoint 2 resolver runs
+      // (src/tools/activate.ts sets `inheritance_chain` + `inheritance_resolved` on every output);
+      // the ontology projection is written only when the match choice maps onto a stored adapter
+      // scope (src/tools/activate.ts guards `if (ontologyContext)`), so it is asserted as optional.
+      const baseSearchKeys = [
+        'choices',
+        'inheritance_chain',
+        'inheritance_resolved',
+        'message',
+        'must_obey',
+        'next_action',
+        'query',
+        'transport'
+      ];
       const optionalKeys = [
         ...('execution_id' in data ? ['execution_id'] : []),
-        ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : [])
+        ...('squadrules_local_artifact_dir' in data ? ['squadrules_local_artifact_dir'] : []),
+        ...('ontology_context' in data ? ['ontology_context'] : [])
       ];
       expect(Object.keys(data).sort()).toEqual([...baseSearchKeys, ...optionalKeys].sort());
       expect(data.must_obey).toBe(true);

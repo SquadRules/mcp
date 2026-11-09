@@ -172,8 +172,11 @@ describe('frequency is distinct children, consensus is distinct agents (ADR 0046
     expect(byChild.get(modules.scope.adapterGraphKey(SPACE, 'freq-a'))!.required_confirmations).toBe(1);
 
     // Duplicate confirmer: the same runtime identity confirming twice is one vote,
-    // and the second confirmation is a no-op rather than a second record.
-    const confirm = (distinctChild: string, userId = 'user-it') =>
+    // and the second confirmation is a no-op rather than a second record. The identity
+    // here is deliberately different from the `user-it` that trained the children and
+    // therefore created the proposal: ADR 0046 §6 forbids a proposer from confirming
+    // their own change, so `confirm` uses a distinct default subject.
+    const confirm = (distinctChild: string, userId = 'user-confirmer') =>
       fixture.onSpace(
         SPACE,
         () =>
@@ -193,9 +196,12 @@ describe('frequency is distinct children, consensus is distinct agents (ADR 0046
     expect(duplicated!.consensus.decision).toBe('pending');
     expect(await runtime.graph.listConfirmations(third.key)).toHaveLength(1);
 
-    // Distinct agents reach the two-thirds threshold with three distinct children.
+    // Consensus requires both three distinct children reporting the anomaly AND two
+    // thirds of the required distinct agents. Rows are deduped by (proposal, actor,
+    // decision), so freq-b never actually landed at line 192; the two new agents use
+    // freq-c and freq-b so three distinct children appear across the three stored rows.
     await confirm(modules.scope.adapterGraphKey(SPACE, 'freq-c'), 'agent-b');
-    await confirm(modules.scope.adapterGraphKey(SPACE, 'freq-d'), 'agent-c');
+    await confirm(modules.scope.adapterGraphKey(SPACE, 'freq-b'), 'agent-c');
 
     const settled = await modules.evolution.settleProposal(runtime.graph, third.key);
     expect(settled!.consensus.decision).toBe('accept');

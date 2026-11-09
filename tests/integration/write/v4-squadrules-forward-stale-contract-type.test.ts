@@ -3,8 +3,8 @@
  * boundary (ADR 0028/0029).
  *
  * tune persists inference_contract fences without the train-time structural
- * validator, so it is the realistic way a contract trained before the
- * mcp→forward rename (type "mcp") or a malformed subagent.mcp list reaches
+ * validator, so it used to be the realistic way a contract trained before the
+ * mcp→forward rename (type "mcp") or a malformed subagent.mcp list reached
  * the store. These tests pin what the forward tool does when it opens a run
  * against such a stored contract:
  * - the stale type must surface as an isError response carrying the re-train
@@ -12,6 +12,14 @@
  *   validation, so the caller would never see the recovery message;
  * - the malformed delegation list must degrade to a valid challenge instead
  *   of crashing the challenge renderer.
+ *
+ * Note on the stale-type case: commit fb95e4fc ("fix(tune): preserve stored
+ * inference_contract on content tune") deliberately removed `inference_contract`
+ * from the tune payload. A prose tune now leaves the executable gate untouched,
+ * which is the correct product behaviour but also means no tool path can put a
+ * stale `type:"mcp"` fence into the store. The forward guard remains defence-in-
+ * depth for records written before ADR-0028 landed; `test.skip` below keeps the
+ * intent on file without faking an injection path the tools no longer expose.
  */
 import { createMcpConnection } from '../../utils/mcp-client-utils.js';
 import { parseMcpJson, withRawOnFail } from '../../utils/expect-with-raw.js';
@@ -90,7 +98,10 @@ describe('forward against contracts persisted by tune without validation', () =>
     if (mcpConnection) await mcpConnection.close();
   });
 
-  test('a stale type:"mcp" contract fails closed with an isError re-train message', async () => {
+  // See the file header: after fb95e4fc, `tune` preserves the stored gate, so no tool
+  // path writes a stale `type:"mcp"` fence. The forward guard remains, but proving it
+  // here would need a direct record-store write that bypasses every exposed tool.
+  test.skip('a stale type:"mcp" contract fails closed with an isError re-train message', async () => {
     const title = `StaleContractType ${Date.now()}`;
     const adapterUri = await trainAdapter(mcpConnection, title, {
       type: 'forward',
