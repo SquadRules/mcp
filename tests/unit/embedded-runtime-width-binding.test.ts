@@ -83,7 +83,11 @@ function engineOf(store: RecordStore): RecordEngine {
 beforeEach(() => {
   originalCwd = process.cwd();
   originalHome = process.env.SQUADRULES_HOME;
-  scratch = fs.mkdtempSync(path.join(originalCwd, '.local', 'embedded-width-unit-'));
+  // `.local/` is gitignored, so a fresh CI checkout doesn't have it; ensure it
+  // exists before `mkdtempSync` tries to write a scratch directory under it.
+  const scratchRoot = path.join(originalCwd, '.local');
+  fs.mkdirSync(scratchRoot, { recursive: true });
+  scratch = fs.mkdtempSync(path.join(scratchRoot, 'embedded-width-unit-'));
   process.env.SQUADRULES_HOME = path.join(scratch, 'constructor-home');
   jest.clearAllMocks();
   tableNames.mockResolvedValue([]);

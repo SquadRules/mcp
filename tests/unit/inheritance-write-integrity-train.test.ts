@@ -52,10 +52,12 @@ describe('inheritance write integrity: train (unit)', () => {
     expect(parseFrontmatter(captured)).toEqual(expectedParsed);
     expect(capturedFrontmatter).toEqual({
       version: '1.0.0', title: 'Title: untouched', chain_root: 'entry', inherits: 'parent',
-      override: ['risk_level'], risk_level: 'high', labels: ['red', 'blue'], enabled: true, attempts: 3
+      override: ['risk_level'], risk_level: 'high', labels: ['red', 'blue'], enabled: true, attempts: 3,
+      domain: { slug: 'nested-not-identity', inputs: ['one', 'two'] }
     });
-    // Nested raw declarations are preserved at this boundary; persistence of nested
-    // blocks is a preexisting converter limitation, not proven by this store double.
+    // `toStoredAdapterFrontmatter` carries every parser-supported scalar and nested
+    // declaration onto the stored adapter payload (see the module docstring), so the
+    // `domain:` block reaches the store boundary alongside the flat fields above.
     expect(parseFrontmatter(captured).nested).toEqual(parseFrontmatter(original).nested);
     expect(store.storeAdapter).toHaveBeenCalledWith([captured], 'unit-model', { forceUpdate: false, forkNewAdapter: true });
     expect(parseFrontmatter(captured).slugRaw).toBeUndefined();

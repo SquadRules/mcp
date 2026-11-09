@@ -39,8 +39,6 @@ import { ChildApiServer } from './http-api-graph-child-server.js';
 import { exportMarkdown, forkTrain } from './http-api-graph-client.js';
 import { httpAdapterDoc, shellContract } from './http-api-graph-docs.js';
 
-jest.setTimeout(600_000);
-
 const PARENT = 'http-parent-adapter';
 const CHILD = 'http-child-adapter';
 const VETO_CHILD = 'http-veto-child';
@@ -77,11 +75,11 @@ beforeAll(async () => {
   const child = await forkTrain(server, childDoc());
   if (child.status !== 200) throw new Error(`child fork train failed: ${JSON.stringify(child.body)}`);
   expect(child.slug).toBe(CHILD);
-});
+}, 600_000);
 
 afterAll(async () => {
   await server?.dispose();
-});
+}, 600_000);
 
 describe('HTTP activation: child identity, full lineage, merged executable contracts', () => {
   test('POST /api/activate returns the child, its chain and both contracts in one payload', async () => {
@@ -116,7 +114,7 @@ describe('HTTP activation: child identity, full lineage, merged executable contr
     });
     expect(cmds).toEqual(expect.arrayContaining(['echo child-step', 'echo parent-step']));
     expect(merged?.['resolved_reason']).toBeUndefined();
-  });
+  }, 600_000);
 });
 
 describe('HTTP activation: ontology context stays inside the adapter scope', () => {
@@ -165,7 +163,7 @@ describe('HTTP activation: ontology context stays inside the adapter scope', () 
     expect(typeof evolution['explanation']).toBe('string');
     expect(Array.isArray(evolution['applied'])).toBe(true);
     expect(ontology?.['degraded']).toBeNull();
-  });
+  }, 600_000);
 });
 
 describe('HTTP write gate: a structural override is vetoed before any write', () => {
@@ -194,7 +192,7 @@ describe('HTTP write gate: a structural override is vetoed before any write', ()
     const parentAfter = await exportMarkdown(server, `squadrules://adapter/${PARENT}`);
     expect(parentAfter.status).toBe(200);
     expect(parentAfter.body['content']).toBe(before.body['content']);
-  });
+  }, 600_000);
 });
 
 describe('HTTP export history: current head, one snapshot, no head fallback', () => {
@@ -227,7 +225,7 @@ describe('HTTP export history: current head, one snapshot, no head fallback', ()
     expect(JSON.stringify(missing.body)).toContain('9.9.9');
     // Never a silent head fallback for a version that does not exist.
     expect(missing.body['content']).toBeUndefined();
-  });
+  }, 600_000);
 });
 
 describe('HTTP activation: an incomplete chain is diagnosed, never reported resolved', () => {
@@ -254,7 +252,7 @@ describe('HTTP activation: an incomplete chain is diagnosed, never reported reso
     expect(merged?.['resolved']).toBe(false);
     const reason = String(merged?.['resolved_reason'] ?? '');
     expect(reason).toContain(GHOST_PARENT);
-  });
+  }, 600_000);
 });
 
 describe('HTTP forward: merged content executes and the checkpoint is cleaned up', () => {
@@ -287,5 +285,5 @@ describe('HTTP forward: merged content executes and the checkpoint is cleaned up
       leftovers = [];
     }
     expect(leftovers).toEqual([]);
-  });
+  }, 600_000);
 });

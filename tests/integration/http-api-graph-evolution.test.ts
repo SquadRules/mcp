@@ -28,8 +28,6 @@ import { ChildApiServer } from './http-api-graph-child-server.js';
 import { exportMarkdown, forkTrain } from './http-api-graph-client.js';
 import { httpAdapterDoc, shellContract } from './http-api-graph-docs.js';
 
-jest.setTimeout(600_000);
-
 const PARENT = 'http-evolution-parent';
 const FEEDBACK = 'parent caps retry at 3; this child retries 5';
 const CHILDREN = ['http-reward-child-one', 'http-reward-child-two', 'http-reward-child-three'];
@@ -119,11 +117,11 @@ beforeAll(async () => {
   expect(snapshot.status).toBe(200);
   parentHistoryVersions = Number(snapshot.body['history_versions']);
   expect(parentHistoryVersions).toBeGreaterThanOrEqual(1);
-});
+}, 600_000);
 
 afterAll(async () => {
   await server?.dispose();
-});
+}, 600_000);
 
 describe('HTTP reward: a failure proposes, it never rewrites the parent', () => {
   test('one child raises a proposal and the parent bytes stay identical', async () => {
@@ -143,7 +141,7 @@ describe('HTTP reward: a failure proposes, it never rewrites the parent', () => 
     const head = await exportMarkdown(server, `squadrules://adapter/${PARENT}`);
     expect(head.status).toBe(200);
     expect(head.body['content']).toBe(parentContentBefore);
-  });
+  }, 600_000);
 });
 
 describe('HTTP reward: three distinct children raise the bar to three', () => {
@@ -160,7 +158,7 @@ describe('HTTP reward: three distinct children raise the bar to three', () => {
 
     const head = await exportMarkdown(server, `squadrules://adapter/${PARENT}`);
     expect(head.body['content']).toBe(parentContentBefore);
-  });
+  }, 600_000);
 });
 
 describe('HTTP reward: confirmations are attributed and deduped by identity', () => {
@@ -178,7 +176,7 @@ describe('HTTP reward: confirmations are attributed and deduped by identity', ()
     expect(last['decided_by']).toBe('quorum not reached');
     expect(last['apply_plan']).toBeNull();
     expect(String(last['next_action'])).toContain('pending');
-  });
+  }, 600_000);
 
   test('a claimed human_expert without an authenticated subject is not a second voter', async () => {
     const claimed = await confirm(CHILDREN[1] ?? '', { proposal_actor_kind: 'human_expert' });
@@ -188,7 +186,7 @@ describe('HTTP reward: confirmations are attributed and deduped by identity', ()
     expect(claimed['decided_by']).toBe('quorum not reached');
     expect(String(claimed['decided_by'])).not.toContain('human expert');
     expect(claimed['apply_plan']).toBeNull();
-  });
+  }, 600_000);
 
   test('evidence outranks votes, and the accepted plan still writes nothing', async () => {
     const accepted = await confirm(CHILDREN[2] ?? '', {
@@ -219,5 +217,5 @@ describe('HTTP reward: confirmations are attributed and deduped by identity', ()
     expect(head.body['content']).toBe(parentContentBefore);
     const snapshot = await exportMarkdown(server, `squadrules://adapter/${PARENT}`, '1');
     expect(snapshot.body['history_versions']).toBe(parentHistoryVersions);
-  });
+  }, 600_000);
 });

@@ -74,8 +74,9 @@ const BUNDLED_SOURCE_SLUG = 'critic-loop';
 
 /**
  * Load the production modules for an auth-disabled HTTP server backed by an
- * explicit graph + Lance directory. `jest.resetModules()` inside
- * `loadProductionModules` is what makes the env below authoritative.
+ * explicit graph + Lance directory. The suite runs in its own Jest module
+ * registry and neither this fixture nor `graph-db-fixture` has any non-type
+ * `src/**` import, so the env below is what the freshly imported modules see.
  */
 export async function loadHttpModules(memRoot: string): Promise<HttpModules> {
   const base = await loadProductionModules({

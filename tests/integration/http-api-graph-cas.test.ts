@@ -32,8 +32,6 @@ import {
 } from './http-api-graph-fixture.js';
 import { adapterDocument, twoLayerDocument } from './http-api-graph-cas-docs.js';
 
-jest.setTimeout(180_000);
-
 const SLUG = 'http-cas-adapter';
 const VERSION = '1.0.0';
 const STALE = '9.9.9';
@@ -100,11 +98,11 @@ beforeAll(async () => {
   const storedSpaceId = headPayload['space_id'];
   expect(typeof storedSpaceId === 'string' && storedSpaceId.length > 0).toBe(true);
   historyKey = modules.scope.adapterGraphKey(String(storedSpaceId), SLUG);
-});
+}, 180_000);
 
 afterAll(async () => {
   await fixture?.dispose();
-});
+}, 180_000);
 
 describe('a layer URI is guarded, not silently written', () => {
   test('a stale expected_version fails the row and leaves the stored bytes untouched', async () => {
@@ -132,7 +130,7 @@ describe('a layer URI is guarded, not silently written', () => {
     expect(String(row['message'])).toContain('VERSION_CONFLICT');
 
     expect(await storedPayload(layerUuid)).toEqual(before);
-  });
+  }, 180_000);
 
   test('the same layer URI applies the update when the version matches', async () => {
     const reply = await fixture.post(runtime, '/api/tune', {
@@ -146,7 +144,7 @@ describe('a layer URI is guarded, not silently written', () => {
     expect(reply.body['total_failed']).toBe(0);
     expect(firstRow(reply.body)['error']).toBeUndefined();
     expect((await storedPayload(layerUuid))['tags']).toEqual(['cas-allowed']);
-  });
+  }, 180_000);
 
   test('a layer URI with no stored row is rejected as unsupported, never written', async () => {
     const reply = await fixture.post(runtime, '/api/tune', {
@@ -169,7 +167,7 @@ describe('a layer URI is guarded, not silently written', () => {
     });
     expect(String(row['message'])).toContain('VERSION_GUARD_UNSUPPORTED');
     expect(await runtime.qdrantService.retrieveById(UNKNOWN_LAYER_URI.split('/').pop()!)).toBeNull();
-  });
+  }, 180_000);
 
   test('a layer update without expected_version keeps ordinary tune behavior', async () => {
     const reply = await fixture.post(runtime, '/api/tune', {
@@ -181,7 +179,7 @@ describe('a layer URI is guarded, not silently written', () => {
     expect(reply.body['total_updated']).toBe(1);
     expect(firstRow(reply.body)['error']).toBeUndefined();
     expect((await storedPayload(layerUuid))['tags']).toEqual(['plain-update']);
-  });
+  }, 180_000);
 });
 
 describe('the other two write paths are guarded as well', () => {
@@ -215,7 +213,7 @@ describe('the other two write paths are guarded as well', () => {
     expect(allowed.body['total_updated']).toBe(1);
     expect(firstRow(allowed.body)['error']).toBeUndefined();
     expect((await storedPayload(layerUuid))['tags']).toEqual(['adapter-guard-allowed']);
-  });
+  }, 180_000);
 
   test('a move-only tune is guarded before it reassigns any layer', async () => {
     const before = await storedPayload(layerUuid);
@@ -236,7 +234,7 @@ describe('the other two write paths are guarded as well', () => {
       current: VERSION
     });
     expect(await storedPayload(layerUuid)).toEqual(before);
-  });
+  }, 180_000);
 });
 
 describe('a layer cannot borrow a version from a head outside its own space', () => {
@@ -286,7 +284,7 @@ describe('a layer cannot borrow a version from a head outside its own space', ()
       reason: 'adapter_head_missing'
     });
     expect(await storedPayload(tail.uuid)).toEqual(tailBefore);
-  });
+  }, 180_000);
 });
 
 describe('a content tune cannot reach the CAS without critic evidence', () => {
@@ -319,5 +317,5 @@ describe('a content tune cannot reach the CAS without critic evidence', () => {
     expect(historyAfter.map((row) => row.version_number).sort()).toEqual(
       historyBefore.map((row) => row.version_number).sort()
     );
-  });
+  }, 180_000);
 });

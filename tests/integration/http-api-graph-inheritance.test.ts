@@ -23,8 +23,6 @@ import { join } from 'node:path';
 import { HttpGraphFixture, loadHttpModules, type HttpModules, type HttpRuntime } from './http-api-graph-fixture.js';
 import { httpAdapterDoc, shellContract } from './http-api-graph-docs.js';
 
-jest.setTimeout(180_000);
-
 const PARENT = 'http-parent-adapter';
 const CHILD = 'http-child-adapter';
 const VETO_CHILD = 'http-veto-child';
@@ -64,11 +62,11 @@ beforeAll(async () => {
   const child = await fixture.forkTrain(runtime, childDoc());
   if (child.reply.status !== 200) throw new Error(`child fork: ${JSON.stringify(child.reply)}`);
   expect(child.slug).toBe(CHILD);
-});
+}, 180_000);
 
 afterAll(async () => {
   await fixture?.dispose();
-});
+}, 180_000);
 
 describe('HTTP inheritance write: the edge is projected at write time', () => {
   test('the child write creates a real inheritance edge to the parent', async () => {
@@ -77,14 +75,14 @@ describe('HTTP inheritance write: the edge is projected at write time', () => {
     const path = await runtime.graph.findPathToRoot(childKey, 'root-first');
     const slugs = path.map((row) => ('slug' in row.ancestor ? row.ancestor.slug : row.ancestor.name));
     expect(slugs).toEqual([PARENT]);
-  });
+  }, 180_000);
 
   test('the parent node exists in the graph and carries no parent of its own', async () => {
     const personal = modules.tenant.defaultSpaceContext().defaultWriteSpaceId;
     const parentKey = modules.scope.adapterGraphKey(personal, PARENT);
     expect(await runtime.graph.getAdapter(parentKey)).not.toBeNull();
     expect(await runtime.graph.findPathToRoot(parentKey, 'root-first')).toEqual([]);
-  });
+  }, 180_000);
 });
 
 describe('HTTP write gate: a structural override is vetoed before any write', () => {
@@ -118,7 +116,7 @@ describe('HTTP write gate: a structural override is vetoed before any write', ()
     expect(parentAfter.status).toBe(200);
     expect(parentAfter.body['content']).toBe(before.body['content']);
     expect(String(parentAfter.body['content'])).toContain('parent-step-body');
-  });
+  }, 180_000);
 });
 
 describe('Two independent runtimes in one process', () => {
@@ -158,5 +156,5 @@ describe('Two independent runtimes in one process', () => {
     const path = await other.graph.findPathToRoot(childKey, 'root-first');
     const slugs = path.map((row) => ('slug' in row.ancestor ? row.ancestor.slug : row.ancestor.name));
     expect(slugs).toEqual([PARENT]);
-  });
+  }, 180_000);
 });

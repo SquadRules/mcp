@@ -125,12 +125,13 @@ export function restoreBootEnv(): void {
 /**
  * Load the production modules after the environment is applied.
  *
- * `jest.resetModules()` drops any `src/config` instance the global setup already
- * loaded, so the env below is what the freshly imported modules see — including
- * `isQdrantConfigured`, which is a module constant.
+ * The suite runs in its own Jest module registry and this fixture has no non-type
+ * `src/**` imports of its own, so `isQdrantConfigured` (a module constant) and every
+ * peer below are evaluated for the first time with the env applied here. No
+ * `jest.resetModules()` is needed (and none is allowed here:
+ * `scripts/lint-verify-clean-source.mjs` bans `@jest/globals` in this directory).
  */
 export async function loadBootModules(): Promise<BootModules> {
-  jest.resetModules();
   rememberBootEnv();
   process.env['SQUADRULES_GRAPH_DB_ENABLED'] = 'true';
   process.env['SQUADRULES_GRAPH_BACKEND'] = 'embedded';

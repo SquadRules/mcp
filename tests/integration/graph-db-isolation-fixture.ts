@@ -53,11 +53,13 @@ export const SPACE_B = 'group:it-team-b';
 /**
  * Load the production modules after the env is set.
  *
- * `jest.resetModules()` drops any `src/config` instance the global setup may have loaded,
- * so the env below is what the freshly imported modules see.
+ * Each isolation suite runs in its own Jest module registry and this fixture has
+ * no non-type `src/**` imports of its own, so `src/config` and every peer below
+ * are evaluated for the first time with the env applied here. No
+ * `jest.resetModules()` is needed (and none is allowed here:
+ * `scripts/lint-verify-clean-source.mjs` bans `@jest/globals` in this directory).
  */
 export async function loadIsolationModules(): Promise<IsolationModules> {
-  jest.resetModules();
   process.env['SQUADRULES_GRAPH_DB_ENABLED'] = 'true';
   process.env['EMBEDDING_PROVIDER'] = 'tei';
   delete process.env['TEI_BASE_URL'];

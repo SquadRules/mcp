@@ -31,9 +31,9 @@
  * real provider call runs and really fails over.
  *
  * Module bindings are `export let` on purpose: `loadInheritanceFixture()` assigns them
- * after `jest.resetModules()` and ESM live bindings make the assignment visible to every
- * importing suite, so a suite reads `scope.adapterGraphKey(...)` exactly as it would if
- * the import were local.
+ * after the fresh `await import(...)` calls and ESM live bindings make the assignment
+ * visible to every importing suite, so a suite reads `scope.adapterGraphKey(...)`
+ * exactly as it would if the import were local.
  */
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -232,10 +232,11 @@ export async function pathSlugs(runtime: Runtime, spaceId: string, slug: string)
 
 /** Set the env, load every production module, and resolve the app space id. */
 export async function loadInheritanceFixture(): Promise<void> {
-  // Deterministic, network-free embedding path. `jest.resetModules()` drops any
-  // `src/config` instance the global setup may have loaded, so the env below is what
-  // the freshly imported modules see.
-  jest.resetModules();
+  // Deterministic, network-free embedding path. The suite runs in its own Jest
+  // module registry and this fixture has no non-type `src/**` imports of its own,
+  // so the env below is what the freshly imported modules see. No
+  // `jest.resetModules()` is needed (and none is allowed here:
+  // `scripts/lint-verify-clean-source.mjs` bans `@jest/globals` in this directory).
   process.env['SQUADRULES_GRAPH_DB_ENABLED'] = 'true';
   process.env['EMBEDDING_PROVIDER'] = 'tei';
   delete process.env['TEI_BASE_URL'];

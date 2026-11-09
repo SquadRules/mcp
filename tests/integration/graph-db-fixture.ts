@@ -75,13 +75,15 @@ export interface Runtime {
 /**
  * Load every production module the graph suites share.
  *
- * `jest.resetModules()` drops any `src/config` instance the global setup loaded,
- * so the environment applied here is what the freshly imported modules see.
+ * Every test file that calls this runs in its own Jest module registry, and this
+ * module has no non-type `src/**` imports of its own — so the `await import` calls
+ * below load `src/config` and its peers fresh, and the env set here is what those
+ * modules see. No `jest.resetModules()` is needed (and none is allowed here:
+ * `scripts/lint-verify-clean-source.mjs` bans `@jest/globals` in this directory).
  */
 export async function loadProductionModules(
   env: Record<string, string | undefined> = {}
 ): Promise<ProductionModules> {
-  jest.resetModules();
   process.env['SQUADRULES_GRAPH_DB_ENABLED'] = 'true';
   process.env['EMBEDDING_PROVIDER'] = 'tei';
   delete process.env['TEI_BASE_URL'];
