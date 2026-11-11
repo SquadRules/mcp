@@ -10,6 +10,7 @@
  */
 import type { QdrantService } from '../services/qdrant/service.js';
 import type { Memory } from '../types/memory.js';
+import { pointToMemory } from '../services/memory/qdrant-point-to-memory.js';
 import { getSpaceContextFromStorage } from '../utils/tenant-context.js';
 import { assertWireAdapterUri, parseSquadrulesUri, buildLayerUri } from './squadrules-uri.js';
 import { isProtectedWriteSpace, protectedWriteErrorMessage } from '../utils/protected-space-write-guard.js';
@@ -248,4 +249,60 @@ export async function reassignAdapterLayersToSpace(
   for (const uuid of layerUuids) {
     await qdrantService.updateMemory(uuid, { space_id: targetSpaceId });
   }
+}
+
+/** An adapter's stored records, read back after a write that already landed. */
+export interface StoredAdapterRecords {
+  adapterId: string;
+  /** Space the stored head now lives in — the scope the write actually produced. */
+  spaceId: string;
+  head: Memory;
+  /** Every stored layer, ordered by `layer_index`. */
+  layers: Memory[];
+}
+
+/**
+ * Read an adapter's stored records from layer uuids the caller already holds.
+ *
+ * WHY BY UUID, NOT BY ADAPTER ID
+ * The post-write derived pass needs the state a reader will now see. After a space
+ * move the adapter's layers live in a scope the adapter-id listing may not search by
+ * default, so enumerating by id would read the state *before* the move and project
+ * the wrong scope. The caller knows exactly which uuids it wrote, so reading those
+ * uuids is both cheaper and scope-correct.
+ *
+ * Reads the stored payload, not the shaped accessor: `getMemoryByUUID` returns a
+ * field allowlist that drops `adapter.frontmatter` on some backends, and the
+ * reconstruction needs it to describe the adapter's declared topology.
+ *
+ * Returns `null` when nothing readable was found — the caller then degrades instead
+ * of projecting a document it could not read.
+ */
+export async function readAdapterRecordsByUuid(
+  qdrantService: QdrantService,
+  layerUuids: string[]
+): Promise<StoredAdapterRecords | null> {
+  const layers: Memory[] = [];
+  for (const uuid of layerUuids) {
+    try {
+      const stored = await qdrantService.retrieveById(uuid);
+      if (!stored) continue;
+      layers.push(pointToMemory({ id: stored.uuid ?? uuid, payload: stored.payload }));
+    } catch {
+      // One unreadable layer must not hide the rest; the caller decides whether a
+      // partial set is enough to describe the adapter (it is not, for a snapshot).
+      continue;
+    }
+  }
+  if (layers.length === 0) return null;
+
+  const ordered = [...layers].sort((left, right) => {
+    const li = typeof left.adapter?.layer_index === 'number' ? left.adapter.layer_index : Number.MAX_SAFE_INTEGER;
+    const ri = typeof right.adapter?.layer_index === 'number' ? right.adapter.layer_index : Number.MAX_SAFE_INTEGER;
+    return li - ri;
+  });
+  const head = ordered.find((layer) => layer.adapter?.layer_index === 1) ?? ordered[0]!;
+  const adapterId = typeof head.adapter?.id === 'string' ? head.adapter.id.trim() : '';
+  const spaceId = typeof head.space_id === 'string' ? head.space_id.trim() : '';
+  return { adapterId, spaceId, head, layers: ordered };
 }

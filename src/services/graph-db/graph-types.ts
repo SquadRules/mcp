@@ -43,6 +43,22 @@ export interface AdapterNode {
   metadata?: Record<string, any>;
 }
 
+/**
+ * A child adapter linked to a parent, carrying the scope the child actually lives in.
+ *
+ * A bare slug is not enough: an app-space parent can have children stored in other
+ * spaces (the documented parent fallback), and the same slug in two spaces is two
+ * different adapters. Returning the scope is what lets a caller resolve the real
+ * child record instead of a same-named neighbour.
+ */
+export interface AdapterChildRef {
+  /** Scoped graph key of the child node: `adapter:<spaceId>:<slug>`. */
+  key: string;
+  slug: string;
+  /** Space the child node is stored in. */
+  space: string;
+}
+
 export interface ConceptNode {
   key: string;
   type: 'concept';
@@ -253,6 +269,14 @@ export interface AnomalyFilter {
   routesTo?: string;
   status?: string;
   sourceChild?: string;
+  /**
+   * Scope recorded on the anomaly itself (`metadata.scope_space_id`).
+   *
+   * Applied inside the query, before the row limit: the anomaly stream is shared by
+   * every scope, so filtering after a capped read lets foreign-scope rows consume
+   * the window a scoped read is entitled to. Absent means "no scope filter".
+   */
+  scopeSpaceId?: string;
   limit?: number;
 }
 

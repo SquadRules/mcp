@@ -16,8 +16,16 @@
  * AFTER THE WRITE
  * `verifyTuneLayerPersistence` confirms persisted layer text readback — layer existence
  * plus `text` equality only (see `tune-verify.ts`); it does not prove `inference_contract`,
- * frontmatter, tags or version. Then the graph projection and the evolution snapshot run.
- * Both are derived index work: a graph failure never fails the tune.
+ * frontmatter, tags or version. The stored records are then read back and handed to
+ * `finalizeAdapterMutation`, the one derived pass every adapter write uses: it projects
+ * the stored topology and appends the history snapshot. That pass is derived index work
+ * and never fails the tune; it reports what it could not complete.
+ *
+ * CONCURRENCY
+ * `expected_version` is compared against a head read a moment earlier, so on its own it
+ * is a precheck, not a compare-and-swap: two writers interleaving between that read and
+ * the write would both pass. The read → validate → persist → history window therefore
+ * runs under a per-adapter lock (`adapter-write-lock.ts`).
  */
 import type { QdrantService } from '../services/qdrant/service.js';
 import { CodeBlockProcessor } from '../services/code-block-processor.js';
@@ -33,11 +41,13 @@ import {
   type InheritanceFrontmatter,
   type StructuralWarning
 } from '../services/graph-db/adapter-inheritance.js';
-import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import { storedAdapterScope } from '../services/graph-db/adapter-scope.js';
-import { recordAdapterEvolution } from '../services/graph-db/adapter-evolution-hooks.js';
+import {
+  finalizeAdapterMutation,
+  type AdapterMutationReport
+} from '../services/graph-db/adapter-write-finalize.js';
+import { adapterIdentityLockKey, withAdapterWriteLock } from '../services/graph-db/adapter-write-lock.js';
 import { adapterVersionOf, assertExpectedVersion } from './version-cas.js';
-import { projectAdapterLineage, syncAdapterGraph } from '../services/graph-db/adapter-graph-sync.js';
 import { resolveStoredParentSnapshot } from '../services/graph-db/adapter-graph-records.js';
 import {
   InheritanceValidationUnavailableError,
@@ -45,12 +55,12 @@ import {
 } from '../services/graph-db/inheritance-write-validation.js';
 import { toStoredAdapterFrontmatter } from '../services/memory/stored-adapter-frontmatter.js';
 import { assertDescendantsValid } from '../services/graph-db/descendant-validation.js';
-import { pointToMemory } from '../services/memory/qdrant-point-to-memory.js';
 import type { MemoryQdrantStore } from '../services/memory/store.js';
 import type { Memory } from '../types/memory.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import {
   assertWritableTuneLayers,
+  readAdapterRecordsByUuid,
   resolveAdapterIdFromWireUri,
   selectAdapterLayerSet
 } from './tune-uri-resolution.js';
@@ -116,68 +126,19 @@ export async function assertTuneInheritanceValid(
 }
 
 /**
- * Project the tuned adapter into the graph owned by the retrieval surface.
+ * What a markdown tune produced.
  *
- * Every successful markdown tune lands here, whether or not the tuned document still
- * declares `inherits`: a tune that *removes* `inherits:` must clear the old edge, and
- * only a projection of the plain node does that. The updated head layer is read back so
- * slug, `space_id` and topology frontmatter are the stored ones; the stored `space_id`
- * is the scope authority, never the tenant default.
- *
- * `source` is the record-enumerating surface used to pre-project stored ancestors
- * root-first. Every transport (MCP, HTTP, CLI local) passes its record store, so the
- * head node is always projected together with its stored ancestry.
- * Graceful degradation: no graph or a graph error never fails the tune.
+ * `graph` is the post-write derived pass. It is returned, never thrown: by the time it
+ * runs the layers are already persisted, so its failures are degradations of a derived
+ * index. A caller surfaces `graph_degraded` in its own result instead of failing.
  */
-async function projectTunedAdapter(
-  qdrantService: QdrantService,
-  headUuid: string,
-  source?: MemoryQdrantStore
-): Promise<Memory | null> {
-  const graphDb = getGraphDb(qdrantService);
-  if (!graphDb) return null;
-
-  try {
-    // Read the stored payload rather than the shaped accessor: `getMemoryByUUID` returns
-    // an explicit field allowlist with normalized values (defaults for `type`/`tags`/`domain`,
-    // `created_at`/`last_accessed` rebuilt as dates), so projecting from the raw record keeps
-    // the node keyed by the stored `slug` and scoped by the stored `space_id` exactly as
-    // written. `retrieveById` + `pointToMemory` is the same stored-record read the
-    // effective-content resolver uses, on both backends.
-    // Historical note, not the present behaviour: when this line was written the accessors
-    // dropped `slug`, `space_id` and `adapter.frontmatter`, so projecting from them keyed the
-    // node by the H1 title and lost the topology. They retain those fields now
-    // (`qdrant/memory-retrieval.ts`, `vector-store/lancedb/lance-records-reads.ts`); reading
-    // the stored payload is still preferred for the shape reasons above.
-    const stored = await qdrantService.retrieveById(headUuid);
-    const head = stored ? pointToMemory({ id: stored.uuid, payload: stored.payload }) : null;
-    if (!head) {
-      structuredLogger.warn(`tune: graph projection skipped for ${headUuid} — stored head not readable`);
-      return null;
-    }
-    const lineage = await projectAdapterLineage(graphDb, source ?? null, head, 'tune');
-    if (lineage.length === 0) {
-      structuredLogger.warn(`tune: graph projection skipped for ${headUuid} — no adapter snapshot`);
-      return null;
-    }
-    const report = await syncAdapterGraph(graphDb, lineage);
-    if (report.missing_parents.length > 0) {
-      structuredLogger.warn(
-        `tune: graph edge skipped (${report.missing_parents.join(', ')}) — parent record not stored in this scope or the app space`
-      );
-    }
-    if (report.failed.length > 0 || report.edge_failures.length > 0) {
-      structuredLogger.warn(
-        `tune: graph projection incomplete — failed nodes: [${report.failed.join(', ')}], failed edges: [${report.edge_failures.join(', ')}]`
-      );
-    }
-    return head;
-  } catch (err) {
-    structuredLogger.warn(
-      `tune: graph projection failed for ${headUuid} — ${err instanceof Error ? err.message : String(err)}`
-    );
-    return null;
-  }
+export interface AdapterTuneOutcome {
+  /** Layer URI of the tuned adapter head. */
+  layerUri: string;
+  /** Stored adapter the tune wrote — the identity the lock and history key off. */
+  adapterId: string;
+  /** Derived pass over the final stored state, or `null` when none could run. */
+  graph: AdapterMutationReport | null;
 }
 
 export async function tuneAdapterMarkdownInPlace(
@@ -186,8 +147,31 @@ export async function tuneAdapterMarkdownInPlace(
   markdownDoc: string,
   memoryStore?: MemoryQdrantStore,
   expectedVersion?: string
-): Promise<string> {
+): Promise<AdapterTuneOutcome> {
   const { adapterId } = await resolveAdapterIdFromWireUri(qdrantService, adapterUri);
+  // One critical section for the whole read → validate → persist → history window. The
+  // version guard compares a head read inside it, so serializing here is what makes that
+  // comparison mean something; without the lock it is only a precheck.
+  return withAdapterWriteLock(adapterIdentityLockKey(adapterId), () =>
+    tuneAdapterMarkdownLocked(
+      qdrantService,
+      adapterUri,
+      adapterId,
+      markdownDoc,
+      memoryStore,
+      expectedVersion
+    )
+  );
+}
+
+async function tuneAdapterMarkdownLocked(
+  qdrantService: QdrantService,
+  adapterUri: string,
+  adapterId: string,
+  markdownDoc: string,
+  memoryStore: MemoryQdrantStore | undefined,
+  expectedVersion: string | undefined
+): Promise<AdapterTuneOutcome> {
   const existingLayers = selectAdapterLayerSet(await qdrantService.getAdapterLayers(adapterId));
   assertWritableTuneLayers(existingLayers);
   if (existingLayers.length === 0) {
@@ -318,19 +302,28 @@ export async function tuneAdapterMarkdownInPlace(
 
   await verifyTuneLayerPersistence(qdrantService, existingLayers, nextLayers);
 
-  // Graph projection is a derived index written only for layers that persisted. It runs
-  // for every markdown tune; the stored head supplies the projection scope.
-  const tunedHead = await projectTunedAdapter(qdrantService, existingLayers[0]!.uuid, memoryStore);
-  if (tunedHead) {
-    await recordAdapterEvolution({
-      owner: qdrantService,
-      head: tunedHead,
-      markdown: markdownDoc,
-      source: memoryStore ?? null,
-      changeType: 'updated',
-      reason: 'tune: adapter markdown updated'
-    });
+  // Derived pass over the state the store now holds. The records are read back rather
+  // than reusing `nextLayers` because `updateMemory` merges: the stored head carries the
+  // fields this module deliberately did not send (notably the preserved
+  // `inference_contract`), and history must describe what a read will now return.
+  const stored = await readAdapterRecordsByUuid(
+    qdrantService,
+    existingLayers.map((layer) => layer.uuid)
+  );
+  if (!stored) {
+    structuredLogger.warn(
+      `tune: stored layers unreadable after writing ${adapterUri} — the derived pass will report what it could not read`
+    );
   }
+  const graph = await finalizeAdapterMutation({
+    owner: qdrantService,
+    source: memoryStore ?? null,
+    head: stored?.head ?? nextLayers[0]!,
+    layers: stored?.layers ?? null,
+    submittedMarkdown: markdownDoc,
+    changeType: 'updated',
+    reason: 'tune: adapter markdown updated'
+  });
 
-  return buildLayerUri(existingLayers[0]!.uuid);
+  return { layerUri: buildLayerUri(existingLayers[0]!.uuid), adapterId, graph };
 }

@@ -43,6 +43,7 @@ type ExportHistoryModule = typeof import('../../src/tools/export-history.js');
 type EvolutionModule = typeof import('../../src/services/graph-db/evolution/evolution.service.js');
 type ActivateOntologyModule = typeof import('../../src/tools/activate-ontology-context.js');
 type ActivateSchemaModule = typeof import('../../src/tools/activate_schema.js');
+type DescendantsModule = typeof import('../../src/services/graph-db/descendant-validation.js');
 
 /** Production modules, imported after the env is set (see `loadProductionModules`). */
 export interface ProductionModules {
@@ -58,6 +59,7 @@ export interface ProductionModules {
   evolution: EvolutionModule;
   activateOntology: ActivateOntologyModule;
   activateSchema: ActivateSchemaModule;
+  descendants: DescendantsModule;
   appSpaceId: string;
 }
 
@@ -105,6 +107,7 @@ export async function loadProductionModules(
   const evolution = await import('../../src/services/graph-db/evolution/evolution.service.js');
   const activateOntology = await import('../../src/tools/activate-ontology-context.js');
   const activateSchema = await import('../../src/tools/activate_schema.js');
+  const descendants = await import('../../src/services/graph-db/descendant-validation.js');
   const embeddingConfig = await import('../../src/services/embedding/config.js');
   const config = await import('../../src/config.js');
 
@@ -122,6 +125,7 @@ export async function loadProductionModules(
     evolution,
     activateOntology,
     activateSchema,
+    descendants,
     appSpaceId: config.SQUADRULES_APP_SPACE_ID
   };
 }
