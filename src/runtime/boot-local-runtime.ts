@@ -8,6 +8,7 @@
  * path turns these down (fastboot); the server turns them all on.
  */
 import { structuredLogger } from '../utils/structured-logger.js';
+import path from 'node:path';
 import { MemoryQdrantStore } from '../services/memory/store.js';
 import { qdrantService } from '../services/qdrant/index.js';
 import type { QdrantService } from '../services/qdrant/service.js';
@@ -72,6 +73,24 @@ export interface BootLocalRuntimeOptions {
    * caller-owned resource.
    */
   databaseDir?: string;
+  /**
+   * Directory of the graph this runtime opens (embedded backend only).
+   *
+   * Omit it for the process default runtime. A runtime booted for its own records
+   * (`records` or `databaseDir`) gets a graph colocated with that store instead, so two
+   * independent boots never contend for one embedded database file: the embedded backend
+   * allows exactly one writable owner per file, and silently sharing the process default
+   * would attach the first boot's topology to the second boot's store.
+   */
+  graphDatabaseDir?: string;
+  /**
+   * Caller-owned graph repository.
+   *
+   * Attached to this runtime's store and **not** registered for process shutdown: the
+   * caller that opened it closes it, exactly like a caller-supplied `records`. Wins over
+   * `graphDatabaseDir`.
+   */
+  graph?: GraphRepository;
 }
 
 export interface BootedLocalRuntime {
@@ -142,6 +161,28 @@ async function waitForQdrant(memoryStore: MemoryQdrantStore, maxRetries = 30, in
   }
 
   throw new Error(`Qdrant did not become available after ${maxRetries} attempts (${(maxRetries * intervalMs) / 1000}s)`);
+}
+
+/**
+ * Graph directory for this boot.
+ *
+ * Precedence: explicit option, then a directory colocated with a store this runtime was
+ * asked to own, then the process default. The middle case is what keeps two independent
+ * boots independent: an embedded graph has one writable owner per file, so a second boot
+ * that reused the default directory would either fail to open it or attach another
+ * runtime's topology to its own store.
+ */
+function resolveGraphDatabaseDir(
+  opts: BootLocalRuntimeOptions,
+  records: LanceVectorRecordStore | null
+): string | undefined {
+  const explicit = opts.graphDatabaseDir?.trim();
+  if (explicit) return explicit;
+  // No caller-owned store means this is the process default runtime: it keeps the
+  // process default graph.
+  if (!opts.records && !opts.databaseDir) return undefined;
+  const storeDir = records?.getDirectory();
+  return storeDir ? path.join(storeDir, 'graph') : undefined;
 }
 
 /**
@@ -218,8 +259,15 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
   // route, no health surface). `initGraphDb()` never throws — a failed open is logged by
   // the singleton and reported as null, so the app still boots without the graph. This
   // debug line plus tests/unit/graph-db-singleton.test.ts is the verification contract.
-  const graphDb = await initGraphDb();
-  structuredLogger.debug(`graph db: ${graphDb ? 'ready (embedded)' : 'disabled (init failed)'}`);
+  //
+  // A caller-supplied repository is attached as-is: it is not registered for shutdown
+  // because its opener owns closing it.
+  const graphDir = resolveGraphDatabaseDir(opts, records);
+  const graphDb =
+    opts.graph ?? (await initGraphDb(graphDir ? { databaseDir: graphDir } : {}));
+  structuredLogger.debug(
+    `graph db: ${graphDb ? `ready (${opts.graph ? 'caller-owned' : 'embedded'})` : 'disabled (init failed)'}`
+  );
 
   // The graph belongs to THIS runtime: attach it to the objects tools are handed, and
   // to nothing else. A second boot in the same process opens its own graph and attaches
