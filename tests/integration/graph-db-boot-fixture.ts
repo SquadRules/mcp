@@ -226,11 +226,19 @@ export class BootFixture {
     return written;
   }
 
-  /** Boot the real runtime against `store`, opening its graph at `graphPath`. */
+  /**
+   * Boot the real runtime against `store`, opening its graph at `graphPath`.
+   *
+   * The directory is passed as this boot's own `graphDatabaseDir`: a runtime that owns its
+   * store colocates the graph beside that store, and the process-wide
+   * `SQUADRULES_GRAPH_DB_PATH` must not let two independent boots in one process contend
+   * for the same embedded database file. The env key is neutralised in `loadBootModules`,
+   * so this option is the only thing steering the graph here.
+   */
   async boot(graphPath: string, store: LanceVectorRecordStore): Promise<BootedRuntime> {
-    process.env['SQUADRULES_GRAPH_DB_PATH'] = graphPath;
     const runtime = await this.modules.boot.bootLocalRuntime({
       records: store,
+      graphDatabaseDir: graphPath,
       // Warm path: the store already holds records, so the boot skips bundled injection
       // and never probes an embedding model. A probe with this suite's unreachable
       // provider throws, so a wrongly-taken seeding branch fails the scenario loudly
