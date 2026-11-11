@@ -1,24 +1,18 @@
 /**
  * Shared harness for the graph-native integration suites (ADR 0042–0047).
  *
- * Every value here is a production object or a production call — nothing is
- * stubbed:
+ * Every value here is a production object or a production call — nothing is stubbed:
+ * `openGraphDb()` opens the real backend (embedded LadybugDB by default, real ArangoDB when
+ * the caller selects it); `LanceVectorRecordStore({ databaseDir })` is real embedded
+ * LanceDB; `createEmbeddedRuntime(records)` binds one store to both tool facades; and
+ * `executeTrainStore` / `executeTune` / `executeExportVersion` are the functions the MCP
+ * tools call, so history, proposals and validation are the production ones.
+ * `runWithSpaceContextAsync` is the real tenant context, and its `userId` is what
+ * `resolveGraphActor()` reads — the same identity source a request has.
  *
- *   - `openGraphDb()`        real backend (embedded LadybugDB by default, real
- *                            ArangoDB when the caller selects it), explicit dir.
- *   - `LanceVectorRecordStore({ databaseDir })` real embedded LanceDB.
- *   - `createEmbeddedRuntime(records)` binds one store to both tool facades.
- *   - `executeTrainStore` / `executeTune` / `executeExportVersion` are the same
- *     functions the MCP tools call, so history, proposals and validation are the
- *     production ones.
- *   - `runWithSpaceContextAsync` is the real tenant context; `userId` is what
- *     `resolveGraphActor()` reads, so identity in these suites comes from the
- *     same place a request's identity comes from.
- *
- * Embeddings: the write path embeds activation text. Forcing the `tei` provider
- * with no endpoint makes the real provider call fail immediately and the writer
- * fall back to zero vectors. Nothing reaches the network and no embedding call is
- * replaced.
+ * Embeddings: the write path embeds activation text. Forcing the `tei` provider with no
+ * endpoint makes the real provider call fail immediately and the writer fall back to zero
+ * vectors. Nothing reaches the network and no embedding call is replaced.
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
