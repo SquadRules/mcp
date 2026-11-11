@@ -454,6 +454,7 @@ jobs:
           NODE_OPTIONS=--experimental-vm-modules npx jest
           tests/integration/graph-db-arango-shared.test.ts
           tests/integration/graph-db-arango-evolution.test.ts
+          tests/integration/graph-db-arango-history-link-fault.test.ts
           --runInBand --forceExit --testTimeout=120000
 
       # Group 2: real embedded LadybugDB + LanceDB through the production boot and

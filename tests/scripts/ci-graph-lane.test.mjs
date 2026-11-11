@@ -54,6 +54,9 @@ test('the shared-backend Graph lane runs real ArangoDB 3.11 and cannot be skippe
   assert.equal(run.env.SQUADRULES_ARANGO_DATABASE, 'squadrules_it');
   assert.match(run.run, /tests\/integration\/graph-db-arango-shared\.test\.ts/);
   assert.match(run.run, /tests\/integration\/graph-db-arango-evolution\.test\.ts/);
+  // The link-failure parity suite is the Arango half of ADR 0045's atomic append: a
+  // backend that appends the node but not the edge must fail here, not in production.
+  assert.match(run.run, /tests\/integration\/graph-db-arango-history-link-fault\.test\.ts/);
   assert.match(run.run, /NODE_OPTIONS=--experimental-vm-modules/);
 
   // The database the deployment URL points at is created by the job, not assumed.
