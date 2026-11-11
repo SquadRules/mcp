@@ -7,9 +7,6 @@ landed on `squadrules-6` via [PR #296](https://github.com/SquadRules/mcp/pull/29
 squash-merge commit `40af9c75` on 2026-11-09 with all thirteen required CI gates green
 including both embedded and Arango-shared evolution suites in the `verify-integration-graph`
 lane; reconciled by agent on 2026-11-09 under the documentation-authority ADR-status rule.
-Clarified 2026-11-11 on what rungs 1–3 can actually verify — see
-[Clarification 2026-11-11](#clarification-2026-11-11--what-the-ladder-can-actually-verify)
-below; the decision body is unchanged.
 
 Implements the resolution rules of
 [`docs/specs/ontological-knowledge-system.md`](../specs/ontological-knowledge-system.md)
@@ -155,61 +152,6 @@ that loses to a concurrent settle is reported, not force-applied.
   threshold.
 - **Trust a `human_expert` claim in the document.** Rejected: identity must come from the
   authenticated subject, otherwise the ladder is spoofable.
-
-## Clarification 2026-11-11 — what the ladder can actually verify
-
-This section does not change the decision above. It records the authority each rung
-actually has, after the implementation was checked against the decision (issue
-[#293](https://github.com/SquadRules/mcp/issues/293), gaps G6–G8).
-
-### Rung 1 (evidence) is an allowlist, not "any structured object"
-
-§5 rung 1 said a confirmation "carrying evidence" decides its side. The implementation
-treated any evidence object with a key other than `note` as empirical, so one caller-shaped
-dictionary could decide a proposal before a vote was read. The rung is now the exported
-contract `EVIDENCE_SUFFICIENCY_ALLOWLIST`
-(`src/services/graph-db/evolution/consensus.ts`):
-
-| Kind | Asserts | Required provenance |
-| --- | --- | --- |
-| `deterministic-contradiction` | a primitive domain property or an opposing rule statement differs from the stored parent | `detected_from`, `contradiction_kind` (`property` \| `rule`), `target_adapter_version` |
-| `reward-failure` | a reward proof recorded a failure for the target adapter | `uri`, `outcome` (`failure`), `target_adapter_version` |
-
-These are the only two kinds something other than the claimant produces — the
-deterministic detector and the reward path. Anything else (a note, an arbitrary
-dictionary, a recognized kind missing or abusing its provenance) is **attached, not
-verified-sufficient**: it is recorded and echoed on `attached_unverified_evidence`, and it
-never decides the rung. `classifyEvidence()` returns `absent`,
-`attached-unverified` or `verified-sufficient`, and `decided_by` names the verified case
-(`verified evidence from …`, `conflicting verified evidence`) so the two cases stay
-distinguishable in output.
-
-### Rung 2 (authorized human expert) is deferred, not deleted
-
-The rung is unreachable in the current runtime, by design. `confirmProposal()` fails closed
-with `EXPERT_AUTHORITY_DEFERRED` (`'expert_authority_deferred'`) carried on
-`ExpertAuthorityDeferredError`; its `deferral` names the reason
-(`no-trusted-expert-role-source`), the rung it belongs to, and the recovery action.
-
-The reason is the one §5 and *Alternatives* already imply: the runtime resolves an
-authenticated **subject**, never a role. Identity is authenticated; authority is not. A
-`human_expert` label supplied by the caller is exactly the spoof this decision rejects, and
-silently recording that claim as an agent vote would let the caller choose which rung reads
-their confirmation.
-
-`consensus.ts` keeps the rung intact (`human_expert` **and** `auth-subject`), so a future
-trusted role mapping activates it without redesigning the ladder. Until then an expert
-confirmation cannot be recorded, and the deferral is a value callers and tests assert
-rather than a message they match.
-
-### Rung 3's frequency is scoped to the exact target and claim
-
-§4 said "three or more distinct children report the same routable anomaly". "Same" now
-means the exact scoped target (`adapter:<spaceId>:<slug>`) and the same claim
-(`metadata.field`), resolved by `evolution/scoped-frequency.ts`. A routing slug alone let a
-same-slug adapter in another space, or a different contested field on the same target, move
-a threshold it had no bearing on. Counts are bounded by a read window and report
-`truncated`, so a filled window is presented as a floor rather than as the population.
 
 ## Reopening trigger
 

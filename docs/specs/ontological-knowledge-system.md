@@ -721,7 +721,7 @@ input may claim:
    exact `adapter:<spaceId>:<slug>` target and claim.
 4. **Sub-category** is unchanged.
 
-See [ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md), Clarification 2026-11-11.
+See [ADR 0050](../adr/0050-evolution-ladder-authority-and-scoped-frequency.md), which refines [ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md) on what each rung admits without changing its decision.
 
 ### Decision 6: Anomaly Detection Algorithm — Hybrid Approach
 
