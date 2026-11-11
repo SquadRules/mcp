@@ -21,13 +21,13 @@ import { createHash } from 'node:crypto';
 
 import { selectSharedBackend } from './graph-db-arango-selection.js';
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 import type { ActivateOutput } from '../../src/tools/activate_schema.js';
 
 const SELECTION = selectSharedBackend('graph-db-arango-evolution');
@@ -48,7 +48,7 @@ if (SELECTION.required && !SHARED_SELECTED) {
 }
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 const SPACE = `space:it-arango-evo-${RUN}`;
 const PARENT = 'shared-evo-parent';
@@ -109,7 +109,7 @@ beforeAll(async () => {
     SQUADRULES_GRAPH_BACKEND: 'arango',
     SQUADRULES_GRAPH_BACKEND_STRICT: 'true'
   });
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {

@@ -13,8 +13,12 @@
  * Embeddings: the write path embeds activation text. Forcing the `tei` provider with no
  * endpoint makes the real provider call fail immediately and the writer fall back to zero
  * vectors. Nothing reaches the network and no embedding call is replaced.
+ *
+ * The harness never manufactures a critic verdict. A suite that needs `tune` to be
+ * accepted imports `graph-db-critic-fixture.ts`, which is exactly why such suites stay
+ * out of the required embedded lane (`tests/scripts/ci-graph-lane.test.mjs`).
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -256,13 +260,6 @@ export class GraphFixture {
     };
   }
 
-  /** Real file whose first line is PASS — the critic verdict the tune gate reads. */
-  verdictFile(): string {
-    const path = join(this.tempDir('verdict'), 'verdict.txt');
-    writeFileSync(path, 'PASS\n', 'utf8');
-    return path;
-  }
-
   /** Open a graph at an explicit directory (used to prove history survives a reopen). */
   async openGraphAt(databaseDir: string): Promise<GraphRepository> {
     const graph = await this.modules.graphSingleton.openGraphDb({ databaseDir });
@@ -291,28 +288,6 @@ export class GraphFixture {
       )
     );
     return { output, headUuid: output.items[0]!.layer_uuid! };
-  }
-
-  /** Production `tune` of one adapter URI with a full markdown body. */
-  async tune(
-    runtime: Runtime,
-    spaceId: string,
-    uri: string,
-    content: string,
-    options: { expectedVersion?: string } = {}
-  ) {
-    return this.onSpace(spaceId, () =>
-      this.modules.tuneExecute.executeTune(
-        runtime.qdrantService,
-        {
-          uris: [uri],
-          content: [content],
-          review_evidence: { verdict_file: this.verdictFile(), exit_code: 0, stdout: 'PASS' },
-          ...(options.expectedVersion !== undefined && { expected_version: options.expectedVersion })
-        },
-        runtime.memoryStore
-      )
-    );
   }
 
   /** Stored head record, read through the same surfaced record the tools read. */

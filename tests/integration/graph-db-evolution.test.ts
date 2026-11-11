@@ -19,20 +19,20 @@
  */
 
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 
 const SPACE = 'space:it-evolution';
 const PARENT = 'evo-parent';
 const PARENT_URI = `squadrules://adapter/${PARENT}`;
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 /** Parent adapter; `fields` are the domain properties children may contradict. */
 function parentDoc(fields: Record<string, string> = {}, rules?: string, stepBody = 'parent step'): string {
@@ -86,7 +86,7 @@ function childDoc(slug: string, options: ChildOptions = {}): string {
 
 beforeAll(async () => {
   modules = await loadProductionModules();
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {

@@ -18,13 +18,13 @@
 import { createHash } from 'node:crypto';
 
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 import { selectSharedBackend } from './graph-db-arango-selection.js';
 
 const SELECTION = selectSharedBackend('graph-db-arango-shared');
@@ -52,7 +52,7 @@ if (SELECTION.required && !SHARED_SELECTED) {
 }
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 function sha(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
@@ -81,7 +81,7 @@ beforeAll(async () => {
     SQUADRULES_GRAPH_BACKEND: 'arango',
     SQUADRULES_GRAPH_BACKEND_STRICT: 'true'
   });
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {

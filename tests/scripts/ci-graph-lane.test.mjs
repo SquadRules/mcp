@@ -10,6 +10,10 @@
  * The lane now carries three required suite groups (Arango parity, mock-free embedded,
  * shipped-package API). The trigger, the dist prerequisite and the suite selection each
  * decide how many assertions the lane really executes, so each is pinned below.
+ *
+ * What "mock-free" means here: no suite in the embedded group may import the
+ * synthetic-verdict harness, and the shared harness may not manufacture a critic verdict
+ * at all. Accepting any write still requires a real gate.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -164,18 +168,35 @@ test('the Graph lane requires the mock-free embedded suites and no synthetic-ver
   ]) {
     assert.ok(suites.includes(`tests/integration/${suite}.test.ts`), `test:graph-embedded must run ${suite}`);
   }
-  // `graph-db-fixture.ts` hands `tune` a verdict file the test wrote itself, so a suite
-  // that writes through it proves the write, not the gate. Those suites stay out until
-  // the fixture is repaired; naming them here keeps the omission deliberate and visible.
+  // `graph-db-critic-fixture.ts` hands `tune` a verdict file the test wrote itself, so a
+  // suite that writes through it proves the write, not the gate. Those suites stay out
+  // until the gate is exercised for real; naming them here keeps the omission deliberate
+  // and visible.
   for (const suite of ['adapter-inheritance-projection', 'graph-db-evolution', 'graph-db-history-restore']) {
     assert.ok(
       !suites.includes(`tests/integration/${suite}.test.ts`),
       `${suite} writes on a fabricated critic PASS; it cannot join a required lane yet`
     );
   }
-  // Importing the helper at all would make the exclusion above cosmetic.
+  // The synthetic verdict lives in `graph-db-critic-fixture.ts` only, so importing the
+  // shared harness cannot smuggle one into the lane.
+  assert.doesNotMatch(
+    readFileSync('tests/integration/graph-db-fixture.ts', 'utf8'),
+    /verdict_file|review_evidence/,
+    'The shared harness must never hand the gate a verdict'
+  );
   for (const suite of suites) {
-    assert.doesNotMatch(readFileSync(suite, 'utf8'), /graph-db-fixture/, `${suite} must not depend on graph-db-fixture`);
+    const source = readFileSync(suite, 'utf8');
+    assert.doesNotMatch(
+      source,
+      /graph-db-critic-fixture/,
+      `${suite} may not import the synthetic-verdict harness`
+    );
+    assert.doesNotMatch(
+      source,
+      /verdict_file|review_evidence/,
+      `${suite} may not hand the gate a verdict the test wrote`
+    );
   }
   assert.ok(
     graphJob()['timeout-minutes'] >= 30,

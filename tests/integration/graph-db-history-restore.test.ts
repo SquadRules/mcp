@@ -25,13 +25,13 @@
 import { createHash } from 'node:crypto';
 
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 
 const SPACE_A = 'space:it-history-a';
 const SPACE_B = 'group:it-history-b';
@@ -39,7 +39,7 @@ const SLUG = 'history-adapter';
 const URI = `squadrules://adapter/${SLUG}`;
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 function sha(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
@@ -58,7 +58,7 @@ function doc(version: string, body: string, slug = SLUG): string {
 
 beforeAll(async () => {
   modules = await loadProductionModules();
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {
