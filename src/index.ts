@@ -9,6 +9,7 @@ import { installGlobalErrorHandlers } from './utils/global-error-handlers.js';
 import { startHttpTransport } from './http/http-server.js';
 import { startStdioTransport } from './stdio/stdio-server.js';
 import { bootLocalRuntime } from './runtime/boot-local-runtime.js';
+import { createShutdownRegistry } from './runtime/shutdown-registry.js';
 import { closeGraphDb } from './services/graph-db/graph-db-singleton.js';
 import { startMetricsServer } from './metrics-server.js';
 import {
@@ -37,43 +38,69 @@ function isDirectRun(): boolean {
 }
 
 /**
- * Listeners this process owns, drained on shutdown. A listener that is still
- * accepting work holds the event loop open, so the process cannot exit on its own
- * while one is bound.
+ * Every listener this process owns, drained on shutdown. Registration is atomic against
+ * the drain (see `src/runtime/shutdown-registry.ts`): a listener that finishes booting
+ * after a drain began closes itself and is logged, so it can never be the abandoned
+ * handle that keeps the event loop alive until the last resort runs against a live ORT
+ * session (ADR 0049).
  */
-const openListeners: Array<() => void> = [];
-
-/**
- * Set the instant a signal is handled, before the registry is drained.
- * Registration has to be atomic against the drain: a signal can land while
- * `bootLocalRuntime()` is still awaited, and a listener registered after the drain
- * would never be closed, so it would hold the event loop open until the last resort
- * (`process.exit(0)`) ran against a live ORT session and aborted the process.
- */
-let shuttingDown = false;
-
-/** One listener close, best effort: a failure must not skip the remaining ones. */
-function closeQuietly(close: () => void): void {
-    try {
-        close();
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+const listeners = createShutdownRegistry({
+    onLateRegistration: () =>
+        structuredLogger.info('shutdown: closed a listener that registered after shutdown began'),
+    onCloseError: (error) => {
+        const message = error instanceof Error ? error.message : String(error);
         structuredLogger.debug(`shutdown: listener close failed (${message})`);
     }
+});
+
+/** The ONLY way a listener may join the shutdown set, so a future listener cannot
+ * reintroduce the boot window.
+ */
+function registerListener(close: () => void): void {
+    listeners.register(close);
 }
 
 /**
- * The ONLY way a listener may join the shutdown set, so a future listener cannot
- * reintroduce the boot window. When a shutdown is already in progress the registry
- * has been drained, so the listener is closed at once instead of being pushed onto
- * a set nobody will ever read again.
+ * Drain every handle this process owns and report `exitCode`, instead of calling
+ * `process.exit()` while the embedding model is loaded (ADR 0049).
+ *
+ * One implementation, two callers, because both are the same event: the process must
+ * stop, and the only safe way to stop is to close what it owns and let the event loop
+ * empty. The signal handler calls it with `0` (a requested stop). A fatal listen
+ * failure calls it with `1` (a failed start) - that failure arrives on the listener's
+ * `error` event, after `bootLocalRuntime()` has already loaded the model, so it is a
+ * process with a live ONNX session and cannot be answered with `process.exit()`.
  */
-function registerListener(close: () => void): void {
-    if (shuttingDown) {
-        closeQuietly(close);
-        return;
-    }
-    openListeners.push(close);
+function drainOwnedHandles(exitCode: number): void {
+    // The registry is marked draining BEFORE any closer runs, so every listener that
+    // finishes booting from here on closes itself through `registerListener()` instead
+    // of waiting for a drain that has already happened. Closing is best effort inside the
+    // registry: a listener that fails to close neither skips the remaining ones nor
+    // changes the exit code.
+    listeners.drain();
+    // Best-effort graph DB shutdown, fired inside the grace period below. It never
+    // rejects and its outcome cannot change the exit code: the graph is internal
+    // bookkeeping, so exit semantics stay exactly as before.
+    void closeGraphDb().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        structuredLogger.debug(`graph db: shutdown hook failed (${message})`);
+    });
+    // The drain above already stopped accepting new work, so the event loop can empty and
+    // the process can exit naturally with the code set below.
+    // Last resort, unreachable on a process that drains once every listener has
+    // registered its closer before the signal arrived (late boot closers close
+    // themselves above). It fires only when a handle we do not own keeps the loop
+    // alive - and with the model loaded that exit aborts (ADR 0049). The line it
+    // writes first is the only runtime trace of that case: probes observed "did not
+    // fire", and an operator (or a gate) needs the negative as a log fact, not as an
+    // inference from an exit code.
+    setTimeout(() => {
+        structuredLogger.warn(
+            'shutdown: last-resort exit (a handle this process does not own still holds the event loop)'
+        );
+        process.exit(exitCode);
+    }, 1000).unref();
+    process.exitCode = exitCode;
 }
 
 /**
@@ -89,27 +116,7 @@ function registerListener(close: () => void): void {
 function installSignalHandlers(): void {
     const shutdown = (signal: string) => {
         structuredLogger.info(`Received ${signal}, shutting down`);
-        // Set before the drain: every listener that finishes booting from here on
-        // closes itself through `registerListener()` instead of waiting for a drain
-        // that has already happened.
-        shuttingDown = true;
-        // Best-effort graph DB shutdown, fired inside the grace period below. It never
-        // rejects and its outcome cannot change the exit code: the graph is internal
-        // bookkeeping, so exit semantics stay exactly as before.
-        void closeGraphDb().catch((err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
-            structuredLogger.debug(`graph db: shutdown hook failed (${message})`);
-        });
-        // Stop accepting new work so the event loop can drain and the process can exit
-        // naturally with the code set below. Best effort: a listener that fails to
-        // close must not skip the remaining ones or change the exit code.
-        for (const close of openListeners.splice(0)) closeQuietly(close);
-        // Last resort, unreachable on a process that drains once every listener has
-        // registered its closer before the signal arrived (late boot closers close
-        // themselves above). It fires only when a handle we do not own keeps the loop
-        // alive - and with the model loaded that exit aborts (ADR 0049).
-        setTimeout(() => process.exit(0), 1000).unref();
-        process.exitCode = 0;
+        drainOwnedHandles(0);
     };
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
@@ -170,7 +177,15 @@ export async function runSquadrulesServer(): Promise<void> {
         // Both transports get the facade this runtime booted, not the module default:
         // a second runtime in the same process must not resolve another store's records.
         if (TRANSPORT_TYPE === 'http') {
-            const httpServer = await startHttpTransport(memoryStore, runtimeService);
+            const httpServer = await startHttpTransport(memoryStore, runtimeService, {
+                // A bind failure is fatal, and it happens after the model is loaded: the
+                // listener is the last thing this boot starts. It is the same process
+                // event a signal is, so it takes the same drain, with a failing status -
+                // the metrics listener started above, the graph may be open, and a
+                // listener that registers after this point closes itself. Calling
+                // `process.exit(1)` here instead aborts the live ONNX session (ADR 0049).
+                onFatalError: () => drainOwnedHandles(1)
+            });
             registerListener(() => {
                 httpServer.closeAllConnections();
                 httpServer.close();
