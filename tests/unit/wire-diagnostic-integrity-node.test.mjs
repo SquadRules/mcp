@@ -26,7 +26,26 @@ const doubles = new Map([
     export const assertTuneExpectedVersionForTarget = async () => {};
     export const collectLayerMemoryUuidsForTune = async () => [];
     export const normalizeTuneUri = async (_, uri) => uri;
+    export const readAdapterRecordsByUuid = async () => null;
     export const reassignAdapterLayersToSpace = async () => {};
+  `],
+  // The derived pass and its lock are graph bookkeeping, not part of the diagnostic wire
+  // shape this bounded check exercises. Doubling them keeps the real dispatcher under
+  // test without pulling the whole graph subsystem (and its native backends) in.
+  ['services/graph-db/adapter-write-lock.ts', `
+    export const adapterIdentityLockKey = (id) => \`lock:\${id}\`;
+    export const withAdapterWriteLock = async (_key, operation) => operation();
+    export const adapterWriteLockDepth = () => 0;
+  `],
+  ['services/graph-db/adapter-write-finalize.ts', `
+    export const finalizeAdapterMutation = async () => ({
+      graph_degraded: false, projection: null,
+      history: {
+        version: null, anomaly_key: null, proposal_keys: [], skipped: null, no_change: false,
+        change_type: null, snapshot_source: null, content_digest: null, degraded: []
+      },
+      snapshot_source: null, content_digest: null, degradations: [], residuals: []
+    });
   `]
 ].map(([path, source]) => [new URL(path, src).href, source]));
 const production = new Set([
