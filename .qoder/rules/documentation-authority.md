@@ -47,6 +47,9 @@ home; they never restate it ("rule of one").
 - `docs/adapter-design-principles.md` — adapter autonomy and verification principles
 - `docs/adapter-authoring-guide.md` — adapter authoring flow and contract selection
 - `docs/known-issues-and-limitations.md`
+- `docs/runbooks/**` — operator procedures that need a real deployment to execute (e.g. the
+  production bake). A runbook states what it proves and what it does not; the runtime
+  evidence it produces is recorded outside `docs/`, never pasted in
 - `docs/squadrules-bundles.md`
 - `docs/test-snapshot-*.md`
 - `docs/specs/**`

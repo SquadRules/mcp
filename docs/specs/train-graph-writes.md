@@ -1,7 +1,8 @@
 # Train/Tune Graph Writes (Touchpoint 3)
 
 This document specifies how `train` and `tune` interact with the embedded graph database
-when persisting adapters with inheritance frontmatter.
+when persisting adapter markdown. Projection is not limited to documents that declare
+inheritance: every markdown write reconciles the node and its edges.
 
 **Companion specs:**
 
@@ -13,15 +14,15 @@ when persisting adapters with inheritance frontmatter.
 
 ## 1. Fail-Closed Structural Validators
 
-When adapter markdown contains `inherits:` frontmatter, the following validators run
-**before** the memory-store write. Any error fails the tool call immediately.
+Structural validation runs **before** the memory-store write whenever the document declares
+`inherits:` or `override:`. Any error fails the tool call immediately.
 
 | Code | Severity | Trigger |
 |------|----------|---------|
 | `single_parent` | error | `inherits` value is an array (`[a, b]` or comma-separated) |
-| `structural_override_forbidden` | error | `override` list contains `contract`, `type`, `steps`, `chain_root`, `inherits`, or `override` |
+| `structural_override_forbidden` | error | `override` list contains a field the framework decides: `contract`, `type`, `steps`, `chain_root`, `inherits`, `override`, `verdict`, `work_envelope`, `effective_contract`, `effective_contracts` (`STRUCTURAL_OVERRIDE_FORBIDDEN_FIELDS`) |
 | `override_unknown_field` | error | `override` field not present in parent frontmatter and not a known overridable field |
-| `parent_missing` | **warning** | Parent slug not found in graph DB — does NOT fail the call |
+| `parent_missing` | **warning** | Parent record not found in the child's space or the app space (`resolveStoredParentSnapshot`) — does NOT fail the call |
 
 **Known overridable fields** (always accepted in `override:` without parent cross-check):
 `slug`, `version`, `title`, `tags`, `metadata`, `space`, `layer_count`, `contract_types`,
@@ -52,17 +53,28 @@ When adapter markdown contains `inherits:` frontmatter, the following validators
 
 ## 2. Graceful-Degradation Graph Projection
 
+**Every successful markdown write is projected immediately — plain or inheriting.** The
+write path does not defer a plain adapter to the next boot; §2.1 states why.
+
 After the memory-store write succeeds, the tool projects the **stored record** into the
 graph owned by the store it was handed:
 
-1. `getGraphDb(memoryStore)` returns `null` → skip silently (store booted without a graph,
-   graph disabled, or the open failed). The `tune` path resolves the graph from the
-   retrieval surface it was handed instead.
-2. The tool re-reads the head it just wrote (`getMemory(uuid, { fresh: true })`) and builds
-   a snapshot with `snapshotFromLayers([head], 'train' | 'tune', scope)`.
-3. `syncAdapterGraph(graphDb, [snapshot])` (`src/services/graph-db/adapter-graph-sync.ts`)
-   writes the node, then the edge, inside try/catch.
-4. On failure: log a warning via `structuredLogger.warn(...)`, **do not propagate**.
+1. `getGraphDb(...)` returns `null` → skip silently (store booted without a graph, graph
+   disabled, or the open failed). `train` asks the memory store
+   (`getGraphDb(memoryStore)`); `tune` asks the retrieval surface it was handed
+   (`getGraphDb(qdrantService)`).
+2. The tool re-reads the head it just wrote — `getMemory(uuid, { fresh: true })` on
+   `train`, `retrieveById` + `pointToMemory` on `tune` — so the stored `slug`, `space_id`
+   and topology frontmatter are the ones that landed.
+3. `projectAdapterLineage(graphDb, source, head, 'train' | 'tune')`
+   (`src/services/graph-db/adapter-graph-sync.ts`) builds the head snapshot with
+   `snapshotFromLayers([head], context)`, which delegates to `snapshotFromStoredMemory`
+   with the scope taken from the record's `space_id`. It then walks the stored ancestry
+   root-first through `resolveStoredParentSnapshot`, capped at 32 hops, so a parent is
+   written before the child edge that points at it.
+4. `syncAdapterGraph(graphDb, lineage)` writes every node, then every edge, inside
+   try/catch.
+5. On failure: log a warning via `structuredLogger.warn(...)`, **do not propagate**.
 
 The memory write is the source of truth. The graph is a derived projection that boot
 reconciliation rebuilds from the store — see
@@ -70,6 +82,25 @@ reconciliation rebuilds from the store — see
 for what projection cannot restore. Adapter persistence must never fail because of graph
 unavailability. Projecting from the re-read record rather than the authoring markdown is
 what guarantees a failed write leaves no node.
+
+### 2.1 Why every write, not only inheriting ones
+
+Three behaviours depend on projecting a node that declares no `inherits`:
+
+- **A plain adapter is a node too.** Projecting it is what makes it discoverable to a
+  child trained next; waiting for boot would leave a window where a stored parent has no
+  node to point at.
+- **Removing `inherits:` must remove the edge.** `syncAdapterGraph` runs the edge pass for
+  **every** written node, and `writeInheritanceEdges` clears the child's existing edges
+  before creating the declared one. Projecting the plain node is how a record that stopped
+  declaring a parent loses the edge it used to have.
+- **Boot reconcile is the backfill, not the trigger.** A parent that is genuinely not
+  stored yet is reported in `missing_parents`; `reconcileAdapterGraphFromStore`
+  re-projects the space it injected and links the pair once both records exist.
+
+> `docs/adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md` Consequences §3
+> still describes the earlier conditional behaviour. The code paths above are authoritative
+> for the delivered write path.
 
 ### Projection semantics
 
@@ -100,10 +131,13 @@ both node and edge, so the resolved scope is auditable instead of implicit.
 
 ## 3. Hook Points
 
-| Tool | File | Hook location |
-|------|------|---------------|
-| `train` | `src/tools/train-store.ts` | `assertInheritanceFrontmatterValid` before `memoryStore.storeAdapter`; `projectStoredAdapter` after it returns, keyed on the written head |
-| `tune` | `src/tools/tune-execute.ts` | `assertTuneInheritanceValid` before the layer update loop; `projectTunedAdapter` after `verifyTuneLayerPersistence` |
+| Tool | Module | Hook location |
+|------|--------|---------------|
+| `train` | `src/tools/train-store.ts` (`projectStoredAdapterLineage`), `src/tools/train-validation.ts` (`assertInheritanceFrontmatterValid`) | `assertInheritanceFrontmatterValid` before `memoryStore.storeAdapter`; `projectStoredAdapterLineage` after it returns, keyed on the written head |
+| `tune` | `src/tools/tune-adapter-markdown.ts` (`assertTuneInheritanceValid`, `projectTunedAdapter`) | `assertTuneInheritanceValid` before the layer write loop; `projectTunedAdapter` after `verifyTuneLayerPersistence` |
+
+`executeTune` (`src/tools/tune-execute.ts`) reaches this module for a `content` tune on an
+adapter URI; both hooks live in the module that owns the write they guard.
 
 Both validators receive the resolved child scope (`writeAdapterScope()` on `train`,
 `storedAdapterScope()` on `tune`) and look the parent up with
@@ -111,11 +145,8 @@ Both validators receive the resolved child scope (`writeAdapterScope()` on `trai
 frontmatter the edge will actually point at — not the child's own document.
 
 Artifact trains (`mime != text/markdown`) do not trigger inheritance validation or graph
-projection — artifacts have no frontmatter.
-
-Projection is conditional: it runs only for documents that declare inheritance frontmatter.
-A plain adapter gets its node at the next boot reconcile, which projects every stored
-adapter in the injected space.
+projection — artifacts have no frontmatter, and `executeTrainStore` returns before the
+frontmatter path.
 
 ---
 
@@ -138,13 +169,16 @@ utility (`src/utils/frontmatter.ts`), which now extracts:
 |------|---------|
 | `src/services/graph-db/adapter-inheritance.ts` | Pure validators, types, parse helpers |
 | `src/services/graph-db/adapter-scope.ts` | Scope-qualified keys (`adapter:<spaceId>:<slug>`) and the one scope policy |
-| `src/services/graph-db/adapter-graph-sync.ts` | `syncAdapterGraph` (nodes then edges), `resolveParentScope`, `reconcileAdapterGraphFromStore` |
+| `src/services/graph-db/adapter-graph-sync.ts` | `syncAdapterGraph` (nodes then edges), `projectAdapterLineage`, `resolveParentScope`, `reconcileAdapterGraphFromStore` |
+| `src/services/graph-db/adapter-graph-records.ts` | `snapshotFromLayers`, `snapshotFromStoredMemory`, `resolveStoredParentSnapshot`, `snapshotsFromRecords` — stored-record snapshots, never authoring markdown |
+| `src/services/graph-db/inheritance-write-validation.ts` | Local structural vetoes and `INHERITANCE_VALIDATION_UNAVAILABLE` for an unestablishable parent read |
 | `src/services/graph-db/graph-owner.ts` | `attachGraphDb` / `getGraphDb` — the graph belongs to the store, not the process |
 | `src/services/graph-db/graph-database.service.ts` | `upsertAdapterFromFrontmatter`, `writeInheritanceEdges`, `clearInheritanceEdges`, `getChildren` |
 | `src/services/graph-db/index.ts` | Re-exports for the inheritance module |
 | `src/services/memory/stored-adapter-frontmatter.ts` | Persists `inherits` / `override` / `chain_root` on the stored `adapter` payload |
-| `src/tools/train-store.ts` | `assertInheritanceFrontmatterValid`, `projectStoredAdapter` |
-| `src/tools/tune-execute.ts` | `assertTuneInheritanceValid`, `projectTunedAdapter` |
+| `src/tools/train-store.ts` | `projectStoredAdapterLineage` |
+| `src/tools/train-validation.ts` | `assertInheritanceFrontmatterValid` |
+| `src/tools/tune-adapter-markdown.ts` | `assertTuneInheritanceValid`, `projectTunedAdapter` |
 | `src/utils/frontmatter.ts` | Extended with `inherits` and `overrideRaw` fields |
 
 The test files, and what each one covers, are code-derivable and are not restated here.

@@ -17,6 +17,8 @@ irreducible, non-code-derivable records enumerated by the
   recently delivered changes; one file per effort.
 - [Known issues and limitations](known-issues-and-limitations.md) — expected
   behaviour that looks like a defect, why it happens, and what would change it.
+- [Runbooks](runbooks/production-bake.md) — operator procedures that need a real
+  deployment to execute; each states what it proves and what it explicitly does not.
 
 ## Elsewhere
 

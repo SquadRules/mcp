@@ -326,7 +326,10 @@ Here, "query" means Layer-3 context-aware retrieval (see *Layer 3: Knowledge Ret
 - Agent 1: "Sphynx has no fur" → anomaly detected
 - Agent 2: "Yeah, I've seen Sphynx cats, they're hairless" → consensus
 - Agent 3: "Wait, I thought all cats have fur" → contradiction
-- Resolution: evidence wins (Agent 1, 2 have evidence, Agent 3 doesn't) → parent update
+- Resolution: evidence wins (Agent 1, 2 have evidence, Agent 3 doesn't) → parent update,
+  where "evidence" means an allowlisted, provenance-bearing kind — a free-text opinion is
+  attached but never decides ([ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md),
+  Clarification 2026-11-11)
 
 **Conflict Resolution = When agents disagree**
 
@@ -702,6 +705,23 @@ what makes a run verifiable
 4. **Sub-category** — if consensus can't be reached, create separate ontology branch (disagreeing agents use sub-category)
 
 **Rationale:** Prioritizes evidence (most reliable), then authority (human oversight), then democracy (collective wisdom), then separation (agree to disagree).
+
+**Implementation boundary (2026-11-11).** The shipped ladder
+(`src/services/graph-db/evolution/consensus.ts`) keeps that order and narrows what each
+input may claim:
+
+1. **Evidence** counts only a kind the framework itself can produce — `reward-failure` or
+   `deterministic-contradiction` — and only with that kind's provenance
+   (`EVIDENCE_SUFFICIENCY_ALLOWLIST`). Anything else is attached and echoed, never counted.
+2. **Authority** is deferred: the runtime resolves an authenticated subject, never a role,
+   so an expert confirmation fails closed with `EXPERT_AUTHORITY_DEFERRED`
+   (`expert_authority_deferred`) instead of trusting a caller-supplied label. The rung stays
+   in the ladder for a future trusted role mapping.
+3. **Vote** counts distinct authenticated identities, and its frequency bar is scoped to the
+   exact `adapter:<spaceId>:<slug>` target and claim.
+4. **Sub-category** is unchanged.
+
+See [ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md), Clarification 2026-11-11.
 
 ### Decision 6: Anomaly Detection Algorithm — Hybrid Approach
 

@@ -1,7 +1,10 @@
 # Graph Database Technology Evaluation for SquadRules 6
 
-**Status:** Research Draft  
+**Status:** Decided — the evaluation is complete and implemented  
 **Created:** 2026-11-05  
+**Decisions:** [ADR 0041](../adr/0041-graph-native-open-source-database-for-ontological-knowledge-system.md) (storage class),
+[ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md) (port and shared backend),
+[ADR 0048](../adr/0048-required-shared-backend-ci-lane.md) (required CI lane)  
 **Purpose:** Evaluate open-source graph databases for ontological knowledge system  
 **Context:** SquadRules 6 multi-database architecture (graph + vector + SQL)
 
@@ -53,7 +56,7 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 |----|-------------|----------|--------|
 | NFR1 | Embedded mode: zero external dependencies | Must-have | No separate server process |
 | NFR2 | Embedded mode: file-based persistence | Must-have | Graph survives restarts |
-| NFR3 | Embedded mode: multi-process safety | Must-have | Concurrent agent access |
+| NFR3 | Embedded mode: single-writer safety | Must-have | One writable owner per database file; concurrent **read-only** processes. Not concurrent writable agents — a second writable open is rejected by the file lock |
 | NFR4 | Embedded mode: lightweight footprint | Should-have | <100 MB memory for typical ontologies |
 | NFR5 | Shared mode: horizontal scaling | Must-have | Distributed cluster support |
 | NFR6 | Shared mode: high availability | Should-have | Fault tolerance |
@@ -80,7 +83,8 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 - ✅ Vector search built-in (as of 2025-2026)
 - ✅ Full-text search built-in
 - ✅ Query parallelism for performance
-- ✅ Multi-process safety (via file locking)
+- ✅ Single-writer file lock with concurrent read-only processes — see
+  `docs/specs/ladybugdb-prototype.md` § Multi-Process Safety
 
 **Strengths:**
 
@@ -99,11 +103,13 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 
 **Fit for SquadRules 6:**
 
-- ✅ Meets all must-have functional requirements
-- ✅ Meets all must-have non-functional requirements for embedded mode
-- ✅ Vector search integration reduces multi-database complexity
+- ✅ Meets the must-have functional requirements adopted for this release
+- ✅ Meets the embedded-mode non-functional requirements, with NFR3 read as
+  single-writer plus concurrent readers — not concurrent writable agents
+- ✅ Vector search integration reduces multi-database complexity (not used for the graph
+  layer; embeddings stay in the vector store)
 - ✅ **MIT license ensures full compatibility with SquadRules**
-- ⚠️ Maturity risk — mitigate by abstracting graph layer (swap if needed)
+- ⚠️ Maturity risk — mitigated by the `GraphRepository` port (§ Recommendation)
 
 **Verdict:** **PRIMARY CHOICE for embedded mode** (updated from Kuzu due to archival and license compatibility)
 
@@ -140,9 +146,9 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 - ✅ Meets functional requirements
 - ⚠️ AGPL license may be restrictive
 - ⚠️ Memory footprint may be too large for embedded mode
-- ⚠️ Persistence model less clear than Kuzu
+- ⚠️ Persistence model less clear than LadybugDB's
 
-**Verdict:** **ALTERNATIVE for embedded mode** (if Kuzu fails)
+**Verdict:** **REJECTED** (AGPL license)
 
 ---
 
@@ -186,7 +192,7 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 | Embedded | ✅ Yes | ✅ Yes | ✅ Yes |
 | Zero dependencies | ✅ Yes | ✅ Yes | ✅ Yes |
 | File persistence | ✅ Yes | ⚠️ Configurable | ✅ Yes |
-| Multi-process safe | ✅ Yes | ⚠️ Unix sockets | ✅ Yes |
+| Multi-process model | ⚠️ Single-writer; readers may share | ⚠️ Unix sockets | ⚠️ Single-writer |
 | Open-source license | ✅ MIT (compatible) | ⚠️ AGPL v3 (incompatible) | ✅ MIT (compatible) |
 | Cypher query language | ✅ Yes (Cypher-like) | ✅ Yes (full Cypher) | ❌ No (SQL) |
 | Vector search | ✅ Built-in | ❌ No | ❌ No |
@@ -245,48 +251,7 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 
 ---
 
-### Candidate 2: ArangoDB
-
-**Overview:** Multi-model database (document + graph + vector). Native graph support with AQL query language.
-
-**Key Features:**
-
-- ✅ Native graph database (property graph model)
-- ✅ Multi-model (document + graph + vector in one database)
-- ✅ Open-source (Apache 2.0 license)
-- ✅ AQL query language (SQL-like for graphs)
-- ✅ Vector search (ArangoDB 3.10+)
-- ✅ Full-text search
-- ✅ ACID transactions
-- ✅ Distributed cluster support (open-source)
-
-**Strengths:**
-
-- **Multi-model:** Document + graph + vector in one database (reduces multi-DB complexity)
-- **License:** Apache 2.0 (permissive, no copyleft restrictions)
-- **Clustering:** Distributed cluster support in open-source version
-- **Query language:** AQL is SQL-like, easier for teams with SQL background
-- **Performance:** Scales writes and multi-hop traversals natively
-
-**Weaknesses:**
-
-- **Maturity:** Less mature than Neo4j for pure graph workloads
-- **Community:** Smaller graph-specific community than Neo4j
-- **Complexity:** Multi-model adds complexity (more features to learn)
-
-**Fit for SquadRules 6:**
-
-- ✅ Meets all functional requirements
-- ✅ Meets all non-functional requirements
-- ✅ Apache 2.0 license (permissive, no restrictions)
-- ✅ Clustering in open-source version (no commercial license needed)
-- ⚠️ Less mature than Neo4j for pure graph workloads
-
-**Verdict:** **ALTERNATIVE for shared mode** (if multi-model appealing)
-
----
-
-### Candidate 3: FalkorDB
+### Candidate 2: FalkorDB
 
 **Overview:** Redis-based graph database optimized for low-latency inference-time retrieval.
 
@@ -353,7 +318,9 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 
 1. **Graph-native** — meets core architectural requirement
 2. **MIT license** — fully compatible with SquadRules MIT license, zero restrictions
-3. **Zero dependencies** — embedded, file-based, multi-process safe
+3. **Single-writer embedded** — in-process and file-based, with one writable owner per
+   database file plus concurrent read-only processes. Not a multi-writer store; see
+   [`ladybugdb-prototype.md`](ladybugdb-prototype.md) § Multi-Process Safety
 4. **Vector search built-in** — reduces multi-database complexity
 5. **Performance** — optimized for analytical workloads, fast traversal
 6. **Lightweight** — <100 MB memory footprint
@@ -391,18 +358,25 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 - If commercial license obtained (Neo4j Enterprise)
 - Consult legal counsel before relying on SaaS loophole
 
-### Alternative: **LadybugDB for Both Modes**
+### Why Shared Mode Is Not LadybugDB
 
-**Rationale:**
+One engine for both modes would simplify deployment and documentation, and the MIT
+license puts no restriction on it. It was still rejected for shared mode, because the
+concurrency model is a mechanism, not a preference:
 
-1. **Single database** — simplifies deployment, maintenance, documentation
-2. **MIT license** — zero restrictions for any deployment model
-3. **Embedded + shared** — verify if LadybugDB supports distributed clustering
-
-**Implementation:**
-
-- Use LadybugDB for both embedded and shared deployments
-- If LadybugDB lacks clustering, use ArangoDB ≤v3.11 for shared mode
+- LadybugDB's supported multi-process model is **one writable owner**. Multiple
+  connections to that one writable database object are fine, and any number of
+  READ-ONLY processes may open the file, but a competing writable open is **rejected by
+  the file lock** — independently opened writable processes are not serialised.
+- Many clients can therefore be served only through a **single-owner broker**: one API
+  server process owns the embedded database and handles client requests. That is a
+  supported deployment shape (see
+  [`ladybugdb-prototype.md`](ladybugdb-prototype.md) § Multi-Process Safety), but it is
+  single-node, so it satisfies neither NFR5 (horizontal scaling) nor NFR6 (high
+  availability).
+- Shared mode therefore uses a server database — ArangoDB ≤v3.11 — behind the same
+  `GraphRepository` port, which is the decision recorded in
+  [ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md).
 
 ### Rejected Options
 
@@ -428,60 +402,89 @@ See `docs/specs/license-compatibility-matrix.md` for full analysis.
 
 ## Implementation Path
 
-### Phase 1: Prototype with Kuzu (embedded)
+The path below is the one that shipped, not a plan. Each step names the artifact that
+carries it, so this document does not restate the schema or the backend contract.
 
-1. **Install Kuzu** — add as dependency to SquadRules server
-2. **Define graph schema** — nodes (concepts, adapters), edges (inherits, specialized_by, contradicts, instances), properties
-3. **Implement inheritance resolution** — path-to-root traversal at activation time
-4. **Implement anomaly detection** — store contradictions, resolutions, triggers
-5. **Test with example adapter** — validate parent-child inheritance (critic-loop → specialized-reviewer)
+### Delivered
 
-### Phase 2: Add Neo4j (shared mode)
+1. **Graph schema** — seven node tables and eight rel tables, one logical schema mapped
+   per backend: [`graph-schema.md`](graph-schema.md) §7.1.
+2. **Embedded backend** — LadybugDB under `src/services/graph-db/ladybug/`:
+   [`ladybugdb-prototype.md`](ladybugdb-prototype.md).
+3. **Shared backend** — ArangoDB ≤v3.11 under `src/services/graph-db/arango/`, selected
+   explicitly with no embedded fallback:
+   [ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md).
+4. **Inheritance resolution** — path-to-root traversal at activation time plus additive
+   selective content merge:
+   [ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md).
+5. **Anomaly recording, version history and evolution records** —
+   [ADR 0045](../adr/0045-graph-native-history-and-restore.md) and
+   [ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md).
+6. **Shared-backend parity in CI** — a required lane that runs both Arango suites
+   against a real `arangodb:3.11` container:
+   [ADR 0048](../adr/0048-required-shared-backend-ci-lane.md).
+7. **Companion databases retained** — the vector store keeps embeddings and the SQL
+   store keeps structured metadata; the graph owns relationships only
+   ([`graph-schema.md`](graph-schema.md) preamble).
 
-1. **Deploy Neo4j** — standalone instance (Community Edition)
-2. **Implement graph layer abstraction** — same API for Kuzu (embedded) and Neo4j (shared)
-3. **Test dual-mode deployment** — validate mode agnosticism
-4. **Implement consensus mechanisms** — ≥3 children threshold for parent update (shared mode only)
+### Delivered is not the same as validated in production
 
-### Phase 3: Integrate with existing databases
+Two gates are separate and are not interchangeable:
 
-1. **Vector DB (LanceDB/Qdrant)** — retain for semantic search
-2. **SQL DB (SQLite/PostgreSQL)** — retain for structured metadata
-3. **Cross-database queries** — graph traversal + vector similarity + SQL joins
-4. **Data partitioning** — graph DB owns ontological relationships, vector DB owns embeddings, SQL DB owns metadata
+- **CI parity is a gate.** The required `verify-integration-graph` lane proves both
+  backends behave identically under test; [ADR 0048](../adr/0048-required-shared-backend-ci-lane.md)
+  records that green run.
+- **Production validation is a separate, still-outstanding operational bake** — a real
+  embedded and shared deployment with persistence, restart, isolation and
+  failure-recovery evidence. The procedure and its unexecuted status live in
+  [`docs/runbooks/production-bake.md`](../runbooks/production-bake.md).
 
-### Phase 4: Production deployment
-
-1. **Embedded mode** — all three databases in-process, zero installation
-2. **Shared mode** — all three databases as distributed services, enterprise deployment
-3. **Migration** — decompose existing single-DB (Qdrant) into specialized layers
-4. **Monitoring** — track performance, memory usage, query latency
+No green CI result, and nothing in this evaluation, is evidence for that bake.
 
 ---
 
 ## Open Questions
 
-1. **GPL v3 compatibility** — is Neo4j Community's GPL v3 license compatible with SquadRules licensing?
-2. **Kuzu maturity** — is Kuzu mature enough for production use, or should we wait?
-3. **Multi-database coordination** — how to coordinate queries across graph + vector + SQL efficiently?
-4. **Data consistency** — how to ensure consistency across three databases (distributed transactions)?
-5. **Backup/restore** — how to backup/restore three databases atomically?
+Settled by the decisions above, so no longer open:
+
+- **GPL v3 compatibility** — resolved: Neo4j Community is rejected for embedded
+  deployment; see [ADR 0041](../adr/0041-graph-native-open-source-database-for-ontological-knowledge-system.md).
+- **Kuzu maturity** — resolved: Kuzu was archived in Oct 2025; LadybugDB is the
+  maintained fork, and the maturity risk is contained by the port
+  ([ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md)).
+
+Still open, and deliberately outside this release's scope:
+
+1. **Multi-database coordination** — combining graph traversal, vector similarity and
+   SQL predicates in one request without shipping data between stores.
+2. **Cross-database consistency** — the graph is a derived projection of stored records
+   ([ADR 0042](../adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md)), and
+   no distributed transaction spans the graph, vector and SQL stores.
+3. **Atomic cross-database backup** — restoring an adapter from a stored snapshot is
+   delivered ([ADR 0045](../adr/0045-graph-native-history-and-restore.md)); a
+   point-in-time backup covering all three stores together is not.
+4. **Clustering or HA for the embedded backend** — not a supported deployment shape;
+   shared-mode HA is an ArangoDB deployment property (NFR5, NFR6).
 
 ---
 
-## Next Steps
+## What Remains
 
-1. **Validate license compatibility** — confirm GPL v3 (Neo4j) and AGPL v3 (FalkorDB) are acceptable
-2. **Prototype with Kuzu** — build minimal proof-of-concept for embedded mode
-3. **Benchmark performance** — test traversal speed, write throughput, memory usage
-4. **Evaluate ArangoDB** — if Neo4j GPL is unacceptable, test ArangoDB as alternative
-5. **Create GitHub issue** — track implementation tasks for SquadRules 6
+1. **Execute the production bake** — the one outstanding validation gate. This is not
+   procedure work but a run, with results recorded:
+   [`docs/runbooks/production-bake.md`](../runbooks/production-bake.md).
+2. **Nothing else on the critical path.** The items below are optional scope additions,
+   not unfinished delivery — each is deferred in
+   [`graph-schema.md`](graph-schema.md) §1 and listed with its table status in §7.1:
+   - Concept→Concept / Concept→Adapter inheritance, and instance CRUD
+   - `RoutesTo` routing-edge writers (`graph-schema.md` §2.7)
 
 ---
 
 ## References
 
-- Kuzu: <https://github.com/kuzudb/kuzu>
+- LadybugDB: <https://github.com/LadybugDB/ladybug>
+- Kuzu (archived Oct 2025, predecessor of LadybugDB): <https://github.com/kuzudb/kuzu>
 - Neo4j: <https://neo4j.com/>
 - ArangoDB: <https://arangodb.com/>
 - FalkorDB: <https://www.falkordb.com/>

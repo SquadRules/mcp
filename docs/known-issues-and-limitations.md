@@ -85,11 +85,22 @@ including one that finishes booting after it — and it produces `134` again if 
 never registers. The decision, the measurements and the trade-offs are in
 [ADR 0049](adr/0049-drain-handles-on-graceful-shutdown-instead-of-process-exit.md).
 
-**Paths still exposed.** A port conflict at HTTP startup
-(`src/http/http-server-startup.ts`), the CLI catch-all in
-`src/cli/auth-error.ts`, and Qdrant client channels that shutdown does not
-close. These three are judged reachable, not measured; ADR 0049 records them,
-plus the retained proof harness's last resort, as known exposure.
+**Paths still exposed.** The CLI catch-all in `src/cli/auth-error.ts` and Qdrant
+client channels that shutdown does not close. Both are judged reachable, not
+measured; ADR 0049 records them, plus the retained proof harness's last resort, as
+known exposure.
+
+The HTTP startup port conflict is no longer one of them. `src/http/http-server-startup.ts`
+used to call `process.exit(1)` straight from the listener's `error` event, which by then
+already ran after the embedding model was loaded. It now closes the failed listener,
+keeps the same operator-facing message, and reports the fatal error to its owner through
+`onFatalError`; the server wires that to the same drain a signal takes — close what the
+process owns, set `process.exitCode = 1`, exit naturally. Sanctioned CLI exits are
+unchanged and deliberately separate: a rejected flag, or `serve`'s supervising parent
+reporting its child's code, runs in a process that never loaded the native model, so an
+immediate exit there carries no abort risk. `tests/integration/server-shutdown.test.ts`
+is the gate — it occupies the port, boots the shipped `dist/bootstrap.js` with the real
+fastembed model, and asserts exit `1`, the port message, and no native abort.
 
 The proof harness (`tests/integration/http-reviewed-runtime.ts`) is not product
 code, but it had this defect in its failure branch too: a blocked run called
