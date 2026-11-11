@@ -4,9 +4,11 @@
  * convention (see `mem-boot.ts`).
  *
  * LadybugDB is framework-internal bookkeeping: the adapter/concept graph has no MCP
- * tool, no HTTP route and no health surface, so these two variables are its only
- * operator controls. Failure to open the database is a startup warning, never a boot
- * failure — the degradation contract lives in `services/graph-db/graph-db-singleton.ts`.
+ * tool and no HTTP route, so these two variables are its only operator controls.
+ * Failure to open the database is a startup warning, never a boot failure — the
+ * degradation contract lives in `services/graph-db/graph-db-singleton.ts`. `/health`
+ * separately reports the graph and fails readiness (503) when it is enabled but
+ * unavailable (see `http/http-health-routes.ts`).
  *
  * Env:
  *   `SQUADRULES_GRAPH_DB_PATH`    Directory holding the database. Default: `graph-db`

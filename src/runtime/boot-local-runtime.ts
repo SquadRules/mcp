@@ -255,10 +255,12 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
   await memoryStore.init();
   structuredLogger.debug('vector store: ready');
 
-  // Embedded graph database: framework-internal bookkeeping only (no MCP tool, no HTTP
-  // route, no health surface). `initGraphDb()` never throws — a failed open is logged by
-  // the singleton and reported as null, so the app still boots without the graph. This
-  // debug line plus tests/unit/graph-db-singleton.test.ts is the verification contract.
+  // Embedded graph database: framework-internal bookkeeping (no MCP tool, no HTTP
+  // route). `initGraphDb()` never throws — a failed open is logged by the singleton and
+  // reported as null, so the app still boots without the graph. Readiness is surfaced
+  // separately: `/health` reports the graph and fails (503) when it is enabled but
+  // unavailable (see http/http-health-routes.ts). This debug line plus
+  // tests/unit/graph-db-singleton.test.ts is the boot-side verification contract.
   //
   // A caller-supplied repository is attached as-is: it is not registered for shutdown
   // because its opener owns closing it.

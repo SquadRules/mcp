@@ -4,6 +4,9 @@ import { embeddingService } from '../services/embedding/service.js';
 import { keyValueStore } from '../services/key-value-store-factory.js';
 import { getBuildVersion } from '../utils/build-version.js';
 import { AUTH_ENABLED, REDIS_URL, isQdrantConfigured } from '../config.js';
+import { getGraphDb } from '../services/graph-db/graph-owner.js';
+import { GRAPH_DB_ENABLED } from '../config/graph-db.js';
+import { resolveGraphBackendKind } from '../config/graph-backend.js';
 
 /**
  * Set up health check and basic info routes
@@ -46,10 +49,30 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
         const teiHealthy = !!teiHealth.healthy;
         const embeddingCfg = embeddingService.getConfig ? embeddingService.getConfig() : ({ provider: 'unknown' } as any);
         const embeddingConfigured = embeddingCfg.provider && embeddingCfg.provider !== 'none';
+
+        // Graph backend readiness. The graph is owner-scoped (attached to this boot's
+        // memoryStore via graph-owner.ts), not a process global, so it is resolved from
+        // the store this route was handed. GRAPH_DB_ENABLED is the operator master
+        // switch: a deliberately disabled graph is reported but never fails readiness,
+        // while an enabled graph that failed to open does — matching this endpoint's
+        // rule that a declared backend must fail /health when unreachable.
+        const graphEnabled = GRAPH_DB_ENABLED;
+        let graphBackend: string;
+        let graphConfigError: string | null = null;
+        try {
+            graphBackend = resolveGraphBackendKind();
+        } catch (err) {
+            graphBackend = 'invalid';
+            graphConfigError = err instanceof Error ? err.message : String(err);
+        }
+        const graphRepo = getGraphDb(memoryStore);
+        const graphHealthy = !!graphRepo;
+
         const criticalHealthy =
             qdrantHealthy &&
             (!redisConfigured || redisHealthy) &&
-            (!embeddingConfigured || teiHealthy);
+            (!embeddingConfigured || teiHealthy) &&
+            (!graphEnabled || graphHealthy);
         const healthStatus = criticalHealthy ? 'healthy' : 'unhealthy';
         const statusCode = criticalHealthy ? 200 : 503;
 
@@ -69,15 +92,30 @@ export function setupHealthRoutes(app: express.Express, memoryStore: MemoryQdran
         } else {
             dependencies['cache'] = 'healthy (memory)';
         }
+        dependencies['graph'] = !graphEnabled
+            ? 'disabled'
+            : (graphHealthy ? 'healthy' : 'unhealthy');
 
         const details: Record<string, string> = {
             cacheBackend: redisConfigured ? 'redis' : 'memory',
-            vectorStoreBackend: isQdrantConfigured ? 'qdrant' : 'embedded-lancedb'
+            vectorStoreBackend: isQdrantConfigured ? 'qdrant' : 'embedded-lancedb',
+            graphBackend: graphEnabled ? graphBackend : 'disabled'
         };
+        if (graphHealthy) {
+            // Capabilities live on the Arango implementation, not the GraphRepository
+            // port; read them through a narrow optional-method guard (same pattern as
+            // the embedding teiHealthCheck above) rather than widening the port.
+            const caps = typeof (graphRepo as any).getCapabilities === 'function'
+                ? (graphRepo as any).getCapabilities()
+                : null;
+            if (caps?.version) details['graphVersion'] = String(caps.version);
+            if (caps?.streamTransactions) details['graphStreamTransactions'] = String(caps.streamTransactions);
+        }
         if (req.auth?.sub) {
             details['embedding'] = teiHealth.message;
             details['provider'] = embeddingCfg.provider || 'auto';
             details['providerPref'] = (embeddingCfg as any).providerPref || 'auto';
+            if (graphConfigError) details['graph'] = graphConfigError;
         }
 
         res.status(statusCode).json({
