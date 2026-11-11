@@ -12,6 +12,12 @@
  * derivation is removed rather than if a double disagrees with it.
  *
  * Embeddings are never invoked: nothing here writes memory content, only graph nodes.
+ *
+ * The premise is the embedded backend — a runtime that owns a LanceDB store and the graph
+ * beside it. `QDRANT_URL` is neutralised for that reason (and restored afterwards): the
+ * cluster lane exports a real one for the shared suites, and on that path the store is the
+ * server's, `databaseDir` is not the runtime's to choose, and there is no per-boot graph
+ * database to place. Proven separately, not asserted here.
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -26,6 +32,7 @@ const SPACE = 'space:it-boot';
 const SLUG = 'boot-isolation-adapter';
 
 const boots: BootedLocalRuntime[] = [];
+let envBefore: { qdrantUrl: string | undefined; backend: string | undefined };
 let bootLocalRuntime: typeof import('../../src/runtime/boot-local-runtime.js').bootLocalRuntime;
 let snapshotFromStoredMemory: typeof import('../../src/services/graph-db/adapter-graph-records.js').snapshotFromStoredMemory;
 let syncAdapterGraph: typeof import('../../src/services/graph-db/adapter-graph-sync.js').syncAdapterGraph;
@@ -55,6 +62,14 @@ async function boot(label: string): Promise<BootedLocalRuntime> {
 }
 
 beforeAll(async () => {
+  // Applied BEFORE the first import: `isQdrantConfigured` and the backend choice are
+  // module constants, so the environment has to be settled when the module is evaluated.
+  envBefore = {
+    qdrantUrl: process.env['QDRANT_URL'],
+    backend: process.env['SQUADRULES_GRAPH_BACKEND']
+  };
+  delete process.env['QDRANT_URL'];
+  process.env['SQUADRULES_GRAPH_BACKEND'] = 'embedded';
   process.env['SQUADRULES_GRAPH_DB_ENABLED'] = 'true';
   bootLocalRuntime = (await import('../../src/runtime/boot-local-runtime.js')).bootLocalRuntime;
   snapshotFromStoredMemory = (await import('../../src/services/graph-db/adapter-graph-records.js'))
@@ -74,6 +89,11 @@ afterAll(async () => {
   }
   rmSync(ROOT, { recursive: true, force: true });
   delete process.env['SQUADRULES_GRAPH_DB_ENABLED'];
+  // Restored, so the next suite in this worker keeps the lane's own configuration.
+  if (envBefore.qdrantUrl === undefined) delete process.env['QDRANT_URL'];
+  else process.env['QDRANT_URL'] = envBefore.qdrantUrl;
+  if (envBefore.backend === undefined) delete process.env['SQUADRULES_GRAPH_BACKEND'];
+  else process.env['SQUADRULES_GRAPH_BACKEND'] = envBefore.backend;
 });
 
 describe('bootLocalRuntime graph placement (G5)', () => {
