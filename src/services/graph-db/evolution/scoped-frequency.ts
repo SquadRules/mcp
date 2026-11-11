@@ -16,7 +16,7 @@
  * Every current producer records the target an anomaly was raised against
  * (`metadata.target_key` / `metadata.target_space_id`, see
  * `anomalyTargetMetadata`). Rows written before those fields existed carry only the
- * reporting child's own scope, so they are matched by the documented legacy rule in
+ * reporting child's own scope, so they are matched by the documented row-only rule in
  * `anomalyMatchesTarget` rather than silently dropped.
  *
  * WINDOW
@@ -36,7 +36,7 @@ export interface ScopedAnomalyTarget {
   targetKey: string;
   /** Space the targeted adapter lives in. */
   spaceId: string;
-  /** Slug the anomaly routes to (the unscoped legacy field). */
+  /** Slug the anomaly routes to (the unscoped routing field). */
   slug: string;
   /** Contested field / claim identity. */
   field: string;
@@ -72,11 +72,11 @@ function metaString(metadata: Record<string, unknown> | undefined, key: string):
  * True when this anomaly is a report of `target`'s claim against `target`'s adapter.
  *
  * Scope is resolved from the strongest evidence the row carries, in order: the
- * recorded target key, then the recorded target space, then the legacy rule for rows
- * that predate target recording. The legacy rule is deliberately narrow — it counts
- * a row only where the scope cannot change the claim's meaning: the reporting child
- * is in the target's own scope, or the target is the app-space adapter every scope
- * may inherit from.
+ * recorded target key, then the recorded target space, then the row-only rule for rows
+ * that predate target recording. That rule is deliberately narrow — it counts a row
+ * only where the scope cannot change the claim's meaning: the reporting child is in
+ * the target's own scope, or the target is the app-space adapter every scope may
+ * inherit from.
  */
 export function anomalyMatchesTarget(anomaly: AnomalyNode, target: ScopedAnomalyTarget): boolean {
   if ((anomaly.routes_to ?? '').trim() !== target.slug) return false;
@@ -126,12 +126,4 @@ export async function countScopedReportingChildren(
     truncated: anomalies.length >= ANOMALY_FREQUENCY_WINDOW,
     window: ANOMALY_FREQUENCY_WINDOW
   };
-}
-
-/** Distinct scoped child keys reporting this claim against this target. */
-export async function distinctScopedReportingChildren(
-  graphDb: GraphRepository,
-  target: ScopedAnomalyTarget
-): Promise<string[]> {
-  return (await countScopedReportingChildren(graphDb, target)).children;
 }
