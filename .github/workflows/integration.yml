@@ -454,6 +454,7 @@ jobs:
           NODE_OPTIONS=--experimental-vm-modules npx jest
           tests/integration/graph-db-arango-shared.test.ts
           tests/integration/graph-db-arango-evolution.test.ts
+          tests/integration/graph-db-arango-history-link-fault.test.ts
           --runInBand --forceExit --testTimeout=120000
 
       # Group 2: real embedded LadybugDB + LanceDB through the production boot and
@@ -478,6 +479,19 @@ jobs:
       # prove the shipped package's own defaults.
       - name: Run shipped-package graph API suites
         run: npm run test:graph-api
+
+      # Issue #297: nothing in CI asserted how the shipped server *stops*. This boots
+      # `dist/bootstrap.js` with the real fastembed/ONNX model and proves two properties
+      # ADR 0049 depends on: SIGTERM drains to a natural exit 0 (shutdown marker present;
+      # bounded last resort and native abort absent), and a failed bind exits 1 through
+      # the same drain instead of `process.exit(1)` against a live InferenceSession. The
+      # third property - a listener that registers after shutdown began closes itself
+      # rather than holding the event loop - has no deterministic process-level trigger,
+      # so it is proven where it is reachable: `tests/unit/shutdown-registry.test.ts`.
+      # Runs after the cache restore above so the weights are reused rather than
+      # re-downloaded per boot. `integration-pass` requires this step through `GRAPH`.
+      - name: Run real-model shutdown regression gate (issue #297)
+        run: npm run test:shutdown
 
       - name: Save fastembed model cache
         if: always() && steps.fastembed-model-cache.outputs.cache-hit != 'true'
@@ -507,5 +521,8 @@ jobs:
           # Require positive evidence from every lane; skipped or empty is not success.
           test "$BUILD" = "success"
           test "$CLUSTER" = "success"
+          # Issue #297: verify-integration-graph also runs `npm run test:shutdown` (the
+          # real-model shutdown regression gate). This line is what makes that gate
+          # required: a lane that skips or fails the step reports GRAPH != success here.
           test "$GRAPH" = "success"
           test "$SINGLE" = "success"

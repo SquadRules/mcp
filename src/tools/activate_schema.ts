@@ -133,9 +133,24 @@ const ontologyContextSchema = z
     evidence: z
       .object({
         open_anomalies: z.number(),
+        open_anomalies_truncated: z
+          .boolean()
+          .describe('True when the anomaly window filled, so open_anomalies is a floor, not a total'),
+        anomaly_window: z.number().describe('Anomaly rows the read was allowed to examine before it stopped'),
         pending_proposals: z.number(),
+        pending_proposals_truncated: z
+          .boolean()
+          .describe('True when the proposal window filled, so pending_proposals is a floor'),
         accepted_proposals: z.number(),
+        accepted_proposals_truncated: z
+          .boolean()
+          .describe('True when the proposal window filled, so accepted_proposals is a floor'),
+        proposal_window: z.number().describe('Proposal rows the read was allowed to examine before it stopped'),
         version_snapshots: z.number(),
+        version_snapshots_truncated: z
+          .boolean()
+          .describe('True when the history window filled, so version_snapshots is a floor'),
+        version_window: z.number().describe('History rows the read was allowed to examine before it stopped'),
         anomalies: z.array(ontologyEvidenceRowSchema),
         proposals: z.array(ontologyEvidenceRowSchema)
       })
@@ -157,6 +172,8 @@ const ontologyContextSchema = z
             })
             .strict()
         ),
+        applied_window: z.number().describe('Retained snapshots applied was allowed to list before it stopped'),
+        applied_truncated: z.boolean().describe('True when more retained snapshots exist than applied lists'),
         resolution_notes: z.array(z.string()),
         explanation: z.string().describe('Which snapshot is current and what accepted evolution it reflects')
       })

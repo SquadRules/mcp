@@ -85,21 +85,35 @@ export async function createAnomaly(
   );
 }
 
-/** Anomalies filtered by routing target, status, or reporting child. */
+/**
+ * Anomalies filtered by routing target, status, reporting child, or recorded scope.
+ *
+ * Same reason as the embedded backend: the scope filter is part of the query, so the
+ * limit applies to rows this scope may see instead of to the whole shared collection.
+ * The scope is read from the document metadata (`scope_space_id`, or a scoped
+ * `source_child` written before that key existed); a prefix plus colon keeps
+ * `space:a` from matching `space:a2`.
+ */
 export async function listAnomalies(
   client: ArangoHttpClient,
   filter: AnomalyFilter = {}
 ): Promise<AnomalyNode[]> {
+  const scopeSpaceId = (filter.scopeSpaceId ?? '').trim();
   const rows = await client.query<ArangoDoc>(
     `FOR a IN Anomaly
        FILTER @routesTo == '' OR a.routes_to == @routesTo
        FILTER @status == '' OR a.status == @status
+       FILTER @scopeSpaceId == ''
+         OR a.metadata.scope_space_id == @scopeSpaceId
+         OR (@sourceChildPrefix != '' AND STARTS_WITH(a.metadata.source_child, @sourceChildPrefix))
        SORT a.created_at DESC
        LIMIT @limit
        RETURN a`,
     {
       routesTo: filter.routesTo ?? '',
       status: filter.status ?? '',
+      scopeSpaceId,
+      sourceChildPrefix: scopeSpaceId ? `adapter:${scopeSpaceId}:` : '',
       limit: filter.limit && filter.limit > 0 ? filter.limit : 200
     }
   );

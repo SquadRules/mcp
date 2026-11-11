@@ -7,13 +7,14 @@
  */
 import type { Connection } from '@ladybugdb/core';
 import type {
+  AdapterChildRef,
   AdapterNode,
   ConceptNode,
   InheritanceEdge,
   PathToRootResult,
   ResolvedInheritance
 } from '../graph-types.js';
-import { adapterGraphKey } from '../adapter-scope.js';
+import { adapterGraphKey, parseAdapterGraphKey } from '../adapter-scope.js';
 import { mergeResolvedProperties } from '../inheritance-merge.js';
 import { adapterFromAliasRow, adapterFromRow, parseJson, readRows } from './ladybug-exec.js';
 
@@ -127,21 +128,36 @@ export async function resolveInheritance(
   };
 }
 
-/** Slugs of adapters that inherit from the given scoped parent. */
+/**
+ * Children of one scoped parent, each with the scope its node is stored in.
+ *
+ * The edge is traversed to the child node, so the child's own `key`/`space` are read
+ * rather than reconstructed from the parent's scope: an app-space parent is inherited
+ * by children stored in other spaces. A node projected before the `space` column was
+ * populated still carries its scope in the key, which is the fallback — never the
+ * parent's space, which is exactly the value that must not be assumed.
+ */
 export async function getChildren(
   connection: Connection,
   spaceId: string,
   slug: string
-): Promise<string[]> {
+): Promise<AdapterChildRef[]> {
   const parentKey = adapterGraphKey(spaceId, slug);
   const rows = await readRows<Record<string, unknown>>(
     connection,
-    `MATCH (parent:Adapter {key: $parentKey})-[e:SpecializedBy]->(child:Adapter)
-     RETURN child.slug as slug`,
+    `MATCH (parent:Adapter {key: $parentKey})-[:SpecializedBy]->(child:Adapter)
+     RETURN child.key as key, child.slug as slug, child.space as space`,
     { parentKey }
   );
-  const slugs = rows.map((row) => String(row['slug'] ?? '')).filter((value) => value.length > 0);
-  return [...new Set(slugs)];
+  const children = new Map<string, AdapterChildRef>();
+  for (const row of rows) {
+    const childSlug = String(row['slug'] ?? '').trim();
+    if (childSlug.length === 0) continue;
+    const key = String(row['key'] ?? '').trim();
+    const space = String(row['space'] ?? '').trim() || (parseAdapterGraphKey(key)?.spaceId ?? '');
+    children.set(key, { key, slug: childSlug, space });
+  }
+  return [...children.values()];
 }
 
 /** Read one concept node by key. */

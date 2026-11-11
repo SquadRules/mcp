@@ -275,15 +275,22 @@ describe('boot dimension-metadata diagnostic', () => {
     expect(ensureEmbedding).not.toHaveBeenCalled();
   });
 
-  test('absent successful provider does not inspect/bind records for diagnostics', async () => {
+  test('absent successful provider runs no width diagnostic even though boot places the graph beside its store', async () => {
     const { LanceVectorRecordStore, bootLocalRuntime } = await load();
     successfulProvider.mockReturnValue(null);
     const store = new LanceVectorRecordStore();
     const directory = jest.spyOn(store, 'getDirectory');
     jest.spyOn(store, 'init').mockResolvedValue(undefined);
     await bootLocalRuntime({ ...deferred, records: store });
-    expect(directory).not.toHaveBeenCalled();
-    expect(resolveDir).not.toHaveBeenCalled();
+    // One read, for graph placement: a runtime that owns a store owns the graph beside it,
+    // so two independent boots cannot share one embedded database. It is not a diagnostic —
+    // with no successful provider nothing is compared, and nothing is opened.
+    expect(directory).toHaveBeenCalledTimes(1);
+    // `getDirectory()` resolves the store's path; resolving is a pure join, opening is not.
+    expect(resolveDir).toHaveBeenCalledTimes(1);
+    expect(graphInit).toHaveBeenCalledWith({
+      databaseDir: path.join(process.env.SQUADRULES_HOME!, 'lancedb', 'graph')
+    });
     expect(open).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
     expect(ensureEmbedding).not.toHaveBeenCalled();

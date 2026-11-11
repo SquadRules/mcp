@@ -1,26 +1,24 @@
 /**
  * Shared harness for the graph-native integration suites (ADR 0042–0047).
  *
- * Every value here is a production object or a production call — nothing is
- * stubbed:
+ * Every value here is a production object or a production call — nothing is stubbed:
+ * `openGraphDb()` opens the real backend (embedded LadybugDB by default, real ArangoDB when
+ * the caller selects it); `LanceVectorRecordStore({ databaseDir })` is real embedded
+ * LanceDB; `createEmbeddedRuntime(records)` binds one store to both tool facades; and
+ * `executeTrainStore` / `executeTune` / `executeExportVersion` are the functions the MCP
+ * tools call, so history, proposals and validation are the production ones.
+ * `runWithSpaceContextAsync` is the real tenant context, and its `userId` is what
+ * `resolveGraphActor()` reads — the same identity source a request has.
  *
- *   - `openGraphDb()`        real backend (embedded LadybugDB by default, real
- *                            ArangoDB when the caller selects it), explicit dir.
- *   - `LanceVectorRecordStore({ databaseDir })` real embedded LanceDB.
- *   - `createEmbeddedRuntime(records)` binds one store to both tool facades.
- *   - `executeTrainStore` / `executeTune` / `executeExportVersion` are the same
- *     functions the MCP tools call, so history, proposals and validation are the
- *     production ones.
- *   - `runWithSpaceContextAsync` is the real tenant context; `userId` is what
- *     `resolveGraphActor()` reads, so identity in these suites comes from the
- *     same place a request's identity comes from.
+ * Embeddings: the write path embeds activation text. Forcing the `tei` provider with no
+ * endpoint makes the real provider call fail immediately and the writer fall back to zero
+ * vectors. Nothing reaches the network and no embedding call is replaced.
  *
- * Embeddings: the write path embeds activation text. Forcing the `tei` provider
- * with no endpoint makes the real provider call fail immediately and the writer
- * fall back to zero vectors. Nothing reaches the network and no embedding call is
- * replaced.
+ * The harness never manufactures a critic verdict. A suite that needs `tune` to be
+ * accepted imports `graph-db-critic-fixture.ts`, which is exactly why such suites stay
+ * out of the required embedded lane (`tests/scripts/ci-graph-lane.test.mjs`).
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -43,6 +41,7 @@ type ExportHistoryModule = typeof import('../../src/tools/export-history.js');
 type EvolutionModule = typeof import('../../src/services/graph-db/evolution/evolution.service.js');
 type ActivateOntologyModule = typeof import('../../src/tools/activate-ontology-context.js');
 type ActivateSchemaModule = typeof import('../../src/tools/activate_schema.js');
+type DescendantsModule = typeof import('../../src/services/graph-db/descendant-validation.js');
 
 /** Production modules, imported after the env is set (see `loadProductionModules`). */
 export interface ProductionModules {
@@ -58,6 +57,7 @@ export interface ProductionModules {
   evolution: EvolutionModule;
   activateOntology: ActivateOntologyModule;
   activateSchema: ActivateSchemaModule;
+  descendants: DescendantsModule;
   appSpaceId: string;
 }
 
@@ -105,6 +105,7 @@ export async function loadProductionModules(
   const evolution = await import('../../src/services/graph-db/evolution/evolution.service.js');
   const activateOntology = await import('../../src/tools/activate-ontology-context.js');
   const activateSchema = await import('../../src/tools/activate_schema.js');
+  const descendants = await import('../../src/services/graph-db/descendant-validation.js');
   const embeddingConfig = await import('../../src/services/embedding/config.js');
   const config = await import('../../src/config.js');
 
@@ -122,6 +123,7 @@ export async function loadProductionModules(
     evolution,
     activateOntology,
     activateSchema,
+    descendants,
     appSpaceId: config.SQUADRULES_APP_SPACE_ID
   };
 }
@@ -258,13 +260,6 @@ export class GraphFixture {
     };
   }
 
-  /** Real file whose first line is PASS — the critic verdict the tune gate reads. */
-  verdictFile(): string {
-    const path = join(this.tempDir('verdict'), 'verdict.txt');
-    writeFileSync(path, 'PASS\n', 'utf8');
-    return path;
-  }
-
   /** Open a graph at an explicit directory (used to prove history survives a reopen). */
   async openGraphAt(databaseDir: string): Promise<GraphRepository> {
     const graph = await this.modules.graphSingleton.openGraphDb({ databaseDir });
@@ -293,28 +288,6 @@ export class GraphFixture {
       )
     );
     return { output, headUuid: output.items[0]!.layer_uuid! };
-  }
-
-  /** Production `tune` of one adapter URI with a full markdown body. */
-  async tune(
-    runtime: Runtime,
-    spaceId: string,
-    uri: string,
-    content: string,
-    options: { expectedVersion?: string } = {}
-  ) {
-    return this.onSpace(spaceId, () =>
-      this.modules.tuneExecute.executeTune(
-        runtime.qdrantService,
-        {
-          uris: [uri],
-          content: [content],
-          review_evidence: { verdict_file: this.verdictFile(), exit_code: 0, stdout: 'PASS' },
-          ...(options.expectedVersion !== undefined && { expected_version: options.expectedVersion })
-        },
-        runtime.memoryStore
-      )
-    );
   }
 
   /** Stored head record, read through the same surfaced record the tools read. */

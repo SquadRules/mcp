@@ -153,7 +153,17 @@ describe('reward anomaly bookkeeping (unit, mocked graph)', () => {
     expect(node.description).toContain('exit_code 2');
     // Read-only parent lookup only, keyed by the stored record's own space.
     expect(mockGetAdapter).toHaveBeenCalledWith(`adapter:${STORED_SPACE}:failing-adapter`);
-    expect(node.metadata).toEqual({ scope_space_id: STORED_SPACE, scope_source: 'stored-record' });
+    // The row carries the scope it was written in, the exact target `routes_to` names and
+    // the claim it reports, so a scoped frequency count can tell this row from the same
+    // slug in another space. The parent is not projected in this fixture, so its identity
+    // falls back to the reporter's own scope — the only one this path can prove.
+    expect(node.metadata).toEqual({
+      scope_space_id: STORED_SPACE,
+      scope_source: 'stored-record',
+      target_key: `adapter:${STORED_SPACE}:parent-adapter`,
+      target_space_id: STORED_SPACE,
+      field: 'reward_failure'
+    });
   });
 
   test('routes_to falls back to the failing adapter when there is no inheritance', async () => {

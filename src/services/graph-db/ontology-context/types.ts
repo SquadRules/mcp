@@ -39,10 +39,24 @@ export interface OntologyEvidenceRow {
 
 export interface OntologyEvidence {
   open_anomalies: number;
+  /** True when the anomaly window filled, so `open_anomalies` is a floor, not a total. */
+  open_anomalies_truncated: boolean;
+  /** Rows the anomaly read was allowed to examine before it stopped. */
+  anomaly_window: number;
   pending_proposals: number;
+  /** True when the proposal window filled, so `pending_proposals` is a floor. */
+  pending_proposals_truncated: boolean;
   accepted_proposals: number;
+  /** True when the proposal window filled, so `accepted_proposals` is a floor. */
+  accepted_proposals_truncated: boolean;
+  /** Rows the proposal read was allowed to examine before it stopped. */
+  proposal_window: number;
   version_snapshots: number;
-  /** Newest first, capped; the counts above are the authoritative totals. */
+  /** True when the history window filled, so `version_snapshots` is a floor. */
+  version_snapshots_truncated: boolean;
+  /** Rows the history read was allowed to examine before it stopped. */
+  version_window: number;
+  /** Newest first, capped at `EVIDENCE_CAP`; the windowed counts above are not totals. */
   anomalies: OntologyEvidenceRow[];
   proposals: OntologyEvidenceRow[];
 }
@@ -62,6 +76,10 @@ export interface OntologyEvolution {
   current_adapter_version: string | null;
   current_snapshot: string | null;
   applied: AppliedEvolutionRow[];
+  /** Rows `applied` was allowed to list before it stopped. */
+  applied_window: number;
+  /** True when more retained snapshots exist than `applied` lists. */
+  applied_truncated: boolean;
   resolution_notes: string[];
   explanation: string;
 }

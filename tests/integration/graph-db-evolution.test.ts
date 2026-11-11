@@ -19,23 +19,23 @@
  */
 
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 
 const SPACE = 'space:it-evolution';
 const PARENT = 'evo-parent';
 const PARENT_URI = `squadrules://adapter/${PARENT}`;
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 /** Parent adapter; `fields` are the domain properties children may contradict. */
-function parentDoc(fields: Record<string, string> = {}, rules?: string): string {
+function parentDoc(fields: Record<string, string> = {}, rules?: string, stepBody = 'parent step'): string {
   return adapterDoc({
     slug: PARENT,
     version: '1.0.0',
@@ -43,7 +43,7 @@ function parentDoc(fields: Record<string, string> = {}, rules?: string): string 
     extraFrontmatter: fields,
     sections: [
       ...(rules ? [{ heading: 'Policy', body: rules }] : []),
-      { heading: 'Step 1', body: 'parent step' }
+      { heading: 'Step 1', body: stepBody }
     ],
     contract: commentContract('parent')
   });
@@ -86,7 +86,7 @@ function childDoc(slug: string, options: ChildOptions = {}): string {
 
 beforeAll(async () => {
   modules = await loadProductionModules();
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {
@@ -261,7 +261,10 @@ describe('descendant validation gates the parent change (ADR 0046 §6)', () => {
     expect(after).toHaveLength(before.length);
     const head = await runtime.graph.getLatestVersion(parentKey);
     expect(head!.version_number).toBe('1');
-    expect(head!.content).toBe(parentDoc({ has_fur: 'true' }));
+    // The recorded body is the durable stored state, not the submitted document (G3).
+    expect(head!.content).toContain('has_fur: true');
+    expect(head!.content).toContain('parent step');
+    expect(head!.content).not.toContain('has_fur: false');
   });
 
   test('a change that keeps the overridden field is applied and descendants inherit it', async () => {
@@ -269,9 +272,14 @@ describe('descendant validation gates the parent change (ADR 0046 §6)', () => {
     await fixture.train(runtime, SPACE, parentDoc({ has_fur: 'true' }));
     await fixture.train(runtime, SPACE, childDoc('desc-keep', { fields: { has_fur: 'false' } }));
 
-    const applied = await fixture.tune(runtime, SPACE, PARENT_URI, parentDoc({ has_fur: 'true' }), {
-      expectedVersion: '1.0.0'
-    });
+    // A real change to the parent body, with the child's overridden field still declared.
+    const applied = await fixture.tune(
+      runtime,
+      SPACE,
+      PARENT_URI,
+      parentDoc({ has_fur: 'true' }, undefined, 'parent step v2'),
+      { expectedVersion: '1.0.0' }
+    );
     expect(applied.results[0]!.status).toBe('updated');
 
     const parentKey = modules.scope.adapterGraphKey(SPACE, PARENT);
@@ -282,6 +290,26 @@ describe('descendant validation gates the parent change (ADR 0046 §6)', () => {
     // The child edge survives, so the child resolves the updated parent without a rewrite.
     const path = await fixture.pathSlugs(runtime, SPACE, 'desc-keep');
     expect(path).toEqual([PARENT]);
-    expect(await runtime.graph.getChildren(SPACE, PARENT)).toContain('desc-keep');
+    // The child is reported with the scope its node is stored in, not a bare slug.
+    expect(await runtime.graph.getChildren(SPACE, PARENT)).toEqual([
+      { key: modules.scope.adapterGraphKey(SPACE, 'desc-keep'), slug: 'desc-keep', space: SPACE }
+    ]);
+  });
+
+  test('a tune that leaves the durable state unchanged appends no history row', async () => {
+    const runtime = await fixture.openRuntime('no-change');
+    await fixture.train(runtime, SPACE, parentDoc({ has_fur: 'true' }));
+    const parentKey = modules.scope.adapterGraphKey(SPACE, PARENT);
+    const before = await runtime.graph.getLatestVersion(parentKey);
+
+    // Re-submitting the same document reaches storage through the same finalizer; the
+    // recorded bytes are already the stored bytes, so a new snapshot would record no change.
+    const replay = await fixture.tune(runtime, SPACE, PARENT_URI, parentDoc({ has_fur: 'true' }), {
+      expectedVersion: '1.0.0'
+    });
+    expect(replay.results[0]!.status).toBe('updated');
+
+    expect(await runtime.graph.listVersions(parentKey)).toHaveLength(1);
+    expect((await runtime.graph.getLatestVersion(parentKey))!.content_digest).toBe(before!.content_digest);
   });
 });

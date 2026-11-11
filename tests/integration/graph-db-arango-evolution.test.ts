@@ -21,13 +21,13 @@ import { createHash } from 'node:crypto';
 
 import { selectSharedBackend } from './graph-db-arango-selection.js';
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 import type { ActivateOutput } from '../../src/tools/activate_schema.js';
 
 const SELECTION = selectSharedBackend('graph-db-arango-evolution');
@@ -48,7 +48,7 @@ if (SELECTION.required && !SHARED_SELECTED) {
 }
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 const SPACE = `space:it-arango-evo-${RUN}`;
 const PARENT = 'shared-evo-parent';
@@ -109,7 +109,7 @@ beforeAll(async () => {
     SQUADRULES_GRAPH_BACKEND: 'arango',
     SQUADRULES_GRAPH_BACKEND_STRICT: 'true'
   });
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {
@@ -199,7 +199,8 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
     const latest = await runtime.graph.getLatestVersion(parentKey);
     expect(latest!.version_number).toBe('2');
     expect(latest!.parent_version).toBe('1');
-    expect(latest!.content_digest).toBe(sha(tuned));
+    // The durable stored state is what is recorded (G3), on the shared backend too.
+    expect(latest!.content_digest).toBe(sha(latest!.content));
 
     await modules.evolution.resolveProposal(
       runtime.graph,
@@ -224,7 +225,7 @@ describeShared('evidence-gated evolution on the shared backend (ADR 0046)', () =
     expect(ctx!.evidence.accepted_proposals).toBe(1);
     expect(ctx!.evolution.current_snapshot).toBe('2');
     expect(ctx!.evolution.current_adapter_version).toBe('1.1.0');
-    expect(ctx!.evolution.applied[0]!.content_digest).toBe(sha(tuned));
+    expect(ctx!.evolution.applied[0]!.content_digest).toBe(sha(latest!.content));
     expect(ctx!.evolution.explanation).toContain('Snapshot 2');
     expect(ctx!.context.task).toBe('review the shared adapter');
     expect(ctx!.degraded).toBeNull();

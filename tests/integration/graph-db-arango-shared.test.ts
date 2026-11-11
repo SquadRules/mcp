@@ -18,13 +18,13 @@
 import { createHash } from 'node:crypto';
 
 import {
-  GraphFixture,
   adapterDoc,
   commentContract,
   loadProductionModules,
   type ProductionModules,
   type Runtime
 } from './graph-db-fixture.js';
+import { CriticApprovedGraphFixture } from './graph-db-critic-fixture.js';
 import { selectSharedBackend } from './graph-db-arango-selection.js';
 
 const SELECTION = selectSharedBackend('graph-db-arango-shared');
@@ -52,7 +52,7 @@ if (SELECTION.required && !SHARED_SELECTED) {
 }
 
 let modules: ProductionModules;
-let fixture: GraphFixture;
+let fixture: CriticApprovedGraphFixture;
 
 function sha(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
@@ -81,7 +81,7 @@ beforeAll(async () => {
     SQUADRULES_GRAPH_BACKEND: 'arango',
     SQUADRULES_GRAPH_BACKEND_STRICT: 'true'
   });
-  fixture = new GraphFixture(modules);
+  fixture = new CriticApprovedGraphFixture(modules);
 });
 
 afterAll(async () => {
@@ -128,6 +128,9 @@ describeShared('graph-native history parity (ADR 0045)', () => {
   let key: string;
   const first = doc(SLUG, '1.0.0', 'shared first body');
   const second = doc(SLUG, '1.1.0', 'shared second body');
+  /** Snapshot bytes as the graph recorded them; later tests read history from these. */
+  let snapshotOne = '';
+  let snapshotTwo = '';
 
   beforeAll(async () => {
     runtime = await fixture.openRuntime('arango-history');
@@ -141,11 +144,14 @@ describeShared('graph-native history parity (ADR 0045)', () => {
     expect(snapshot!.version_number).toBe('1');
     expect(snapshot!.parent_version).toBeNull();
     expect(snapshot!.change_type).toBe('created');
-    expect(snapshot!.content).toBe(first);
-    expect(snapshot!.content_digest).toBe(sha(first));
+    // Durable stored state, not the submitted bytes (G3): identical on both backends.
+    expect(snapshot!.content).toContain('shared first body');
+    expect(snapshot!.content).toContain('"required":true');
+    expect(snapshot!.content_digest).toBe(sha(snapshot!.content));
     expect(snapshot!.space).toBe(space('history'));
     expect(snapshot!.changed_by).toBe('user-it');
     expect(snapshot!.actor_source).toBe('auth-subject');
+    snapshotOne = snapshot!.content;
   });
 
   test('tune appends snapshot 2 linked to snapshot 1', async () => {
@@ -155,7 +161,10 @@ describeShared('graph-native history parity (ADR 0045)', () => {
     const latest = await runtime.graph.getLatestVersion(key);
     expect(latest!.version_number).toBe('2');
     expect(latest!.parent_version).toBe('1');
-    expect(latest!.content_digest).toBe(sha(second));
+    expect(latest!.content).toContain('shared second body');
+    expect(latest!.content).not.toBe(snapshotOne);
+    expect(latest!.content_digest).toBe(sha(latest!.content));
+    snapshotTwo = latest!.content;
     expect((await runtime.graph.listVersions(key)).map((row) => row.version_number).sort()).toEqual([
       '1',
       '2'
@@ -171,8 +180,8 @@ describeShared('graph-native history parity (ADR 0045)', () => {
         include_reward: false
       })
     );
-    expect(exported.content).toBe(first);
-    expect(exported.snapshot_sha256).toBe(sha(first));
+    expect(exported.content).toBe(snapshotOne);
+    expect(exported.snapshot_sha256).toBe(sha(snapshotOne));
     expect(exported.history_version).toBe('1');
     expect(exported.history_versions).toBe(2);
     expect(exported.space_id).toBe(space('history'));
@@ -206,14 +215,14 @@ describeShared('graph-native history parity (ADR 0045)', () => {
     expect(after.map((row) => row.version_number).sort()).toEqual(
       before.map((row) => row.version_number).sort()
     );
-    expect((await runtime.graph.getLatestVersion(key))!.content).toBe(second);
+    expect((await runtime.graph.getLatestVersion(key))!.content).toBe(snapshotTwo);
   });
 
   test('a second connection reads the same persisted history', async () => {
     const reopened = await fixture.openRuntime('arango-reopen');
     const history = await reopened.graph.listVersions(key);
     expect(history.map((row) => row.version_number).sort()).toEqual(['1', '2']);
-    expect((await reopened.graph.getVersion(key, '1'))!.content).toBe(first);
+    expect((await reopened.graph.getVersion(key, '1'))!.content).toBe(snapshotOne);
   });
 });
 
@@ -248,7 +257,10 @@ describeShared('topology and scope parity (ADR 0042)', () => {
     );
 
     expect(await fixture.pathSlugs(runtime, s, 'shared-child')).toEqual(['shared-grand', 'shared-middle']);
-    expect(await runtime.graph.getChildren(s, 'shared-middle')).toEqual(['shared-child']);
+    // The traversal reaches the child document, so its own key and scope come back with it.
+    expect(await runtime.graph.getChildren(s, 'shared-middle')).toEqual([
+      { key: modules.scope.adapterGraphKey(s, 'shared-child'), slug: 'shared-child', space: s }
+    ]);
   });
 
   test('one slug in two spaces is two identities with independent histories', async () => {
@@ -269,8 +281,10 @@ describeShared('topology and scope parity (ADR 0042)', () => {
     const historyB = await runtime.graph.listVersions(keyB);
     expect(historyA).toHaveLength(1);
     expect(historyB).toHaveLength(1);
-    expect(historyA[0]!.content).toBe(bodyA);
-    expect(historyB[0]!.content).toBe(bodyB);
+    expect(historyA[0]!.content).toContain('arango space a body');
+    expect(historyA[0]!.content).not.toContain('arango space b body');
+    expect(historyB[0]!.content).toContain('arango space b body');
+    expect(historyB[0]!.content).not.toContain('arango space a body');
     expect(historyA[0]!.space).toBe(a);
     expect(historyB[0]!.space).toBe(b);
     expect(await runtime.graph.getLatestVersion(keyB)).not.toBeNull();

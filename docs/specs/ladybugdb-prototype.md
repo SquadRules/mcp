@@ -9,8 +9,11 @@ This document describes the minimal proof-of-concept prototype demonstrating Lad
 - In-process execution (zero external dependencies)
 - File-based persistence
 - Cypher query language support
-- Multi-process safety (file locking)
+- One writable owner per database file, plus concurrent read-only processes
 - High performance for analytical workloads
+
+> **Single-writer.** The file lock rejects a second writable open; it does not queue
+> writers. See [Multi-Process Safety](#multi-process-safety) before designing a deployment.
 
 **SquadRules 6** uses a multi-database architecture:
 
@@ -41,12 +44,12 @@ This prototype demonstrates the **Graph DB** layer.
 
 ### Graph Schema
 
-The prototype implements a subset of the full schema defined in `docs/specs/graph-schema.md`:
+The schema is defined by `docs/specs/graph-schema.md`; this prototype created the first slice of it.
 
 **Node Types:**
 
 - `Adapter` - SquadRules adapters with frontmatter metadata
-- `Concept` - Abstract categories and rules (minimal implementation)
+- `Concept` - Abstract categories and rules
 
 **Edge Types:**
 
@@ -57,6 +60,19 @@ The prototype implements a subset of the full schema defined in `docs/specs/grap
 
 - Adapter: `slug`, `version`, `title`, `frontmatter`, `layer_count`, `contract_types`, `space`, `tags`, `metadata`
 - Edge: `relationship`, `inherited_fields`, `override_fields`, `created_at`, `metadata`
+
+The delivered schema is wider than this prototype: the full node and relationship
+list is `docs/specs/graph-schema.md` §7.1, created by
+`src/services/graph-db/ladybug/ladybug-schema.ts`. Inheritance is still
+adapter-to-adapter only (`Inherits` is `FROM Adapter TO Adapter`); concept and
+instance inheritance are out of scope, not pending (§
+[Delivered scope vs deferred scope](#delivered-scope-vs-deferred-scope)).
+
+`inherited_fields` is written as `[]` on every `Inherits` edge and is not read by
+resolution (`src/services/graph-db/ladybug/ladybug-adapter-writes.ts`
+`createInheritanceEdge`). `override_fields` is an audit copy of the child's
+`override:` frontmatter; the effective merge reads each level's `override:` itself
+(`src/services/graph-db/inheritance-merge.ts` `mergeResolvedProperties`).
 
 ## Installation
 
@@ -110,8 +126,8 @@ await db.initialize();
 
 The database is stored in a directory containing:
 
-- Node tables (Adapter, Concept)
-- Relationship tables (Inherits, SpecializedBy)
+- Node tables and relationship tables (the delivered list is
+  `docs/specs/graph-schema.md` §7.1)
 - Transaction logs
 - Index files
 
@@ -156,7 +172,9 @@ const edge: InheritanceEdge = {
   from: 'adapter:specialized-reviewer',
   to: 'adapter:critic-loop',
   relationship: 'inherits',
-  inherited_fields: ['contract_types', 'layer_count'],
+  // Written as [] by the writer; resolution does not read it.
+  inherited_fields: [],
+  // Audit copy of the child's `override:` frontmatter.
   override_fields: ['tags', 'metadata'],
   created_at: '2026-04-10T09:15:00Z',
   metadata: {
@@ -380,62 +398,114 @@ The test suite (`tests/unit/graph-database.test.ts`) covers:
 
 ## Multi-Process Safety
 
-LadybugDB provides file locking for multi-process access:
+**A LadybugDB database file has one writable owner.** The official concurrency guidance
+([docs.ladybugdb.com/concurrency](https://docs.ladybugdb.com/concurrency/)) supports:
 
-### Concurrent Reads
+| Supported | Not supported |
+|-----------|---------------|
+| Multiple `Connection` objects over one writable `Database` object | Two independently opened **writable** processes on the same database directory |
+| Multiple **read-only** processes on the same directory | Serialising concurrent writers through a wait-for-lock queue |
+| One writable, database-owning API server serving many clients | Any claim that a file lock makes concurrent writable agents safe |
 
-✅ **Safe** - Multiple processes can read simultaneously
+A file lock guards the writable open. A second process that opens the same directory for
+writing is **rejected** — it does not block and then proceed. "Writes are serialized" is
+therefore the wrong model, and a lock rejection is not evidence of concurrent writable
+support.
+
+### Supported deployment choices
+
+Pick one deliberately; they are not interchangeable.
+
+| Shape | When it fits | Who owns the database |
+|-------|--------------|-----------------------|
+| **Separate embedded databases** | Independent agents or runtimes that must not share topology | Each runtime opens its own instance — `initGraphDb()` never memoizes, so a second boot in the same process gets its own graph ([`src/services/graph-db/graph-db-singleton.ts`](../../src/services/graph-db/graph-db-singleton.ts)). Separate **processes** need separate directories: pass `databaseDir`, because the second writable open of one directory is rejected ([ADR 0042](../adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md)) |
+| **Single-owner broker** | Many clients, one ontology, embedded storage | One process owns the `Database`; clients reach it through that server's HTTP/MCP surface and never open the file |
+| **Shared ArangoDB** | Many writable servers, one ontology | A network database (ArangoDB 3.10–3.11); no file lock is involved ([ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md)) |
+
+`SQUADRULES_GRAPH_BACKEND` selects `embedded` or `arango`, and a failing remote never falls
+back to an embedded file (`src/config/graph-backend.ts`).
+
+### Concurrent reads
+
+✅ **Supported** — read-only processes can share one directory. Open with `readOnly` set:
 
 ```typescript
-// Process 1
+// Process 2 (read-only, concurrent)
+const db2 = new Database('/shared/path/squadrules-graph.lbug', 0, true, true);
+await db2.init();
+```
+
+### Concurrent writes from separate processes
+
+❌ **Rejected, not serialized** — the second writable open fails on the file lock:
+
+```typescript
+// Process 1 owns the directory
 const db1 = new GraphDatabaseService('/shared/path');
 await db1.initialize();
-const adapter1 = await db1.getAdapter('adapter:test');
 
-// Process 2 (concurrent)
-const db2 = new GraphDatabaseService('/shared/path');
-await db2.initialize();
-const adapter2 = await db2.getAdapter('adapter:test');
+// Process 2, same directory: the open is rejected by the file lock.
+// It does not wait for Process 1 and it does not interleave writes.
 ```
 
-### Concurrent Writes
+### Within one process
 
-⚠️ **Serialized** - Writes are serialized via file locking
+One `Database` handle supports many `Connection` objects, and that is the supported form of
+concurrency: reuse connections instead of opening the directory again.
 
 ```typescript
-// Process 1
-await db1.createAdapterNode(adapter1);  // Acquires lock
-
-// Process 2 (waits for lock)
-await db2.createAdapterNode(adapter2);  // Blocks until Process 1 completes
+await db.createAdapterNode(adapter1); // one owner, one connection at a time
+await db.createAdapterNode(adapter2);
 ```
 
-### Recommendations
+Batch related writes into a single transaction where the API allows it; a transaction is a
+unit of consistency inside one owner, never a cross-process lock.
 
-1. **Single Writer:** Use one writer process with multiple readers
-2. **Connection Pooling:** Reuse connections within a process
-3. **Batch Operations:** Group multiple writes into transactions
-4. **Read Replicas:** For read-heavy workloads, consider separate read-only database copies
+## Delivered scope vs deferred scope
 
-## Limitations and Known Issues
+This prototype was the proof of concept. The **delivered** scope is larger, and the
+remaining gaps are deliberate deferrals — not missing items on an unfinished
+checklist. The schema home is `docs/specs/graph-schema.md` §7.1; the decisions are
+[ADR 0041](../adr/0041-graph-native-open-source-database-for-ontological-knowledge-system.md),
+[ADR 0042](../adr/0042-graph-owned-by-runtime-scoped-keys-derived-topology.md),
+[ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md),
+[ADR 0045](../adr/0045-graph-native-history-and-restore.md) and
+[ADR 0046](../adr/0046-evidence-gated-evolution-proposals.md).
 
-### Current Limitations
+### Delivered
 
-1. **Schema Subset:** Only implements Adapter, Concept, Inherits, SpecializedBy (full schema in `docs/specs/graph-schema.md` includes Anomaly, Version, Instance nodes)
+- **Full delivered table set** — `Adapter`, `Concept`, `Instance`, `Anomaly`,
+  `Version`, `Proposal`, `Confirmation` node tables and `Inherits`,
+  `SpecializedBy`, `Contradicts`, `VersionOf`, `DiscoveredBy`, `RoutesTo`,
+  `ProposedFor`, `ConceptInstances` rel tables
+  (`src/services/graph-db/ladybug/ladybug-schema.ts`).
+- **Adapter-to-adapter inheritance** — `Inherits`/`SpecializedBy` written by the
+  train/tune projection, with additive selective section-spine resolution
+  ([ADR 0043](../adr/0043-additive-selective-inheritance-and-inheritance-checkpoints.md)).
+- **Version history** — immutable `Version` snapshots plus `VersionOf` edges
+  (`recordAdapterVersion` in `src/services/graph-db/graph-history.service.ts`).
+- **Anomaly nodes** — written by the reward failure path and the evolution hooks
+  (`createAnomaly` in `src/services/graph-db/ladybug/ladybug-anomaly-store.ts`).
+- **Space partitioning** — scoped node keys `adapter:<spaceId>:<slug>`, with scope
+  provenance on nodes and edges (`src/services/graph-db/adapter-scope.ts`).
 
-2. **No Concept Inheritance:** Concept node inheritance not fully implemented
+### Deferred (not a release requirement)
 
-3. **No Version Tracking:** Version nodes and `version_of` edges not implemented
+- **Concept and instance inheritance.** `Inherits` is `FROM Adapter TO Adapter`, so
+  general Concept→Concept and Concept→Adapter inheritance does not exist and is not
+  planned for this release.
+- **Instance CRUD.** The `Instance` table and the `ConceptInstances` rel table exist
+  so a future feature needs no migration, but the `GraphRepository` port has no
+  instance method and nothing writes either table (`InstanceNode` in
+  `src/services/graph-db/graph-types.ts` is a type only).
+- **`RoutesTo` writers.** The table exists; nothing writes `chain_root` routing edges
+  yet.
+- **Full-text and vector indexes.** LadybugDB supports them; the graph layer does not
+  expose them, because embeddings live in the vector store.
+- **Clustering / high availability.** Not a LadybugDB capability to claim; shared-mode
+  HA is an ArangoDB deployment property ([ADR 0044](../adr/0044-graph-repository-port-and-arango-shared-backend.md)).
 
-4. **No Anomaly Tracking:** Anomaly nodes and `contradicts` edges not implemented
-
-5. **Single Space:** Space partitioning not implemented (all adapters in "personal" space)
-
-6. **No Full-Text Search:** LadybugDB supports FTS, but not exposed in this prototype
-
-7. **No Vector Index:** LadybugDB supports vector indices, but not used in this prototype
-
-### Known Issues
+### Known issues
 
 1. **JSON Serialization:** Complex objects (frontmatter, metadata) stored as JSON strings, not native objects
 
@@ -445,63 +515,35 @@ await db2.createAdapterNode(adapter2);  // Blocks until Process 1 completes
 
 4. **Memory Management:** Large databases may require tuning buffer pool size
 
-## Next Steps
+## Where this stands
 
-### Phase 1: Complete Schema Implementation
+The prototype is complete and the delivered graph layer is wider than what it
+demonstrated. Two gates are separate and must not be conflated:
 
-- [ ] Implement Anomaly node type
-- [ ] Implement Version node type
-- [ ] Implement Instance node type (optional)
-- [ ] Add `contradicts` edge type
-- [ ] Add `version_of` edge type
-- [ ] Add `instances` edge type
-- [ ] Add `discovered_by` edge type
-- [ ] Add `routes_to` edge type
+- **CI parity is a gate.** The embedded and shared backends are exercised in required
+  CI — see [ADR 0048](../adr/0048-required-shared-backend-ci-lane.md).
+- **Production validation is a separate, still-outstanding operational bake** — a real
+  embedded and shared deployment with persistence, restart, isolation and
+  failure-recovery evidence. The procedure and its unexecuted status live in
+  `docs/runbooks/production-bake.md`.
 
-### Phase 2: Advanced Features
-
-- [ ] Implement full-text search on adapter content
-- [ ] Add vector indices for semantic search
-- [ ] Implement space partitioning (personal, group, app)
-- [ ] Add transaction support for batch operations
-- [ ] Implement graph analytics (centrality, clustering)
-
-### Phase 3: Performance Optimization
-
-- [ ] Add query result caching
-- [ ] Implement connection pooling
-- [ ] Optimize inheritance resolution algorithm
-- [ ] Add batch import/export utilities
-- [ ] Tune buffer pool size for different workloads
-
-### Phase 4: Production Readiness
-
-- [ ] Add comprehensive error handling
-- [ ] Implement database migration framework
-- [ ] Add monitoring and metrics (Prometheus)
-- [ ] Implement backup and restore utilities
-- [ ] Add database health checks
-- [ ] Write production deployment guide
-
-### Phase 5: Integration
-
-- [ ] Integrate with existing SquadRules memory store
-- [ ] Connect to LanceDB vector store (cross-database relationships)
-- [ ] Connect to SQLite metadata store (URI-based foreign keys)
-- [ ] Implement adapter activation using graph queries
-- [ ] Add inheritance resolution to adapter execution pipeline
+A green CI lane is evidence for parity, never for the bake.
 
 ## Troubleshooting
 
 ### Database Lock Issues
 
-**Problem:** "Database is locked" error
+**Problem:** a second writable open of the same database directory is rejected.
+
+**Cause:** this is the documented single-writer rule, not a transient contention
+bug — the lock is not a queue (see [Multi-Process Safety](#multi-process-safety)).
 
 **Solution:**
 
-- Ensure only one writer process is active
-- Close unused connections
-- Check for zombie processes holding locks
+- Keep exactly one writable owner of the directory; give other runtimes their own
+  database directory, or put a single-owner broker in front of the one owner
+- Open the directory read-only (`readOnly = true`) where the workload only reads
+- Check for zombie processes holding the lock before assuming a code fault
 
 ### Schema Creation Fails
 

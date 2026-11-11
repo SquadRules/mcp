@@ -110,6 +110,20 @@ async function resolveContext(
   );
 }
 
+/**
+ * Digest of the snapshot the graph actually recorded for `slug`.
+ *
+ * G3: the recorded bytes are the durable stored state, not the document the caller
+ * submitted, so the projection has to report the row it read — never a hash of the
+ * authored text.
+ */
+async function recordedDigest(runtime: Runtime, spaceId: string, slug: string): Promise<string> {
+  const snapshot = await runtime.graph.getLatestVersion(modules.scope.adapterGraphKey(spaceId, slug));
+  if (!snapshot) throw new Error(`no snapshot recorded for ${slug} in ${spaceId}`);
+  expect(snapshot.content_digest).toBe(sha(snapshot.content));
+  return snapshot.content_digest;
+}
+
 beforeAll(async () => {
   modules = await loadProductionModules();
   fixture = new GraphFixture(modules);
@@ -175,7 +189,7 @@ describe('scoped projection of a real trained adapter (ADR 0047 §1–3)', () =>
     expect(childCtx.evidence.accepted_proposals).toBe(0);
     expect(childCtx.evidence.version_snapshots).toBe(1);
     expect(childCtx.evolution.current_snapshot).toBe('1');
-    expect(childCtx.evolution.applied[0]!.content_digest).toBe(sha(child));
+    expect(childCtx.evolution.applied[0]!.content_digest).toBe(await recordedDigest(runtime, SPACE_A, CHILD));
     expect(childCtx.evolution.explanation).toContain('Snapshot 1');
     expect(childCtx.evolution.explanation).not.toContain('Accepted evolution');
     expect(childCtx.degraded).toBeNull();
@@ -197,7 +211,7 @@ describe('scoped projection of a real trained adapter (ADR 0047 §1–3)', () =>
     expect(applied.change_type).toBe('created');
     expect(applied.changed_by).toBe('user-it');
     // The digest proves these bytes, not the truth of the change recorded.
-    expect(applied.content_digest).toBe(sha(parentDoc()));
+    expect(applied.content_digest).toBe(await recordedDigest(runtime, SPACE_A, PARENT));
     expect(parentCtx.evolution.resolution_notes).toEqual(['has_fur: true -> false']);
     expect(parentCtx.evolution.explanation).toContain('Snapshot 1');
     expect(parentCtx.evolution.explanation).toContain('Accepted evolution: has_fur on act-parent');
@@ -262,7 +276,7 @@ describe('scope isolation between two spaces with the same slug (ADR 0047 §2)',
     const ctxA = (await resolveContext(runtime, SPACE_A, SHARED))!;
     expect(ctxA.scope.space_id).toBe(SPACE_A);
     expect(ctxA.scope.adapter_key).toBe(modules.scope.adapterGraphKey(SPACE_A, SHARED));
-    expect(ctxA.evolution.applied[0]!.content_digest).toBe(sha(bodyA));
+    expect(ctxA.evolution.applied[0]!.content_digest).toBe(await recordedDigest(runtime, SPACE_A, SHARED));
     expect(ctxA.evolution.current_adapter_version).toBe('1.0.0');
     expect(ctxA.evidence.open_anomalies).toBe(0);
     expect(ctxA.relationships).toEqual([]);
@@ -271,7 +285,7 @@ describe('scope isolation between two spaces with the same slug (ADR 0047 §2)',
 
     const ctxB = (await resolveContext(runtime, SPACE_B, SHARED))!;
     expect(ctxB.scope.space_id).toBe(SPACE_B);
-    expect(ctxB.evolution.applied[0]!.content_digest).toBe(sha(bodyB));
+    expect(ctxB.evolution.applied[0]!.content_digest).toBe(await recordedDigest(runtime, SPACE_B, SHARED));
     expect(ctxB.evolution.current_adapter_version).toBe('2.0.0');
     expect(ctxB.evidence.open_anomalies).toBe(1);
     // org comes from the permitted group space, never from the caller.

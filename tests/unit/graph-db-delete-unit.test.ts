@@ -7,6 +7,8 @@
  *
  *   - delete succeeds when no dependents exist
  *   - delete is refused, with a message naming the dependents, when they do
+ *   - a dependent stored in another space is named with that space, because the same
+ *     slug in two spaces is two different adapters
  *   - delete succeeds when the store has no graph (graceful degradation)
  *   - delete succeeds when `getChildren` throws (graceful degradation)
  *   - no cascade: dependents are not modified when delete is refused
@@ -30,6 +32,13 @@ let graphDbAvailable = false;
 
 /** Space the stored record lives in — the scope the graph lookup must use. */
 const STORED_SPACE = 'space:unit-personal';
+/** Space of a dependent adapter that lives outside the parent's scope. */
+const FOREIGN_SPACE = 'group:unit-team';
+
+/** Scoped child identity, the shape `getChildren` returns. */
+function childRef(slug: string, space: string) {
+  return { key: `adapter:${space}:${slug}`, slug, space };
+}
 
 const mockGetChildren = jest.fn<any>();
 // Methods that MUST NOT be called on the delete-refusal path (no cascade).
@@ -186,7 +195,7 @@ describe('delete inheritance precondition (Touchpoint 5)', () => {
     registerMocks();
     deleteHeavyDepMocks();
     graphDbAvailable = true;
-    mockGetChildren.mockResolvedValue(['child-alpha', 'child-beta']);
+    mockGetChildren.mockResolvedValue([childRef('child-alpha', STORED_SPACE), childRef('child-beta', STORED_SPACE)]);
 
     const { executeDelete } = await import('../../src/tools/delete.js');
     const qdrant = makeQdrantService();
@@ -249,12 +258,42 @@ describe('delete inheritance precondition (Touchpoint 5)', () => {
     expect(qdrant.deleteMemory).toHaveBeenCalled();
   });
 
+  test('a dependent in another space is named with its scope', async () => {
+    jest.resetModules();
+    registerMocks();
+    deleteHeavyDepMocks();
+    graphDbAvailable = true;
+    mockGetChildren.mockResolvedValue([
+      childRef('child-alpha', STORED_SPACE),
+      childRef('child-beta', FOREIGN_SPACE)
+    ]);
+
+    const { executeDelete } = await import('../../src/tools/delete.js');
+    const qdrant = makeQdrantService();
+
+    const result = await executeDelete(qdrant as any, { uris: [ADAPTER_URI] });
+
+    expect(result.results[0]!.status).toBe('error');
+    // The same-scope dependent stays a bare slug; the foreign one carries its space,
+    // because without it the operator would look in the parent's space and not find it.
+    expect(result.results[0]!.message).toBe(
+      `Cannot delete adapter 'parent-adapter': 2 adapter(s) inherit from it: child-alpha, ` +
+        `child-beta (in ${FOREIGN_SPACE}). Dependents are stored in more than one scope; ` +
+        'remove or reparent each dependent in its own scope first.'
+    );
+    expect(qdrant.deleteMemory).not.toHaveBeenCalled();
+  });
+
   test('no cascade: dependents are NOT modified when delete is refused', async () => {
     jest.resetModules();
     registerMocks();
     deleteHeavyDepMocks();
     graphDbAvailable = true;
-    mockGetChildren.mockResolvedValue(['child-one', 'child-two', 'child-three']);
+    mockGetChildren.mockResolvedValue([
+      childRef('child-one', STORED_SPACE),
+      childRef('child-two', STORED_SPACE),
+      childRef('child-three', STORED_SPACE)
+    ]);
 
     const { executeDelete } = await import('../../src/tools/delete.js');
     const qdrant = makeQdrantService();

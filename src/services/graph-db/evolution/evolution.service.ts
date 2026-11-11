@@ -25,16 +25,37 @@ import { structuredLogger } from '../../../utils/structured-logger.js';
 import { evaluateConsensus, type ConsensusResult } from './consensus.js';
 import {
   EvolutionIntegrityError,
+  ExpertAuthorityDeferredError,
+  EXPERT_AUTHORITY_DEFERRED,
+  EXPERT_AUTHORITY_DEFERRAL,
+  REWARD_FAILURE_CLAIM,
   proposalKey,
   proposalNode,
   type ConfirmProposalInput,
   type EvolutionIntegrityDiagnostic,
+  type ExpertAuthorityDeferral,
+  type ExpertAuthorityDeferralReason,
   type ProposeChangeInput
 } from './evolution-proposal-record.js';
 import { buildApplyPlan, type EvolutionApplyPlan } from './evolution-plans.js';
 
-export { EvolutionIntegrityError, proposalKey, buildApplyPlan };
-export type { EvolutionIntegrityDiagnostic, ProposeChangeInput, ConfirmProposalInput, EvolutionApplyPlan };
+export {
+  EvolutionIntegrityError,
+  ExpertAuthorityDeferredError,
+  EXPERT_AUTHORITY_DEFERRED,
+  EXPERT_AUTHORITY_DEFERRAL,
+  REWARD_FAILURE_CLAIM,
+  proposalKey,
+  buildApplyPlan
+};
+export type {
+  EvolutionIntegrityDiagnostic,
+  ExpertAuthorityDeferral,
+  ExpertAuthorityDeferralReason,
+  ProposeChangeInput,
+  ConfirmProposalInput,
+  EvolutionApplyPlan
+};
 
 /** Use the existing scoped graph read and request access, never an invented target. */
 export async function loadEvolutionTarget(
@@ -111,7 +132,15 @@ export async function confirmProposal(
     throw new EvolutionIntegrityError('self_confirmation_forbidden', 'A different authenticated subject must supply the confirmation.');
   }
   if (input.actorKind !== 'agent') {
-    throw new EvolutionIntegrityError('expert_authority_unavailable', 'Expert authority needs an agreed runtime authorization mapping; authentication alone is insufficient.');
+    // WHY A STRUCTURED DEFERRAL RATHER THAN A SILENT DOWNGRADE
+    // The ladder's second rung (consensus.ts) is intact and would count an
+    // `auth-subject` + `human_expert` confirmation, but nothing in the runtime proves the
+    // subject holds an expert role: identity is authenticated, authority is not. Accepting
+    // the caller's own label is the spoof ADR 0046 rejects, and recording the claim as an
+    // agent vote would let the caller pick which rung reads it. Fail closed with a stable
+    // code the caller can branch on; a future trusted role mapping activates the rung
+    // without touching this ladder.
+    throw new ExpertAuthorityDeferredError();
   }
   const target = await loadEvolutionTarget(graphDb, proposal.target_key, proposal.target_slug, proposal.space);
   const childScope = parseAdapterGraphKey(input.distinctChild ?? '');

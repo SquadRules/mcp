@@ -16,12 +16,10 @@ import {
   isAllowedArtifactMime,
   normalizeArtifactMime
 } from './artifact-mime.js';
-import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import {
-  projectAdapterLineage,
-  syncAdapterGraph
-} from '../services/graph-db/adapter-graph-sync.js';
-import { recordAdapterEvolution } from '../services/graph-db/adapter-evolution-hooks.js';
+  finalizeAdapterMutation,
+  type AdapterMutationReport
+} from '../services/graph-db/adapter-write-finalize.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { TrainError } from './train-error.js';
 import {
@@ -62,54 +60,31 @@ export function markdownWithoutAuthorSlugForFork(markdown: string): string {
 }
 
 /**
- * Project one just-written adapter **and its stored ancestry** into the graph owned by
- * `memoryStore`.
+ * Read back the head layer of the adapter that was just stored.
  *
- * Every successful markdown train lands here, whether or not the adapter declares
- * `inherits`: a plain adapter is a node too, and a node is what makes it immediately
- * discoverable to a child trained next. The head layer is read back so the projection
- * uses what was actually persisted — including the `space_id` the store returned,
- * which is the only scope authority here (never the request's or a guessed tenant).
+ * The head is read from the store rather than from the value handed to
+ * `storeAdapter`, so the derived pass describes what was actually persisted —
+ * including the `space_id` the store returned, which is the only scope authority
+ * here (never the request's or a guessed tenant).
  *
- * The ancestry walk in `projectAdapterLineage` returns root-first snapshots, so a
- * parent stored before this train is written before the child edge is reconciled.
- * Graceful degradation: no graph, no read, or a graph write error never fails the train,
- * and edge failures are reported by `syncAdapterGraph` rather than escaping.
+ * Projection is deliberately NOT done here. `finalizeAdapterMutation` owns the whole
+ * derived pass — projection of the final stored scope, history, degradation report —
+ * and having two places project is how the write routes drifted apart.
  */
-async function projectStoredAdapterLineage(
+async function readStoredAdapterHead(
   memoryStore: MemoryQdrantStore,
-  storedMemoryUuid: string,
-  context: string
+  storedMemoryUuid: string
 ): Promise<Memory | null> {
-  const graphDb = getGraphDb(memoryStore);
-  if (!graphDb) return null;
-
   try {
     const head = await memoryStore.getMemory(storedMemoryUuid, { fresh: true });
     if (!head) {
-      structuredLogger.warn(`train: graph projection skipped for ${storedMemoryUuid} — stored head not readable`);
+      structuredLogger.warn(`train: stored head not readable for ${storedMemoryUuid} — derived pass skipped`);
       return null;
-    }
-    const lineage = await projectAdapterLineage(graphDb, memoryStore, head, context);
-    if (lineage.length === 0) {
-      structuredLogger.warn(`train: graph projection skipped for ${storedMemoryUuid} — no adapter snapshot`);
-      return null;
-    }
-    const report = await syncAdapterGraph(graphDb, lineage);
-    if (report.missing_parents.length > 0) {
-      structuredLogger.warn(
-        `train: graph edge skipped (${report.missing_parents.join(', ')}) — parent record not stored in this scope or the app space`
-      );
-    }
-    if (report.failed.length > 0 || report.edge_failures.length > 0) {
-      structuredLogger.warn(
-        `train: graph projection incomplete — failed nodes: [${report.failed.join(', ')}], failed edges: [${report.edge_failures.join(', ')}]`
-      );
     }
     return head;
   } catch (err) {
     structuredLogger.warn(
-      `train: graph projection failed for ${storedMemoryUuid} — ${err instanceof Error ? err.message : String(err)}`
+      `train: stored head read failed for ${storedMemoryUuid} — ${err instanceof Error ? err.message : String(err)}`
     );
     return null;
   }
@@ -207,22 +182,33 @@ export async function executeTrainStore(
     })
   );
 
-  // Graph projection is a derived index written only for memories that landed. It runs
-  // for every markdown train, plain or inheriting, and takes its scope from the stored head.
+  // One finalizer for every route. It projects the final stored scope and records the
+  // snapshot of that state, and it never throws: a post-commit graph failure is a
+  // degraded derived index, reported below, never a failed adapter write.
   const headUuid = memories[0]?.memory_uuid;
+  let graph: AdapterMutationReport | null = null;
   if (headUuid) {
-    const projectedHead = await projectStoredAdapterLineage(memoryStore, headUuid, 'train');
-    if (projectedHead) {
-      await recordAdapterEvolution({
+    const storedHead = await readStoredAdapterHead(memoryStore, headUuid);
+    if (storedHead) {
+      graph = await finalizeAdapterMutation({
         owner: memoryStore,
-        head: projectedHead,
-        markdown: docForStore,
         source: memoryStore,
+        head: storedHead,
+        submittedMarkdown: docForStore,
         changeType: 'created',
         reason: 'train: adapter markdown stored'
       });
     }
   }
+
+  // Degradation travels on the existing `warnings` channel: the write succeeded, so it
+  // is not an error, but it must be visible rather than only logged.
+  const warnings = [
+    ...inheritanceWarnings.map((w) => ({ code: w.code, message: w.message })),
+    ...(graph?.graph_degraded
+      ? [{ code: 'GRAPH_DEGRADED', message: `graph bookkeeping incomplete: ${graph.degradations.join('; ')}` }]
+      : [])
+  ];
 
   return {
     items: memories.map((memory) => ({
@@ -233,8 +219,6 @@ export async function executeTrainStore(
       content_type: 'text/markdown'
     })),
     status: 'stored',
-    ...(inheritanceWarnings.length > 0 && {
-      warnings: inheritanceWarnings.map((w) => ({ code: w.code, message: w.message }))
-    })
+    ...(warnings.length > 0 && { warnings })
   };
 }

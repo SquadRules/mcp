@@ -17,6 +17,7 @@ const regexSource = readFileSync(require.resolve('jest-regex-util'), 'utf8');
 // Check wiring from configuration only; never import or execute the UNIT suites here.
 const nodeUnitSuites = [
   'tests/unit/evolution-integrity-node.test.mjs',
+  'tests/unit/evolution-consensus-boundary-node.test.mjs',
   'tests/unit/wire-diagnostic-integrity-node.test.mjs',
   'tests/unit/stored-adapter-frontmatter.test.mjs',
   'tests/unit/frontmatter-read-integrity-node.test.mjs',

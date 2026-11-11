@@ -17,6 +17,7 @@ import { setupExportDownloadRoutes } from './http-export-download-routes.js';
 import { setupExportArtifactDownloadRoutes } from './http-export-artifact-download-routes.js';
 import { setupErrorHandlers } from './http-error-handlers.js';
 import { startHttpServerWithErrorHandling } from './http-server-startup.js';
+import type { HttpServerStartupOptions } from './http-server-startup.js';
 import { qdrantService } from '../services/qdrant/index.js';
 import type { QdrantService } from '../services/qdrant/service.js';
 
@@ -24,7 +25,8 @@ export function startHttpServer(
     port: number,
     memoryStore: MemoryQdrantStore,
     service: QdrantService = qdrantService,
-    host: string = '0.0.0.0'
+    host: string = '0.0.0.0',
+    options: HttpServerStartupOptions = {}
 ) {
     const app = express();
 
@@ -49,11 +51,16 @@ export function startHttpServer(
     setupUiStatic(app);
     setupErrorHandlers(app);
 
-    // Start server with error handling
-    return startHttpServerWithErrorHandling(app, port, host);
+    // Start server with error handling. `options` carries the owner's bind-failure
+    // handler; this composition root owns no process resources, so it only forwards.
+    return startHttpServerWithErrorHandling(app, port, host, options);
 }
 
-export async function startHttpTransport(memoryStore: MemoryQdrantStore, service?: QdrantService) {
+export async function startHttpTransport(
+    memoryStore: MemoryQdrantStore,
+    service?: QdrantService,
+    options: HttpServerStartupOptions = {}
+) {
     const httpPort = SERVER_PORT;
 
     structuredLogger.success('SquadRules MCP Server starting', 'HTTP transport');
@@ -63,5 +70,5 @@ export async function startHttpTransport(memoryStore: MemoryQdrantStore, service
     // Return the listener so the shutdown handler can close it: an MCP listener that
     // is still accepting requests holds the event loop open, which would keep the
     // process alive after SIGTERM.
-    return startHttpServer(httpPort, memoryStore, service);
+    return startHttpServer(httpPort, memoryStore, service, undefined, options);
 }

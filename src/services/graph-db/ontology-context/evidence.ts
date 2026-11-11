@@ -20,6 +20,20 @@ import type {
 
 const EVIDENCE_CAP = 5;
 
+/**
+ * Bounded read windows for the evidence counts.
+ *
+ * Each read asks for one row past its window. That extra row is the only way a
+ * capped read can tell "there are exactly this many" from "there are at least this
+ * many": a count that fills the window is a floor, and the caller is told so instead
+ * of being handed an array length that looks exhaustive.
+ */
+const ANOMALY_WINDOW = 200;
+const PROPOSAL_WINDOW = 50;
+const VERSION_WINDOW = 20;
+/** Retained snapshots `applied` lists before the evolution explanation stops. */
+export const APPLIED_EVOLUTION_WINDOW = 5;
+
 function trimmed(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -57,26 +71,30 @@ export function resolveFilters(
   };
 }
 
-/** An anomaly belongs to this projection only when it carries the same scope. */
-function anomalyInScope(anomaly: AnomalyNode, spaceId: string): boolean {
-  const scopedChild = trimmed(anomaly.source_child);
-  if (scopedChild.length > 0) return scopedChild.startsWith(`adapter:${spaceId}:`);
-  const metadataScope = trimmed(anomaly.metadata?.['scope_space_id']);
-  return metadataScope.length > 0 && metadataScope === spaceId;
-}
-
 function isOpen(anomaly: AnomalyNode): boolean {
   const status = trimmed(anomaly.status).toLowerCase();
   return status.length === 0 || (status !== 'resolved' && status !== 'closed' && status !== 'rejected');
+}
+
+/** A window read fills the window when the sentinel row past it came back. */
+function windowFilled(rowCount: number, window: number): boolean {
+  return rowCount > window;
 }
 
 /** Empty evidence, used when the adapter node is not in the graph yet. */
 export function emptyEvidence(): OntologyEvidence {
   return {
     open_anomalies: 0,
+    open_anomalies_truncated: false,
+    anomaly_window: ANOMALY_WINDOW,
     pending_proposals: 0,
+    pending_proposals_truncated: false,
     accepted_proposals: 0,
+    accepted_proposals_truncated: false,
+    proposal_window: PROPOSAL_WINDOW,
     version_snapshots: 0,
+    version_snapshots_truncated: false,
+    version_window: VERSION_WINDOW,
     anomalies: [],
     proposals: []
   };
@@ -93,7 +111,8 @@ export interface EvidenceReadResult {
  * Read anomalies, proposals and history for one scoped adapter.
  *
  * Partial reads degrade honestly: a failed read is reported and its contribution is
- * zero, never invented.
+ * zero, never invented. Capped reads report their window: a count that filled it is a
+ * floor, and `*_truncated` says so rather than letting an array length look total.
  */
 export async function readEvidence(
   graphDb: GraphRepository,
@@ -105,21 +124,38 @@ export async function readEvidence(
   let anomalies: AnomalyNode[] = [];
   let proposals: EvolutionProposalNode[] = [];
   let versions: VersionNode[] = [];
+  let anomalyTruncated = false;
+  let proposalTruncated = false;
+  let versionTruncated = false;
 
   try {
-    anomalies = (await graphDb.listAnomalies({ routesTo: slug, limit: 200 })).filter((a) =>
-      anomalyInScope(a, scope.space_id)
-    );
+    // The scope travels into the query: filtering a capped read afterwards would let
+    // foreign-scope rows crowd the local evidence out of its own window.
+    const rows = await graphDb.listAnomalies({
+      routesTo: slug,
+      scopeSpaceId: scope.space_id,
+      limit: ANOMALY_WINDOW + 1
+    });
+    anomalyTruncated = windowFilled(rows.length, ANOMALY_WINDOW);
+    anomalies = rows.slice(0, ANOMALY_WINDOW);
   } catch (err) {
     notes.push(`anomalies unreadable: ${err instanceof Error ? err.message : String(err)}`);
   }
   try {
-    proposals = await graphDb.listProposals({ targetKey: adapterKey, space: scope.space_id, limit: 50 });
+    const rows = await graphDb.listProposals({
+      targetKey: adapterKey,
+      space: scope.space_id,
+      limit: PROPOSAL_WINDOW + 1
+    });
+    proposalTruncated = windowFilled(rows.length, PROPOSAL_WINDOW);
+    proposals = rows.slice(0, PROPOSAL_WINDOW);
   } catch (err) {
     notes.push(`proposals unreadable: ${err instanceof Error ? err.message : String(err)}`);
   }
   try {
-    versions = await graphDb.listVersions(adapterKey, { limit: 20 });
+    const rows = await graphDb.listVersions(adapterKey, { limit: VERSION_WINDOW + 1 });
+    versionTruncated = windowFilled(rows.length, VERSION_WINDOW);
+    versions = rows.slice(0, VERSION_WINDOW);
   } catch (err) {
     notes.push(`history unreadable: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -139,9 +175,16 @@ export async function readEvidence(
   return {
     evidence: {
       open_anomalies: open.length,
+      open_anomalies_truncated: anomalyTruncated,
+      anomaly_window: ANOMALY_WINDOW,
       pending_proposals: pending.length,
+      pending_proposals_truncated: proposalTruncated,
       accepted_proposals: accepted.length,
+      accepted_proposals_truncated: proposalTruncated,
+      proposal_window: PROPOSAL_WINDOW,
       version_snapshots: versions.length,
+      version_snapshots_truncated: versionTruncated,
+      version_window: VERSION_WINDOW,
       anomalies: anomalyRows,
       proposals: proposalRows
     },
@@ -163,15 +206,25 @@ export function appliedRow(version: VersionNode): AppliedEvolutionRow {
   };
 }
 
-/** Explain which snapshot is current and what accepted evolution is reflected. */
+/**
+ * Explain which snapshot is current and what accepted evolution is reflected.
+ *
+ * `appliedTruncated` reaches the prose too: an `applied` list that stopped at its window
+ * cannot say how many older snapshots exist, so the sentence says "at least" instead of
+ * asserting a count the read never established.
+ */
 export function explainEvolution(
   latest: VersionNode | null,
   applied: AppliedEvolutionRow[],
-  accepted: EvolutionProposalNode[]
+  accepted: EvolutionProposalNode[],
+  appliedTruncated = false
 ): string {
   if (!latest) return 'No graph-native snapshot is recorded for this adapter yet.';
   const head = `Snapshot ${latest.version_number} (adapter version ${latest.adapter_version}) is ${latest.change_type} by ${latest.changed_by} at ${latest.changed_at}: ${latest.reason}`;
-  const history = applied.length > 1 ? ` ${applied.length - 1} earlier snapshot(s) are retained immutably.` : '';
+  const earlier = applied.length - 1;
+  const history = applied.length > 1
+    ? ` ${appliedTruncated ? 'at least ' : ''}${earlier} earlier snapshot(s) are retained immutably.`
+    : '';
   const resolved = accepted.length
     ? ` Accepted evolution: ${accepted.map((p) => `${p.field} on ${p.target_slug}`).join(', ')}.`
     : '';
