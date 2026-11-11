@@ -133,11 +133,21 @@ both node and edge, so the resolved scope is auditable instead of implicit.
 
 | Tool | Module | Hook location |
 |------|--------|---------------|
-| `train` | `src/tools/train-store.ts` (`projectStoredAdapterLineage`), `src/tools/train-validation.ts` (`assertInheritanceFrontmatterValid`) | `assertInheritanceFrontmatterValid` before `memoryStore.storeAdapter`; `projectStoredAdapterLineage` after it returns, keyed on the written head |
-| `tune` | `src/tools/tune-adapter-markdown.ts` (`assertTuneInheritanceValid`, `projectTunedAdapter`) | `assertTuneInheritanceValid` before the layer write loop; `projectTunedAdapter` after `verifyTuneLayerPersistence` |
+| `train` | `src/tools/train-store.ts`, `src/tools/train-validation.ts` (`assertInheritanceFrontmatterValid`) | `assertInheritanceFrontmatterValid` before `memoryStore.storeAdapter`; `finalizeAdapterMutation` after it returns, keyed on the written head |
+| `tune` | `src/tools/tune-adapter-markdown.ts` (`assertTuneInheritanceValid`) | `assertTuneInheritanceValid` before the layer write loop; `finalizeAdapterMutation` after `verifyTuneLayerPersistence` |
 
 `executeTune` (`src/tools/tune-execute.ts`) reaches this module for a `content` tune on an
 adapter URI; both hooks live in the module that owns the write they guard.
+
+`finalizeAdapterMutation` (`src/services/graph-db/adapter-write-finalize.ts`) is the one
+derived pass every adapter write route runs: `train`, a `tune` content write, a space-only
+move, a `tune` `updates/` layer batch and `update`. It projects the *final stored scope*,
+appends the history snapshot of that state, records the evolution facts, and returns a
+report whose `graph_degraded` says what it could not do — it never throws, so a graph
+failure cannot fail an already-durable write. The route's write window is serialized by
+`withAdapterWriteLock` (`src/services/graph-db/adapter-write-lock.ts`), and the observed
+history head travels into the append as `expectedParentVersion`, so a concurrent append
+on the same adapter conflicts instead of silently forking.
 
 Both validators receive the resolved child scope (`writeAdapterScope()` on `train`,
 `storedAdapterScope()` on `tune`) and look the parent up with
@@ -176,9 +186,12 @@ utility (`src/utils/frontmatter.ts`), which now extracts:
 | `src/services/graph-db/graph-database.service.ts` | `upsertAdapterFromFrontmatter`, `writeInheritanceEdges`, `clearInheritanceEdges`, `getChildren` |
 | `src/services/graph-db/index.ts` | Re-exports for the inheritance module |
 | `src/services/memory/stored-adapter-frontmatter.ts` | Persists `inherits` / `override` / `chain_root` on the stored `adapter` payload |
-| `src/tools/train-store.ts` | `projectStoredAdapterLineage` |
+| `src/services/graph-db/adapter-write-finalize.ts` | `finalizeAdapterMutation` — the single derived pass (final-scope projection, history append, evolution facts) and its degradation report |
+| `src/services/graph-db/adapter-write-lock.ts` | `withAdapterWriteLock` / `adapterIdentityLockKey` — the per-adapter mutex around one write window |
+| `src/services/graph-db/adapter-stored-markdown.ts` | `reconstructStoredAdapterMarkdown` — the snapshot body is the stored state, not the submitted bytes |
+| `src/tools/train-store.ts` | `executeTrainStore` — validation, the store write, then the finalizer and the `GRAPH_DEGRADED` warning |
 | `src/tools/train-validation.ts` | `assertInheritanceFrontmatterValid` |
-| `src/tools/tune-adapter-markdown.ts` | `assertTuneInheritanceValid`, `projectTunedAdapter` |
+| `src/tools/tune-adapter-markdown.ts` | `assertTuneInheritanceValid`, then the finalizer |
 | `src/utils/frontmatter.ts` | Extended with `inherits` and `overrideRaw` fields |
 
 The test files, and what each one covers, are code-derivable and are not restated here.

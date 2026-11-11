@@ -113,3 +113,26 @@ fails either way, so no gate depends on which status it reports.
 **Status.** Expected while the embedding provider is in-process ONNX. Do not
 re-diagnose it as a store or graph defect; re-evaluate only when ADR 0049's
 expiry conditions change.
+
+## Concurrent adapter writes are serialized in one process, not across a cluster
+
+**What you see.** Nothing, until two processes write the same adapter at the same
+time on a shared backend: one of them fails with `VERSION_CONFLICT` instead of
+their histories silently forking.
+
+**Why it is not a lock.** An adapter write is read → validate → persist → append
+history, and the guard is an **expected head** the writer observed before the
+write. `withAdapterWriteLock`
+(`src/services/graph-db/adapter-write-lock.ts`) makes that region indivisible
+between callers **in one process** only. The embedded graph needs nothing more: it
+allows exactly one writable owner per database file, so concurrent writers there
+are concurrent callers in that process. A shared Arango deployment can have
+several processes appending for the same adapter; for those, the durable
+monotonic guard threaded into `appendVersion` as `expectedParentVersion` turns a
+race into an explicit conflict — a different mechanism with a different failure
+mode, not a distributed lock.
+
+**Status.** By design, and documented rather than hidden. A cluster-wide
+serialization requirement means a server-side lock or a broker, which would be
+its own decision; re-evaluate only if a deployment needs two processes writing
+one adapter without handling `VERSION_CONFLICT`.
