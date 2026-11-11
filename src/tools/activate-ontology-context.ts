@@ -16,6 +16,7 @@ import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import { adapterGraphKey, storedAdapterScope } from '../services/graph-db/adapter-scope.js';
 import type { ConceptNode } from '../services/graph-db/graph-types.js';
 import {
+  APPLIED_EVOLUTION_WINDOW,
   appliedRow,
   emptyEvidence,
   explainEvolution,
@@ -109,6 +110,9 @@ export async function resolveActivationOntologyContext(
           current_adapter_version: null,
           current_snapshot: null,
           applied: [],
+          applied_window: APPLIED_EVOLUTION_WINDOW,
+          // Nothing was read, so nothing was cut off: an empty list here is a fact.
+          applied_truncated: false,
           resolution_notes: [],
           explanation: 'No graph-native snapshot is recorded for this adapter yet.'
         },
@@ -141,7 +145,10 @@ export async function resolveActivationOntologyContext(
       slug,
       scope.adapter_key
     );
-    const applied = versions.slice(0, 5).map(appliedRow);
+    // `versions` is already a bounded window (see `readEvidence`); `applied` narrows it
+    // further, so its own truncation is "the window held more than `applied` lists".
+    const appliedTruncated = versions.length > APPLIED_EVOLUTION_WINDOW;
+    const applied = versions.slice(0, APPLIED_EVOLUTION_WINDOW).map(appliedRow);
     const accepted = proposals.filter((p) => p.status === 'accepted');
     const latest = versions[0] ?? null;
 
@@ -157,8 +164,10 @@ export async function resolveActivationOntologyContext(
         current_adapter_version: latest?.adapter_version ?? adapter.version ?? null,
         current_snapshot: latest?.version_number ?? null,
         applied,
+        applied_window: APPLIED_EVOLUTION_WINDOW,
+        applied_truncated: appliedTruncated,
         resolution_notes: accepted.map((p) => `${p.field}: ${p.from_value ?? 'null'} -> ${p.to_value}`),
-        explanation: explainEvolution(latest, applied, accepted)
+        explanation: explainEvolution(latest, applied, accepted, appliedTruncated)
       },
       degraded
     };

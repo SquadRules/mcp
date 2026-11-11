@@ -12,14 +12,13 @@
  */
 import type { Connection } from '@ladybugdb/core';
 import type {
-  GraphActor,
   HistoryFilter,
   VersionAppendInput,
   VersionNode
 } from '../graph-types.js';
 import { GraphVersionConflictError } from '../graph-types.js';
 import { sha256Hex } from '../../../utils/sha256.js';
-import { executeStatement, parseJson, readRows } from './ladybug-exec.js';
+import { executeStatement, parseJson, readRows, type QueryParams } from './ladybug-exec.js';
 
 const VERSION_COLUMNS = `v.key as key, v.type as type, v.entity_key as entity_key,
   v.entity_uri as entity_uri, v.version_number as version_number,
@@ -135,31 +134,60 @@ function assertHeadMatches(
   }
 }
 
-/** Link the snapshot to its entity when that node exists; best-effort. */
-async function linkVersionOf(
+/**
+ * Property list of one `Version` row, shared by both create shapes below.
+ *
+ * Shared on purpose: the snapshot-with-edge statement and the snapshot-alone statement
+ * must write byte-identical rows, or the two paths would produce different history
+ * depending on whether a projection node happened to exist.
+ */
+const VERSION_CREATE_PROPS = `key: $key, type: 'version', entity_key: $entityKey,
+  entity_uri: $entityUri, version_number: $versionNumber, version_seq: $versionSeq,
+  adapter_version: $adapterVersion, change_type: $changeType,
+  changed_at: $changedAt, changed_by: $changedBy, actor_source: $actorSource,
+  space: $space, parent_version: $parentVersion, reason: $reason,
+  content_digest: $contentDigest, content: $content,
+  metadata_snapshot: $metadataSnapshot, metadata: $metadata`;
+
+const ADAPTER_NODE_EXISTS = 'MATCH (a:Adapter {key: $adapterKey}) RETURN a.key as key';
+const VERSION_NODE_EXISTS = 'MATCH (v:Version {key: $versionKey}) RETURN v.key as key';
+
+/**
+ * Create the snapshot and, when the adapter is projected, its `VersionOf` edge.
+ *
+ * WHY ONE STATEMENT
+ * The snapshot row and the edge that makes it reachable from its adapter used to be two
+ * statements. A failure between them left a version that `getLatestVersion` returns but
+ * that no traversal reaches — a half-append that looked like history and behaved like a
+ * hole. Creating the row and the edge in one statement means either both exist or
+ * neither does; there is no window in which a reader can observe the half-state.
+ *
+ * The adapter node is a *projection* node while history is the durable record, so a
+ * snapshot must be appendable without one. That is a complete state, not a partial one,
+ * which is why the edge is only part of the statement when the adapter node is present.
+ *
+ * The combined statement re-matches the adapter node, so an adapter that disappears
+ * between the probe and the write makes it create nothing; the version is then appended
+ * alone rather than lost. Returns whether the edge was written.
+ */
+async function createVersion(
   connection: Connection,
-  versionKey: string,
+  params: QueryParams,
   adapterKey: string,
-  actor: GraphActor,
+  versionKey: string,
   changedAt: string
-): Promise<void> {
-  const adapterRows = await readRows(
-    connection,
-    'MATCH (a:Adapter {key: $adapterKey}) RETURN a.key as key',
-    { adapterKey }
-  );
-  if (adapterRows.length === 0) return;
-  await executeStatement(
-    connection,
-    `MATCH (v:Version {key: $versionKey}), (a:Adapter {key: $adapterKey})
-     CREATE (v)-[:VersionOf {relationship: 'version_of', changed_at: $changedAt, metadata: $metadata}]->(a)`,
-    {
-      versionKey,
-      adapterKey,
-      changedAt,
-      metadata: JSON.stringify({ actor: actor.actor, actor_source: actor.actor_source })
-    }
-  );
+): Promise<boolean> {
+  if ((await readRows(connection, ADAPTER_NODE_EXISTS, { adapterKey })).length > 0) {
+    await executeStatement(
+      connection,
+      `MATCH (a:Adapter {key: $adapterKey})
+       CREATE (v:Version {${VERSION_CREATE_PROPS}})-[:VersionOf {relationship: 'version_of', changed_at: $changedAt, metadata: $linkMetadata}]->(a)`,
+      { ...params, adapterKey, changedAt }
+    );
+    if ((await readRows(connection, VERSION_NODE_EXISTS, { versionKey })).length > 0) return true;
+  }
+  await executeStatement(connection, `CREATE (v:Version {${VERSION_CREATE_PROPS}})`, params);
+  return false;
 }
 
 /**
@@ -189,39 +217,33 @@ export async function appendVersion(
   const changedAt = new Date().toISOString();
   const contentDigest = sha256Hex(input.content);
 
-  await executeStatement(
-    connection,
-    `CREATE (v:Version {
-       key: $key, type: 'version', entity_key: $entityKey,
-       entity_uri: $entityUri, version_number: $versionNumber, version_seq: $versionSeq,
-       adapter_version: $adapterVersion, change_type: $changeType,
-       changed_at: $changedAt, changed_by: $changedBy, actor_source: $actorSource,
-       space: $space, parent_version: $parentVersion, reason: $reason,
-       content_digest: $contentDigest, content: $content,
-       metadata_snapshot: $metadataSnapshot, metadata: $metadata
-     })`,
-    {
-      key: versionKey,
-      entityKey: input.adapterKey,
-      entityUri: `adapter://${input.slug}`,
-      versionNumber: nextSeq,
-      versionSeq: Number(nextSeq),
-      adapterVersion: input.adapterVersion,
-      changeType: input.changeType,
-      changedAt,
-      changedBy: input.actor.actor,
-      actorSource: input.actor.actor_source,
-      space: input.space,
-      parentVersion: latest ? latest.version_number : null,
-      reason: input.reason,
-      contentDigest,
-      content: input.content,
-      metadataSnapshot: JSON.stringify(input.metadataSnapshot ?? {}),
-      metadata: JSON.stringify({ slug: input.slug })
-    }
-  );
+  const versionParams: QueryParams = {
+    key: versionKey,
+    entityKey: input.adapterKey,
+    entityUri: `adapter://${input.slug}`,
+    versionNumber: nextSeq,
+    versionSeq: Number(nextSeq),
+    adapterVersion: input.adapterVersion,
+    changeType: input.changeType,
+    changedAt,
+    changedBy: input.actor.actor,
+    actorSource: input.actor.actor_source,
+    space: input.space,
+    parentVersion: latest ? latest.version_number : null,
+    reason: input.reason,
+    contentDigest,
+    content: input.content,
+    metadataSnapshot: JSON.stringify(input.metadataSnapshot ?? {}),
+    metadata: JSON.stringify({ slug: input.slug }),
+    linkMetadata: JSON.stringify({
+      actor: input.actor.actor,
+      actor_source: input.actor.actor_source
+    })
+  };
 
-  await linkVersionOf(connection, versionKey, input.adapterKey, input.actor, changedAt);
+  // Row and edge in one statement: see `createVersion` for why the half-state this
+  // replaces was observable and why a snapshot without an adapter node is still whole.
+  await createVersion(connection, versionParams, input.adapterKey, versionKey, changedAt);
 
   return {
     key: versionKey,

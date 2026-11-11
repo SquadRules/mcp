@@ -10,12 +10,13 @@
  */
 import type { ArangoHttpClient } from './arango-http.js';
 import type {
+  AdapterChildRef,
   AdapterNode,
   AdapterNodeWriteOptions,
   PathToRootResult,
   ResolvedInheritance
 } from '../graph-types.js';
-import { adapterGraphKey } from '../adapter-scope.js';
+import { adapterGraphKey, parseAdapterGraphKey } from '../adapter-scope.js';
 import { mergeResolvedProperties } from '../inheritance-merge.js';
 import { adapterFromDoc, type ArangoDoc } from './arango-rows.js';
 
@@ -90,20 +91,34 @@ export async function resolveInheritance(
   };
 }
 
-/** Slugs of adapters that inherit from the given scoped parent. */
+/**
+ * Children of one scoped parent, each with the scope its node is stored in.
+ *
+ * Same reason as the embedded backend: the traversal reaches the child document, so
+ * the child's own `_key`/`space` are read instead of assuming the parent's scope.
+ * A document projected before the `space` column was populated still carries its
+ * scope in the key, which is the fallback.
+ */
 export async function getChildren(
   client: ArangoHttpClient,
   spaceId: string,
   slug: string
-): Promise<string[]> {
+): Promise<AdapterChildRef[]> {
   const parentKey = adapterGraphKey(spaceId, slug);
-  const rows = await client.query<{ slug?: string }>(
+  const rows = await client.query<{ key?: string; slug?: string; space?: string }>(
     `FOR c IN 1..1 OUTBOUND CONCAT('Adapter/', @parentKey) SpecializedBy
-       RETURN { slug: c.slug }`,
+       RETURN { key: c._key, slug: c.slug, space: c.space }`,
     { parentKey }
   );
-  const slugs = rows.map((row) => String(row.slug ?? '')).filter((value) => value.length > 0);
-  return [...new Set(slugs)];
+  const children = new Map<string, AdapterChildRef>();
+  for (const row of rows) {
+    const childSlug = String(row.slug ?? '').trim();
+    if (childSlug.length === 0) continue;
+    const key = String(row.key ?? '').trim();
+    const space = String(row.space ?? '').trim() || (parseAdapterGraphKey(key)?.spaceId ?? '');
+    children.set(key, { key, slug: childSlug, space });
+  }
+  return [...children.values()];
 }
 
 function adapterDoc(adapter: AdapterNode, includeCreatedAt: boolean): ArangoDoc {

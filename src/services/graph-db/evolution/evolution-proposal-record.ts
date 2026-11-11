@@ -26,6 +26,69 @@ export class EvolutionIntegrityError extends Error {
   }
 }
 
+/**
+ * Stable code for the deferred expert rung of the consensus ladder (ADR 0046 §5 and its
+ * Clarification of 2026-11-11).
+ *
+ * WHY THIS IS A DEFERRAL AND NOT A VALIDATION FAILURE
+ * Rung 2 needs a trusted runtime source of expert-role authority. The runtime resolves
+ * an authenticated *subject*, never a role, and a `human_expert` label carried by the
+ * caller is exactly the spoof the ladder exists to reject (ADR 0046, Alternatives). So
+ * the rung fails closed with this code until a role mapping is trusted — instead of
+ * silently downgrading an expert claim into an agent vote, which would let a caller
+ * choose which rung reads their confirmation.
+ */
+export const EXPERT_AUTHORITY_DEFERRED = 'expert_authority_deferred' as const;
+
+/**
+ * Claim identity a failed reward reports.
+ *
+ * WHY A SHARED CONSTANT
+ * One failed-reward row is three things at once: the anomaly's contested field, the
+ * proposal's field, and the frequency target the consensus rung counts. If those three
+ * spell the claim differently, a count about a different claim decides the proposal.
+ * `reward-anomaly.ts` records it on the row and `reward-evolution.ts` proposes and
+ * counts it, so the name lives with the proposal record both read.
+ */
+export const REWARD_FAILURE_CLAIM = 'reward_failure';
+
+/** The authority the runtime does not have, and therefore cannot check. */
+export type ExpertAuthorityDeferralReason = 'no-trusted-expert-role-source';
+
+/** Structured deferral, so callers and tests assert a value rather than a message. */
+export interface ExpertAuthorityDeferral {
+  code: typeof EXPERT_AUTHORITY_DEFERRED;
+  /** Why the rung is unreachable today. */
+  reason: ExpertAuthorityDeferralReason;
+  /** The rung that activates unchanged once a trusted role mapping exists. */
+  consensus_rung: 'authorized-human-expert';
+  /** The actionable half, surfaced through the diagnostic the caller already reads. */
+  recovery_action: string;
+}
+
+/** The single recorded deferral. Kept as data so the rung is describable, not inferred. */
+export const EXPERT_AUTHORITY_DEFERRAL: ExpertAuthorityDeferral = {
+  code: EXPERT_AUTHORITY_DEFERRED,
+  reason: 'no-trusted-expert-role-source',
+  consensus_rung: 'authorized-human-expert',
+  recovery_action:
+    'Record this confirmation as an agent, or add a trusted runtime expert-role mapping before claiming expert authority.'
+};
+
+/**
+ * Refusal of an expert-authority claim. Distinct type on purpose: callers can tell
+ * "this rung is deferred" from "this record is invalid" without string matching.
+ */
+export class ExpertAuthorityDeferredError extends EvolutionIntegrityError {
+  readonly deferral: ExpertAuthorityDeferral;
+
+  constructor(deferral: ExpertAuthorityDeferral = EXPERT_AUTHORITY_DEFERRAL) {
+    super(deferral.code, deferral.recovery_action);
+    this.name = 'ExpertAuthorityDeferredError';
+    this.deferral = deferral;
+  }
+}
+
 /** Input for recording one proposal. */
 export interface ProposeChangeInput {
   targetKey: string;

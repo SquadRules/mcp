@@ -11,7 +11,26 @@ import { TOOL_ANNOTATIONS } from './tool-annotations.js';
 import { TOOL_ICONS } from './tool-icons.js';
 import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import { storedAdapterScope } from '../services/graph-db/adapter-scope.js';
+import type { AdapterChildRef } from '../services/graph-db/graph-types.js';
 import { structuredLogger } from '../utils/structured-logger.js';
+
+/**
+ * Name the dependents of one adapter, saying when they do not all share its scope.
+ *
+ * A child stored in another space is a different adapter with the same slug, so its
+ * scope is part of its identity here: without it the operator would look for it in
+ * the adapter's own space and not find it.
+ */
+function describeDependents(
+  children: AdapterChildRef[],
+  parentSpaceId: string
+): { list: string; crossScope: boolean } {
+  const crossScope = children.some((child) => child.space !== parentSpaceId);
+  const names = children.map((child) =>
+    child.space === parentSpaceId ? child.slug : `${child.slug} (in ${child.space || 'unknown scope'})`
+  );
+  return { list: names.join(', '), crossScope };
+}
 
 /** Shared execute: delete memories by URIs. Used by MCP tool and HTTP route. */
 export async function executeDelete(
@@ -55,10 +74,14 @@ export async function executeDelete(
             );
             const children = await graphDb.getChildren(scope.spaceId, slug);
             if (children.length > 0) {
+              const dependents = describeDependents(children, scope.spaceId);
+              const guidance = dependents.crossScope
+                ? 'Dependents are stored in more than one scope; remove or reparent each dependent in its own scope first.'
+                : 'Remove or reparent the dependents first.';
               results.push({
                 uri,
                 status: 'error',
-                message: `Cannot delete adapter '${slug}': ${children.length} adapter(s) inherit from it: ${children.join(', ')}. Remove or reparent the dependents first.`
+                message: `Cannot delete adapter '${slug}': ${children.length} adapter(s) inherit from it: ${dependents.list}. ${guidance}`
               });
               totalFailed++;
               continue;

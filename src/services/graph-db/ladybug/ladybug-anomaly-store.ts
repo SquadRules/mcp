@@ -67,22 +67,40 @@ export async function createAnomaly(connection: Connection, anomaly: AnomalyNode
   );
 }
 
-/** Anomalies filtered by routing target, status, or reporting child. */
+/**
+ * Anomalies filtered by routing target, status, reporting child, or recorded scope.
+ *
+ * The scope predicate runs inside the query because it has to run *before* the row
+ * limit: one anomaly table serves every scope, so filtering a capped read afterwards
+ * lets foreign-scope rows consume the window a scoped read is entitled to.
+ *
+ * `metadata` is the JSON text this writer produced, so the scope is matched as the
+ * exact `"scope_space_id":"<space>"` fragment, or as a scoped `source_child`
+ * (`"source_child":"adapter:<space>:`), the attribution that predates the scope key.
+ * Both fragments end on a quote or colon, so `space:a` never matches `space:a2`.
+ */
 export async function listAnomalies(
   connection: Connection,
   filter: AnomalyFilter = {}
 ): Promise<AnomalyNode[]> {
+  const scopeSpaceId = (filter.scopeSpaceId ?? '').trim();
   const rows = await readRows<Record<string, unknown>>(
     connection,
     `MATCH (a:Anomaly)
      WHERE ($routesTo = '' OR a.routes_to = $routesTo)
        AND ($status = '' OR a.status = $status)
+       AND ($scopeSpaceId = ''
+            OR a.metadata CONTAINS $scopeFragment
+            OR a.metadata CONTAINS $sourceChildFragment)
      RETURN ${ANOMALY_COLUMNS}
      ORDER BY a.created_at DESC
      LIMIT $limit`,
     {
       routesTo: filter.routesTo ?? '',
       status: filter.status ?? '',
+      scopeSpaceId,
+      scopeFragment: scopeSpaceId ? `"scope_space_id":"${scopeSpaceId}"` : '',
+      sourceChildFragment: scopeSpaceId ? `"source_child":"adapter:${scopeSpaceId}:` : '',
       limit: filter.limit && filter.limit > 0 ? filter.limit : 200
     }
   );

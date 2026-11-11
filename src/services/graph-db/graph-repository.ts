@@ -14,6 +14,7 @@
  * @see docs/adr/0044-graph-repository-port-and-arango-shared-backend.md
  */
 import type {
+  AdapterChildRef,
   AdapterNode,
   AdapterNodeWriteOptions,
   AnomalyFilter,
@@ -40,6 +41,11 @@ import type {
  * - `appendVersion` is append-only: an existing `(entity_key, version_number)`
  *   is never overwritten. A failed optimistic check raises
  *   `GraphVersionConflictError`.
+ * - `getChildren` returns each child with the scope it is stored in, not a bare
+ *   slug. A parent's children are not confined to the parent's space (an app-space
+ *   parent is inherited by children elsewhere), so a caller that received only a
+ *   slug would have to guess a scope — and would then read a same-named adapter in
+ *   the wrong space instead of the real child.
  */
 export interface GraphRepository {
   /** Open/verify the backend. Idempotent; a configuration error must throw. */
@@ -70,7 +76,11 @@ export interface GraphRepository {
     opts: { parentSpaceId: string; now?: string }
   ): Promise<string | null>;
   clearInheritanceEdges(childKey: string): Promise<void>;
-  getChildren(spaceId: string, slug: string): Promise<string[]>;
+  /**
+   * Children of one scoped parent, each with the scope its node is stored in.
+   * The parent key is `adapter:<spaceId>:<slug>`; the children may live elsewhere.
+   */
+  getChildren(spaceId: string, slug: string): Promise<AdapterChildRef[]>;
   resolveInheritance(adapterKey: string): Promise<ResolvedInheritance | null>;
 
   // --- Ontology records ----------------------------------------------------

@@ -15,6 +15,7 @@ import {
 } from '../../../config/graph-backend.js';
 import type { GraphRepository } from '../graph-repository.js';
 import type {
+  AdapterChildRef,
   AdapterNode,
   AdapterNodeWriteOptions,
   AnomalyFilter,
@@ -111,7 +112,7 @@ export class ArangoGraphRepository implements GraphRepository {
     return resolveInheritance(this.requireClient(), adapterKey);
   }
 
-  async getChildren(spaceId: string, slug: string): Promise<string[]> {
+  async getChildren(spaceId: string, slug: string): Promise<AdapterChildRef[]> {
     return getChildren(this.requireClient(), spaceId, slug);
   }
 

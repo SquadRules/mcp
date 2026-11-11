@@ -13,6 +13,7 @@ import { getGraphDb } from '../services/graph-db/graph-owner.js';
 import { adapterGraphKey, parentScopeCandidates, storedAdapterKey } from '../services/graph-db/adapter-scope.js';
 import type { GraphRepository } from '../services/graph-db/graph-repository.js';
 import {
+  REWARD_FAILURE_CLAIM,
   EvolutionIntegrityError,
   loadEvolutionTarget,
   confirmProposal,
@@ -25,6 +26,18 @@ import type { RewardAnomalyOutcome } from './reward-anomaly.js';
 import type { RewardInput } from './reward_schema.js';
 import { parseSquadrulesUriOrThrow } from './squadrules-uri.js';
 import { structuredLogger } from '../utils/structured-logger.js';
+import {
+  ANOMALY_FREQUENCY_WINDOW,
+  countScopedReportingChildren,
+  type ScopedFrequencyResult
+} from '../services/graph-db/evolution/scoped-frequency.js';
+
+/** A frequency read that failed contributes no reporters, and says nothing was read. */
+const NO_FREQUENCY: ScopedFrequencyResult = {
+  children: [],
+  truncated: false,
+  window: ANOMALY_FREQUENCY_WINDOW
+};
 
 /** Compact report returned to the reward caller. */
 export interface RewardEvolutionReport {
@@ -34,6 +47,12 @@ export interface RewardEvolutionReport {
   decided_by: string | null;
   required_confirmations: number | null;
   distinct_children: number | null;
+  /** True when the frequency read filled its window, so `distinct_children` is a floor. */
+  frequency_truncated?: boolean;
+  /** The window `frequency_truncated` refers to. */
+  frequency_window?: number;
+  /** Confirmations whose evidence was attached but not verified-sufficient (never counted). */
+  attached_unverified_evidence?: string[];
   anomaly: string | null;
   apply_plan: EvolutionApplyPlan | null;
   diagnostic?: EvolutionIntegrityDiagnostic | null;
@@ -53,6 +72,15 @@ const NONE: RewardEvolutionReport = {
 };
 
 function nextActionFor(report: Omit<RewardEvolutionReport, 'next_action'>): string {
+  const action = baseNextAction(report);
+  // A filled window is a floor, not a population: say so instead of letting a caller read
+  // the visible count as the whole set of reporters.
+  return report.frequency_truncated
+    ? `${action} Frequency evidence came from a filled ${report.frequency_window ?? ANOMALY_FREQUENCY_WINDOW}-row window, so the distinct-children count is a floor, not a population.`
+    : action;
+}
+
+function baseNextAction(report: Omit<RewardEvolutionReport, 'next_action'>): string {
   if (report.diagnostic) return `blocked: ${report.diagnostic.code}. ${report.diagnostic.recovery_action}`;
   if (report.apply_plan) return report.apply_plan.instructions;
   switch (report.decision) {
@@ -90,18 +118,31 @@ async function resolveTarget(
   throw new EvolutionIntegrityError('target_missing', 'Reload the stored scoped target and graph projection; no target or version was invented.');
 }
 
-/** Distinct children that already reported the same routable anomaly. */
-async function reportingChildren(graphDb: GraphRepository, routesTo: string): Promise<number> {
+/**
+ * Distinct children reporting *this claim against this scoped target*.
+ *
+ * WHY NOT THE ROUTING SLUG
+ * A slug is not an identity: the same slug exists in several spaces, and one target has
+ * several contested fields. Counting by slug alone let a foreign space — or an unrelated
+ * field on the same slug — raise the bar for a proposal it had nothing to do with
+ * (ADR 0046 §§3–4). The shared helper matches the exact `adapter:<spaceId>:<slug>` target
+ * and normalizes the claim, so only real reporters of this claim are counted.
+ */
+async function reportingChildren(
+  graphDb: GraphRepository,
+  target: { key: string; space: string; slug: string }
+): Promise<ScopedFrequencyResult> {
   try {
-    const anomalies = await graphDb.listAnomalies({ routesTo, limit: 500 });
-    const children = new Set<string>();
-    for (const anomaly of anomalies) {
-      const child = (anomaly.source_child ?? '').trim();
-      if (child.length > 0) children.add(child);
-    }
-    return children.size;
+    return await countScopedReportingChildren(graphDb, {
+      targetKey: target.key,
+      spaceId: target.space,
+      slug: target.slug,
+      field: REWARD_FAILURE_CLAIM
+    });
   } catch {
-    return 0;
+    // A failed frequency read must not suppress the proposal itself; it contributes no
+    // reporters, and `NO_FREQUENCY` states that rather than inventing a count.
+    return NO_FREQUENCY;
   }
 }
 
@@ -123,13 +164,14 @@ export async function recordRewardEvolution(
 
   try {
     const target = await resolveTarget(graphDb, anomaly);
-    const distinctChildren = Math.max(1, await reportingChildren(graphDb, anomaly.routes_to));
+    const frequency = await reportingChildren(graphDb, target);
+    const distinctChildren = Math.max(1, frequency.children.length);
     const proposed = await proposeChange(graphDb, {
       targetKey: target.key,
       targetSlug: target.slug,
       space: target.space,
       changeType: 'subcategory_split',
-      field: 'reward_failure',
+      field: REWARD_FAILURE_CLAIM,
       fromValue: null,
       toValue: (input.feedback ?? 'recorded failure').trim().slice(0, 500),
       reason: anomaly.description,
@@ -142,7 +184,11 @@ export async function recordRewardEvolution(
         outcome: input.outcome,
         severity: anomaly.severity,
         distinct_children: distinctChildren,
-        frequency_met: distinctChildren >= 3
+        frequency_met: distinctChildren >= 3,
+        // The record keeps the window it was computed from, so "3 children" can be read
+        // as a floor when the read filled its window.
+        frequency_truncated: frequency.truncated,
+        frequency_window: frequency.window
       },
       requiredConfirmations: distinctChildren >= 3 ? 3 : 1
     });
@@ -162,6 +208,9 @@ export async function recordRewardEvolution(
       // why `required_confirmations` is 3 here, so the report must explain itself instead
       // of saying "0 children" next to "3 confirmations needed".
       distinct_children: Math.max(settled.consensus.distinct_children, distinctChildren),
+      frequency_truncated: frequency.truncated,
+      frequency_window: frequency.window,
+      attached_unverified_evidence: settled.consensus.attached_unverified_evidence,
       anomaly: anomaly.anomaly_key,
       diagnostic: settled.diagnostic,
       apply_plan: settled.apply_plan
@@ -233,6 +282,7 @@ export async function recordRewardProposalDecision(
       decided_by: settled.consensus.decided_by,
       required_confirmations: settled.consensus.required_confirmations,
       distinct_children: settled.consensus.distinct_children,
+      attached_unverified_evidence: settled.consensus.attached_unverified_evidence,
       anomaly: settled.proposal.source_anomaly ?? null,
       diagnostic: settled.diagnostic,
       apply_plan: settled.apply_plan

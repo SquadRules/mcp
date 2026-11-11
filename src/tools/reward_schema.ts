@@ -28,7 +28,9 @@ export const rewardInputSchema = z.object({
   proposal_evidence: z
     .record(z.string(), z.any())
     .optional()
-    .describe('Empirical evidence for this decision (test output, logs, examples). Evidence outranks authority and votes.')
+    .describe(
+      'Evidence for this decision. Only the allowlisted kinds (`deterministic-contradiction`, `reward-failure`) with their provenance fields are verified-sufficient; any other payload is recorded as attached-but-unverified and never decides the evidence rung.'
+    )
 });
 
 const rewardEligibilityBlockerSchema = z.enum([
@@ -46,6 +48,9 @@ const evolutionReportSchema = z.object({
   decided_by: z.string().nullable(),
   required_confirmations: z.number().nullable(),
   distinct_children: z.number().nullable(),
+  frequency_truncated: z.boolean().optional(),
+  frequency_window: z.number().optional(),
+  attached_unverified_evidence: z.array(z.string()).optional(),
   anomaly: z.string().nullable(),
   apply_plan: z
     .object({

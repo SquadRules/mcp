@@ -15,7 +15,16 @@
 import { randomUUID } from 'node:crypto';
 import type { QdrantService } from '../services/qdrant/service.js';
 import { getGraphDb } from '../services/graph-db/graph-owner.js';
-import { adapterGraphKey, scopeMetadata, storedAdapterScope } from '../services/graph-db/adapter-scope.js';
+import type { GraphRepository } from '../services/graph-db/graph-repository.js';
+import type { AdapterNode } from '../services/graph-db/graph-types.js';
+import {
+  adapterGraphKey,
+  parentScopeCandidates,
+  scopeMetadata,
+  storedAdapterScope
+} from '../services/graph-db/adapter-scope.js';
+import { anomalyTargetMetadata } from '../services/graph-db/evolution/scoped-frequency.js';
+import { REWARD_FAILURE_CLAIM } from '../services/graph-db/evolution/evolution-proposal-record.js';
 import { structuredLogger } from '../utils/structured-logger.js';
 import { proofOfWorkStore } from '../services/proof-of-work-store.js';
 
@@ -41,6 +50,44 @@ export interface RewardAnomalyParams {
   outcome: 'success' | 'failure';
   /** Optional evaluator feedback, folded into the anomaly description. */
   feedback?: string;
+}
+
+/**
+ * Scope of the adapter an anomaly routes to, as the frequency reader will look it up.
+ *
+ * WHY THE TARGET IS RECORDED AT ALL
+ * `routes_to` is a bare slug, so two adapters with the same slug in different spaces write
+ * indistinguishable rows — and a later frequency count cannot tell them apart
+ * (`evolution/scoped-frequency.ts`). Recording the exact `adapter:<spaceId>:<slug>` target
+ * and its space is what lets that count answer "distinct children of THIS adapter".
+ *
+ * A parent lives either in the child's own space or in the app space every scope may
+ * inherit from, so the candidate order decides which identity is truthful; an unavailable
+ * read is not evidence for a nearer scope. When nothing is projected yet, the reporter's
+ * own scope is the only identity this path can prove, and the proposal path fails closed on
+ * a missing target rather than acting on it.
+ *
+ * `space` is optional on a projected Adapter node. A node without an observed space is not
+ * evidence for any scope, so it is skipped instead of being attributed to the child's space.
+ */
+async function resolveAnomalyTarget(
+  graphDb: GraphRepository,
+  childSpaceId: string,
+  routesTo: string,
+  ownNode: AdapterNode | null
+): Promise<{ targetKey: string; spaceId: string }> {
+  if (ownNode?.space && ownNode.slug === routesTo) {
+    return { targetKey: ownNode.key, spaceId: ownNode.space };
+  }
+  for (const candidate of parentScopeCandidates(childSpaceId)) {
+    try {
+      const node = await graphDb.getAdapter(adapterGraphKey(candidate, routesTo));
+      if (node?.space) return { targetKey: node.key, spaceId: node.space };
+    } catch {
+      break;
+    }
+  }
+  return { targetKey: adapterGraphKey(childSpaceId, routesTo), spaceId: childSpaceId };
 }
 
 /**
@@ -87,15 +134,17 @@ export async function recordRewardAnomaly(
     // failing adapter. This is a READ-ONLY graph lookup — proposal-only invariant.
     const scope = storedAdapterScope(memorySpaceId, 'reward');
     let routesTo = discoveredBy;
+    let ownNode: AdapterNode | null = null;
     try {
-      const adapterNode = await graphDb.getAdapter(adapterGraphKey(scope.spaceId, discoveredBy));
-      const parent = adapterNode?.frontmatter?.inherits;
+      ownNode = await graphDb.getAdapter(adapterGraphKey(scope.spaceId, discoveredBy));
+      const parent = ownNode?.frontmatter?.inherits;
       if (typeof parent === 'string' && parent.trim().length > 0) {
         routesTo = parent.trim();
       }
     } catch {
       /* keep the self route */
     }
+    const target = await resolveAnomalyTarget(graphDb, scope.spaceId, routesTo, ownNode);
 
     // Severity from the stored proof failure class when available.
     let severity = 'medium';
@@ -136,8 +185,14 @@ export async function recordRewardAnomaly(
       anomaly_type: 'failure',
       status: 'open',
       ...(childKey ? { source_child: childKey } : {}),
-      // Recorded so the anomaly is attributable to one scope, not to a bare slug.
-      metadata: scopeMetadata(scope)
+      // Recorded so the anomaly is attributable to one scope, not to a bare slug, and to
+      // the exact target `routes_to` names — the triple a scoped frequency count needs:
+      // scope, target, and which claim this row reports.
+      metadata: {
+        ...scopeMetadata(scope),
+        ...anomalyTargetMetadata(target),
+        field: REWARD_FAILURE_CLAIM
+      }
     });
 
     return {

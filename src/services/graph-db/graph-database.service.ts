@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import type { InheritanceFrontmatter } from './adapter-inheritance.js';
 import type { GraphRepository } from './graph-repository.js';
 import type {
+  AdapterChildRef,
   AdapterNode,
   AdapterNodeWriteOptions,
   AnomalyFilter,
@@ -64,6 +65,7 @@ import {
 } from './ladybug/ladybug-proposal-store.js';
 
 export type {
+  AdapterChildRef,
   AdapterNode,
   AdapterNodeWriteOptions,
   AnomalyFilter,
@@ -144,7 +146,7 @@ export class GraphDatabaseService implements GraphRepository {
     return resolveInheritance(this.requireConnection(), adapterKey);
   }
 
-  async getChildren(spaceId: string, slug: string): Promise<string[]> {
+  async getChildren(spaceId: string, slug: string): Promise<AdapterChildRef[]> {
     return getChildren(this.requireConnection(), spaceId, slug);
   }
 
