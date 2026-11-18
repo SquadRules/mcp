@@ -59,9 +59,10 @@ security-events permission for uploading analysis.
 The authenticated service job installs the Node 24 tarball, starts Qdrant, Valkey,
 Postgres and Keycloak, then runs unit and integration tests. Some tests under
 `tests/unit` require real services, so they run after deployment. HTTP without
-auth and stdio transport smoke jobs install that same artifact. The full suite
-uses a restricted OpenAI embedding key; fork PRs require maintainer review and
-validation from a trusted branch because GitHub does not expose secrets to forks.
+auth and stdio transport smoke jobs install that same artifact. The full suite resolves embeddings automatically: it uses OpenAI when the optional
+repository secret is present and the built-in FastEmbed model otherwise. Dependabot
+and fork PRs run the same authenticated infrastructure tests without requiring an
+OpenAI secret. External model coverage, when needed, is separate from this gate.
 UI tests use jsdom and do not require a browser download; the auth browser tests
 retain Playwright. No production image/Helm build or downstream dispatch belongs
 in this npm-only repository.
