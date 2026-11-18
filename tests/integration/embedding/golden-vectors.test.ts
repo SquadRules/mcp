@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { applyLocalStdioEnv } from '../../utils/stdio-simple-env.js';
 import { isHttpTransport } from '../../utils/auth-headers.js';
+import { MOCK_REVIEW_EVIDENCE } from '../../utils/mock-review-evidence.js';
 
 const execFilePromise = promisify(execFile);
 const ROOT = process.cwd();
@@ -103,7 +104,12 @@ async function runGoldenChild(overrides: Record<string, string> = {}): Promise<G
   return JSON.parse(stdout) as GoldenResult;
 }
 async function runCli(args: string[], timeout: number): Promise<{ stdout: string; stderr: string }> {
-  const env = childEnv({ SQUADRULES_NO_BROWSER: '1' });
+  // Markdown adapter trains require critic-loop proof (cli-train reviewEvidenceFromEnv);
+  // inject the sanctioned mock blob, same as tests/integration/cli-commands-shared.ts.
+  const env = childEnv({
+    SQUADRULES_NO_BROWSER: '1',
+    SQUADRULES_REVIEW_EVIDENCE: JSON.stringify(MOCK_REVIEW_EVIDENCE),
+  });
   applyLocalStdioEnv(env as Record<string, string | undefined>);
   return await execFilePromise(process.execPath, [CLI_PATH, ...args], {
     cwd: ROOT, env, timeout, maxBuffer: 16 * 1024 * 1024,
