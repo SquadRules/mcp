@@ -2,16 +2,21 @@
 # fastembed with @huggingface/transformers). This workflow and
 # scripts/embedding-equivalence/ are REMOVED before the final PR merges.
 #
-# workflow_dispatch ONLY: dispatch runs never satisfy required PR checks
-# (ci-gate + .github/workflows/README.md), so this lane cannot gate anything.
+# Triggers: workflow_dispatch (usable once this file reaches the default
+# branch) and pull_request limited to the evidence-infra paths, so the draft
+# PR collects reports from its head branch. Evidence runs gate nothing:
+# compare.mjs always exits 0 and every variant step is continue-on-error.
 # It exists so the manager can measure FastEmbed vs Transformers.js vector
 # equivalence on real linux amd64/arm64 (glibc) and macOS hardware, plus an
-# honest musl/Alpine loadability probe. Reports are uploaded as artifacts;
-# compare.mjs is evidence, not a gate (always exits 0).
+# honest musl/Alpine loadability probe. Reports are uploaded as artifacts.
 name: Embedding equivalence evidence (temporary)
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/embedding-equivalence.yml'
+      - 'scripts/embedding-equivalence/**'
 
 permissions:
   contents: read
