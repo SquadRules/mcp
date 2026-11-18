@@ -80,3 +80,23 @@ export function checkWidthConsistency(
   }
   return { consistent: true };
 }
+
+/**
+ * Equal-width identity notice (issue #252, ADR 0041 D5): a same-dimension runtime
+ * swap passes the width guard silently, so boot reports when the stored
+ * creating-provider identity differs from the resolved one. Pure message
+ * builder — returns null when provider and model both match; the historical
+ * creating-provider stamp is never rewritten and vectors are kept in place.
+ */
+export function describeEmbeddingIdentityChange(
+  stored: LanceStoreMetadata,
+  currentProvider: string,
+  currentModel: string
+): string | null {
+  if (stored.provider === currentProvider && stored.model === currentModel) return null;
+  return (
+    `embedding runtime identity changed at equal width (${stored.dimension}d): ` +
+    `store created with ${stored.provider}/${stored.model}, now resolved to ${currentProvider}/${currentModel}. ` +
+    'Existing vectors are kept (ADR 0041 in-place compatibility within tolerance); new writes use the resolved runtime.'
+  );
+}
