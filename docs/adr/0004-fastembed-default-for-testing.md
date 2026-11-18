@@ -15,7 +15,11 @@ model (`fast-bge-small-en-v1.5`, 384-d). The record below was written on the
 [#26](https://github.com/SquadRules/mcp/pull/26) branch (closed unmerged) and described a hard
 "no lane may hold a key" gate; read its Decision and Consequences as that branch's design,
 superseded by the env-resolved default now on `main`.
-Date: 2026-10-06 (status refreshed 2026-10-12; CI-scope supersession note added 2026-10-15)
+Date: 2026-10-06 (status refreshed 2026-10-12; CI-scope supersession note added 2026-10-15;
+2026-11-18: the embedded local runtime is now Transformers.js per
+[ADR 0041](0041-transformersjs-local-embedding-runtime-and-equivalence-tolerance.md) — this
+record's CI-scope rule is unchanged: lanes stay key-free by default, and `fastembed` survives
+as a deprecated alias of the `transformers` provider)
 
 ## Context
 
