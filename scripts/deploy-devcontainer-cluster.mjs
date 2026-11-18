@@ -248,7 +248,7 @@ async function main() {
   const qdrantUrl = override('QDRANT_URL', 'http://qdrant:6333');
   const keyValueStoreUrl = override('KEY_VALUE_STORE_URL', 'redis://valkey:6379');
   const keycloakInternalUrl = override('KEYCLOAK_INTERNAL_URL', 'http://keycloak:8080');
-  const embeddingProvider = override('EMBEDDING_PROVIDER', 'fastembed');
+  const embeddingProvider = override('EMBEDDING_PROVIDER', 'transformers');
 
   const env = {
     ...process.env,

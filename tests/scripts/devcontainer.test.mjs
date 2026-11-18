@@ -108,7 +108,7 @@ test('dev container runs on glibc: the local embedding provider cannot load on m
   const dev = compose.services.dev;
   const devcontainer = readDevcontainer();
 
-  // Server boot awaits ensureEmbeddingDimension(); the zero-key provider (fastembed) loads
+  // Server boot awaits ensureEmbeddingDimension(); the zero-key provider (Transformers.js) loads
   // onnxruntime-node, whose published linux binaries are glibc-only. An Alpine/musl base fails
   // with "ld-linux-aarch64.so.1: No such file or directory" and the app never binds the port.
   assert.doesNotMatch(dev.image, /^docker:/, 'docker:* images are Alpine (musl)');
