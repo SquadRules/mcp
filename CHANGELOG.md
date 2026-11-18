@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.23.0](https://github.com/SquadRules/mcp/compare/v5.22.1...v5.23.0) (2026-11-18)
+
+
+### Features
+
+* **embedding:** replace archived FastEmbed with Transformers.js local runtime ([#308](https://github.com/SquadRules/mcp/issues/308)) ([7aaf3e2](https://github.com/SquadRules/mcp/commit/7aaf3e2220f34d372e448cb8bf53c48c76d55421))
+
 ## [5.22.1](https://github.com/SquadRules/mcp/compare/v5.22.0...v5.22.1) (2026-11-13)
 
 
