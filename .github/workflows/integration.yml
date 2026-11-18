@@ -22,7 +22,7 @@ on:
   workflow_call:
     secrets:
       OPENAI_API_KEY:
-        required: true
+        required: false
 
 permissions:
   contents: read
@@ -73,6 +73,7 @@ jobs:
   # Proves the deployed-services path (docker compose --profile fullstack) with all components
   # overridden via shell env. The .env template supplies QDRANT_URL, AUTH_ENABLED=true, etc.;
   # TRANSPORT_TYPE=http overrides the serve default (stdio) so the HTTP server binds.
+  # Embeddings resolve to local fastembed when no OpenAI secret is available.
   verify-integration-cluster:
     name: Cluster (AUTH on, HTTP, full infra, Node 24)
     needs: [build]
@@ -210,7 +211,7 @@ jobs:
 
       - name: Start app (from installed package, HTTP transport)
         env:
-          HEALTH_CHECK_ATTEMPTS: 15
+          HEALTH_CHECK_ATTEMPTS: 120
           KEYCLOAK_INTERNAL_URL: http://localhost:8080
           QDRANT_SNAPSHOT_DIR: var/snapshots
           TRANSPORT_TYPE: http
