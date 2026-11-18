@@ -16,6 +16,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { getTestEmbeddingDimension } from '../utils/embedding-test-utils.js';
 
 const EMBEDDING_ENV_KEYS = [
@@ -43,6 +46,25 @@ const DEFAULT_REPO = 'Xenova/bge-small-en-v1.5';
 const PINNED_REVISION = 'ea104dacec62c0de699686887e3f920caeb4f3e3';
 /** Model id reported by config/audit: repo + short revision + dtype (ADR 0041 D2; see embedding-transformers.ts). */
 const DEFAULT_MODEL_ID = `${DEFAULT_REPO}@${PINNED_REVISION.slice(0, 7)}:fp16`;
+
+const tempCacheDirs: string[] = [];
+
+/**
+ * Temp model cache with the pinned-revision files present. The provider's
+ * offline mode requires a warmed cache (it exposes the pinned dir through
+ * env.localModelPath for the v4 existence probes); online mode prepares the
+ * same layout after init. Contents are irrelevant: the pipeline is mocked.
+ */
+function tempModelCache(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'embedding-cache-'));
+  tempCacheDirs.push(dir);
+  const revDir = join(dir, DEFAULT_REPO, PINNED_REVISION);
+  mkdirSync(revDir, { recursive: true });
+  for (const name of ['config.json', 'tokenizer.json', 'tokenizer_config.json']) {
+    writeFileSync(join(revDir, name), '{}');
+  }
+  return dir;
+}
 
 function applyEnv(overrides: EnvMap): void {
   for (const key of EMBEDDING_ENV_KEYS) delete process.env[key];
@@ -104,6 +126,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
 
   afterEach(() => {
     for (const key of EMBEDDING_ENV_KEYS) process.env[key] = savedEnv[key];
+    for (const dir of tempCacheDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
     jest.restoreAllMocks();
     jest.resetModules();
   });
@@ -212,7 +235,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
 
   describe('probeEmbeddingDimension() with the transformers default (key-free)', () => {
     test('resolves dimension without any API key via the mocked pipeline', async () => {
-      applyEnv({});
+      applyEnv({ TRANSFORMERS_CACHE_DIR: tempModelCache() });
       jest.resetModules();
       const { pipelineCalls, extractorCalls } = mockTransformers();
       const { probeEmbeddingDimension } = await import('../../src/services/embedding/service.js');
@@ -225,7 +248,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
     });
 
     test('honors TRANSFORMERS_DTYPE / TRANSFORMERS_MODEL_REVISION overrides', async () => {
-      applyEnv({ TRANSFORMERS_DTYPE: 'q8', TRANSFORMERS_MODEL_REVISION: 'main' });
+      applyEnv({ TRANSFORMERS_DTYPE: 'q8', TRANSFORMERS_MODEL_REVISION: 'main', TRANSFORMERS_CACHE_DIR: tempModelCache() });
       jest.resetModules();
       const { pipelineCalls } = mockTransformers();
       const { probeEmbeddingDimension } = await import('../../src/services/embedding/service.js');
@@ -234,23 +257,28 @@ describe('embedding provider selection (issues #11, #252)', () => {
     });
 
     test('allows remote downloads by default and refuses them when TRANSFORMERS_OFFLINE is set', async () => {
-      applyEnv({});
+      const cacheDir = tempModelCache();
+      applyEnv({ TRANSFORMERS_CACHE_DIR: cacheDir });
       jest.resetModules();
       const online = mockTransformers();
       const svc = await import('../../src/services/embedding/service.js');
       await expect(svc.probeEmbeddingDimension()).resolves.toBe(384);
       expect(online.env.allowRemoteModels).toBe(true);
+      expect(online.env.localModelPath).toBeUndefined();
 
-      applyEnv({ TRANSFORMERS_OFFLINE: '1' });
+      applyEnv({ TRANSFORMERS_OFFLINE: '1', TRANSFORMERS_CACHE_DIR: cacheDir });
       jest.resetModules();
       const offline = mockTransformers();
       const svc2 = await import('../../src/services/embedding/service.js');
       await expect(svc2.probeEmbeddingDimension()).resolves.toBe(384);
       expect(offline.env.allowRemoteModels).toBe(false);
+      // Offline reuse exposes the pinned cache through the flat local layout
+      // the v4 existence probes honor (see prepareOfflineModelLayout).
+      expect(offline.env.localModelPath).toBe(join(cacheDir, 'local'));
     });
 
     test('emits a one-time deprecation warning when the older FASTEMBED_MODEL is mapped', async () => {
-      applyEnv({ FASTEMBED_MODEL: 'fast-bge-small-en-v1.5' });
+      applyEnv({ FASTEMBED_MODEL: 'fast-bge-small-en-v1.5', TRANSFORMERS_CACHE_DIR: tempModelCache() });
       jest.resetModules();
       mockTransformers();
       const { logger } = await import('../../src/utils/structured-logger.js');
@@ -265,7 +293,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
     });
 
     test('chunks large inputs into bounded batches of 64', async () => {
-      applyEnv({});
+      applyEnv({ TRANSFORMERS_CACHE_DIR: tempModelCache() });
       jest.resetModules();
       const { extractorCalls } = mockTransformers();
       const { postEmbeddings } = await import('../../src/services/embedding/providers.js');

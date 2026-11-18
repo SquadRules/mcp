@@ -86,7 +86,9 @@ export const TRANSFORMERS_NORMALIZE = true;
  * Offline switch (issue #252 golden gate, air-gapped hosts): when truthy the
  * pipeline loads weights only from TRANSFORMERS_CACHE_DIR and refuses remote
  * downloads (`env.allowRemoteModels = false`). Default false: download on first
- * use, offline reuse of the revision-pinned cache afterwards.
+ * use, offline reuse of the revision-pinned cache afterwards. Offline reuse
+ * also exposes the pinned cache via `env.localModelPath` (a `local/` link dir
+ * inside the cache; mechanism documented in transformers-provider.ts).
  */
 export const TRANSFORMERS_OFFLINE = ['1', 'true', 'yes', 'y'].includes(
   getEnvString('TRANSFORMERS_OFFLINE', '').trim().toLowerCase()
