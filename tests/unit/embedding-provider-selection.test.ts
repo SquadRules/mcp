@@ -202,12 +202,11 @@ describe('embedding provider selection (issues #11, #252)', () => {
       expect(cfg.apiKeyConfigured).toBe(true);
     });
 
-    test('deprecated FASTEMBED_* config exports alias the Transformers.js values', async () => {
-      applyEnv({});
+    test('honors the older FASTEMBED_CACHE_DIR env as the cache-dir fallback', async () => {
+      applyEnv({ FASTEMBED_CACHE_DIR: '/models/older-fastembed-cache' });
       jest.resetModules();
       const cfg = await import('../../src/config.js');
-      expect(cfg.FASTEMBED_MODEL).toBe(cfg.TRANSFORMERS_MODEL);
-      expect(cfg.FASTEMBED_CACHE_DIR).toBe(cfg.TRANSFORMERS_CACHE_DIR);
+      expect(cfg.TRANSFORMERS_CACHE_DIR).toBe('/models/older-fastembed-cache');
     });
   });
 

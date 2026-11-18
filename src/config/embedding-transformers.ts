@@ -110,8 +110,3 @@ export function getPriorFastEmbedEnvWarnings(): string[] {
   }
   return warnings;
 }
-
-/** @deprecated Use {@link TRANSFORMERS_MODEL} (issue #252). Resolves to the same runtime; kept for historical consumers. */
-export const FASTEMBED_MODEL = TRANSFORMERS_MODEL;
-/** @deprecated Use {@link TRANSFORMERS_CACHE_DIR} (issue #252). Resolves to the same directory. */
-export const FASTEMBED_CACHE_DIR = TRANSFORMERS_CACHE_DIR;
