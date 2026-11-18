@@ -63,7 +63,7 @@ Two facts shape the compatibility decision:
    alias** resolving to the same runtime with a one-time structured warning.
    `FASTEMBED_CACHE_DIR` is honored as a fallback; `FASTEMBED_MODEL` maps the
    shipped default enum value to the new model and fails with an actionable
-   error for any other legacy value (no silent guessing). Historical store
+   error for any other prior-era enum value (no silent guessing). Historical store
    metadata stamped `fastembed` stays valid and readable.
 
 4. **Equivalence tolerance (the quantitative gate).** Measured on the fixed
