@@ -24,14 +24,17 @@ def root_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-SECRET_KEYS = [
+REQUIRED_SECRET_KEYS = [
     "KEYCLOAK_ADMIN_PASSWORD",
     "KEYCLOAK_DB_PASSWORD",
     "REDIS_PASSWORD",
     "QDRANT_API_KEY",
     "SESSION_SECRET",
-    "OPENAI_API_KEY",
 ]
+# The application defaults to embedded fastembed when no external provider is configured.
+# Keep the optional key in substitution so a configured OpenAI deployment still works.
+OPTIONAL_SECRET_KEYS = ["OPENAI_API_KEY"]
+SECRET_KEYS = REQUIRED_SECRET_KEYS + OPTIONAL_SECRET_KEYS
 
 KV_URL_KEYS = ("KEY_VALUE_STORE_URL", "REDIS_URL")
 
@@ -123,6 +126,18 @@ def replace_placeholders(data: dict[str, str], secrets_map: dict[str, str]) -> d
     return out
 
 
+def missing_required(data: dict[str, str]) -> list[str]:
+    """Validate infrastructure credentials; OpenAI is optional with auto/fastembed."""
+    required = REQUIRED_SECRET_KEYS + ["QDRANT_URL", "QDRANT_COLLECTION"]
+    missing = [k for k in required if not (data.get(k) or "").strip()]
+    if not any((data.get(k) or "").strip() for k in KV_URL_KEYS):
+        missing.append("KEY_VALUE_STORE_URL|REDIS_URL")
+    if (data.get("EMBEDDING_PROVIDER") or "").strip().lower() == "openai":
+        if not (data.get("OPENAI_API_KEY") or "").strip() and not (data.get("OPENAI_API_URL") or "").strip():
+            missing.append("OPENAI_API_KEY|OPENAI_API_URL")
+    return missing
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate .env from fullstack template.")
     ap.add_argument("--verify", action="store_true", help="Only validate existing .env")
@@ -138,10 +153,7 @@ def main() -> None:
         if not env_file.exists():
             raise SystemExit(".env: file not found")
         data = parse_env_file(env_file)
-        required = SECRET_KEYS + ["QDRANT_URL", "QDRANT_COLLECTION"]
-        missing = [k for k in required if k not in data or not (data.get(k) or "").strip()]
-        if not any((data.get(k) or "").strip() for k in KV_URL_KEYS):
-            missing.append("KEY_VALUE_STORE_URL|REDIS_URL")
+        missing = missing_required(data)
         if missing:
             raise SystemExit(f".env: missing or empty: {', '.join(missing)}")
         print("Verify OK: .env has required keys.")
@@ -166,9 +178,7 @@ def main() -> None:
     print("Wrote .env (fullstack: infra + app + auth).")
 
     data = parse_env_file(env_file)
-    missing = [k for k in SECRET_KEYS + ["QDRANT_URL", "QDRANT_COLLECTION"] if k not in data or not (data.get(k) or "").strip()]
-    if not any((data.get(k) or "").strip() for k in KV_URL_KEYS):
-        missing.append("KEY_VALUE_STORE_URL|REDIS_URL")
+    missing = missing_required(data)
     if missing:
         raise SystemExit(f".env: missing or empty after write: {', '.join(missing)}")
 

@@ -1,12 +1,13 @@
-# Renovate owns version updates. A zero limit disables only version PRs;
-# native Dependabot security updates remain enabled in repository settings.
+# Dependabot owns npm and GitHub Actions version updates and security fixes.
+# Renovate is no longer configured in this repository. Keep version PR limits
+# nonzero; a limit of 0 disables regular version updates.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: daily
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 5
     commit-message:
       prefix: fix(deps)
       prefix-development: fix(deps)
@@ -14,12 +15,20 @@ updates:
       npm-security:
         applies-to: security-updates
         patterns: ['*']
-    labels: [dependencies, security]
+      npm-production-minor-patch:
+        applies-to: version-updates
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns: ['*']
+      npm-development-minor-patch:
+        applies-to: version-updates
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns: ['*']
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: daily
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 5
     commit-message:
       prefix: fix(deps)
-    labels: [dependencies, security]

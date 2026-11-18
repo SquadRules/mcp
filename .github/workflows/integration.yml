@@ -22,7 +22,7 @@ on:
   workflow_call:
     secrets:
       OPENAI_API_KEY:
-        required: true
+        required: false
 
 permissions:
   contents: read
@@ -210,7 +210,7 @@ jobs:
 
       - name: Start app (from installed package, HTTP transport)
         env:
-          HEALTH_CHECK_ATTEMPTS: 15
+          HEALTH_CHECK_ATTEMPTS: 120
           KEYCLOAK_INTERNAL_URL: http://localhost:8080
           QDRANT_SNAPSHOT_DIR: var/snapshots
           TRANSPORT_TYPE: http

@@ -59,9 +59,9 @@ security-events permission for uploading analysis.
 The authenticated service job installs the Node 24 tarball, starts Qdrant, Valkey,
 Postgres and Keycloak, then runs unit and integration tests. Some tests under
 `tests/unit` require real services, so they run after deployment. The SINGLE lane
-installs that same artifact. The full suite
-uses a restricted OpenAI embedding key; fork PRs require maintainer review and
-validation from a trusted branch because GitHub does not expose secrets to forks.
+installs that same artifact. The full suite resolves embeddings automatically:
+with no OpenAI API key, it uses the local Transformers.js model; when a key is
+provided, it can use OpenAI. Dependabot and fork PRs require no embedding secret.
 UI tests use jsdom and do not require a browser download; the auth browser tests
 retain Playwright. No production image/Helm build or downstream dispatch belongs
 in this npm-only repository.

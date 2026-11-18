@@ -236,7 +236,7 @@ test('package.json has correct publish configuration', () => {
 test('dependabot is correctly configured', () => {
   const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));
   assert.equal(dependabot.updates.length, 2);
-  assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
+  assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] > 0), 'Dependabot version updates must remain enabled');
 });
 
 test('auto-update workflow sequentially updates, checks, and merges PRs', () => {
