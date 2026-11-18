@@ -30,6 +30,7 @@ const EMBEDDING_ENV_KEYS = [
   'TRANSFORMERS_MODEL_REVISION',
   'TRANSFORMERS_DTYPE',
   'TRANSFORMERS_CACHE_DIR',
+  'TRANSFORMERS_OFFLINE',
   'FASTEMBED_MODEL',
   'FASTEMBED_CACHE_DIR',
 ] as const;
@@ -75,8 +76,9 @@ async function freshServiceWithDimension(dim = getTestEmbeddingDimension()) {
 function mockTransformers() {
   const pipelineCalls: Array<{ task: string; model: string; options: Record<string, unknown> }> = [];
   const extractorCalls: Array<{ texts: string[]; options: Record<string, unknown> }> = [];
+  const env: Record<string, unknown> = {};
   jest.unstable_mockModule('@huggingface/transformers', () => ({
-    env: {},
+    env,
     pipeline: jest.fn(async (task: string, model: string, options: Record<string, unknown> = {}) => {
       pipelineCalls.push({ task, model, options });
       // The resolved pipeline is itself callable: (texts, options) => Promise<Tensor>.
@@ -90,7 +92,7 @@ function mockTransformers() {
       };
     }),
   }));
-  return { pipelineCalls, extractorCalls };
+  return { pipelineCalls, extractorCalls, env };
 }
 
 describe('embedding provider selection (issues #11, #252)', () => {
@@ -230,6 +232,22 @@ describe('embedding provider selection (issues #11, #252)', () => {
       const { probeEmbeddingDimension } = await import('../../src/services/embedding/service.js');
       await expect(probeEmbeddingDimension()).resolves.toBe(384);
       expect(pipelineCalls[0]!.options).toMatchObject({ revision: 'main', dtype: 'q8' });
+    });
+
+    test('allows remote downloads by default and refuses them when TRANSFORMERS_OFFLINE is set', async () => {
+      applyEnv({});
+      jest.resetModules();
+      const online = mockTransformers();
+      const svc = await import('../../src/services/embedding/service.js');
+      await expect(svc.probeEmbeddingDimension()).resolves.toBe(384);
+      expect(online.env.allowRemoteModels).toBe(true);
+
+      applyEnv({ TRANSFORMERS_OFFLINE: '1' });
+      jest.resetModules();
+      const offline = mockTransformers();
+      const svc2 = await import('../../src/services/embedding/service.js');
+      await expect(svc2.probeEmbeddingDimension()).resolves.toBe(384);
+      expect(offline.env.allowRemoteModels).toBe(false);
     });
 
     test('emits a one-time deprecation warning when the older FASTEMBED_MODEL is mapped', async () => {

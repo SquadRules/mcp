@@ -83,6 +83,16 @@ export const TRANSFORMERS_POOLING = 'cls' as const;
 export const TRANSFORMERS_NORMALIZE = true;
 
 /**
+ * Offline switch (issue #252 golden gate, air-gapped hosts): when truthy the
+ * pipeline loads weights only from TRANSFORMERS_CACHE_DIR and refuses remote
+ * downloads (`env.allowRemoteModels = false`). Default false: download on first
+ * use, offline reuse of the revision-pinned cache afterwards.
+ */
+export const TRANSFORMERS_OFFLINE = ['1', 'true', 'yes', 'y'].includes(
+  getEnvString('TRANSFORMERS_OFFLINE', '').trim().toLowerCase()
+);
+
+/**
  * Deprecation notices for older FASTEMBED_* env usage, captured at config
  * resolution time. Emitted once via structuredLogger by the embedding runtime
  * (transformers-provider on first init); pure data here to avoid a config/logger

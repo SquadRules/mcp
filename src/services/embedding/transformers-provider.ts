@@ -21,7 +21,8 @@ import {
     TRANSFORMERS_CACHE_DIR,
     TRANSFORMERS_MODEL_ID,
     TRANSFORMERS_POOLING,
-    TRANSFORMERS_NORMALIZE
+    TRANSFORMERS_NORMALIZE,
+    TRANSFORMERS_OFFLINE
 } from '../../config.js';
 import { getPriorFastEmbedEnvWarnings } from '../../config/embedding-transformers.js';
 import { setResolvedEmbeddingDimension } from './config.js';
@@ -58,8 +59,9 @@ async function getTransformersExtractor(): Promise<FeatureExtractionPipeline> {
         }
         const { env, pipeline } = await import('@huggingface/transformers');
         env.cacheDir = TRANSFORMERS_CACHE_DIR;
-        // allowRemoteModels keeps its default (true): download on first use,
-        // offline reuse of the revision-pinned cache afterwards.
+        // Default (offline unset): download on first use, offline reuse of the
+        // revision-pinned cache afterwards. TRANSFORMERS_OFFLINE refuses downloads.
+        env.allowRemoteModels = !TRANSFORMERS_OFFLINE;
         return await pipeline('feature-extraction', TRANSFORMERS_MODEL, {
             revision: TRANSFORMERS_MODEL_REVISION,
             dtype: TRANSFORMERS_DTYPE as DataType,
