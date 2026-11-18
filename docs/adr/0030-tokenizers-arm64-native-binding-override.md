@@ -1,6 +1,8 @@
 # 0030 — Pin @anush008/tokenizers to ^0.6.0 via root npm override for arm64 native bindings
 
-Status: Accepted — implemented on this branch (`package.json` `overrides`,
+Status: Superseded by [ADR 0041](0041-transformersjs-local-embedding-runtime-and-equivalence-tolerance.md)
+(2026-11-18, #252): fastembed is removed, so this override retires with it.
+Originally: Accepted — implemented on this branch (`package.json` `overrides`,
 `package-lock.json` resolved to 0.6.0 with all six platform bindings present).
 Date: 2026-10-24
 

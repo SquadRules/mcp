@@ -1,14 +1,15 @@
 /**
  * Structured audit logging shared by every embedding provider backend.
  *
- * Extracted from `providers.ts` so the HTTP (OpenAI/TEI) and local (fastembed)
+ * Extracted from `providers.ts` so the HTTP (OpenAI/TEI) and local (Transformers.js)
  * providers can emit an identical `audit.embedding` record without a circular
  * import, and to keep each provider file under the ESLint max-lines budget.
  */
 import { structuredLogger } from '../../utils/structured-logger.js';
 import { getRequestIdFromStorage, getTenantId } from '../../utils/tenant-context.js';
 
-export type EmbeddingProviderName = 'openai' | 'tei' | 'fastembed';
+/** 'fastembed' is retained for historical store metadata / audit records (issue #252 alias). */
+export type EmbeddingProviderName = 'openai' | 'tei' | 'transformers' | 'fastembed';
 
 export type AuditPayload = {
     provider: EmbeddingProviderName;

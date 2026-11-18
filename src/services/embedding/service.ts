@@ -7,9 +7,11 @@
  *  - OPENAI_EMBEDDING_MODEL (default text-embedding-3-small)
  *  - Dimension is auto-detected at startup via probeEmbeddingDimension().
  *
- * Supports OpenAI and TEI (Text Embeddings Inference) providers. Selection:
+ * Supports OpenAI, TEI (Text Embeddings Inference), and local Transformers.js
+ * providers. Selection:
  *  - If OPENAI_API_KEY is set, OpenAI is used.
  *  - Otherwise, TEI_BASE_URL + TEI_MODEL will be used if configured.
+ *  - Otherwise, the local Transformers.js default is used (key-free, issue #252).
  */
 
 import { logger } from '../../utils/structured-logger.js';
@@ -41,7 +43,7 @@ export class EmbeddingService {
         return getResolvedEmbeddingDimension();
     }
 
-    private getModelName(provider: 'openai' | 'tei' | 'fastembed'): string {
+    private getModelName(provider: 'openai' | 'tei' | 'transformers'): string {
         return getModelNameForProvider(provider);
     }
 
@@ -256,7 +258,7 @@ export class EmbeddingService {
         return runEmbeddingHealthCheck();
     }
 
-    getProvider(): 'openai' | 'tei' | 'fastembed' {
+    getProvider(): 'openai' | 'tei' | 'transformers' {
         // Return the candidate provider (what we'll try), not what succeeded
         return resolveCandidateProvider();
     }

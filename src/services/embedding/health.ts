@@ -12,7 +12,8 @@ import {
   TEI_EMBEDDING_ENDPOINT,
   setResolvedEmbeddingDimension
 } from './config.js';
-import { postEmbeddingsOpenAI, postEmbeddingsFastEmbed } from './providers.js';
+import { postEmbeddingsOpenAI, postEmbeddingsTransformers } from './providers.js';
+import { warnFastEmbedAliasDeprecated } from './provider-resolver.js';
 
 async function openaiHealth(): Promise<{ healthy: boolean; message: string }> {
   if (!OPENAI_EMBEDDING_MODEL) {
@@ -79,13 +80,13 @@ async function teiHealth(): Promise<{ healthy: boolean; message: string }> {
   }
 }
 
-async function fastEmbedHealth(): Promise<{ healthy: boolean; message: string }> {
+async function transformersHealth(): Promise<{ healthy: boolean; message: string }> {
   try {
-    const res = await postEmbeddingsFastEmbed('health check');
-    return { healthy: Array.isArray(res) && res.length > 0, message: 'local fastembed operational' };
+    const res = await postEmbeddingsTransformers('health check');
+    return { healthy: Array.isArray(res) && res.length > 0, message: 'local transformers operational' };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { healthy: false, message: `fastembed health check failed: ${msg}` };
+    return { healthy: false, message: `transformers health check failed: ${msg}` };
   }
 }
 
@@ -96,11 +97,16 @@ export async function runEmbeddingHealthCheck(): Promise<{ healthy: boolean; mes
     // Explicit preference wins, mirroring postEmbeddings() selection.
     if (providerPref === 'openai') return await openaiHealth();
     if (providerPref === 'tei') return await teiHealth();
-    if (providerPref === 'fastembed') return await fastEmbedHealth();
+    if (providerPref === 'transformers') return await transformersHealth();
+    if (providerPref === 'fastembed') {
+      warnFastEmbedAliasDeprecated();
+      return await transformersHealth();
+    }
 
     // Auto: prefer configured external providers; a configured-but-failing OpenAI
-    // is reported as-is (never masked by the fastembed fallback) to stay consistent
-    // with the runtime path, which does not silently fall back once OpenAI is set.
+    // is reported as-is (never masked by the local transformers fallback) to stay
+    // consistent with the runtime path, which does not silently fall back once
+    // OpenAI is set.
     if ((OPENAI_API_KEY || OPENAI_API_URL_EXPLICIT) && OPENAI_EMBEDDING_MODEL) {
       const result = await openaiHealth();
       if (result.healthy) return result;
@@ -112,8 +118,8 @@ export async function runEmbeddingHealthCheck(): Promise<{ healthy: boolean; mes
     }
     if (TEI_BASE_URL && TEI_MODEL) return await teiHealth();
 
-    // No external provider configured -> local fastembed is the default.
-    return await fastEmbedHealth();
+    // No external provider configured -> local Transformers.js is the default.
+    return await transformersHealth();
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { healthy: false, message: `Embedding health check error: ${msg}` };

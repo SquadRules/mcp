@@ -58,20 +58,22 @@ security-events permission for uploading analysis.
 
 The authenticated service job installs the Node 24 tarball, starts Qdrant, Valkey,
 Postgres and Keycloak, then runs unit and integration tests. Some tests under
-`tests/unit` require real services, so they run after deployment. HTTP without
-auth and stdio transport smoke jobs install that same artifact. The full suite
+`tests/unit` require real services, so they run after deployment. The SINGLE lane
+installs that same artifact. The full suite
 uses a restricted OpenAI embedding key; fork PRs require maintainer review and
 validation from a trusted branch because GitHub does not expose secrets to forks.
 UI tests use jsdom and do not require a browser download; the auth browser tests
 retain Playwright. No production image/Helm build or downstream dispatch belongs
 in this npm-only repository.
 
-One advisory lane proves the zero-infrastructure default: it installs the same Node 24
-tarball with `QDRANT_URL` blanked and `EMBEDDING_PROVIDER=fastembed`, so the server runs
-the embedded LanceDB store and local key-free embeddings without Qdrant, Redis, Keycloak
-or Docker, asserts `/health` reports `embedded-lancedb`, and runs one real
-`train`→`activate` flow. It is `continue-on-error` and excluded from the merge gate until
-it proves stable.
+The required SINGLE lane proves the zero-infrastructure default on both x64 and arm64
+(`ubuntu-latest` and `ubuntu-24.04-arm`, Node 24): it installs the same Node 24 tarball
+with no `.env` and no infra, so the server runs the embedded LanceDB store and local
+key-free Transformers.js embeddings without Qdrant, Redis, Keycloak or Docker. It runs
+the unit suite, the stdio-simple spaces contract, and the golden-vector equivalence
+gate (real inference in a child process against the pinned FastEmbed baseline, ADR 0041).
+Model weights cache at `~/.cache/embedding-models` under a per-architecture
+`transformers-model` key; the first run on a cold runner downloads once.
 
 The tarball is created outside `dist/`, preventing old tarballs from being packed
 into subsequent packages. `prepack` always cleans/rebuilds output, including UI,

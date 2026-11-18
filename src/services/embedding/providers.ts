@@ -2,8 +2,8 @@ import { logger } from '../../utils/structured-logger.js';
 import { OPENAI_API_KEY, EMBEDDING_PROVIDER, TEI_BASE_URL, TEI_MODEL, TEI_API_KEY, EMBEDDING_MAX_RETRIES, EMBEDDING_RETRY_BASE_DELAY_MS, EMBEDDING_RETRY_MAX_DELAY_MS, EMBEDDING_RETRY_AFTER_CAP_MS, EMBEDDING_RETRY_BUDGET_MS } from '../../config.js';
 import { OPENAI_EMBEDDING_MODEL, OPENAI_ENDPOINT, TEI_EMBEDDING_ENDPOINT, setResolvedEmbeddingDimension } from './config.js';
 import { auditProviderCall } from './provider-audit.js';
-import { postEmbeddingsFastEmbed } from './fastembed-provider.js';
-import { setSuccessfulProvider } from './provider-resolver.js';
+import { postEmbeddingsTransformers } from './transformers-provider.js';
+import { setSuccessfulProvider, warnFastEmbedAliasDeprecated } from './provider-resolver.js';
 
 function sleep(ms: number): Promise<void> { return new Promise((resolve) => setTimeout(resolve, ms)); }
 const RETRIABLE_NETWORK_TOKENS = ['fetch failed', 'timed out', 'econnreset', 'econnrefused', 'enotfound', 'eai_again'];
@@ -295,7 +295,7 @@ async function postEmbeddingsTEI(input: string[] | string): Promise<number[][]> 
 }
 async function postEmbeddings(input: string[] | string): Promise<number[][]> {
     // Choose provider based on explicit ENV override or auto-discovery
-    const providerPref = EMBEDDING_PROVIDER; // 'auto' | 'openai' | 'tei' | 'fastembed'
+    const providerPref = EMBEDDING_PROVIDER; // 'auto' | 'openai' | 'tei' | 'transformers' | 'fastembed' (deprecated alias)
     if (providerPref === 'openai') {
         if (!OPENAI_EMBEDDING_MODEL) throw new Error('OpenAI requires OPENAI_EMBEDDING_MODEL to be configured');
         if (!OPENAI_API_KEY && !process.env['OPENAI_API_URL']) {
@@ -308,11 +308,15 @@ async function postEmbeddings(input: string[] | string): Promise<number[][]> {
         warnTeiDeprecated();
         return await postEmbeddingsTEI(input);
     }
+    if (providerPref === 'transformers') {
+        return await postEmbeddingsTransformers(input);
+    }
     if (providerPref === 'fastembed') {
-        return await postEmbeddingsFastEmbed(input);
+        warnFastEmbedAliasDeprecated();
+        return await postEmbeddingsTransformers(input);
     }
     // Auto detection: prefer OpenAI if key or explicit URL present, otherwise TEI,
-    // otherwise fall back to the local fastembed default (no key, no service).
+    // otherwise fall back to the local Transformers.js default (no key, no service).
     if (OPENAI_API_KEY || process.env['OPENAI_API_URL']) {
         try {
             return await postEmbeddingsOpenAI(input);
@@ -329,7 +333,7 @@ async function postEmbeddings(input: string[] | string): Promise<number[][]> {
         warnTeiDeprecated();
         return await postEmbeddingsTEI(input);
     }
-    return await postEmbeddingsFastEmbed(input);
+    return await postEmbeddingsTransformers(input);
 }
 
 /** One-time (per process) TEI soft-deprecation notice. Removal is a later breaking change. */
@@ -337,7 +341,7 @@ let teiDeprecationWarned = false;
 function warnTeiDeprecated(): void {
     if (teiDeprecationWarned) return;
     teiDeprecationWarned = true;
-    logger.warn('[EmbeddingService] TEI provider is deprecated (issue #11) and will be removed in a future release. OpenAI/Ollama or the local fastembed default are the supported alternatives.');
+    logger.warn('[EmbeddingService] TEI provider is deprecated (issue #11) and will be removed in a future release. OpenAI/Ollama or the local Transformers.js default are the supported alternatives.');
 }
 
-export { postEmbeddings, postEmbeddingsOpenAI, postEmbeddingsTEI, postEmbeddingsFastEmbed };
+export { postEmbeddings, postEmbeddingsOpenAI, postEmbeddingsTEI, postEmbeddingsTransformers };

@@ -73,10 +73,10 @@ const OPENAI_API_URL_RAW = process.env['OPENAI_API_URL'] || '';
 export const OPENAI_API_URL_EXPLICIT = OPENAI_API_URL_RAW.trim().length > 0;
 export const OPENAI_API_URL = (OPENAI_API_URL_RAW || 'https://api.openai.com').replace(/\/$/, '');
 export const OPENAI_API_KEY = getEnvString('OPENAI_API_KEY', '').trim();
-/** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'fastembed'. Auto prefers a configured external provider, else the local fastembed default (issue #11). */
+/** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'transformers' ('fastembed' is a deprecated alias for 'transformers'). Auto prefers a configured external provider, else the local Transformers.js default (issues #11, #252). */
 export const EMBEDDING_PROVIDER = getEnvString('EMBEDDING_PROVIDER', 'auto');
-// FASTEMBED_MODEL / FASTEMBED_CACHE_DIR defaults live in ./config/embedding-fastembed.ts (max-lines).
-export { FASTEMBED_MODEL, FASTEMBED_CACHE_DIR } from './config/embedding-fastembed.js';
+// Transformers.js defaults live in ./config/embedding-transformers.ts (max-lines); older FASTEMBED_* env vars are honored there as deprecated fallbacks.
+export { TRANSFORMERS_MODEL, TRANSFORMERS_MODEL_REVISION, TRANSFORMERS_DTYPE, TRANSFORMERS_CACHE_DIR, TRANSFORMERS_MODEL_ID, TRANSFORMERS_POOLING, TRANSFORMERS_NORMALIZE, TRANSFORMERS_OFFLINE } from './config/embedding-transformers.js';
 // DEPRECATED (issue #11): TEI kept functional as an opt-in alternative; emits a startup warning.
 export const TEI_BASE_URL = getEnvString('TEI_BASE_URL', '');
 export const TEI_MODEL = getEnvString('TEI_MODEL', 'Alibaba-NLP/gte-large-en-v1.5');

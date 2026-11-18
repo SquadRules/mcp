@@ -21,7 +21,7 @@ import { getSuccessfulProvider } from '../services/embedding/provider-resolver.j
 import { injectMemResourcesAtBoot } from '../resources/mem-resources-boot.js';
 import { triggerQdrantSnapshot } from '../services/qdrant/snapshots.js';
 import { MEM_BOOT_FORCE_INJECT } from '../config/mem-boot.js';
-import { checkWidthConsistency } from '../services/vector-store/lancedb/lance-store-metadata.js';
+import { checkWidthConsistency, readStoreMetadata, describeEmbeddingIdentityChange } from '../services/vector-store/lancedb/lance-store-metadata.js';
 import {
   isQdrantConfigured,
   EMBEDDING_PROVIDER,
@@ -141,6 +141,14 @@ export async function bootLocalRuntime(opts: BootLocalRuntimeOptions = {}): Prom
     const check = checkWidthConsistency(lancedbDir, successfulProvider.provider, successfulProvider.model, successfulProvider.dimension);
     if (!check.consistent) {
       structuredLogger.warn(`vector width mismatch: ${check.reason}`);
+    } else {
+      // Equal-width identity notice (#252, ADR 0041 D5): keep the runtime swap
+      // non-silent when stored provider/model differs at the same dimension.
+      const stored = readStoreMetadata(lancedbDir);
+      const notice = stored && describeEmbeddingIdentityChange(stored, successfulProvider.provider, successfulProvider.model);
+      if (notice) {
+        structuredLogger.warn({ category: 'embedding.identity-change' }, notice);
+      }
     }
   }
   
