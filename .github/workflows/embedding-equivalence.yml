@@ -1,0 +1,100 @@
+# TEMPORARY evidence-collection workflow for issue #252 (replace archived
+# fastembed with @huggingface/transformers). This workflow and
+# scripts/embedding-equivalence/ are REMOVED before the final PR merges.
+#
+# workflow_dispatch ONLY: dispatch runs never satisfy required PR checks
+# (ci-gate + .github/workflows/README.md), so this lane cannot gate anything.
+# It exists so the manager can measure FastEmbed vs Transformers.js vector
+# equivalence on real linux amd64/arm64 (glibc) and macOS hardware, plus an
+# honest musl/Alpine loadability probe. Reports are uploaded as artifacts;
+# compare.mjs is evidence, not a gate (always exits 0).
+name: Embedding equivalence evidence (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    name: Equivalence reports (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    env:
+      REPORT_DIR: ${{ github.workspace }}/equivalence-reports
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+      # One step per variant; continue-on-error so a single failing variant
+      # does not kill the remaining evidence. Each step writes its report and
+      # logs into $REPORT_DIR even on failure (run-variant.sh guarantees it).
+      - name: Variant fastembed-baseline
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh fastembed-baseline
+      - name: Variant tj4-xenova-fp16
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh tj4-xenova-fp16
+      - name: Variant tj4-xenova-q8
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh tj4-xenova-q8
+      - name: Variant tj4-qdrant-direct
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh tj4-qdrant-direct
+      - name: Variant tj3-xenova-fp16
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh tj3-xenova-fp16
+      - name: Compare reports (evidence, always exits 0)
+        if: always()
+        run: node scripts/embedding-equivalence/compare.mjs --out equivalence-reports equivalence-reports/*.json
+      - name: Upload equivalence reports
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: equivalence-reports-${{ matrix.runner }}
+          path: equivalence-reports/
+          retention-days: 14
+          if-no-files-found: error
+
+  # Honest musl status probe: onnxruntime-node ships glibc-only linux prebuilds
+  # (1.21.0 verified in the spike; 1.30.0 tarball lists bin/napi-v6/linux/{x64,
+  # arm64} only — no musl directory), while sharp DOES support musl via
+  # @img/sharp-linuxmusl-*. Expected outcome: npm install succeeds, the
+  # transformers import fails at onnxruntime-node dlopen, and the harness
+  # records status:"host-blocked" with the exact error. Advisory by design.
+  musl-probe:
+    name: musl probe (node:24-alpine, tj4-xenova-fp16)
+    runs-on: ubuntu-latest
+    container: node:24-alpine
+    continue-on-error: true
+    timeout-minutes: 30
+    env:
+      REPORT_DIR: ${{ github.workspace }}/musl-reports
+    steps:
+      # node:24-alpine has no git/bash; actions/checkout needs git >= 2.18.
+      - name: Install container prerequisites
+        run: apk add --no-cache git bash
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Variant tj4-xenova-fp16 (musl)
+        continue-on-error: true
+        run: sh scripts/embedding-equivalence/run-variant.sh tj4-xenova-fp16
+      - name: Upload musl probe reports
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: musl-probe-reports
+          path: musl-reports/
+          retention-days: 14
+          if-no-files-found: warn
