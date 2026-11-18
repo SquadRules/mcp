@@ -104,7 +104,12 @@ PKG
 fi
 
 INSTALL_LOG="$REPORT_DIR/$VARIANT-npm-install.log"
-if ! (cd "$SCRATCH" && npm install --no-audit --no-fund) > "$INSTALL_LOG" 2>&1; then
+# onnxruntime-node's postinstall downloads CUDA EP binaries by default on
+# linux x64; the v1.21.0 GPU release asset now 404s upstream (verified
+# 2026-11-18), which breaks any plain install of the fastembed chain. All
+# evidence here is CPU-only (the shipped provider uses the CPU EP), so skip
+# the CUDA download for every variant.
+if ! (cd "$SCRATCH" && npm_config_onnxruntime_node_install_cuda=skip npm install --no-audit --no-fund) > "$INSTALL_LOG" 2>&1; then
   cat > "$REPORT_DIR/$VARIANT.json" <<STUB
 {
   "schema": "issue-252-equivalence/1",
