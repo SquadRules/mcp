@@ -75,8 +75,7 @@ export const OPENAI_API_URL = (OPENAI_API_URL_RAW || 'https://api.openai.com').r
 export const OPENAI_API_KEY = getEnvString('OPENAI_API_KEY', '').trim();
 /** Embedding backend: 'auto' (default) | 'openai' | 'tei' | 'transformers' ('fastembed' is a deprecated alias for 'transformers'). Auto prefers a configured external provider, else the local Transformers.js default (issues #11, #252). */
 export const EMBEDDING_PROVIDER = getEnvString('EMBEDDING_PROVIDER', 'auto');
-// Transformers.js defaults live in ./config/embedding-transformers.ts (max-lines);
-// FASTEMBED_MODEL / FASTEMBED_CACHE_DIR remain exported as deprecated aliases.
+// Transformers.js defaults live in ./config/embedding-transformers.ts (max-lines); FASTEMBED_MODEL / FASTEMBED_CACHE_DIR remain exported as deprecated aliases.
 export { TRANSFORMERS_MODEL, TRANSFORMERS_MODEL_REVISION, TRANSFORMERS_DTYPE, TRANSFORMERS_CACHE_DIR, TRANSFORMERS_MODEL_ID, TRANSFORMERS_POOLING, TRANSFORMERS_NORMALIZE, FASTEMBED_MODEL, FASTEMBED_CACHE_DIR } from './config/embedding-transformers.js';
 // DEPRECATED (issue #11): TEI kept functional as an opt-in alternative; emits a startup warning.
 export const TEI_BASE_URL = getEnvString('TEI_BASE_URL', '');

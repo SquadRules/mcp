@@ -23,7 +23,7 @@ import {
     TRANSFORMERS_POOLING,
     TRANSFORMERS_NORMALIZE
 } from '../../config.js';
-import { getLegacyFastEmbedEnvWarnings } from '../../config/embedding-transformers.js';
+import { getPriorFastEmbedEnvWarnings } from '../../config/embedding-transformers.js';
 import { setResolvedEmbeddingDimension } from './config.js';
 import { auditProviderCall } from './provider-audit.js';
 import { setSuccessfulProvider } from './provider-resolver.js';
@@ -38,7 +38,7 @@ const TRANSFORMERS_BATCH_SIZE = 64;
 
 /** Lazily-initialised feature-extraction pipeline (memoized at module scope). */
 let extractorPromise: Promise<FeatureExtractionPipeline> | null = null;
-let legacyEnvWarned = false;
+let priorEnvWarned = false;
 
 /**
  * Initialise the pipeline once, downloading the model on first use into
@@ -50,9 +50,9 @@ let legacyEnvWarned = false;
 async function getTransformersExtractor(): Promise<FeatureExtractionPipeline> {
     if (extractorPromise) return extractorPromise;
     extractorPromise = (async () => {
-        if (!legacyEnvWarned) {
-            legacyEnvWarned = true;
-            for (const warning of getLegacyFastEmbedEnvWarnings()) {
+        if (!priorEnvWarned) {
+            priorEnvWarned = true;
+            for (const warning of getPriorFastEmbedEnvWarnings()) {
                 logger.warn({ category: 'embedding.deprecated-env' }, warning);
             }
         }

@@ -566,6 +566,13 @@ function createFlatConfig(rootDir) {
       files: ['src/tools/export.ts', 'src/tools/train.ts'],
       rules: { 'max-lines': 'off' },
     },
+    {
+      // Temporary issue #252 equivalence-evidence infra (removed before merge,
+      // ADR 0041); the transformers harness is a self-contained measurement
+      // script. Remove this override together with the directory.
+      files: ['scripts/embedding-equivalence/**'],
+      rules: { 'max-lines': 'off' },
+    },
   ];
 }
 

@@ -40,8 +40,8 @@ const savedEnv: Record<string, string | undefined> = {};
 
 const DEFAULT_REPO = 'Xenova/bge-small-en-v1.5';
 const PINNED_REVISION = 'ea104dacec62c0de699686887e3f920caeb4f3e3';
-/** Model id reported by config/audit: repo + short revision (see embedding-transformers.ts). */
-const DEFAULT_MODEL_ID = `${DEFAULT_REPO}@${PINNED_REVISION.slice(0, 7)}`;
+/** Model id reported by config/audit: repo + short revision + dtype (ADR 0041 D2; see embedding-transformers.ts). */
+const DEFAULT_MODEL_ID = `${DEFAULT_REPO}@${PINNED_REVISION.slice(0, 7)}:fp16`;
 
 function applyEnv(overrides: EnvMap): void {
   for (const key of EMBEDDING_ENV_KEYS) delete process.env[key];
@@ -167,10 +167,10 @@ describe('embedding provider selection (issues #11, #252)', () => {
       const { embeddingService } = await freshServiceWithDimension();
       const cfg = embeddingService.getConfig();
       expect(cfg.provider).toBe('transformers');
-      expect(cfg.model).toBe(`org/custom-embed-model@${PINNED_REVISION.slice(0, 7)}`);
+      expect(cfg.model).toBe(`org/custom-embed-model@${PINNED_REVISION.slice(0, 7)}:fp16`);
     });
 
-    test('maps the legacy FASTEMBED_MODEL default to the Transformers.js default', async () => {
+    test('maps the older FASTEMBED_MODEL default to the Transformers.js default', async () => {
       applyEnv({ FASTEMBED_MODEL: 'fast-bge-small-en-v1.5' });
       const { embeddingService } = await freshServiceWithDimension();
       const cfg = embeddingService.getConfig();
@@ -178,7 +178,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
       expect(cfg.model).toBe(DEFAULT_MODEL_ID);
     });
 
-    test('rejects an unsupported legacy FASTEMBED_MODEL value with an actionable error', async () => {
+    test('rejects an unsupported older FASTEMBED_MODEL value with an actionable error', async () => {
       applyEnv({ FASTEMBED_MODEL: 'fast-bge-base-en-v1.5' });
       let err: unknown;
       try {
@@ -232,7 +232,7 @@ describe('embedding provider selection (issues #11, #252)', () => {
       expect(pipelineCalls[0]!.options).toMatchObject({ revision: 'main', dtype: 'q8' });
     });
 
-    test('emits a one-time deprecation warning when legacy FASTEMBED_MODEL is mapped', async () => {
+    test('emits a one-time deprecation warning when the older FASTEMBED_MODEL is mapped', async () => {
       applyEnv({ FASTEMBED_MODEL: 'fast-bge-small-en-v1.5' });
       jest.resetModules();
       mockTransformers();
@@ -241,10 +241,10 @@ describe('embedding provider selection (issues #11, #252)', () => {
       const { probeEmbeddingDimension } = await import('../../src/services/embedding/service.js');
       await expect(probeEmbeddingDimension()).resolves.toBe(384);
       await probeEmbeddingDimension();
-      const legacyWarnings = warnSpy.mock.calls.filter((call) => String(call[call.length - 1]).includes('FASTEMBED_MODEL'));
-      expect(legacyWarnings.length).toBe(1);
-      const legacyCall = legacyWarnings[0]!;
-      expect(String(legacyCall[legacyCall.length - 1])).toContain('deprecated');
+      const priorEnvWarnings = warnSpy.mock.calls.filter((call) => String(call[call.length - 1]).includes('FASTEMBED_MODEL'));
+      expect(priorEnvWarnings.length).toBe(1);
+      const priorEnvCall = priorEnvWarnings[0]!;
+      expect(String(priorEnvCall[priorEnvCall.length - 1])).toContain('deprecated');
     });
 
     test('chunks large inputs into bounded batches of 64', async () => {

@@ -83,7 +83,7 @@ describe('issue #252 — embedding package hygiene', () => {
     expect(keys.filter((k) => k.includes('node_modules/@anush008/'))).toEqual([]);
   });
 
-  it('lockfile contains no boolean@3.2.0 entry (legacy global-agent 3.x chain)', () => {
+  it('lockfile contains no boolean@3.2.0 entry (older global-agent 3.x chain)', () => {
     const lock = readJson<LockFile>('package-lock.json');
     const entry = findPackage(lock, 'boolean');
     expect(entry === undefined || entry.version !== '3.2.0').toBe(true);
