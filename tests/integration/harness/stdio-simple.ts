@@ -56,7 +56,7 @@ function createStdioChildEnv(metricsPort: number): Record<string, string> {
 
 export async function createStdioSimpleHarness(): Promise<TestHarness> {
   // SINGLE mode is the zero-config default: stdio transport, embedded LanceDB, auth off and
-  // key-free fastembed embeddings. No ENV profile or external embedding key is required —
+  // key-free Transformers.js embeddings. No ENV profile or external embedding key is required —
   // applyLocalStdioEnv (via createStdioChildEnv) pins the spawned child to that single-node shape.
   const metricsPort = 19990 + Math.floor(Math.random() * 200);
   const env = createStdioChildEnv(metricsPort);

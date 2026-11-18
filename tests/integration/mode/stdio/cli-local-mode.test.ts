@@ -32,8 +32,9 @@ const _d = isHttpTransport() ? describe.skip : describe;
 
 /**
  * Env for a local-mode CLI child: stdio/simple-mode (auth off, embedded store), key-free
- * fastembed so the embedded model is used, and boot logs kept off stdout. `SQUADRULES_HOME`
- * and `FASTEMBED_CACHE_DIR` are inherited from the lane so the child shares the one embedded
+ * local embeddings via the deprecated 'fastembed' alias (kept deliberately as an end-to-end
+ * alias regression, issue #252), and boot logs kept off stdout. `SQUADRULES_HOME` and
+ * `TRANSFORMERS_CACHE_DIR` are inherited from the lane so the child shares the one embedded
  * store (seeded once) and the cached model weights (ADR 0004/0007).
  */
 function localCliEnv(): NodeJS.ProcessEnv {
@@ -44,6 +45,7 @@ function localCliEnv(): NodeJS.ProcessEnv {
   applyLocalStdioEnv(env);
   env.OPENAI_API_KEY = '';
   env.TEI_BASE_URL = '';
+  // Deprecated alias on purpose: proves 'fastembed' still resolves to transformers (#252).
   env.EMBEDDING_PROVIDER = 'fastembed';
   env.LOG_LEVEL = 'error';
   env.SQUADRULES_NO_BROWSER = '1';
@@ -167,6 +169,17 @@ _d('CLI local mode (embedded store, stdio lane)', () => {
     expect(stdout).not.toMatch(/^\[\d{2}:\d{2}:\d{2}\]/m);
     // The boot logs went to stderr instead.
     expect(stderr).toMatch(/vector store:|cache:|embedding:|model stats:/);
+  }, 120000);
+
+  test("EMBEDDING_PROVIDER='fastembed' surfaces the deprecation warning end-to-end (alias regression)", async () => {
+    // #252: the deprecated alias must still resolve to the transformers runtime AND warn.
+    // activate embeds the query, which is where the one-time alias notice is emitted;
+    // LOG_LEVEL stays unset (info) so the warn-level notice is not filtered out.
+    const env = localCliEnv();
+    delete env.LOG_LEVEL;
+    const { stdout, stderr } = await runCli(['activate', 'minimal CLI test', '--format', 'json'], 120000, env);
+    expect(JSON.parse(stdout)).toHaveProperty('choices');
+    expect(stderr).toMatch(/deprecated alias/);
   }, 120000);
 
   afterAll(async () => {
