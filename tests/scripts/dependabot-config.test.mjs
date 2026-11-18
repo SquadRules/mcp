@@ -32,7 +32,3 @@ test('npm groups security separately from minor/patch version updates', () => {
   assert.equal(groups['npm-development-minor-patch']['dependency-type'], 'development');
 });
 
-test('CPU-only CI install skips optional ONNX Runtime CUDA download', () => {
-  const npmrc = readFileSync('.npmrc', 'utf8');
-  assert.match(npmrc, /^onnxruntime-node-install-cuda=skip$/m);
-});

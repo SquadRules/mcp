@@ -73,7 +73,6 @@ jobs:
   # Proves the deployed-services path (docker compose --profile fullstack) with all components
   # overridden via shell env. The .env template supplies QDRANT_URL, AUTH_ENABLED=true, etc.;
   # TRANSPORT_TYPE=http overrides the serve default (stdio) so the HTTP server binds.
-  # Embeddings resolve to local fastembed when no OpenAI secret is available.
   verify-integration-cluster:
     name: Cluster (AUTH on, HTTP, full infra, Node 24)
     needs: [build]
@@ -264,17 +263,21 @@ jobs:
           if-no-files-found: ignore
 
   # SINGLE lane: zero-config (no .env, no infra, no env overrides). Proves the npm package boots
-  # and runs the full test suite on the embedded defaults: stdio transport, LanceDB vector store,
-  # key-free fastembed embeddings, no auth, no Redis. The setup.ts test harness supplies hermetic
-  # SQUADRULES_HOME isolation so the lane is clean even on a runner with stale state.
+  # and runs on the embedded defaults: stdio transport, LanceDB vector store, key-free
+  # Transformers.js embeddings, no auth, no Redis. Matrix covers x64 AND arm64 real inference
+  # (ADR 0041 D7; ubuntu-24.04-arm is free on this public repo). The setup.ts test harness
+  # supplies hermetic SQUADRULES_HOME isolation so each runner is clean even with stale state.
   verify-integration-single:
-    name: Single (zero-config, stdio + LanceDB + fastembed, Node 24)
+    name: Single (zero-config, stdio + LanceDB + transformers, Node 24, ${{ matrix.runner }})
     needs: [build]
-    runs-on: ubuntu-latest
-    # Cold fastembed model download + CPU ONNX inference of shipped adapters is slow (~10-15min).
-    # The full suite under SINGLE runs the same tests as CLUSTER but with env-coupled suites
-    # self-skipping (Qdrant-backed, auth-gated). Generous timeout for the first run; subsequent
-    # runs benefit from the fastembed model cache if the runner is reused.
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    # Cold model download + CPU ONNX inference of shipped adapters is slow (~10-15min).
+    # Env-coupled suites self-skip (Qdrant-backed, auth-gated). Generous timeout for the
+    # first run; subsequent runs benefit from the per-architecture transformers model cache.
     timeout-minutes: 40
     steps:
       - name: Checkout
@@ -310,29 +313,30 @@ jobs:
           rm -rf dist
           cp -R node_modules/@squadrules/mcp/dist ./dist
 
-      - name: Restore fastembed model cache
+      - name: Restore transformers model cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        id: fastembed-model-cache
+        id: transformers-model-cache
         with:
           path: ~/.cache/embedding-models
-          key: ${{ runner.os }}-fastembed-model-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-transformers-model-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-fastembed-model-
+            ${{ runner.os }}-${{ runner.arch }}-transformers-model-
 
       - name: Run unit tests (zero-config SINGLE defaults)
         run: npm test -- tests/unit
 
-      - name: Run stdio integration test (verify SINGLE mode end-to-end)
-        # Verifies stdio transport + LanceDB + fastembed work together in zero-config mode.
-        # Model cache ensures fastembed initialization is fast even on cold CI runners.
-        run: NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --forceExit --testTimeout=120000 tests/integration/scenarios/spaces-tool.stdio-simple.test.ts
+      - name: Run stdio integration + golden-vector gate (SINGLE mode end-to-end)
+        # Verifies stdio transport + LanceDB + Transformers.js in zero-config mode, then the
+        # permanent ADR 0041 D4 equivalence gate (real inference in a child process on both
+        # architectures). The model cache keeps cold starts fast on reused runners.
+        run: NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand --forceExit --testTimeout=120000 tests/integration/scenarios/spaces-tool.stdio-simple.test.ts tests/integration/embedding/golden-vectors.test.ts
 
-      - name: Save fastembed model cache
-        if: always() && steps.fastembed-model-cache.outputs.cache-hit != 'true'
+      - name: Save transformers model cache
+        if: always() && steps.transformers-model-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/embedding-models
-          key: ${{ steps.fastembed-model-cache.outputs.cache-primary-key }}
+          key: ${{ steps.transformers-model-cache.outputs.cache-primary-key }}
 
       - name: Show test failure
         if: failure()

@@ -1,7 +1,7 @@
 /**
  * Lazy, memoized embedding-dimension probe.
  *
- * `probeEmbeddingDimension()` loads the embedding model (fastembed ONNX or a
+ * `probeEmbeddingDimension()` loads the embedding model (Transformers.js ONNX or a
  * remote provider round-trip) and caches the resolved dimension. Server boot
  * calls it eagerly; the CLI local backend defers it until a command actually
  * needs embeddings (activate / train / a fresh seed) so read-only commands stay

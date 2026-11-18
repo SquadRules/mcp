@@ -37,6 +37,30 @@ try {
     assert.equal(run(executable, ['--version'], true), pkg.version, `${bin} version differs from package`);
     run(executable, ['serve', '--help']);
   }
+  // Issue #252 consumer-tree hygiene: the archived fastembed chain must not reach
+  // consumers (root overrides do not propagate into a dependency install).
+  const tree = JSON.parse(run('npm', ['ls', '--all', '--json'], true));
+  const found = new Map();
+  (function walk(node) {
+    for (const [name, entry] of Object.entries(node.dependencies ?? {})) {
+      if (entry.version) {
+        if (!found.has(name)) found.set(name, new Set());
+        found.get(name).add(entry.version);
+      }
+      walk(entry);
+    }
+  })(tree);
+  assert.ok(!found.has('fastembed'), 'Consumer tree must not contain the archived fastembed runtime');
+  assert.ok(!found.has('@anush008/tokenizers'), 'Consumer tree must not contain @anush008/tokenizers');
+  assert.ok(!found.get('boolean')?.has('3.2.0'), 'Consumer tree must not contain boolean@3.2.0 (global-agent 3.x chain)');
+  const ortVersions = [...(found.get('onnxruntime-node') ?? [])];
+  assert.ok(ortVersions.length > 0, 'Consumer tree must contain onnxruntime-node');
+  for (const ortVersion of ortVersions) {
+    const [ortMajor, ortMinor] = ortVersion.split('.').map((n) => parseInt(n, 10));
+    assert.ok(ortMajor > 1 || (ortMajor === 1 && ortMinor >= 30), `onnxruntime-node must be >= 1.30.0, got ${ortVersion}`);
+  }
+  const versionsOf = (name) => [...(found.get(name) ?? [])].join(', ') || 'absent';
+  console.log(`Consumer native chain: onnxruntime-node=${versionsOf('onnxruntime-node')} global-agent=${versionsOf('global-agent')} sharp=${versionsOf('sharp')}`);
   // The container extracts the published tarball as the application root.
   // Unlike a dependency install, that root honors the published overrides.
   const extract = spawnSync('tar', ['-xzf', tgzPath, '--strip-components=1', '-C', appDir], { stdio: 'inherit' });

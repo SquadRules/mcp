@@ -59,8 +59,13 @@ test('integration single lane is required and runs correct tests', () => {
   assert.deepEqual(single.needs, ['build'], 'Single lane consumes the build matrix artifact');
   assert.equal(single['continue-on-error'], undefined, 'Single lane is required (not advisory)');
   assert.ok(integration.jobs['integration-pass'].needs.includes('verify-integration-single'));
+  assert.deepEqual(single.strategy.matrix.runner, ['ubuntu-latest', 'ubuntu-24.04-arm'], 'SINGLE covers x64 + arm64 real inference (ADR 0041 D7)');
+  assert.equal(single['runs-on'], '${{ matrix.runner }}');
   assert.ok(single.steps.some(s => s.run === 'npm test -- tests/unit'), 'Single lane runs unit tests under zero-config defaults');
-  assert.ok(single.steps.some(s => s.run?.includes('spaces-tool.stdio-simple.test.ts')), 'Single lane runs stdio integration test to verify SINGLE mode end-to-end');
+  const jestRun = single.steps.find(s => s.run?.includes('spaces-tool.stdio-simple.test.ts'))?.run;
+  assert.ok(jestRun?.includes('tests/integration/embedding/golden-vectors.test.ts'), 'SINGLE runs stdio-simple plus the golden-vector gate');
+  const cacheKey = single.steps.find(s => s.id === 'transformers-model-cache').with.key;
+  assert.ok(cacheKey.includes('transformers-model-') && !cacheKey.includes('fastembed'), 'Model cache key follows the transformers runtime');
 });
 
 test('workflows use native path filtering to prevent empty-diff bypass', () => {
@@ -231,7 +236,7 @@ test('package.json has correct publish configuration', () => {
 test('dependabot is correctly configured', () => {
   const dependabot = load(readFileSync('.github/dependabot.yml', 'utf8'));
   assert.equal(dependabot.updates.length, 2);
-  assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] === 0));
+  assert.ok(dependabot.updates.every(u => u['open-pull-requests-limit'] > 0), 'Dependabot version updates must remain enabled');
 });
 
 test('auto-update workflow sequentially updates, checks, and merges PRs', () => {

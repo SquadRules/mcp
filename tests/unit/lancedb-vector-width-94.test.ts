@@ -17,7 +17,8 @@ import { getTestEmbeddingDimension } from '../utils/embedding-test-utils.js';
 import {
   readStoreMetadata,
   writeStoreMetadata,
-  checkWidthConsistency
+  checkWidthConsistency,
+  describeEmbeddingIdentityChange
 } from '../../src/services/vector-store/lancedb/lance-store-metadata.js';
 import {
   inspectSchema,
@@ -112,6 +113,45 @@ describe('checkWidthConsistency', () => {
       expect(result.reason).toContain('fastembed');
       expect(result.reason).toContain('openai');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// describeEmbeddingIdentityChange (#252, ADR 0041 D5 — equal-width notice)
+// ---------------------------------------------------------------------------
+
+describe('describeEmbeddingIdentityChange', () => {
+  function metadataShape(provider: string, model: string, dimension: number) {
+    return { provider, model, dimension, created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z' };
+  }
+
+  const stored = metadataShape('fastembed', 'fast-bge-small-en-v1.5', 384);
+
+  test('returns null when provider and model both match', () => {
+    expect(describeEmbeddingIdentityChange(stored, 'fastembed', 'fast-bge-small-en-v1.5')).toBeNull();
+  });
+
+  test('names stored vs resolved identity on the fastembed → transformers swap', () => {
+    const notice = describeEmbeddingIdentityChange(stored, 'transformers', 'Xenova/bge-small-en-v1.5@ea104da:fp16');
+    expect(notice).not.toBeNull();
+    expect(notice).toContain('fastembed/fast-bge-small-en-v1.5');
+    expect(notice).toContain('transformers/Xenova/bge-small-en-v1.5@ea104da:fp16');
+    expect(notice).toContain('384d');
+    expect(notice).toContain('kept');
+  });
+
+  test('fires on a model-only change (revision/dtype) at the same provider', () => {
+    const base = metadataShape('transformers', 'Xenova/bge-small-en-v1.5@ea104da:fp16', 384);
+    const notice = describeEmbeddingIdentityChange(base, 'transformers', 'Xenova/bge-small-en-v1.5@ea104da:q8');
+    expect(notice).not.toBeNull();
+    expect(notice).toContain(':fp16');
+    expect(notice).toContain(':q8');
+  });
+
+  test('width-mismatch path is unchanged: checkWidthConsistency still refuses', () => {
+    writeStoreMetadata(tmpDir, { provider: 'fastembed', model: 'fast-bge-small-en-v1.5', dimension: 384 });
+    const result = checkWidthConsistency(tmpDir, 'transformers', 'Xenova/bge-small-en-v1.5@ea104da:fp16', 1536);
+    expect(result.consistent).toBe(false);
   });
 });
 
