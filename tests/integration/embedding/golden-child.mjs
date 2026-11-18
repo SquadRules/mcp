@@ -3,9 +3,8 @@
  *
  * ADR 0004: ONNX must never run inside a Jest vm-realm worker, so the parent
  * test (golden-vectors.test.ts) spawns this script with plain node. It imports
- * the BUILT provider from dist/, embeds the fixed corpus copied to
- * tests/fixtures/ (independent of the temporary scripts/embedding-equivalence
- * infra), and prints exactly one JSON document on stdout. Boot/log output is
+ * the BUILT provider from dist/, embeds the fixed corpus in tests/fixtures/,
+ * and prints exactly one JSON document on stdout. Boot/log output is
  * forced to stderr by the parent env (LOG_LEVEL=error, SQUADRULES_LOG_STDERR=1).
  *
  * Output: { provider, modelId, texts, queries, truncationTokenCount, cacheBytes }

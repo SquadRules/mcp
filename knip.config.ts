@@ -32,10 +32,6 @@ const config: KnipConfig = {
         'src/ui/vite-env.d.ts',
         // Zod schema modules: tool input/output shapes; some exports are only for MCP hosts / tests
         'src/tools/**/*_schema.ts',
-        // Temporary issue #252 equivalence-evidence infra (removed before merge, ADR 0041):
-        // the fastembed baseline harness installs its own scratch deps, not root ones.
-        // Remove this entry together with the directory.
-        'scripts/embedding-equivalence/**',
     ],
     ignoreDependencies: [
         // Loaded by semantic-release via preset: 'conventionalcommits'.
