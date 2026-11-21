@@ -22,7 +22,9 @@
  * open either returns `null` (degraded: no graph bookkeeping, error logged) or, with
  * `SQUADRULES_GRAPH_BACKEND_STRICT=true`, throws so a misconfiguration cannot hide.
  *
- * Framework-internal bookkeeping only: no MCP tool, no HTTP route, no health surface.
+ * Framework-internal bookkeeping: no MCP tool, no HTTP route. The open here never
+ * throws; readiness is surfaced by `/health`, which reports the graph and fails (503)
+ * when it is enabled but unavailable (see http/http-health-routes.ts).
  */
 import { structuredLogger } from '../../utils/structured-logger.js';
 import { GRAPH_DB_ENABLED, resolveGraphDbDir } from '../../config/graph-db.js';
