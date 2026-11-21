@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.23.1](https://github.com/SquadRules/mcp/compare/v5.23.0...v5.23.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** bump github/codeql-action/init from 4.38.2 to 4.39.3 ([#310](https://github.com/SquadRules/mcp/issues/310)) ([c98be6f](https://github.com/SquadRules/mcp/commit/c98be6f09d73a893b896e235f79681b8b12873eb))
+* **deps:** restore Dependabot version update PRs ([#307](https://github.com/SquadRules/mcp/issues/307)) ([d4afce2](https://github.com/SquadRules/mcp/commit/d4afce2d1939312d0a16cbeec974f28e49fea95a))
+
 ## [5.23.0](https://github.com/SquadRules/mcp/compare/v5.22.1...v5.23.0) (2026-11-18)
 
 
