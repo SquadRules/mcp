@@ -8,6 +8,7 @@
  */
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { pathToFileURL } from 'node:url';
 
 const NETWORK_ERROR = /\b(?:ETIMEDOUT|ESOCKETTIMEDOUT|ECONNRESET|ENETUNREACH|EHOSTUNREACH|EAI_AGAIN|UND_ERR_CONNECT_TIMEOUT|UND_ERR_HEADERS_TIMEOUT|socket hang up)\b/i;
 const PERMANENT_ERROR = /\b(?:EINTEGRITY|ERESOLVE|E404|ENOTFOUND|ERR_INVALID|EBADENGINE)\b/i;
@@ -46,7 +47,7 @@ export async function installWithNetworkRetries({ run = executeInstall, delay = 
   }
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   installWithNetworkRetries().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
