@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.23.2](https://github.com/SquadRules/mcp/compare/v5.23.1...v5.23.2) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** bump jsdom from 30.1.2 to 31.0.1 ([#317](https://github.com/SquadRules/mcp/issues/317)) ([c1d86ce](https://github.com/SquadRules/mcp/commit/c1d86cebe07b6d84d36b659f994f834399619035))
+
 ## [5.23.1](https://github.com/SquadRules/mcp/compare/v5.23.0...v5.23.1) (2026-11-21)
 
 
