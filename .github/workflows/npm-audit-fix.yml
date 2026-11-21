@@ -39,7 +39,7 @@ jobs:
       - name: Assess and fix with no repository credential
         id: audit
         run: node scripts/ci-audit.mjs
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: steps.audit.outputs.changed == 'true'
         with:
           name: audit-fix
