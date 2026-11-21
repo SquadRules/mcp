@@ -30,6 +30,7 @@ import { getPriorFastEmbedEnvWarnings } from '../../config/embedding-transformer
 import { setResolvedEmbeddingDimension } from './config.js';
 import { auditProviderCall } from './provider-audit.js';
 import { setSuccessfulProvider } from './provider-resolver.js';
+import { withModelDownloadRetries } from './transformers-retry.js';
 import type { FeatureExtractionPipeline, DataType } from '@huggingface/transformers';
 
 /**
@@ -118,10 +119,19 @@ async function getTransformersExtractor(): Promise<FeatureExtractionPipeline> {
             // pinned revision on a cache miss.
             env.localModelPath = prepareOfflineModelLayout();
         }
-        const extractor = await pipeline('feature-extraction', TRANSFORMERS_MODEL, {
-            revision: TRANSFORMERS_MODEL_REVISION,
-            dtype: TRANSFORMERS_DTYPE as DataType,
-        });
+        const extractor = await withModelDownloadRetries(
+            () => pipeline('feature-extraction', TRANSFORMERS_MODEL, {
+                revision: TRANSFORMERS_MODEL_REVISION,
+                dtype: TRANSFORMERS_DTYPE as DataType,
+            }),
+            {
+                offline: TRANSFORMERS_OFFLINE,
+                onRetry: (attempt, error) => logger.warn(
+                    { category: 'embedding.model-download', attempt },
+                    `Model download temporarily failed; retrying (attempt ${attempt}/3): ${error instanceof Error ? error.message : String(error)}`
+                ),
+            }
+        );
         if (!TRANSFORMERS_OFFLINE) {
             // Warm the offline layout for later air-gapped runs. Best-effort:
             // a failure here must not break online embedding, but offline reuse
