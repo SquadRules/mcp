@@ -60,7 +60,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - run: node scripts/npm-ci-with-retries.mjs
       # Remediation belongs to npm-audit-fix.yml, never a validation workspace.
       - run: npm audit --omit=dev --audit-level=high
 
