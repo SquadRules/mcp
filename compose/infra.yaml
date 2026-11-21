@@ -9,6 +9,17 @@
 # Fullstack: add Valkey, Postgres, Keycloak (use with fullstack .env).
 #   docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack up -d
 # Optional UI (only with fullstack): docker compose -p squadrules-mcp -f compose/infra.yaml --profile fullstack --profile infra-ui up -d
+# Shared graph backend (opt-in `arango` profile): a local ArangoDB 3.11 for
+#   SQUADRULES_GRAPH_BACKEND=arango instead of the default embedded LadybugDB. Mirrors the CI
+#   shared-backend lane (ADR 0044/0048); never started unless `--profile arango` is passed.
+#   docker compose -p squadrules-mcp -f compose/infra.yaml --profile arango up -d
+#   The app creates collections inside an existing database but never creates the database, so
+#   create it once after `up` (this mirrors the CI lane's setup step):
+#     curl -fsS -X POST http://127.0.0.1:8529/_api/database -H 'content-type: application/json' --data '{"name":"squadrules"}'
+#   Then point the app at it: SQUADRULES_GRAPH_BACKEND=arango,
+#   SQUADRULES_ARANGO_URL=http://127.0.0.1:8529 (http://arango:8529 from the `dev` service),
+#   SQUADRULES_ARANGO_DATABASE=squadrules. No-auth and bound to 127.0.0.1: a throwaway local
+#   instance, not a hardened deployment — production enables auth (docs/runbooks/production-bake.md, Bake B).
 #
 # Variable interpolation requires `--env-file` flag. Services use `environment` directives with
 # interpolation (e.g. `${QDRANT_API_KEY:?...}`), not `env_file` directives, so the same compose
@@ -90,6 +101,32 @@ services:
       timeout: 5s
       retries: 3
     #   start_period: 3s
+
+  # --- ArangoDB 3.11: shared graph backend, opt-in `arango` profile (ADR 0044/0048).
+  # Mirrors the CI shared-backend lane: same series, no auth, disposable. The default graph
+  # backend stays embedded LadybugDB, so this service is never started without `--profile arango`.
+  # The database must be created once after `up` (see header) — the app creates collections
+  # inside an existing DB but never the DB itself. Bound to 127.0.0.1 because it runs without auth.
+  arango:
+    profiles:
+      - arango
+    image: arangodb:3.11@sha256:e83f37055170f647ebca1a09dd65ec850a578d8d4c9b90904de3359b909c1f16
+    pull_policy: missing
+    environment:
+      - ARANGO_NO_AUTH=1
+    ports:
+      - "127.0.0.1:8529:8529"
+    volumes:
+      - arango-data:/var/lib/arangodb3
+    networks:
+      - squadrules-network
+    healthcheck:
+      test: [ "CMD-SHELL", "arangosh --server.authentication false --javascript.execute-string 'db._version()' >/dev/null 2>&1 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
 
   # --- Postgres: Keycloak DB only (default Docker workflow via env). Regenerate: python3 scripts/deploy-generate-dev-secrets.py --ci ---
   postgres:
@@ -218,3 +255,4 @@ volumes:
   redisinsight-data:
   qdrant-data:
   postgres-data:
+  arango-data:
