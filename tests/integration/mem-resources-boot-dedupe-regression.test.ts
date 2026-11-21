@@ -1,104 +1,32 @@
-import crypto from 'node:crypto';
+/**
+ * Qdrant boot-injection dedupe regression.
+ *
+ * Execute real ONNX inference in a plain Node child, never in the Jest VM
+ * (ADR 0004: Float32Array constructors differ across realms).
+ * The child asserts the initial insert, duplicate-slug corruption and recovery.
+ */
+import { execFile } from 'node:child_process';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { isHttpTransport } from '../utils/auth-headers.js';
 import { testQdrantBackend } from '../utils/vector-backend.js';
 
+const execFileAsync = promisify(execFile);
 const _d = isHttpTransport() ? describe : describe.skip;
 
 _d('Mem resources boot injection dedupe regression', () => {
   testQdrantBackend('boot injection recovers when app-space already contains duplicate slug entries', async () => {
-    const testCollection = `squadrules-test-mem-boot-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-    let keyValueStoreForThisTest: { disconnect(): Promise<void> } | undefined;
-    let collectionToDelete: string | undefined;
-    let qdrantClient: any;
-
-    try {
-      const [
-        { probeEmbeddingDimension },
-        { installQdrantFetchCompatibility },
-        { MemoryQdrantStore },
-        { injectMemResourcesAtBoot },
-        { SQUADRULES_APP_SPACE_ID },
-        { keyValueStore }
-      ] = await Promise.all([
-          import('../../src/services/embedding/service.js'),
-          import('../../src/services/qdrant/undici-compat.js'),
-          import('../../src/services/memory/store.js'),
-          import('../../src/resources/mem-resources-boot.js'),
-          import('../../src/config.js'),
-          import('../../src/services/key-value-store-factory.js')
-        ]);
-
-      installQdrantFetchCompatibility();
-      keyValueStoreForThisTest = keyValueStore;
-      await probeEmbeddingDimension();
-      const memoryStore = new MemoryQdrantStore({ collection: testCollection });
-      await memoryStore.init();
-
-      const { client, collection } = memoryStore.getQdrantAccess();
-      qdrantClient = client;
-      collectionToDelete = collection;
-
-      // First boot: train all adapters
-      await injectMemResourcesAtBoot(memoryStore, { force: true });
-
-      // Find the first-layer point for 'author-adapter' by slug
-      const slugFilter = {
-        must: [
-          { key: 'slug', match: { value: 'author-adapter' } },
-          { key: 'space_id', match: { value: SQUADRULES_APP_SPACE_ID } },
-          { key: 'adapter.layer_index', match: { value: 1 } }
-        ]
-      };
-      const base = await client.scroll(collection, {
-        filter: slugFilter,
-        limit: 1,
-        with_payload: true,
-        with_vector: true
-      } as any);
-
-      expect(base?.points?.length).toBeGreaterThan(0);
-      const basePoint = base.points[0] as any;
-      const basePointId = typeof basePoint.id === 'string' ? basePoint.id : String(basePoint.id);
-
-      // Simulate corruption: delete the original point and re-insert with a random UUID
-      const conflictId = crypto.randomUUID();
-      await client.delete(collection, { points: [basePointId] } as any);
-      await client.upsert(collection, {
-        points: [
-          {
-            id: conflictId,
-            payload: basePoint.payload,
-            vector: basePoint.vector
-          }
-        ]
-      } as any);
-
-      // Second boot (force): should detect the slug still exists but retrain anyway
-      await injectMemResourcesAtBoot(memoryStore, { force: true });
-
-      // Verify: at least one point with slug 'author-adapter' exists in app space
-      const restored = await client.scroll(collection, {
-        filter: slugFilter,
-        limit: 1,
-        with_payload: true,
-        with_vector: false
-      } as any);
-
-      expect(restored?.points?.length).toBeGreaterThan(0);
-      expect((restored.points[0] as any)?.payload?.space_id).toBe(SQUADRULES_APP_SPACE_ID);
-
-      // Cleanup the conflict point if it still exists
-      try { await client.delete(collection, { points: [conflictId] } as any); } catch { /* ignore */ }
-    } finally {
-      if (qdrantClient && collectionToDelete) {
-        try {
-          await qdrantClient.deleteCollection(collectionToDelete);
-        } catch {
-        }
-      }
-      if (keyValueStoreForThisTest) {
-        await keyValueStoreForThisTest.disconnect();
-      }
-    }
-  }, 120000);
+    const child = join(process.cwd(), 'tests/scripts/mem-boot-dedupe-child.mjs');
+    const { stdout } = await execFileAsync(process.execPath, [child], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        SQUADRULES_LOG_STDERR: '1',
+        LOG_LEVEL: 'error',
+      },
+      timeout: 300000,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    expect(JSON.parse(stdout)).toEqual(expect.objectContaining({ ok: true }));
+  }, 360000);
 });
