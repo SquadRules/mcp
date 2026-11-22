@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.23.3](https://github.com/SquadRules/mcp/compare/v5.23.2...v5.23.3) (2026-11-22)
+
+
+### Bug Fixes
+
+* **deps:** bump actions/create-github-app-token from 2.2.2 to 3.3.0 ([#313](https://github.com/SquadRules/mcp/issues/313)) ([eee8814](https://github.com/SquadRules/mcp/commit/eee88149214c6a5ae1cf8385791a65daeae5da1f))
+* **deps:** bump actions/setup-go from 6.5.0 to 7.0.0 ([#312](https://github.com/SquadRules/mcp/issues/312)) ([18c071a](https://github.com/SquadRules/mcp/commit/18c071ac8ba3b3540475e0a353f8f02e723ab5ae))
+* **deps:** bump googleapis/release-please-action from 4.4.1 to 5.0.0 ([#311](https://github.com/SquadRules/mcp/issues/311)) ([eea38bf](https://github.com/SquadRules/mcp/commit/eea38bf00d9f1781fef1cadf1f5fd96e1cce28e6))
+
 ## [5.23.2](https://github.com/SquadRules/mcp/compare/v5.23.1...v5.23.2) (2026-11-21)
 
 
