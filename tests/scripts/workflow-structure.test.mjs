@@ -180,7 +180,7 @@ test('release auto-merge is correctly configured', () => {
 
   for (const job of [release.jobs['release-please'], syncReleasePr, autoMerge]) {
     const token = job.steps.find(s => s.id === 'app-token');
-    assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
+    assert.equal(token.uses, 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510');
     assert.equal(token.with['app-id'], '${{ vars.AUTO_APP_ID }}');
     assert.equal(token.with['private-key'], '${{ secrets.AUTO_APP_PRIVATE_KEY }}');
     assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
