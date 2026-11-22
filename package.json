@@ -83,7 +83,7 @@
   "dependencies": {
     "@exodus/bytes": "^1.16.0",
     "@huggingface/transformers": "4.3.2",
-    "@lancedb/lancedb": "^0.30.0",
+    "@lancedb/lancedb": "^0.42.0-beta.21",
     "@modelcontextprotocol/client": "^2.4.0",
     "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.4.0",
