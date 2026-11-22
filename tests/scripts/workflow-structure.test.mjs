@@ -143,7 +143,7 @@ test('release workflow triggers and structure', () => {
   assert.match(releasePlease.if, /github\.event_name == 'push'/);
   assert.equal(releasePlease.permissions.contents, 'read');
   const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
-  assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
+  assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
   assert.equal(releasePleaseStep.with.token, '${{ steps.app-token.outputs.token }}');
   assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
   assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
@@ -180,7 +180,7 @@ test('release auto-merge is correctly configured', () => {
 
   for (const job of [release.jobs['release-please'], syncReleasePr, autoMerge]) {
     const token = job.steps.find(s => s.id === 'app-token');
-    assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
+    assert.equal(token.uses, 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510');
     assert.equal(token.with['app-id'], '${{ vars.AUTO_APP_ID }}');
     assert.equal(token.with['private-key'], '${{ secrets.AUTO_APP_PRIVATE_KEY }}');
     assert.equal(token.with.repositories, '${{ github.event.repository.name }}');

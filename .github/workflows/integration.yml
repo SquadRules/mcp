@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      - run: node scripts/npm-ci-with-retries.mjs
       - run: npm run version:check-skills
       - run: npm run lint
       - run: npm run typecheck
@@ -114,13 +114,13 @@ jobs:
         run: docker load -i .cache/docker-infra/images.tar
 
       # Infra + test-harness deps before the built tgz exists on this runner (overlaps with build job wall clock after this job starts).
-      - name: Start Docker infra and npm ci (parallel)
+      - name: Start Docker infra and node scripts/npm-ci-with-retries.mjs (parallel)
         run: |
           set -euo pipefail
           ec=0
           docker compose -p squadrules-mcp --env-file .env -f compose/infra.yaml --profile fullstack up -d valkey qdrant postgres keycloak &
           pid_compose=$!
-          npm ci &
+          node scripts/npm-ci-with-retries.mjs &
           pid_npm=$!
           wait $pid_compose || ec=1
           wait $pid_npm || ec=1
@@ -295,7 +295,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: node scripts/npm-ci-with-retries.mjs
 
       - name: Download npm package artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

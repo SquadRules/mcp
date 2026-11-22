@@ -1,5 +1,36 @@
 # Changelog
 
+## [5.23.4](https://github.com/SquadRules/mcp/compare/v5.23.3...v5.23.4) (2026-11-22)
+
+
+### Bug Fixes
+
+* **deps:** upgrade apache-arrow to 21 and @lancedb/lancedb to 0.42.0-beta.21 ([#324](https://github.com/SquadRules/mcp/issues/324)) ([79bf3e7](https://github.com/SquadRules/mcp/commit/79bf3e7b47505e42c0284db567fa9e799ae0b178))
+
+## [5.23.3](https://github.com/SquadRules/mcp/compare/v5.23.2...v5.23.3) (2026-11-22)
+
+
+### Bug Fixes
+
+* **deps:** bump actions/create-github-app-token from 2.2.2 to 3.3.0 ([#313](https://github.com/SquadRules/mcp/issues/313)) ([eee8814](https://github.com/SquadRules/mcp/commit/eee88149214c6a5ae1cf8385791a65daeae5da1f))
+* **deps:** bump actions/setup-go from 6.5.0 to 7.0.0 ([#312](https://github.com/SquadRules/mcp/issues/312)) ([18c071a](https://github.com/SquadRules/mcp/commit/18c071ac8ba3b3540475e0a353f8f02e723ab5ae))
+* **deps:** bump googleapis/release-please-action from 4.4.1 to 5.0.0 ([#311](https://github.com/SquadRules/mcp/issues/311)) ([eea38bf](https://github.com/SquadRules/mcp/commit/eea38bf00d9f1781fef1cadf1f5fd96e1cce28e6))
+
+## [5.23.2](https://github.com/SquadRules/mcp/compare/v5.23.1...v5.23.2) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** bump jsdom from 30.1.2 to 31.0.1 ([#317](https://github.com/SquadRules/mcp/issues/317)) ([c1d86ce](https://github.com/SquadRules/mcp/commit/c1d86cebe07b6d84d36b659f994f834399619035))
+
+## [5.23.1](https://github.com/SquadRules/mcp/compare/v5.23.0...v5.23.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** bump github/codeql-action/init from 4.38.2 to 4.39.3 ([#310](https://github.com/SquadRules/mcp/issues/310)) ([c98be6f](https://github.com/SquadRules/mcp/commit/c98be6f09d73a893b896e235f79681b8b12873eb))
+* **deps:** restore Dependabot version update PRs ([#307](https://github.com/SquadRules/mcp/issues/307)) ([d4afce2](https://github.com/SquadRules/mcp/commit/d4afce2d1939312d0a16cbeec974f28e49fea95a))
+
 ## [5.23.0](https://github.com/SquadRules/mcp/compare/v5.22.1...v5.23.0) (2026-11-18)
 
 

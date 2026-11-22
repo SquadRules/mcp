@@ -24,7 +24,7 @@ test('release workflow never mutates protected main directly', () => {
   const text = readFileSync('.github/workflows/release.yml', 'utf8');
   assert.doesNotMatch(text, /semantic-release/);
   assert.doesNotMatch(text, /git push[^\n]*(HEAD:main|refs\/heads\/main|\bmain\b)/);
-  assert.match(text, /googleapis\/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071/);
+  assert.match(text, /googleapis\/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7/);
   assert.match(text, /token:\s*\$\{\{ steps\.app-token\.outputs\.token \}\}/);
   assert.doesNotMatch(text, /secrets\.GH_PAT/);
 });
@@ -48,7 +48,7 @@ test('release producer and merger use scoped short-lived App tokens, never dispa
   for (const name of ['release-please', 'sync-release-pr', 'auto-merge-release-pr']) {
     const job = workflow.jobs[name];
     const token = job.steps.find(step => step.id === 'app-token');
-    assert.equal(token.uses, 'actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349');
+    assert.equal(token.uses, 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510');
     assert.equal(token.with['app-id'], '${{ vars.AUTO_APP_ID }}');
     assert.equal(token.with['private-key'], '${{ secrets.AUTO_APP_PRIVATE_KEY }}');
     assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
