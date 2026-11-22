@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.23.5](https://github.com/SquadRules/mcp/compare/v5.23.4...v5.23.5) (2026-11-22)
+
+
+### Bug Fixes
+
+* **deps:** bump the npm-development-minor-patch group ([#327](https://github.com/SquadRules/mcp/issues/327)) ([75a2466](https://github.com/SquadRules/mcp/commit/75a246689f1b8665e87e97e61cabdd3d72b99fa9))
+* **deps:** bump the npm-development-minor-patch group (eslint 10.15, playwright 1.65, knip 6.45, and 6 more) ([75a2466](https://github.com/SquadRules/mcp/commit/75a246689f1b8665e87e97e61cabdd3d72b99fa9))
+* **deps:** bump the npm-production-minor-patch group across 1 directory with 21 updates ([#326](https://github.com/SquadRules/mcp/issues/326)) ([7169d0c](https://github.com/SquadRules/mcp/commit/7169d0cb7ec943f84162a33f4093d38921e59dfd))
+
 ## [5.23.4](https://github.com/SquadRules/mcp/compare/v5.23.3...v5.23.4) (2026-11-22)
 
 
