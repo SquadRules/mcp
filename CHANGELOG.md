@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.23.4](https://github.com/SquadRules/mcp/compare/v5.23.3...v5.23.4) (2026-11-22)
+
+
+### Bug Fixes
+
+* **deps:** upgrade apache-arrow to 21 and @lancedb/lancedb to 0.42.0-beta.21 ([#324](https://github.com/SquadRules/mcp/issues/324)) ([79bf3e7](https://github.com/SquadRules/mcp/commit/79bf3e7b47505e42c0284db567fa9e799ae0b178))
+
 ## [5.23.3](https://github.com/SquadRules/mcp/compare/v5.23.2...v5.23.3) (2026-11-22)
 
 
