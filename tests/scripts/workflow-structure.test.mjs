@@ -143,7 +143,7 @@ test('release workflow triggers and structure', () => {
   assert.match(releasePlease.if, /github\.event_name == 'push'/);
   assert.equal(releasePlease.permissions.contents, 'read');
   const releasePleaseStep = releasePlease.steps.find(s => s.uses?.startsWith('googleapis/release-please-action@'));
-  assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071');
+  assert.equal(releasePleaseStep.uses, 'googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7');
   assert.equal(releasePleaseStep.with.token, '${{ steps.app-token.outputs.token }}');
   assert.equal(releasePleaseStep.with['config-file'], 'release-please-config.json');
   assert.equal(releasePleaseStep.with['manifest-file'], '.release-please-manifest.json');
