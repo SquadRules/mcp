@@ -24,7 +24,7 @@ test('release workflow never mutates protected main directly', () => {
   const text = readFileSync('.github/workflows/release.yml', 'utf8');
   assert.doesNotMatch(text, /semantic-release/);
   assert.doesNotMatch(text, /git push[^\n]*(HEAD:main|refs\/heads\/main|\bmain\b)/);
-  assert.match(text, /googleapis\/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071/);
+  assert.match(text, /googleapis\/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7/);
   assert.match(text, /token:\s*\$\{\{ steps\.app-token\.outputs\.token \}\}/);
   assert.doesNotMatch(text, /secrets\.GH_PAT/);
 });
