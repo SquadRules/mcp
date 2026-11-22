@@ -1,5 +1,5 @@
 ---
-version: "5.23.4"
+version: "5.23.5"
 slug: adapter-migration
 title: Adapter Migration Workflow
 ---
