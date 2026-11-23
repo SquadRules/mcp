@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.23.6](https://github.com/SquadRules/mcp/compare/v5.23.5...v5.23.6) (2026-11-23)
+
+
+### Bug Fixes
+
+* **deps:** bump @testing-library/jest-dom from 7.0.1 to 8.0.0 ([#338](https://github.com/SquadRules/mcp/issues/338)) ([3746eac](https://github.com/SquadRules/mcp/commit/3746eac7bc20da8a795d7b81afc0b21da2416e66))
+* **deps:** bump actions/dependency-review-action from 5.0.0 to 5.0.1 ([#334](https://github.com/SquadRules/mcp/issues/334)) ([0c05da9](https://github.com/SquadRules/mcp/commit/0c05da9dbb990395ebec66a94743e6d71f055bcb))
+* **deps:** bump actions/setup-go from 7.0.0 to 7.1.0 ([#332](https://github.com/SquadRules/mcp/issues/332)) ([7c01afa](https://github.com/SquadRules/mcp/commit/7c01afa60728f511377828f6031354d5aa8127c3))
+* **deps:** bump actions/upload-artifact from 5 to 7 ([#314](https://github.com/SquadRules/mcp/issues/314)) ([6749ddf](https://github.com/SquadRules/mcp/commit/6749ddf3ea72bbe3b27896c9745af8b52579bcc8))
+* **deps:** bump the npm-development-minor-patch group with 12 updates ([#336](https://github.com/SquadRules/mcp/issues/336)) ([4a75ce5](https://github.com/SquadRules/mcp/commit/4a75ce542372fdd56d672893cf075f33047b17a3))
+
 ## [5.23.5](https://github.com/SquadRules/mcp/compare/v5.23.4...v5.23.5) (2026-11-22)
 
 
