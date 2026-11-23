@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.23.7](https://github.com/SquadRules/mcp/compare/v5.23.6...v5.23.7) (2026-11-23)
+
+
+### Bug Fixes
+
+* **deps:** bump the npm-production-minor-patch group with 10 updates ([#335](https://github.com/SquadRules/mcp/issues/335)) ([b8d92c6](https://github.com/SquadRules/mcp/commit/b8d92c6b4c8311c892dc4a2adf9828a947521e0a))
+
 ## [5.23.6](https://github.com/SquadRules/mcp/compare/v5.23.5...v5.23.6) (2026-11-23)
 
 
