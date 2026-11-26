@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.23.9](https://github.com/SquadRules/mcp/compare/v5.23.8...v5.23.9) (2026-11-26)
+
+
+### Bug Fixes
+
+* **deps:** bump @lancedb/lancedb from 0.42.0-beta.21 to 0.42.0-beta.26 ([#346](https://github.com/SquadRules/mcp/issues/346)) ([5f40a87](https://github.com/SquadRules/mcp/commit/5f40a8773ef54d21441c88d49249348a5a8d68c7))
+* **deps:** bump knip ([bce3f77](https://github.com/SquadRules/mcp/commit/bce3f7759b24087d0c776be5b9e34660581a2f23))
+* **deps:** bump knip from 6.47.0 to 6.48.0 in the npm-development-minor-patch group ([#345](https://github.com/SquadRules/mcp/issues/345)) ([bce3f77](https://github.com/SquadRules/mcp/commit/bce3f7759b24087d0c776be5b9e34660581a2f23))
+
 ## [5.23.8](https://github.com/SquadRules/mcp/compare/v5.23.7...v5.23.8) (2026-11-24)
 
 
