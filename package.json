@@ -1,6 +1,6 @@
 {
   "name": "@squadrules/mcp",
-  "version": "5.23.8",
+  "version": "5.23.9",
   "description": "SquadRules MCP server for agent automation: persistent memory and deterministic workflow execution for AI agents and chats",
   "type": "module",
   "main": "dist/index.js",
