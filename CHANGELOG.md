@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.23.11](https://github.com/SquadRules/mcp/compare/v5.23.10...v5.23.11) (2026-11-27)
+
+
+### Bug Fixes
+
+* **deps:** bump @lancedb/lancedb from 0.42.0-beta.26 to 0.42.0-beta.29 ([#351](https://github.com/SquadRules/mcp/issues/351)) ([63c16bd](https://github.com/SquadRules/mcp/commit/63c16bd4d9f1eb2197487ad60248f17d75835a96))
+* **deps:** bump i18next ([9aef646](https://github.com/SquadRules/mcp/commit/9aef6464004e77ee3683ca3f2cd28670f622cf75))
+* **deps:** bump i18next from 27.2.5 to 27.2.7 in the npm-production-minor-patch group ([#349](https://github.com/SquadRules/mcp/issues/349)) ([9aef646](https://github.com/SquadRules/mcp/commit/9aef6464004e77ee3683ca3f2cd28670f622cf75))
+
 ## [5.23.10](https://github.com/SquadRules/mcp/compare/v5.23.9...v5.23.10) (2026-11-26)
 
 
